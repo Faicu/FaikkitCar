@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     private TextView volumeLabel;
     private TextView history;
     private TextView log;
+    private Button upload;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -126,6 +127,12 @@ public class MainActivity extends Activity {
         log.setTextIsSelectable(true);
         log.setTextSize(12);
         l.addView(log);
+        upload = button("", v -> {
+            Prefs.setUploadEnabled(this, !Prefs.uploadEnabled(this));
+            Uploader.kick(this);
+            refresh();
+        });
+        l.addView(upload);
         l.addView(button("Copiaza jurnalul", v -> {
             getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(
                     "VW Welcome", Prefs.deviceInfo(this) + "\n\nIstoric:\n" + Prefs.history(this)
@@ -209,6 +216,15 @@ public class MainActivity extends Activity {
         history.setText(hist.isEmpty() ? "nicio trezire inca" : hist);
         String logs = Prefs.logText(this);
         log.setText(logs.isEmpty() ? "gol" : logs);
+        if (!Uploader.configured()) {
+            upload.setText("Trimitere la server: indisponibila in acest build");
+            upload.setEnabled(false);
+        } else {
+            String st = Prefs.uploadStatus(this);
+            upload.setText("Trimite jurnalul la server: " + (Prefs.uploadEnabled(this) ? "DA" : "NU")
+                    + "\nIn asteptare: " + Prefs.outboxSize(this)
+                    + (st.isEmpty() ? "" : ", ultima: " + st));
+        }
     }
 
     private void pickSound() {

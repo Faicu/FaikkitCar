@@ -27,6 +27,13 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   preferințele `cfg` (rescrise la ~15 s de `lastAlive`), jurnalul și istoricul în
   `journal`, mutate automat din `cfg` la prima rulare. `deviceInfo()` dă antetul
   jurnalului copiat (versiuni, model, optimizare baterie, notificări, setări).
+- `Uploader`: trimite jurnalul la `https://status.faicu.ro/api/vw-log` (FaikkitBox din
+  `/opt/faikkitbox`, pagina admin `/vw`, tabela `vw_log`; citibil direct din
+  `/opt/faikkitbox/data/faikkitbox.db`). Coadă `outbox` în `journal` (max 500), loturi de
+  100, `Authorization: Bearer` cu `BuildConfig.VW_LOG_TOKEN` (secret GitHub
+  `VW_LOG_TOKEN` = `VW_LOG_TOKEN` din `/opt/faikkitbox/.env`). Declanșat la fiecare
+  `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
+  folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
 - `MainActivity`: UI construit din cod (fără XML); pornește serviciul în `onCreate`.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
   lista de autostart Teyes; notează „Pornit din autostart”, pornește serviciul, `finish()`.
@@ -50,6 +57,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `.github/workflows/build.yml` rulează la push și `workflow_dispatch`, publică artifactul
   `vw-welcome-apk` și un GitHub Release `build-<run_number>` marcat latest.
   Descărcare: https://github.com/Faicu/welcometovw/releases/latest/download/VWWelcome.apk
+- Secretul `VW_LOG_TOKEN` e transmis la `gradle assembleDebug`; fără el build-ul merge,
+  dar trimiterea jurnalului e dezactivată.
 - Semnare: secretele repo `KEYSTORE_BASE64` și `KEYSTORE_PASSWORD` (deja adăugate; PKCS12,
   alias `vwwelcome`). `app/build.gradle` citește `SIGNING_KEYSTORE` / `SIGNING_PASSWORD`;
   `versionCode` = `GITHUB_RUN_NUMBER`, `versionName` = `1.1.<N>`. Keystore-ul nu e în repo.

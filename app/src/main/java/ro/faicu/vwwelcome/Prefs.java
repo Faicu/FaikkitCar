@@ -7,6 +7,10 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.PowerManager;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -18,6 +22,8 @@ import java.util.Random;
 final class Prefs {
     private static final int HISTORY_MAX = 20;
     private static final int LOG_MAX = 100;
+    // Liniile netrimise inca la server; peste atat le pierdem pe cele mai vechi.
+    private static final int OUTBOX_MAX = 500;
     private static final Random RANDOM = new Random();
 
     private Prefs() {}
@@ -158,6 +164,10 @@ final class Prefs {
     static void log(Context c, String line) {
         android.util.Log.i("VWWelcome", line);
         prepend(c, "log", now() + "  " + line, LOG_MAX);
+        if (Uploader.configured() && uploadEnabled(c)) {
+            enqueue(c, System.currentTimeMillis(), line);
+            Uploader.kick(c);
+        }
     }
 
     static String logText(Context c) {
@@ -173,6 +183,62 @@ final class Prefs {
         String[] lines = (line + "\n" + j.getString(key, "")).split("\n");
         String text = String.join("\n", Arrays.copyOf(lines, Math.min(lines.length, max)));
         j.edit().putString(key, text.trim()).apply();
+    }
+
+    static boolean uploadEnabled(Context c) {
+        return sp(c).getBoolean("upload", true);
+    }
+
+    static void setUploadEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("upload", on).apply();
+    }
+
+    /** Rezultatul ultimei trimiteri la server, cu ora, pentru ecranul aplicatiei. */
+    static String uploadStatus(Context c) {
+        return journal(c).getString("upload_status", "");
+    }
+
+    static void setUploadStatus(Context c, String status) {
+        journal(c).edit().putString("upload_status", now() + " " + status).apply();
+    }
+
+    private static JSONArray outbox(Context c) {
+        try {
+            return new JSONArray(journal(c).getString("outbox", "[]"));
+        } catch (JSONException e) {
+            return new JSONArray();
+        }
+    }
+
+    private static synchronized void enqueue(Context c, long t, String line) {
+        JSONArray box = outbox(c);
+        try {
+            box.put(new JSONObject().put("t", t).put("text", line));
+        } catch (JSONException e) {
+            return;
+        }
+        while (box.length() > OUTBOX_MAX) box.remove(0);
+        journal(c).edit().putString("outbox", box.toString()).apply();
+    }
+
+    static synchronized int outboxSize(Context c) {
+        return outbox(c).length();
+    }
+
+    /** Primele max linii din coada, fara sa le scoatem (le scoate dropOutbox dupa succes). */
+    static synchronized JSONArray peekOutbox(Context c, int max) {
+        JSONArray box = outbox(c);
+        JSONArray out = new JSONArray();
+        for (int i = 0; i < box.length() && i < max; i++) out.put(box.opt(i));
+        return out;
+    }
+
+    /** Scoate primele n linii; cele adaugate intre timp raman, fiind la coada. */
+    static synchronized void dropOutbox(Context c, int n) {
+        JSONArray box = outbox(c);
+        JSONArray rest = new JSONArray();
+        for (int i = n; i < box.length(); i++) rest.put(box.opt(i));
+        journal(c).edit().putString("outbox", rest.toString()).apply();
     }
 
     /** Antetul jurnalului copiat: versiuni si permisiuni, ca sa nu le mai cerem separat. */

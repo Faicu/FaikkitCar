@@ -26,6 +26,10 @@ MP3 ales de utilizator la fiecare trezire din hibernare (ACC ON).
   BootReceiver, pauze între tick-uri peste 15 s, ecran stins/aprins, redare, schimbări
   de focus audio) se poate copia în clipboard din aplicație, cu un antet cu versiunile
   aplicației și ale Android-ului și starea permisiunilor.
+- Jurnalul se trimite și la `https://status.faicu.ro/api/vw-log` (pagina „VW” din
+  FaikkitBox), cu cheia din secretul `VW_LOG_TOKEN`. Liniile stau într-o coadă locală
+  (max. 500) până la confirmare; trimiterea se reia la revenirea internetului și la
+  ~30 s. Comutator în aplicație; fără secret la build, trimiterea e dezactivată.
 
 ## Configurare pe unitate
 
@@ -57,6 +61,8 @@ aceeași cheie. Workflow-ul o citește din două secrete ale repo-ului
 
 - `KEYSTORE_BASE64` – fișierul keystore (PKCS12, alias `vwwelcome`), codat base64;
 - `KEYSTORE_PASSWORD` – parola lui (aceeași pentru keystore și cheie).
+- `VW_LOG_TOKEN` – cheia pentru trimiterea jurnalului la status.faicu.ro (aceeași
+  valoare ca `VW_LOG_TOKEN` din `/opt/faikkitbox/.env`).
 
 Fără ele, build-ul merge, dar e semnat cu o cheie de debug temporară. Păstrează
 o copie a keystore-ului: dacă îl pierzi, următoarea actualizare cere dezinstalare.

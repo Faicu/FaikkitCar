@@ -8,6 +8,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -33,6 +35,15 @@ public class WelcomeService extends Service {
     private long lastTick;
     private int count;
 
+    // La trezire internetul revine abia dupa cateva secunde: atunci trimitem jurnalul adunat.
+    private final ConnectivityManager.NetworkCallback netCallback =
+            new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    Uploader.kick(WelcomeService.this);
+                }
+            };
+
     static void start(Context c) {
         c.startForegroundService(new Intent(c, WelcomeService.class));
     }
@@ -51,6 +62,7 @@ public class WelcomeService extends Service {
         Prefs.log(this, "Serviciu pornit: boot #" + boot + " (anterior #" + lastBoot + "), uptime "
                 + SystemClock.elapsedRealtime() / 1000 + " s, ultima activitate "
                 + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
+        Prefs.log(this, "Info: " + Prefs.deviceInfo(this).replace("\n", " | "));
         if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
             onWake("boot nou");
         } else if (alive > 0 && now - alive > thresholdMs()) {
@@ -67,6 +79,7 @@ public class WelcomeService extends Service {
         // Nu poate fi primit din manifest (Android 8+), deci il ascultam aici.
         screen.addAction(Intent.ACTION_USER_PRESENT);
         registerReceiver(screenReceiver, screen);
+        getSystemService(ConnectivityManager.class).registerDefaultNetworkCallback(netCallback);
     }
 
     // Caz 3: procesul a supravietuit, dar unitatea a fost in hibernare.
@@ -85,6 +98,10 @@ public class WelcomeService extends Service {
             // Scriem pe disc doar la ~15 s, ca sa nu uzam memoria interna.
             if (++count % 3 == 0 || gap > TICK_MS * 2) {
                 Prefs.setLastAlive(WelcomeService.this, System.currentTimeMillis());
+            }
+            // Reincercam la ~30 s liniile ramase netrimise (ex. server indisponibil).
+            if (count % 6 == 0 && Prefs.outboxSize(WelcomeService.this) > 0) {
+                Uploader.kick(WelcomeService.this);
             }
             handler.postDelayed(this, TICK_MS);
         }
@@ -151,6 +168,7 @@ public class WelcomeService extends Service {
     public void onDestroy() {
         handler.removeCallbacks(tick);
         unregisterReceiver(screenReceiver);
+        getSystemService(ConnectivityManager.class).unregisterNetworkCallback(netCallback);
         Prefs.log(this, "Serviciu oprit");
         Prefs.setLastAlive(this, System.currentTimeMillis());
         super.onDestroy();
