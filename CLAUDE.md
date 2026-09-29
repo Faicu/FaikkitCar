@@ -27,7 +27,22 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   preferințele `cfg` (rescrise la ~15 s de `lastAlive`), jurnalul și istoricul în
   `journal`, mutate automat din `cfg` la prima rulare. `deviceInfo()` dă antetul
   jurnalului copiat (versiuni, model, optimizare baterie, notificări, setări).
-- `MainActivity`: UI construit din cod (fără XML).
+- `MainActivity`: UI construit din cod (fără XML); pornește serviciul în `onCreate`.
+- `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
+  lista de autostart Teyes; notează „Pornit din autostart”, pornește serviciul, `finish()`.
+
+## Ce știm despre somnul Teyes CC3 (forumuri XDA/4PDA/Drive2, neverificat pe unitate)
+
+- ACC OFF → somn (suspend-to-RAM, ≤9 mA); după ~72 h oprire completă; reporniri complete
+  periodice (la 10–50 de porniri). Sleep mode: Factory → `168`; „Delayed shutdown” în
+  General settings amână somnul.
+- Firmware-ul standard închide toate aplicațiile la intrarea în somn (firmware modificat
+  „Gordgelin” are „no kill”; o sursă pomenește o listă „UnKill”). Deci serviciul probabil
+  moare, iar după trezire nu vine `BOOT_COMPLETED`.
+- Unitatea utilizatorului are listă de autostart, dar „nu pornește de fiecare dată”.
+- Alte căi găsite: aplicație pornită de Android la atașarea unui stick USB (StartTasker,
+  XDA), rezultate mixte. Broadcast-uri ACC gen `com.fyt.boot.ACCON` nu ajung la aplicații
+  de la Android 8.
 
 ## Build
 
@@ -46,6 +61,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - După build-6 s-a îmbunătățit diagnosticul (focus audio în jurnal, antet cu versiuni și
   permisiuni, `QUICKBOOT_POWERON`, `USER_PRESENT`, jurnal separat de setări). Testul pe
   navigație trebuie făcut cu un build care conține aceste schimbări, nu cu 1.1.6/1.1.7.
+- Build-ul cu `StartActivity` trebuie pus în lista de autostart înainte de test; jurnalul
+  arată cât de des vine „Pornit din autostart”.
 - Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,
   2–5 min, peste noapte) și trimite jurnalul copiat din aplicație. În funcție de jurnal
   decidem dacă e nevoie de un watchdog (repornire cu `AlarmManager`).

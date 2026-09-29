@@ -14,6 +14,8 @@ MP3 ales de utilizator la fiecare trezire din hibernare (ACC ON).
   pragul, se consideră trezire (proces repornit).
 - La aprinderea ecranului (`SCREEN_ON`) sau la deblocare (`USER_PRESENT`) verificarea
   se face imediat, nu la următorul tick.
+- Serviciul pornește și la deschiderea aplicației, inclusiv din autostart-ul Teyes prin
+  activitatea invizibilă `StartActivity` („VW Welcome Start”).
 - `BootReceiver` pornește serviciul la `BOOT_COMPLETED`, `QUICKBOOT_POWERON` și
   `MY_PACKAGE_REPLACED`.
 - Redarea: `MediaPlayer`, audio focus `AUDIOFOCUS_GAIN_TRANSIENT`, după o pauză
@@ -33,7 +35,10 @@ MP3 ales de utilizator la fiecare trezire din hibernare (ACC ON).
 3. Pornește serviciul.
 4. Dezactivează optimizarea bateriei (și, dacă există, adaugă aplicația în lista
    de aplicații permise la pornire / „whitelist” din setările Teyes).
-5. Test sunet.
+5. Adaugă „VW Welcome Start” în lista de autostart Teyes. E o intrare invizibilă care
+   doar pornește serviciul: CC3 închide aplicațiile la intrarea în somn, iar după
+   trezire nu vine `BOOT_COMPLETED`.
+6. Test sunet.
 
 ## Build
 

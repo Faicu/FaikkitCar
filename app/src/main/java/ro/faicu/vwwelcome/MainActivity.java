@@ -43,6 +43,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        // Si daca aplicatia e deschisa din autostart, serviciul trebuie sa porneasca.
+        WelcomeService.start(this);
         int pad = (int) (24 * getResources().getDisplayMetrics().density);
 
         LinearLayout l = new LinearLayout(this);

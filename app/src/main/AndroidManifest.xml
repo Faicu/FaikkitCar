@@ -20,6 +20,21 @@
             </intent-filter>
         </activity>
 
+        <!-- A doua iconita, de pus in lista de autostart Teyes: nu afiseaza nimic. -->
+        <activity
+            android:name=".StartActivity"
+            android:exported="true"
+            android:label="VW Welcome Start"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".WelcomeService"
             android:exported="false" />
