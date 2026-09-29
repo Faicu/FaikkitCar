@@ -12,16 +12,18 @@ MP3 ales de utilizator la fiecare trezire din hibernare (ACC ON).
   (`Settings.Global.BOOT_COUNT`), e un boot nou, deci trezire, independent de ceas.
   Altfel, dacă ultima oră activă salvată în `SharedPreferences` e mai veche decât
   pragul, se consideră trezire (proces repornit).
-- La aprinderea ecranului (`SCREEN_ON`) verificarea se face imediat, nu la
-  următorul tick.
-- `BootReceiver` pornește serviciul la `BOOT_COMPLETED` și `MY_PACKAGE_REPLACED`.
+- La aprinderea ecranului (`SCREEN_ON`) sau la deblocare (`USER_PRESENT`) verificarea
+  se face imediat, nu la următorul tick.
+- `BootReceiver` pornește serviciul la `BOOT_COMPLETED`, `QUICKBOOT_POWERON` și
+  `MY_PACKAGE_REPLACED`.
 - Redarea: `MediaPlayer`, audio focus `AUDIOFOCUS_GAIN_TRANSIENT`, după o pauză
   configurabilă (implicit 2,5 s). Se pot alege mai multe sunete, redate la rând sau
   aleatoriu, și un volum propriu (0 = volumul curent al sistemului), refăcut după redare.
 - Ultimele 20 de treziri (motiv și sunet redat) apar în istoricul din aplicație.
 - Jurnalul de diagnostic (ultimele 100 de evenimente: pornirea serviciului,
-  BootReceiver, pauze între tick-uri peste 15 s, ecran stins/aprins, redare) se poate
-  copia în clipboard din aplicație.
+  BootReceiver, pauze între tick-uri peste 15 s, ecran stins/aprins, redare, schimbări
+  de focus audio) se poate copia în clipboard din aplicație, cu un antet cu versiunile
+  aplicației și ale Android-ului și starea permisiunilor.
 
 ## Configurare pe unitate
 

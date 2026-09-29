@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
         l.addView(log);
         l.addView(button("Copiaza jurnalul", v -> {
             getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(
-                    "VW Welcome", "Istoric:\n" + Prefs.history(this)
+                    "VW Welcome", Prefs.deviceInfo(this) + "\n\nIstoric:\n" + Prefs.history(this)
                             + "\n\nJurnal:\n" + Prefs.logText(this)));
             toast("Jurnal copiat in clipboard");
         }));

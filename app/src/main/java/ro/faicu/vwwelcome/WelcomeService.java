@@ -64,6 +64,8 @@ public class WelcomeService extends Service {
         handler.postDelayed(tick, TICK_MS);
         IntentFilter screen = new IntentFilter(Intent.ACTION_SCREEN_ON);
         screen.addAction(Intent.ACTION_SCREEN_OFF);
+        // Nu poate fi primit din manifest (Android 8+), deci il ascultam aici.
+        screen.addAction(Intent.ACTION_USER_PRESENT);
         registerReceiver(screenReceiver, screen);
     }
 
@@ -88,13 +90,17 @@ public class WelcomeService extends Service {
         }
     };
 
-    // Notam in jurnal ecranul stins/aprins; la aprindere verificam imediat, fara sa asteptam tick-ul.
+    // Notam in jurnal ecranul stins/aprins; la aprindere (sau deblocare) verificam imediat,
+    // fara sa asteptam tick-ul.
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent intent) {
-            boolean on = Intent.ACTION_SCREEN_ON.equals(intent.getAction());
-            Prefs.log(c, on ? "Ecran aprins" : "Ecran stins");
-            if (!on) return;
+            String action = intent.getAction();
+            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                Prefs.log(c, "Ecran stins");
+                return;
+            }
+            Prefs.log(c, Intent.ACTION_SCREEN_ON.equals(action) ? "Ecran aprins" : "Utilizator prezent");
             handler.removeCallbacks(tick);
             tick.run();
         }

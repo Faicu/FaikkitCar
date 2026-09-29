@@ -2,6 +2,10 @@ package ro.faicu.vwwelcome;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.PowerManager;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -20,6 +24,22 @@ final class Prefs {
 
     private static SharedPreferences sp(Context c) {
         return c.getSharedPreferences("cfg", Context.MODE_PRIVATE);
+    }
+
+    /**
+     * Jurnalul si istoricul stau separat de setari: "cfg" se rescrie la ~15 s (ora ultimei
+     * activitati) si nu vrem sa rescriem de fiecare data si cei cativa KB de jurnal.
+     */
+    private static synchronized SharedPreferences journal(Context c) {
+        SharedPreferences j = c.getSharedPreferences("journal", Context.MODE_PRIVATE);
+        SharedPreferences cfg = sp(c);
+        // Versiunile pana la 1.1.7 tineau jurnalul in "cfg": il mutam o singura data.
+        if (cfg.contains("log") || cfg.contains("history")) {
+            j.edit().putString("log", cfg.getString("log", ""))
+                    .putString("history", cfg.getString("history", "")).commit();
+            cfg.edit().remove("log").remove("history").apply();
+        }
+        return j;
     }
 
     /**
@@ -120,7 +140,7 @@ final class Prefs {
 
     /** Ultimele treziri detectate, cea mai noua prima, cate una pe rand. */
     static String history(Context c) {
-        return sp(c).getString("history", "");
+        return journal(c).getString("history", "");
     }
 
     static void addHistory(Context c, String line) {
@@ -128,7 +148,7 @@ final class Prefs {
     }
 
     static void clearHistory(Context c) {
-        sp(c).edit().remove("history").apply();
+        journal(c).edit().remove("history").apply();
     }
 
     /**
@@ -141,17 +161,41 @@ final class Prefs {
     }
 
     static String logText(Context c) {
-        return sp(c).getString("log", "");
+        return journal(c).getString("log", "");
     }
 
     static void clearLog(Context c) {
-        sp(c).edit().remove("log").apply();
+        journal(c).edit().remove("log").apply();
     }
 
     private static synchronized void prepend(Context c, String key, String line, int max) {
-        String[] lines = (line + "\n" + sp(c).getString(key, "")).split("\n");
+        SharedPreferences j = journal(c);
+        String[] lines = (line + "\n" + j.getString(key, "")).split("\n");
         String text = String.join("\n", Arrays.copyOf(lines, Math.min(lines.length, max)));
-        sp(c).edit().putString(key, text.trim()).apply();
+        j.edit().putString(key, text.trim()).apply();
+    }
+
+    /** Antetul jurnalului copiat: versiuni si permisiuni, ca sa nu le mai cerem separat. */
+    static String deviceInfo(Context c) {
+        String version;
+        try {
+            PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
+            version = pi.versionName + " (" + pi.getLongVersionCode() + ")";
+        } catch (PackageManager.NameNotFoundException e) {
+            version = "necunoscuta";
+        }
+        PowerManager pm = c.getSystemService(PowerManager.class);
+        boolean notif = Build.VERSION.SDK_INT < 33 || c.checkSelfPermission(
+                "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED;
+        return "VW Welcome " + version + "\n"
+                + "Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + "), "
+                + Build.MANUFACTURER + " " + Build.MODEL + "\n"
+                + "Build: " + Build.DISPLAY + "\n"
+                + "Optimizare baterie: " + (pm.isIgnoringBatteryOptimizations(c.getPackageName())
+                        ? "dezactivata" : "ACTIVA") + ", notificari: " + (notif ? "da" : "NU") + "\n"
+                + "Prag " + thresholdSec(c) + " s, pauza " + delayMs(c) + " ms, volum "
+                + volumePercent(c) + "%, sunete " + sounds(c).length
+                + (randomOrder(c) ? " (aleatoriu)" : " (la rand)");
     }
 
     private static String now() {

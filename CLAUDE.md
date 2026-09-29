@@ -13,13 +13,20 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `SystemClock.elapsedRealtime()`; un gap peste prag (implicit 60 s, minim 30) = trezire.
   În `onCreate`: contor de boot schimbat (`Settings.Global.BOOT_COUNT`) = trezire; altfel
   ultima oră activă din `SharedPreferences` mai veche decât pragul = trezire.
-  `SCREEN_ON` face verificarea imediat; `SCREEN_OFF` doar se notează în jurnal.
-- `BootReceiver`: `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` pornesc serviciul.
+  `SCREEN_ON` și `USER_PRESENT` (înregistrate dinamic) fac verificarea imediat;
+  `SCREEN_OFF` doar se notează în jurnal.
+- `BootReceiver`: `BOOT_COMPLETED`, `QUICKBOOT_POWERON` (android și htc),
+  `MY_PACKAGE_REPLACED` pornesc serviciul. `LOCKED_BOOT_COMPLETED` e omis intenționat
+  (ar cere directBootAware, iar setările sunt în stocarea criptată).
 - `Player`: `MediaPlayer` ținut static, `AUDIOFOCUS_GAIN_TRANSIENT`, pauză configurabilă
   (0–15 s, implicit 2,5 s), volum opțional în % din `STREAM_MUSIC` (0 = volumul sistemului),
   refăcut după redare; protecție anti-dublare de 20 s (butonul Test o ocolește).
+  Schimbările de focus audio din timpul redării se notează în jurnal (doar notare).
 - `Prefs`: sunete multiple în `filesDir/sounds` (`<millis>_<nume>`), la rând sau aleatoriu;
-  istoric treziri (20); jurnal de diagnostic (100 de evenimente).
+  istoric treziri (20); jurnal de diagnostic (100 de evenimente). Setările stau în
+  preferințele `cfg` (rescrise la ~15 s de `lastAlive`), jurnalul și istoricul în
+  `journal`, mutate automat din `cfg` la prima rulare. `deviceInfo()` dă antetul
+  jurnalului copiat (versiuni, model, optimizare baterie, notificări, setări).
 - `MainActivity`: UI construit din cod (fără XML).
 
 ## Build
@@ -36,8 +43,14 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 
 - Ultimul build verde: `build-6` (1.1.6). Nicio versiune nu a fost încă instalată pe
   navigație; nimic nu e testat pe hardware real.
+- După build-6 s-a îmbunătățit diagnosticul (focus audio în jurnal, antet cu versiuni și
+  permisiuni, `QUICKBOOT_POWERON`, `USER_PRESENT`, jurnal separat de setări). Testul pe
+  navigație trebuie făcut cu un build care conține aceste schimbări, nu cu 1.1.6/1.1.7.
 - Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,
   2–5 min, peste noapte) și trimite jurnalul copiat din aplicație. În funcție de jurnal
   decidem dacă e nevoie de un watchdog (repornire cu `AlarmManager`).
+  Atenție: dacă Teyes face force-stop la ACC OFF, alarmele se anulează și ele; atunci ar
+  trebui căutat un broadcast ACC specific Teyes (logcat). Tot după test: opțiune de tip
+  de sunet „navigație” (`USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`, peste radio) vs. „media”.
 - Idei amânate: ore de liniște, sunet în funcție de ora zilei, fade-in, salut TTS, prag
   diferit zi/noapte, iconiță proprie.

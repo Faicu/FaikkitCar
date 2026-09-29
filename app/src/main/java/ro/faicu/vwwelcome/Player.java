@@ -56,8 +56,12 @@ final class Player {
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build();
+        // Doar notam in jurnal: daca radioul/player-ul navigatiei ne ia focusul la ACC ON,
+        // aici se vede de ce sunetul a fost taiat sau acoperit.
         AudioFocusRequest focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
                 .setAudioAttributes(attrs)
+                .setOnAudioFocusChangeListener(change -> Prefs.log(c, "Focus audio: " + focusName(change)),
+                        new Handler(Looper.getMainLooper()))
                 .build();
         stopCurrent(c, am);
         int granted = am.requestAudioFocus(focus);
@@ -85,6 +89,16 @@ final class Player {
         } catch (Exception e) {
             Prefs.log(c, "Redare: eroare " + e);
             finish(c, mp, am, focus);
+        }
+    }
+
+    private static String focusName(int change) {
+        switch (change) {
+            case AudioManager.AUDIOFOCUS_GAIN: return "primit inapoi";
+            case AudioManager.AUDIOFOCUS_LOSS: return "PIERDUT";
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT: return "PIERDUT temporar";
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK: return "pierdut, volum redus";
+            default: return "schimbare " + change;
         }
     }
 
