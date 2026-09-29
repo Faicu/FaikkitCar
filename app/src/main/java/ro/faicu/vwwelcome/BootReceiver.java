@@ -8,6 +8,7 @@ import android.content.Intent;
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent intent) {
+        Prefs.log(c, "BootReceiver: " + intent.getAction());
         WelcomeService.start(c);
     }
 }

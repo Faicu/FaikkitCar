@@ -2,6 +2,7 @@ package ro.faicu.vwwelcome;
 
 import android.app.Activity;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -18,6 +19,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,7 +35,10 @@ public class MainActivity extends Activity {
     private LinearLayout soundList;
     private Button order;
     private EditText threshold;
+    private EditText delay;
+    private TextView volumeLabel;
     private TextView history;
+    private TextView log;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -58,12 +63,37 @@ public class MainActivity extends Activity {
         });
         l.addView(order);
 
+        l.addView(label("Prag: secunde minime de hibernare (min. 30)"));
         threshold = new EditText(this);
         threshold.setInputType(InputType.TYPE_CLASS_NUMBER);
-        threshold.setHint("Secunde minime cu contactul luat (min. 30)");
-        threshold.setText(String.valueOf(Prefs.thresholdSec(this)));
         l.addView(threshold);
-        l.addView(button("2. Salveaza pragul", v -> saveThreshold()));
+        l.addView(label("Pauza inainte de redare, in secunde (0-15)"));
+        delay = new EditText(this);
+        delay.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        l.addView(delay);
+        l.addView(button("2. Salveaza pragul si pauza", v -> saveSettings()));
+        fillSettings();
+
+        volumeLabel = label("");
+        l.addView(volumeLabel);
+        SeekBar volume = new SeekBar(this);
+        volume.setMax(100);
+        volume.setProgress(Prefs.volumePercent(this));
+        volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
+                if (fromUser) Prefs.setVolumePercent(MainActivity.this, p);
+                showVolume();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar sb) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar sb) {}
+        });
+        l.addView(volume);
+        showVolume();
 
         l.addView(button("3. Porneste serviciul", v -> {
             WelcomeService.start(this);
@@ -84,6 +114,24 @@ public class MainActivity extends Activity {
         l.addView(history);
         l.addView(button("Sterge istoricul", v -> {
             Prefs.clearHistory(this);
+            refresh();
+        }));
+
+        TextView lh = label("\nJurnal diagnostic (ultimele 100):");
+        lh.setTextSize(18);
+        l.addView(lh);
+        log = new TextView(this);
+        log.setTextIsSelectable(true);
+        log.setTextSize(12);
+        l.addView(log);
+        l.addView(button("Copiaza jurnalul", v -> {
+            getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(
+                    "VW Welcome", "Istoric:\n" + Prefs.history(this)
+                            + "\n\nJurnal:\n" + Prefs.logText(this)));
+            toast("Jurnal copiat in clipboard");
+        }));
+        l.addView(button("Sterge jurnalul", v -> {
+            Prefs.clearLog(this);
             refresh();
         }));
 
@@ -109,6 +157,18 @@ public class MainActivity extends Activity {
         refresh();
     }
 
+    private TextView label(String text) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        return t;
+    }
+
+    private void showVolume() {
+        int v = Prefs.volumePercent(this);
+        volumeLabel.setText("Volum sunet de bun venit: "
+                + (v == 0 ? "volumul curent al sistemului" : v + "%"));
+    }
+
     private Button button(String text, View.OnClickListener click) {
         Button bt = new Button(this);
         bt.setText(text);
@@ -124,7 +184,8 @@ public class MainActivity extends Activity {
         status.setText(
                 "Sunete: " + (sounds.length == 0 ? "NICIUNUL" : sounds.length) + "\n"
                 + "Optimizare baterie: " + (batteryOk ? "dezactivata (ok)" : "ACTIVA") + "\n"
-                + "Prag: " + Prefs.thresholdSec(this) + " s\n");
+                + "Prag: " + Prefs.thresholdSec(this) + " s, pauza "
+                + Prefs.delayMs(this) / 1000.0 + " s\n");
 
         soundList.removeAllViews();
         for (File f : sounds) {
@@ -144,6 +205,8 @@ public class MainActivity extends Activity {
 
         String hist = Prefs.history(this);
         history.setText(hist.isEmpty() ? "nicio trezire inca" : hist);
+        String logs = Prefs.logText(this);
+        log.setText(logs.isEmpty() ? "gol" : logs);
     }
 
     private void pickSound() {
@@ -200,15 +263,22 @@ public class MainActivity extends Activity {
         return "sunet";
     }
 
-    private void saveThreshold() {
+    private void saveSettings() {
         try {
             Prefs.setThresholdSec(this, Integer.parseInt(threshold.getText().toString().trim()));
+            double sec = Double.parseDouble(delay.getText().toString().trim().replace(',', '.'));
+            Prefs.setDelayMs(this, Math.round(sec * 1000));
             toast("Salvat");
         } catch (NumberFormatException e) {
             toast("Numar invalid");
         }
-        threshold.setText(String.valueOf(Prefs.thresholdSec(this)));
+        fillSettings();
         refresh();
+    }
+
+    private void fillSettings() {
+        threshold.setText(String.valueOf(Prefs.thresholdSec(this)));
+        delay.setText(String.valueOf(Prefs.delayMs(this) / 1000.0));
     }
 
     private void askBattery() {

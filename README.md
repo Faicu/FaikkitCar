@@ -15,15 +15,19 @@ MP3 ales de utilizator la fiecare trezire din hibernare (ACC ON).
 - La aprinderea ecranului (`SCREEN_ON`) verificarea se face imediat, nu la
   următorul tick.
 - `BootReceiver` pornește serviciul la `BOOT_COMPLETED` și `MY_PACKAGE_REPLACED`.
-- Redarea: `MediaPlayer`, audio focus `AUDIOFOCUS_GAIN_TRANSIENT`, după 2,5 s.
-  Se pot alege mai multe sunete, redate la rând sau aleatoriu.
+- Redarea: `MediaPlayer`, audio focus `AUDIOFOCUS_GAIN_TRANSIENT`, după o pauză
+  configurabilă (implicit 2,5 s). Se pot alege mai multe sunete, redate la rând sau
+  aleatoriu, și un volum propriu (0 = volumul curent al sistemului), refăcut după redare.
 - Ultimele 20 de treziri (motiv și sunet redat) apar în istoricul din aplicație.
+- Jurnalul de diagnostic (ultimele 100 de evenimente: pornirea serviciului,
+  BootReceiver, pauze între tick-uri peste 15 s, ecran stins/aprins, redare) se poate
+  copia în clipboard din aplicație.
 
 ## Configurare pe unitate
 
 1. Adaugă unul sau mai multe sunete (se copiază în memoria internă a aplicației)
    și alege ordinea: la rând sau aleatorie.
-2. Setează pragul și salvează.
+2. Setează pragul și pauza înainte de redare, apoi salvează; alege volumul.
 3. Pornește serviciul.
 4. Dezactivează optimizarea bateriei (și, dacă există, adaugă aplicația în lista
    de aplicații permise la pornire / „whitelist” din setările Teyes).

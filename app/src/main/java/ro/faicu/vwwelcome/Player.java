@@ -8,7 +8,6 @@ import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.util.Log;
 
 import java.io.File;
 
@@ -17,6 +16,9 @@ final class Player {
     private static long lastPlay = -100_000;
     // Referinta statica: altfel MediaPlayer poate fi colectat de GC in timpul redarii.
     private static MediaPlayer current;
+    // Volumul sistemului de dinainte de redare (-1 = nu l-am schimbat) si cel setat de noi.
+    private static int restoreVolume = -1;
+    private static int ourVolume;
 
     private Player() {}
 
@@ -45,7 +47,7 @@ final class Player {
 
     private static void start(Context c, File f) {
         if (!f.exists()) {
-            Log.w("VWWelcome", "Sunetul nu mai exista: " + f);
+            Prefs.log(c, "Redare: sunetul nu mai exista (" + Prefs.soundName(f) + ")");
             return;
         }
 
@@ -57,39 +59,78 @@ final class Player {
         AudioFocusRequest focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
                 .setAudioAttributes(attrs)
                 .build();
-        stopCurrent();
-        am.requestAudioFocus(focus);
+        stopCurrent(c, am);
+        int granted = am.requestAudioFocus(focus);
+        applyVolume(c, am);
 
         MediaPlayer mp = new MediaPlayer();
         current = mp;
         try {
             mp.setAudioAttributes(attrs);
             mp.setDataSource(f.getAbsolutePath());
-            mp.setOnCompletionListener(m -> finish(m, am, focus));
+            mp.setOnCompletionListener(m -> {
+                Prefs.log(c, "Redare terminata");
+                finish(c, m, am, focus);
+            });
             mp.setOnErrorListener((m, what, extra) -> {
-                finish(m, am, focus);
+                Prefs.log(c, "Redare: eroare MediaPlayer " + what + "/" + extra);
+                finish(c, m, am, focus);
                 return true;
             });
             mp.prepare();
             mp.start();
+            Prefs.log(c, "Redare pornita: " + Prefs.soundName(f) + ", " + mp.getDuration() / 1000
+                    + " s, focus audio " + (granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                            ? "primit" : "REFUZAT (" + granted + ")"));
         } catch (Exception e) {
-            finish(mp, am, focus);
-            Log.e("VWWelcome", "Eroare la redare", e);
+            Prefs.log(c, "Redare: eroare " + e);
+            finish(c, mp, am, focus);
         }
     }
 
-    private static void finish(MediaPlayer mp, AudioManager am, AudioFocusRequest focus) {
+    /** Seteaza volumul media la procentul ales; il refacem la final. */
+    private static void applyVolume(Context c, AudioManager am) {
+        int pct = Prefs.volumePercent(c);
+        if (pct <= 0) return;
+        try {
+            int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            int before = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+            ourVolume = Math.max(1, Math.round(max * pct / 100f));
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, ourVolume, 0);
+            restoreVolume = before;
+            Prefs.log(c, "Volum " + before + " -> " + ourVolume + " (din " + max + ")");
+        } catch (Exception e) {
+            Prefs.log(c, "Volum: nu am putut seta (" + e + ")");
+        }
+    }
+
+    /** Refacem volumul doar daca nu l-a schimbat nimeni intre timp. */
+    private static void restoreVolume(Context c, AudioManager am) {
+        if (restoreVolume < 0) return;
+        try {
+            if (am.getStreamVolume(AudioManager.STREAM_MUSIC) == ourVolume) {
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, restoreVolume, 0);
+            }
+        } catch (Exception e) {
+            Prefs.log(c, "Volum: nu am putut reface (" + e + ")");
+        }
+        restoreVolume = -1;
+    }
+
+    private static void finish(Context c, MediaPlayer mp, AudioManager am, AudioFocusRequest focus) {
         if (current == mp) current = null;
         mp.release();
+        restoreVolume(c, am);
         am.abandonAudioFocusRequest(focus);
     }
 
-    private static void stopCurrent() {
+    private static void stopCurrent(Context c, AudioManager am) {
         if (current == null) return;
         try {
             current.release();
         } catch (Exception ignored) {
         }
         current = null;
+        restoreVolume(c, am);
     }
 }

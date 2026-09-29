@@ -4,12 +4,16 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Random;
 
 /** Setarile aplicatiei, pastrate intre porniri. */
 final class Prefs {
     private static final int HISTORY_MAX = 20;
+    private static final int LOG_MAX = 100;
     private static final Random RANDOM = new Random();
 
     private Prefs() {}
@@ -87,6 +91,24 @@ final class Prefs {
         sp(c).edit().putLong("alive", t).apply();
     }
 
+    /** Pauza dintre detectarea trezirii si redare, ca amplificatorul sa apuce sa porneasca. */
+    static long delayMs(Context c) {
+        return sp(c).getLong("delay", 2500);
+    }
+
+    static void setDelayMs(Context c, long ms) {
+        sp(c).edit().putLong("delay", Math.max(0, Math.min(15_000, ms))).apply();
+    }
+
+    /** Volumul sunetului de bun venit, in procente din maxim; 0 = lasam volumul sistemului. */
+    static int volumePercent(Context c) {
+        return sp(c).getInt("volume", 0);
+    }
+
+    static void setVolumePercent(Context c, int pct) {
+        sp(c).edit().putInt("volume", Math.max(0, Math.min(100, pct))).apply();
+    }
+
     /** Contorul de boot-uri Android vazut ultima data (-1 = necunoscut). */
     static int lastBootCount(Context c) {
         return sp(c).getInt("boot_count", -1);
@@ -102,15 +124,37 @@ final class Prefs {
     }
 
     static void addHistory(Context c, String line) {
-        String h = line + "\n" + history(c);
-        String[] lines = h.split("\n");
-        if (lines.length > HISTORY_MAX) {
-            h = String.join("\n", Arrays.copyOf(lines, HISTORY_MAX));
-        }
-        sp(c).edit().putString("history", h.trim()).apply();
+        prepend(c, "history", now() + "  " + line, HISTORY_MAX);
     }
 
     static void clearHistory(Context c) {
         sp(c).edit().remove("history").apply();
+    }
+
+    /**
+     * Jurnal de diagnostic: pornirile serviciului, pauzele dintre tick-uri, ecranul,
+     * redarea. Arata unde s-a oprit lantul cand trezirea nu e detectata.
+     */
+    static void log(Context c, String line) {
+        android.util.Log.i("VWWelcome", line);
+        prepend(c, "log", now() + "  " + line, LOG_MAX);
+    }
+
+    static String logText(Context c) {
+        return sp(c).getString("log", "");
+    }
+
+    static void clearLog(Context c) {
+        sp(c).edit().remove("log").apply();
+    }
+
+    private static synchronized void prepend(Context c, String key, String line, int max) {
+        String[] lines = (line + "\n" + sp(c).getString(key, "")).split("\n");
+        String text = String.join("\n", Arrays.copyOf(lines, Math.min(lines.length, max)));
+        sp(c).edit().putString(key, text.trim()).apply();
+    }
+
+    private static String now() {
+        return new SimpleDateFormat("dd.MM HH:mm:ss", Locale.US).format(new Date());
     }
 }

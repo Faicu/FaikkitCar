@@ -13,12 +13,8 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
-import android.util.Log;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 /**
  * Serviciu permanent care detecteaza trezirea din hibernare.
@@ -29,8 +25,9 @@ import java.util.Locale;
  * trezit -> redam sunetul. Nu depinde de niciun semnal specific Teyes.
  */
 public class WelcomeService extends Service {
-    private static final String TAG = "VWWelcome";
     private static final long TICK_MS = 5000;
+    // Pauzele mai lungi de atat intra in jurnal, chiar daca sunt sub prag.
+    private static final long LOG_GAP_MS = 15_000;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long lastTick;
@@ -51,6 +48,9 @@ public class WelcomeService extends Service {
         int lastBoot = Prefs.lastBootCount(this);
         long now = System.currentTimeMillis();
         long alive = Prefs.lastAlive(this);
+        Prefs.log(this, "Serviciu pornit: boot #" + boot + " (anterior #" + lastBoot + "), uptime "
+                + SystemClock.elapsedRealtime() / 1000 + " s, ultima activitate "
+                + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
         if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
             onWake("boot nou");
         } else if (alive > 0 && now - alive > thresholdMs()) {
@@ -62,7 +62,9 @@ public class WelcomeService extends Service {
 
         lastTick = SystemClock.elapsedRealtime();
         handler.postDelayed(tick, TICK_MS);
-        registerReceiver(screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON));
+        IntentFilter screen = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        screen.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(screenReceiver, screen);
     }
 
     // Caz 3: procesul a supravietuit, dar unitatea a fost in hibernare.
@@ -75,6 +77,8 @@ public class WelcomeService extends Service {
 
             if (gap > thresholdMs()) {
                 onWake("trezire din hibernare, " + gap / 1000 + " s");
+            } else if (gap > LOG_GAP_MS) {
+                Prefs.log(WelcomeService.this, "Pauza " + gap / 1000 + " s (sub prag)");
             }
             // Scriem pe disc doar la ~15 s, ca sa nu uzam memoria interna.
             if (++count % 3 == 0 || gap > TICK_MS * 2) {
@@ -84,10 +88,13 @@ public class WelcomeService extends Service {
         }
     };
 
-    // La aprinderea ecranului verificam imediat, fara sa asteptam urmatorul tick.
-    private final BroadcastReceiver screenOn = new BroadcastReceiver() {
+    // Notam in jurnal ecranul stins/aprins; la aprindere verificam imediat, fara sa asteptam tick-ul.
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent intent) {
+            boolean on = Intent.ACTION_SCREEN_ON.equals(intent.getAction());
+            Prefs.log(c, on ? "Ecran aprins" : "Ecran stins");
+            if (!on) return;
             handler.removeCallbacks(tick);
             tick.run();
         }
@@ -98,7 +105,6 @@ public class WelcomeService extends Service {
     }
 
     private void onWake(String reason) {
-        Log.i(TAG, "Wake detected: " + reason);
         String result;
         if (Player.playedRecently()) {
             result = "ignorat, redat recent";
@@ -107,13 +113,13 @@ public class WelcomeService extends Service {
             if (f == null) {
                 result = "niciun sunet ales";
             } else {
-                // 2,5 s pauza: lasam amplificatorul si audio-ul sa porneasca.
-                Player.play(this, f, 2500, true);
+                // Pauza: lasam amplificatorul si audio-ul sa porneasca.
+                Player.play(this, f, Prefs.delayMs(this), true);
                 result = Prefs.soundName(f);
             }
         }
-        String when = new SimpleDateFormat("dd.MM HH:mm:ss", Locale.US).format(new Date());
-        Prefs.addHistory(this, when + "  " + reason + " → " + result);
+        Prefs.addHistory(this, reason + " → " + result);
+        Prefs.log(this, "TREZIRE: " + reason + " → " + result);
     }
 
     private Notification buildNotification() {
@@ -138,7 +144,8 @@ public class WelcomeService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacks(tick);
-        unregisterReceiver(screenOn);
+        unregisterReceiver(screenReceiver);
+        Prefs.log(this, "Serviciu oprit");
         Prefs.setLastAlive(this, System.currentTimeMillis());
         super.onDestroy();
     }
