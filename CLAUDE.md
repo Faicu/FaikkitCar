@@ -65,8 +65,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 
 ## Stare (29.09.2026)
 
-- Ultimul build verde: `build-6` (1.1.6). Nicio versiune nu a fost încă instalată pe
-  navigație; nimic nu e testat pe hardware real.
+- Ultimul build verde: `build-10` (1.1.10): diagnostic extins, `StartActivity` pentru
+  autostart, trimiterea jurnalului la status.faicu.ro. Nicio versiune nu a fost încă
+  instalată pe navigație; nimic nu e testat pe hardware real.
+- Urmează: utilizatorul instalează 1.1.10 la mașină și revine. Jurnalul se citește din
+  `/opt/faikkitbox/data/faikkitbox.db`, tabela `vw_log` (sau pagina `/vw`), nu mai e
+  nevoie de copiere manuală.
 - După build-6 s-a îmbunătățit diagnosticul (focus audio în jurnal, antet cu versiuni și
   permisiuni, `QUICKBOOT_POWERON`, `USER_PRESENT`, jurnal separat de setări). Testul pe
   navigație trebuie făcut cu un build care conține aceste schimbări, nu cu 1.1.6/1.1.7.
