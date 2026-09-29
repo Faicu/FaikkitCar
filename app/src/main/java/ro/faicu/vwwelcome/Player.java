@@ -20,26 +20,34 @@ final class Player {
 
     private Player() {}
 
-    /** Redare la trezire; ignorata daca s-a mai redat in ultimele 20 s (evitam redarea dubla). */
-    static void play(Context ctx, long delayMs) {
+    /**
+     * Programeaza redarea fisierului dupa delayMs. Intoarce false (si nu reda) daca s-a mai
+     * redat ceva in ultimele 20 s, ca sa evitam redarea dubla; force ocoleste verificarea.
+     */
+    static boolean play(Context ctx, File f, long delayMs, boolean force) {
+        if (!force && playedRecently()) return false;
+        lastPlay = SystemClock.elapsedRealtime();
         Context c = ctx.getApplicationContext();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> start(c, false), delayMs);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> start(c, f), delayMs);
+        return true;
     }
 
-    /** Redare imediata din butonul de test, fara protectia anti-dubla. */
-    static void test(Context ctx) {
-        start(ctx.getApplicationContext(), true);
+    static boolean playedRecently() {
+        return SystemClock.elapsedRealtime() - lastPlay < 20_000;
     }
 
-    private static void start(Context c, boolean force) {
-        long now = SystemClock.elapsedRealtime();
-        if (!force && now - lastPlay < 20_000) return;
-        File f = Prefs.soundFile(c);
+    /** Redare imediata din butonul de test: urmatorul sunet din lista. */
+    static File test(Context ctx) {
+        File f = Prefs.nextSound(ctx);
+        if (f != null) play(ctx, f, 0, true);
+        return f;
+    }
+
+    private static void start(Context c, File f) {
         if (!f.exists()) {
-            Log.w("VWWelcome", "Niciun sunet ales");
+            Log.w("VWWelcome", "Sunetul nu mai exista: " + f);
             return;
         }
-        lastPlay = now;
 
         AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
         AudioAttributes attrs = new AudioAttributes.Builder()

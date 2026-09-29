@@ -1,14 +1,18 @@
 package ro.faicu.vwwelcome;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,6 +21,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,7 +30,10 @@ public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
 
     private TextView status;
+    private LinearLayout soundList;
+    private Button order;
     private EditText threshold;
+    private TextView history;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -40,7 +48,15 @@ public class MainActivity extends Activity {
         status.setTextSize(18);
         l.addView(status);
 
-        l.addView(button("1. Alege sunetul (MP3)", v -> pickSound()));
+        soundList = new LinearLayout(this);
+        soundList.setOrientation(LinearLayout.VERTICAL);
+        l.addView(soundList);
+        l.addView(button("1. Adauga sunete (MP3)", v -> pickSound()));
+        order = button("", v -> {
+            Prefs.setRandomOrder(this, !Prefs.randomOrder(this));
+            refresh();
+        });
+        l.addView(order);
 
         threshold = new EditText(this);
         threshold.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -54,7 +70,22 @@ public class MainActivity extends Activity {
             toast("Serviciul ruleaza");
         }));
         l.addView(button("4. Dezactiveaza optimizarea bateriei", v -> askBattery()));
-        l.addView(button("Test sunet", v -> Player.test(this)));
+        l.addView(button("Test sunet (urmatorul din lista)", v -> {
+            File f = Player.test(this);
+            toast(f == null ? "Niciun sunet ales" : "Redau: " + Prefs.soundName(f));
+        }));
+
+        TextView h = new TextView(this);
+        h.setText("\nIstoric treziri (ultimele 20):");
+        h.setTextSize(18);
+        l.addView(h);
+        history = new TextView(this);
+        history.setTextIsSelectable(true);
+        l.addView(history);
+        l.addView(button("Sterge istoricul", v -> {
+            Prefs.clearHistory(this);
+            refresh();
+        }));
 
         ScrollView s = new ScrollView(this);
         s.addView(l);
@@ -89,34 +120,84 @@ public class MainActivity extends Activity {
     private void refresh() {
         PowerManager pm = getSystemService(PowerManager.class);
         boolean batteryOk = pm.isIgnoringBatteryOptimizations(getPackageName());
+        File[] sounds = Prefs.sounds(this);
         status.setText(
-                "Sunet: " + (Prefs.soundFile(this).exists() ? "ales" : "NEALES") + "\n"
+                "Sunete: " + (sounds.length == 0 ? "NICIUNUL" : sounds.length) + "\n"
                 + "Optimizare baterie: " + (batteryOk ? "dezactivata (ok)" : "ACTIVA") + "\n"
-                + "Prag: " + Prefs.thresholdSec(this) + " s\n"
-                + "Ultima trezire detectata: " + Prefs.lastWake(this) + "\n");
+                + "Prag: " + Prefs.thresholdSec(this) + " s\n");
+
+        soundList.removeAllViews();
+        for (File f : sounds) {
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            TextView name = new TextView(this);
+            name.setText("♪ " + Prefs.soundName(f));
+            row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            row.addView(button("Sterge", v -> {
+                f.delete();
+                refresh();
+            }));
+            soundList.addView(row);
+        }
+        order.setText("Ordine: " + (Prefs.randomOrder(this) ? "aleatorie" : "la rand")
+                + " (apasa pentru schimbare)");
+
+        String hist = Prefs.history(this);
+        history.setText(hist.isEmpty() ? "nicio trezire inca" : hist);
     }
 
     private void pickSound() {
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("audio/*");
+        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         startActivityForResult(i, PICK_SOUND);
     }
 
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-        if (req != PICK_SOUND || res != RESULT_OK || data == null || data.getData() == null) return;
-        try (InputStream in = getContentResolver().openInputStream(data.getData());
-             OutputStream out = new FileOutputStream(Prefs.soundFile(this))) {
+        if (req != PICK_SOUND || res != RESULT_OK || data == null) return;
+        int added = 0;
+        ClipData clip = data.getClipData();
+        if (clip != null) {
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                if (copySound(clip.getItemAt(i).getUri())) added++;
+            }
+        } else if (data.getData() != null && copySound(data.getData())) {
+            added++;
+        }
+        toast(added == 1 ? "Sunet adaugat" : added + " sunete adaugate");
+        refresh();
+    }
+
+    private boolean copySound(Uri uri) {
+        String name = displayName(uri).replaceAll("[^\\w.\\- ]", "_");
+        File dest;
+        long t = System.currentTimeMillis();
+        do {
+            dest = new File(Prefs.soundsDir(this), (t++) + "_" + name);
+        } while (dest.exists());
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             OutputStream out = new FileOutputStream(dest)) {
             byte[] buf = new byte[8192];
             int n;
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            toast("Sunet salvat");
+            return true;
         } catch (Exception e) {
+            dest.delete();
             toast("Eroare la copiere: " + e.getMessage());
+            return false;
         }
-        refresh();
+    }
+
+    private String displayName(Uri uri) {
+        try (Cursor c = getContentResolver().query(
+                uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst() && c.getString(0) != null) return c.getString(0);
+        } catch (Exception ignored) {
+        }
+        return "sunet";
     }
 
     private void saveThreshold() {

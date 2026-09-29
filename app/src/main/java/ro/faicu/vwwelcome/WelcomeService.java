@@ -4,14 +4,18 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.util.Log;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -41,19 +45,27 @@ public class WelcomeService extends Service {
         super.onCreate();
         startForeground(1, buildNotification());
 
-        // Caz 1: procesul a fost omorat si repornit (sau pornire la rece dupa boot).
+        // Caz 1: boot nou. Contorul de boot-uri nu depinde de ceas, deci merge
+        // si cand ora nu e inca sincronizata dupa o pornire la rece.
+        int boot = Settings.Global.getInt(getContentResolver(), Settings.Global.BOOT_COUNT, -1);
+        int lastBoot = Prefs.lastBootCount(this);
         long now = System.currentTimeMillis();
         long alive = Prefs.lastAlive(this);
-        if (alive > 0 && now - alive > thresholdMs()) {
+        if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
+            onWake("boot nou");
+        } else if (alive > 0 && now - alive > thresholdMs()) {
+            // Caz 2: procesul a fost omorat si repornit in acelasi boot.
             onWake("pornire proces, " + (now - alive) / 1000 + " s oprit");
         }
+        if (boot >= 0) Prefs.setLastBootCount(this, boot);
         Prefs.setLastAlive(this, now);
 
         lastTick = SystemClock.elapsedRealtime();
         handler.postDelayed(tick, TICK_MS);
+        registerReceiver(screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON));
     }
 
-    // Caz 2: procesul a supravietuit, dar unitatea a fost in hibernare.
+    // Caz 3: procesul a supravietuit, dar unitatea a fost in hibernare.
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
@@ -72,16 +84,36 @@ public class WelcomeService extends Service {
         }
     };
 
+    // La aprinderea ecranului verificam imediat, fara sa asteptam urmatorul tick.
+    private final BroadcastReceiver screenOn = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context c, Intent intent) {
+            handler.removeCallbacks(tick);
+            tick.run();
+        }
+    };
+
     private long thresholdMs() {
         return Prefs.thresholdSec(this) * 1000L;
     }
 
     private void onWake(String reason) {
-        String when = new SimpleDateFormat("dd.MM HH:mm:ss", Locale.US).format(new Date());
-        Prefs.setLastWake(this, when + " (" + reason + ")");
         Log.i(TAG, "Wake detected: " + reason);
-        // 2,5 s pauza: lasam amplificatorul si audio-ul sa porneasca.
-        Player.play(this, 2500);
+        String result;
+        if (Player.playedRecently()) {
+            result = "ignorat, redat recent";
+        } else {
+            File f = Prefs.nextSound(this);
+            if (f == null) {
+                result = "niciun sunet ales";
+            } else {
+                // 2,5 s pauza: lasam amplificatorul si audio-ul sa porneasca.
+                Player.play(this, f, 2500, true);
+                result = Prefs.soundName(f);
+            }
+        }
+        String when = new SimpleDateFormat("dd.MM HH:mm:ss", Locale.US).format(new Date());
+        Prefs.addHistory(this, when + "  " + reason + " → " + result);
     }
 
     private Notification buildNotification() {
@@ -106,6 +138,7 @@ public class WelcomeService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacks(tick);
+        unregisterReceiver(screenOn);
         Prefs.setLastAlive(this, System.currentTimeMillis());
         super.onDestroy();
     }

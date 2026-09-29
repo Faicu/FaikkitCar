@@ -2,6 +2,10 @@ plugins {
     id 'com.android.application'
 }
 
+// In GitHub Actions: numarul build-ului da versiunea, iar cheia fixa vine din Secrets.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+def keystore = System.getenv('SIGNING_KEYSTORE')
+
 android {
     namespace 'ro.faicu.vwwelcome'
     compileSdk 34
@@ -10,8 +14,26 @@ android {
         applicationId 'ro.faicu.vwwelcome'
         minSdk 26
         targetSdk 33
-        versionCode 1
-        versionName '1.0'
+        versionCode buildNumber
+        versionName "1.1.${buildNumber}"
+    }
+
+    signingConfigs {
+        if (keystore) {
+            fixed {
+                storeFile file(keystore)
+                storePassword System.getenv('SIGNING_PASSWORD')
+                keyAlias 'vwwelcome'
+                keyPassword System.getenv('SIGNING_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Aceeasi cheie la fiecare build, ca APK-ul nou sa se instaleze peste cel vechi.
+            if (keystore) signingConfig signingConfigs.fixed
+        }
     }
 
     compileOptions {
