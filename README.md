@@ -25,6 +25,10 @@ MP3 ales de utilizator la fiecare trezire din hibernare (ACC ON).
 ## Build
 
 GitHub Actions (`.github/workflows/build.yml`) construiește APK-ul de debug cu
-Gradle 8.7 / JDK 17 și îl publică drept artifact `vw-welcome-apk`.
+Gradle 8.7 / JDK 17 și îl publică drept artifact `vw-welcome-apk` și într-un
+GitHub Release (`build-N`, marcat „latest”).
+
+Descărcare directă a ultimului APK:
+https://github.com/Faicu/welcometovw/releases/latest/download/VWWelcome.apk
 
 Local: `gradle assembleDebug` (necesită Android SDK cu platforma 34).
