@@ -5,7 +5,8 @@ Utilizatorul scrie în română; răspunde în română.
 ## Ce e
 
 Aplicație Android nativă în Java (fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34,
-AGP 8.5.2, pachet `ro.faicu.vwwelcome`) pentru navigația Teyes CC3 2K. Redă un MP3 ales de
+AGP 8.5.2; namespace/cod Java `ro.faicu.vwwelcome`, dar `applicationId` =
+`com.mapgoo.diruite`, vezi mai jos) pentru navigația Teyes CC3 2K. Redă un MP3 ales de
 utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare sunt în
 `README.md`.
 
@@ -45,11 +46,19 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   cuvinte chinezești: 白名单, 保活, 休眠…). Cere `QUERY_ALL_PACKAGES`. Citește și fișierele
   FYT (`/oem/app/skipkillapp.prop`, `protected_app.txt`, `pwctl_config.xml`…),
   `getprop` filtrat și fișierele de configurare din assets ale `com.syu.ms` & co.
+- De la 1.1.15, `applicationId` = `com.mapgoo.diruite`: nume dintr-o aplicație chinezească
+  neinstalată care apare atât în `unkill_app.txt` (assets/property din com.syu.ms, citit cu
+  diagnosticul), cât și în `LaunchWhiteList` din `/oem/app/pwctl_config.xml`. Scop: să nu
+  mai fim închiși la somn și să avem voie la autostart. Neconfirmat încă pe unitate.
+  Aplicația veche `ro.faicu.vwwelcome` trebuie dezinstalată manual. (`com.faicu.welcome`
+  de pe unitate e o încercare mai veche a utilizatorului, nefolosită.)
 - Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
   XDA, la somnul adânc închide tot ce nu e în `skipkillapp.prop` (valori negative = nu se
   închide) / `unkillapp.txt` (în APK-ul com.syu.ms) / `protected_app.txt`.
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
+- Pornirea serviciului din `MainActivity` (`Prefs.markUiStart`, fereastră 5 s) nu mai contează
+  ca trezire „pornire proces”. Pauza implicită e 5 s.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
   lista de autostart Teyes, care o lansează la ACC ON. Pornește serviciul cu extra
   `acc_on` (`WelcomeService.startAccOn`) → `onStartCommand` redă direct („autostart

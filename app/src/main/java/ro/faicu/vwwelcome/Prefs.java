@@ -119,7 +119,8 @@ final class Prefs {
 
     /** Pauza dintre detectarea trezirii si redare, ca amplificatorul sa apuce sa porneasca. */
     static long delayMs(Context c) {
-        return sp(c).getLong("delay", 2500);
+        // 5 s: pe Teyes CC3 2K, cu 2,5 s se pierdeau primele ~2 s (amplificatorul pornea tarziu).
+        return sp(c).getLong("delay", 5000);
     }
 
     static void setDelayMs(Context c, long ms) {
@@ -133,6 +134,18 @@ final class Prefs {
 
     static void setVolumePercent(Context c, int pct) {
         sp(c).edit().putInt("volume", Math.max(0, Math.min(100, pct))).apply();
+    }
+
+    /** Momentul (elapsedRealtime) in care utilizatorul a deschis aplicatia. */
+    static void markUiStart(Context c) {
+        sp(c).edit().putLong("ui_start", android.os.SystemClock.elapsedRealtime()).commit();
+    }
+
+    /** Serviciul a fost pornit chiar acum de deschiderea aplicatiei, nu de o trezire. */
+    static boolean startedFromUi(Context c) {
+        long t = sp(c).getLong("ui_start", -1);
+        long now = android.os.SystemClock.elapsedRealtime();
+        return t >= 0 && t <= now && now - t < 5_000;
     }
 
     /** Contorul de boot-uri Android vazut ultima data (-1 = necunoscut). */
@@ -271,7 +284,7 @@ final class Prefs {
         PowerManager pm = c.getSystemService(PowerManager.class);
         boolean notif = Build.VERSION.SDK_INT < 33 || c.checkSelfPermission(
                 "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED;
-        return "VW Welcome " + version + "\n"
+        return "VW Welcome " + version + " [" + c.getPackageName() + "]\n"
                 + "Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + "), "
                 + Build.MANUFACTURER + " " + Build.MODEL + "\n"
                 + "Build: " + Build.DISPLAY + "\n"

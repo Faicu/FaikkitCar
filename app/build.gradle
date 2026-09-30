@@ -11,7 +11,10 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId 'ro.faicu.vwwelcome'
+        // Numele unei aplicatii de pe listele FYT (unkill_app.txt din com.syu.ms si
+        // LaunchWhiteList din /oem/app/pwctl_config.xml), neinstalata pe navigatie: asa
+        // MainServer nu ne mai inchide la somn si avem voie la autostart. Vezi CLAUDE.md.
+        applicationId 'com.mapgoo.diruite'
         minSdk 26
         targetSdk 33
         versionCode buildNumber

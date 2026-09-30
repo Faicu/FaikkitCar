@@ -52,6 +52,8 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         CrashLog.install(this);
         // Si daca aplicatia e deschisa din autostart, serviciul trebuie sa porneasca.
+        // Marcam deschiderea, ca serviciul sa nu o ia drept trezire si sa redea sunetul.
+        Prefs.markUiStart(this);
         WelcomeService.start(this);
         int pad = (int) (24 * getResources().getDisplayMetrics().density);
 

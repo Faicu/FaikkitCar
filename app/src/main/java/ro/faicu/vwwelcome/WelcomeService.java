@@ -84,8 +84,14 @@ public class WelcomeService extends Service {
         if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
             onWake("boot nou");
         } else if (alive > 0 && now - alive > thresholdMs()) {
-            // Caz 2: procesul a fost omorat si repornit in acelasi boot.
-            onWake("pornire proces, " + (now - alive) / 1000 + " s oprit");
+            // Caz 2: procesul a fost omorat si repornit in acelasi boot. Daca l-a pornit
+            // utilizatorul deschizand aplicatia, nu e o trezire.
+            if (Prefs.startedFromUi(this)) {
+                Prefs.log(this, "Pornit din aplicatie dupa " + (now - alive) / 1000
+                        + " s oprit, fara sunet");
+            } else {
+                onWake("pornire proces, " + (now - alive) / 1000 + " s oprit");
+            }
         }
         if (boot >= 0) Prefs.setLastBootCount(this, boot);
         Prefs.setLastAlive(this, now);
