@@ -2,14 +2,10 @@ package ro.faicu.vwwelcome;
 
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Parcel;
-import android.os.RemoteException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,20 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Sonda CAN: se conecteaza la MainServer-ul FYT (com.syu.ms, serviciul "com.syu.ms.toolkit")
- * si inregistreaza un callback pe toate codurile modulelor MAIN (0) si CANBUS (7), ca sa vedem
- * ce date primeste navigatia de la masina (Golf 6). Trimite la server doar schimbarile, cel
- * mult una pe secunda pentru fiecare cod, in linii "CAN m<modul> c<cod> ...".
- *
- * Protocolul (AIDL com.syu.ipc, fara permisiuni) e documentat public de FYTCanbusMonitor si
- * chrisuthe/7870-Projects: IRemoteToolkit.getRemoteModule = 1; IRemoteModule.register = 3
- * (callback, cod, 1); IModuleCallback.update = 1 (cod, int[], float[], String[]).
+ * Sonda CAN: asculta toate codurile modulelor MAIN (0) si CANBUS (7) ale MainServer-ului FYT
+ * (vezi Syu), ca sa aflam ce date primeste navigatia de la masina (Golf 6). Trimite la server
+ * doar schimbarile, cel mult una pe secunda pentru fiecare cod, in linii "CAN m<modul>
+ * c<cod> ...", cu ora exacta a schimbarii. Calibrarea adauga marcaje "CAN MARK ..." intre ele.
  */
 final class CanProbe {
     static final long DURATION_MS = 5 * 60_000L;
-    private static final String TOOLKIT = "com.syu.ipc.IRemoteToolkit";
-    private static final String MODULE = "com.syu.ipc.IRemoteModule";
-    private static final String CALLBACK = "com.syu.ipc.IModuleCallback";
     private static final int MAX_LINES = 5000;
 
     private static CanProbe running;
@@ -41,7 +30,8 @@ final class CanProbe {
     private final Map<String, String> lastValue = new HashMap<>();
     private final Map<String, Long> lastSent = new HashMap<>();
     private final Map<String, String> pending = new HashMap<>();
-    private final List<String> buffer = new ArrayList<>();
+    private final List<String> lines = new ArrayList<>();
+    private final List<Long> times = new ArrayList<>();
     private int sent;
     private boolean bound;
 
@@ -64,8 +54,12 @@ final class CanProbe {
         }
     }
 
-    static synchronized boolean isRunning() {
-        return running != null;
+    /** Marcaj de calibrare, cu ora apasarii, intre liniile sondei. */
+    static synchronized void mark(String text) {
+        if (running == null) return;
+        long t = System.currentTimeMillis();
+        CanProbe p = running;
+        p.handler.post(() -> p.add("CAN MARK " + text, t));
     }
 
     private final ServiceConnection conn = new ServiceConnection() {
@@ -76,130 +70,94 @@ final class CanProbe {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            add("CAN sonda: MainServer deconectat");
+            handler.post(() -> add("CAN sonda: MainServer deconectat", System.currentTimeMillis()));
         }
     };
 
     private void bind() {
-        Intent i = new Intent("com.syu.ms.toolkit")
-                .setComponent(new ComponentName("com.syu.ms", "app.ToolkitService"));
         try {
-            bound = c.bindService(i, conn, Context.BIND_AUTO_CREATE);
-            add("CAN sonda pornita, legare la com.syu.ms: " + (bound ? "ok" : "refuzata"));
+            bound = c.bindService(Syu.toolkitIntent(), conn, Context.BIND_AUTO_CREATE);
+            add("CAN sonda pornita, legare la com.syu.ms: " + (bound ? "ok" : "refuzata"),
+                    System.currentTimeMillis());
         } catch (Exception e) {
-            add("CAN sonda: eroare la legare " + e);
+            add("CAN sonda: eroare la legare " + e, System.currentTimeMillis());
         }
         handler.postDelayed(this::flush, 5_000);
     }
 
     private void subscribe(IBinder toolkit) {
-        add("CAN sonda conectata la MainServer");
-        subscribeModule(toolkit, 0, range(0, 200));
-        int[] can = concat(range(0, 400), range(1000, 1300));
-        subscribeModule(toolkit, 7, can);
+        add("CAN sonda conectata la MainServer", System.currentTimeMillis());
+        subscribeModule(toolkit, Syu.MODULE_MAIN, range(0, 200));
+        subscribeModule(toolkit, Syu.MODULE_CANBUS, concat(range(0, 400), range(1000, 1300)));
     }
 
     private void subscribeModule(IBinder toolkit, int module, int[] codes) {
+        long now = System.currentTimeMillis();
         IBinder mod;
-        Parcel data = Parcel.obtain();
-        Parcel reply = Parcel.obtain();
         try {
-            data.writeInterfaceToken(TOOLKIT);
-            data.writeInt(module);
-            toolkit.transact(1, data, reply, 0);
-            reply.readException();
-            mod = reply.readStrongBinder();
+            mod = Syu.module(toolkit, module);
         } catch (Exception e) {
-            add("CAN sonda: modul " + module + " eroare " + e);
+            add("CAN sonda: modul " + module + " eroare " + e, now);
             return;
-        } finally {
-            data.recycle();
-            reply.recycle();
         }
         if (mod == null) {
-            add("CAN sonda: modul " + module + " indisponibil");
+            add("CAN sonda: modul " + module + " indisponibil", now);
             return;
         }
-        Callback cb = new Callback(module);
+        Syu.Callback cb = new Syu.Callback() {
+            @Override
+            void onUpdate(int code, int[] ints, float[] flts, String[] strs) {
+                long t = System.currentTimeMillis();
+                String value = "i=" + Arrays.toString(ints)
+                        + (flts != null && flts.length > 0 ? " f=" + Arrays.toString(flts) : "")
+                        + (strs != null && strs.length > 0 ? " s=" + Arrays.toString(strs) : "");
+                handler.post(() -> onValue(module, code, value, t));
+            }
+        };
         int ok = 0;
         for (int code : codes) {
-            Parcel d = Parcel.obtain();
             try {
-                d.writeInterfaceToken(MODULE);
-                d.writeStrongBinder(cb);
-                d.writeInt(code);
-                d.writeInt(1);
-                mod.transact(3, d, null, IBinder.FLAG_ONEWAY);
+                Syu.register(mod, cb, code);
                 ok++;
-            } catch (RemoteException e) {
+            } catch (Exception e) {
                 break;
-            } finally {
-                d.recycle();
             }
         }
-        add("CAN sonda: modul " + module + ", " + ok + "/" + codes.length + " coduri inregistrate");
+        add("CAN sonda: modul " + module + ", " + ok + "/" + codes.length + " coduri inregistrate", now);
     }
 
-    /** Callback-ul primit de la MainServer; ruleaza pe firele binder, deci trecem pe handler. */
-    private final class Callback extends Binder {
-        private final int module;
-
-        Callback(int module) {
-            this.module = module;
-            attachInterface(null, CALLBACK);
-        }
-
-        @Override
-        protected boolean onTransact(int code, Parcel data, Parcel reply, int flags)
-                throws RemoteException {
-            if (code == INTERFACE_TRANSACTION) {
-                reply.writeString(CALLBACK);
-                return true;
-            }
-            if (code != 1) return super.onTransact(code, data, reply, flags);
-            data.enforceInterface(CALLBACK);
-            int update = data.readInt();
-            int[] ints = data.createIntArray();
-            float[] flts = data.createFloatArray();
-            String[] strs = data.createStringArray();
-            String value = "i=" + Arrays.toString(ints)
-                    + (flts != null && flts.length > 0 ? " f=" + Arrays.toString(flts) : "")
-                    + (strs != null && strs.length > 0 ? " s=" + Arrays.toString(strs) : "");
-            handler.post(() -> onUpdate(module, update, value));
-            return true;
-        }
-    }
-
-    private void onUpdate(int module, int update, String value) {
+    private void onValue(int module, int update, String value, long t) {
         String key = "m" + module + " c" + update;
         if (value.equals(lastValue.get(key))) return;
         lastValue.put(key, value);
-        long now = System.currentTimeMillis();
         Long prev = lastSent.get(key);
-        if (prev != null && now - prev < 1000) {
+        if (prev != null && t - prev < 1000) {
             pending.put(key, value); // o trimitem la urmatorul flush, ultima valoare castiga
             return;
         }
-        lastSent.put(key, now);
+        lastSent.put(key, t);
         pending.remove(key);
-        add("CAN " + key + " " + value);
+        add("CAN " + key + " " + value, t);
     }
 
-    private void add(String line) {
-        if (sent + buffer.size() >= MAX_LINES) return;
-        buffer.add(line);
+    private void add(String line, long t) {
+        if (sent + lines.size() >= MAX_LINES) return;
+        lines.add(line);
+        times.add(t);
     }
 
     private void flush() {
+        long now = System.currentTimeMillis();
         for (Map.Entry<String, String> e : pending.entrySet()) {
-            lastSent.put(e.getKey(), System.currentTimeMillis());
-            add("CAN " + e.getKey() + " " + e.getValue());
+            lastSent.put(e.getKey(), now);
+            add("CAN " + e.getKey() + " " + e.getValue(), now);
         }
         pending.clear();
-        if (!buffer.isEmpty()) {
-            Prefs.remoteOnly(c, new ArrayList<>(buffer));
-            sent += buffer.size();
-            buffer.clear();
+        if (!lines.isEmpty()) {
+            Prefs.remoteOnly(c, new ArrayList<>(lines), new ArrayList<>(times));
+            sent += lines.size();
+            lines.clear();
+            times.clear();
         }
         synchronized (CanProbe.class) {
             if (running == this) handler.postDelayed(this::flush, 5_000);
@@ -207,7 +165,8 @@ final class CanProbe {
     }
 
     private void stop() {
-        add("CAN sonda oprita, " + (sent + buffer.size()) + " linii, " + lastValue.size() + " coduri vazute");
+        add("CAN sonda oprita, " + (sent + lines.size()) + " linii, " + lastValue.size() + " coduri vazute",
+                System.currentTimeMillis());
         if (bound) {
             try {
                 c.unbindService(conn);

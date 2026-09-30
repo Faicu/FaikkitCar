@@ -108,6 +108,7 @@ public class WelcomeService extends Service {
         registerReceiver(screenReceiver, screen);
         getSystemService(ConnectivityManager.class).registerDefaultNetworkCallback(netCallback);
         CanProbe.check(this);
+        TripRecorder.check(this);
     }
 
     // Caz 3: procesul a supravietuit, dar unitatea a fost in hibernare.
@@ -129,11 +130,15 @@ public class WelcomeService extends Service {
                 Prefs.setLastAlive(WelcomeService.this, System.currentTimeMillis());
             }
             // Reincercam la ~30 s liniile ramase netrimise (ex. server indisponibil).
-            if (count % 6 == 0 && Prefs.outboxSize(WelcomeService.this) > 0) {
+            if (count % 6 == 0 && (Prefs.outboxSize(WelcomeService.this) > 0
+                    || PointQueue.size(WelcomeService.this) > 0)) {
                 Uploader.kick(WelcomeService.this);
             }
             // Porneste / opreste sonda CAN dupa cum a fost activata din aplicatie.
-            if (count % 6 == 0) CanProbe.check(WelcomeService.this);
+            if (count % 6 == 0) {
+                CanProbe.check(WelcomeService.this);
+                TripRecorder.check(WelcomeService.this);
+            }
             handler.postDelayed(this, TICK_MS);
         }
     };

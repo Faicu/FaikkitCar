@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Calatoriile: pozitia GPS, din serviciul foreground (tip "location"). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Lista proprie de fisiere audio, cand navigatia nu are selector de fisiere. -->
     <uses-permission
@@ -48,7 +51,8 @@
 
         <service
             android:name=".WelcomeService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <receiver
             android:name=".BootReceiver"

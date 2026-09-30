@@ -137,6 +137,15 @@ final class Prefs {
         sp(c).edit().putLong("sleep_extra", Math.max(0, Math.min(15_000, ms))).apply();
     }
 
+    /** Inregistrarea calatoriilor (GPS + date masina) la status.faicu.ro/calatorii. */
+    static boolean tripsEnabled(Context c) {
+        return sp(c).getBoolean("trips", true);
+    }
+
+    static void setTripsEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("trips", on).apply();
+    }
+
     /** Pana cand (ora reala, ms) ruleaza sonda CAN; 0 = oprita. */
     static long canProbeUntil(Context c) {
         return sp(c).getLong("can_probe_until", 0);
@@ -259,11 +268,20 @@ final class Prefs {
     }
 
     /** Linii doar pentru server (ex. diagnostic), fara jurnalul local; o singura scriere. */
-    static synchronized void remoteOnly(Context c, java.util.List<String> lines) {
+    static void remoteOnly(Context c, java.util.List<String> lines) {
+        remoteOnly(c, lines, null);
+    }
+
+    /** Ca mai sus, cu ora fiecarei linii (null = acum, crescator ca sa ramana unice). */
+    static synchronized void remoteOnly(Context c, java.util.List<String> lines,
+            java.util.List<Long> times) {
         JSONArray box = outbox(c);
         long t = System.currentTimeMillis();
         try {
-            for (String line : lines) box.put(new JSONObject().put("t", t++).put("text", line));
+            for (int i = 0; i < lines.size(); i++) {
+                long at = times != null ? times.get(i) : t++;
+                box.put(new JSONObject().put("t", at).put("text", lines.get(i)));
+            }
         } catch (JSONException e) {
             return;
         }

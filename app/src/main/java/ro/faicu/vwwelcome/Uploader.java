@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 final class Uploader {
     private static final String URL_LOG = "https://status.faicu.ro/api/vw-log";
+    private static final String URL_TRIP = "https://status.faicu.ro/api/vw-trip";
+    private static final int POINT_BATCH = 300;
     private static final int BATCH = 100;
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean running = new AtomicBoolean();
@@ -49,8 +51,8 @@ final class Uploader {
     private static void flush(Context c) {
         while (true) {
             JSONArray batch = Prefs.peekOutbox(c, BATCH);
-            if (batch.length() == 0) return;
-            String error = post(batch);
+            if (batch.length() == 0) break;
+            String error = post(URL_LOG, "lines", batch);
             if (error != null) {
                 Prefs.setUploadStatus(c, "eroare: " + error);
                 return;
@@ -58,19 +60,30 @@ final class Uploader {
             Prefs.dropOutbox(c, batch.length());
             Prefs.setUploadStatus(c, "ok");
         }
+        // Punctele de traseu (TripRecorder), pe ruta lor.
+        while (true) {
+            JSONArray batch = PointQueue.peek(c, POINT_BATCH);
+            if (batch.length() == 0) return;
+            String error = post(URL_TRIP, "points", batch);
+            if (error != null) {
+                Prefs.setUploadStatus(c, "eroare traseu: " + error);
+                return;
+            }
+            PointQueue.drop(c, batch.length());
+        }
     }
 
     /** Intoarce null la succes, altfel motivul. */
-    private static String post(JSONArray lines) {
+    private static String post(String url, String key, JSONArray items) {
         HttpURLConnection conn = null;
         try {
             byte[] body = new JSONObject()
                     .put("version", BuildConfig.VERSION_NAME)
-                    .put("lines", lines)
+                    .put(key, items)
                     .toString().getBytes(StandardCharsets.UTF_8);
-            conn = (HttpURLConnection) new URL(URL_LOG).openConnection();
+            conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setConnectTimeout(10_000);
-            conn.setReadTimeout(10_000);
+            conn.setReadTimeout(20_000);
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
             conn.setFixedLengthStreamingMode(body.length);

@@ -48,6 +48,26 @@ import static ro.faicu.vwwelcome.Ui.dp;
 public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
     private static final int PERM_AUDIO = 3;
+    private static final int PERM_LOCATION = 4;
+    // Pasii calibrarii CAN: fiecare "Gata" lasa un marcaj intre liniile sondei, ca sa leg
+    // codurile de actiuni. In pereche (fa / anuleaza), ca schimbarea sa se vada in ambele sensuri.
+    private static final String[] CALIBRATION = {
+            "Inchide toate usile, portbagajul si capota; motorul pornit, pe loc",
+            "Deschide usa soferului", "Inchide usa soferului",
+            "Deschide usa pasagerului din fata", "Inchide usa pasagerului din fata",
+            "Deschide usa din spate stanga", "Inchide usa din spate stanga",
+            "Deschide usa din spate dreapta", "Inchide usa din spate dreapta",
+            "Deschide portbagajul", "Inchide portbagajul",
+            "Elibereaza frana de mana (cu piciorul pe frana)", "Trage frana de mana",
+            "Aprinde faza scurta", "Stinge faza scurta",
+            "Aprinde faza lunga", "Stinge faza lunga",
+            "Semnalizare stanga pornita", "Semnalizare stanga oprita",
+            "Semnalizare dreapta pornita", "Semnalizare dreapta oprita",
+            "Avariile pornite", "Avariile oprite",
+            "Cupleaza marsarierul (cu frana apasata)", "Scoate marsarierul",
+            "Desfa centura soferului", "Pune centura soferului",
+    };
+    private int calibStep = -1;
     private static final String[] TABS = {"Acasa", "Sunete", "Setari", "Jurnal"};
 
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -236,6 +256,81 @@ public class MainActivity extends Activity {
                     toast(active ? "Sonda CAN oprita" : "Sonda CAN pornita");
                     refresh();
                 });
+
+        buildCalibration(col);
+        buildTrips(col);
+    }
+
+    private void buildCalibration(LinearLayout col) {
+        LinearLayout card = Ui.card(this, col);
+        Ui.title(this, card, "Calibrare CAN");
+        if (calibStep < 0) {
+            Ui.hint(this, card, "Cu masina pe loc si motorul pornit: aplicatia iti cere pe rand o "
+                    + "actiune (usi, frana de mana, lumini...), tu o faci si apesi Gata. Dureaza 2-3 minute.");
+            Ui.addButton(this, card, "Incepe calibrarea", Ui.SECONDARY, v -> {
+                Prefs.setCanProbeUntil(this, System.currentTimeMillis() + CanProbe.DURATION_MS);
+                CanProbe.check(getApplicationContext());
+                calibStep = 0;
+                // Sonda are nevoie de o clipa sa se lege la MainServer inainte de primul marcaj.
+                ui.postDelayed(() -> CanProbe.mark("start calibrare"), 1500);
+                refresh();
+            });
+            return;
+        }
+        Ui.hint(this, card, "Pasul " + (calibStep + 1) + " din " + CALIBRATION.length);
+        TextView step = Ui.text(this, CALIBRATION[calibStep], 22, Ui.TEXT, true);
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
+        slp.topMargin = dp(this, 10);
+        card.addView(step, slp);
+        LinearLayout btns = new LinearLayout(this);
+        btns.addView(Ui.button(this, "Gata", Ui.PRIMARY, v -> calibNext(true)),
+                new LinearLayout.LayoutParams(0, -2, 2));
+        LinearLayout.LayoutParams sk = new LinearLayout.LayoutParams(0, -2, 1);
+        sk.leftMargin = dp(this, 10);
+        btns.addView(Ui.button(this, "Sari peste", Ui.SECONDARY, v -> calibNext(false)), sk);
+        LinearLayout.LayoutParams st = new LinearLayout.LayoutParams(0, -2, 1);
+        st.leftMargin = dp(this, 10);
+        btns.addView(Ui.button(this, "Opreste", Ui.DANGER, v -> {
+            CanProbe.mark("calibrare oprita la pasul " + (calibStep + 1));
+            calibStep = -1;
+            refresh();
+        }), st);
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+        blp.topMargin = dp(this, 16);
+        card.addView(btns, blp);
+    }
+
+    private void calibNext(boolean done) {
+        CanProbe.mark((calibStep + 1) + " " + (done ? "GATA" : "SARIT") + ": " + CALIBRATION[calibStep]);
+        calibStep++;
+        if (calibStep >= CALIBRATION.length) {
+            CanProbe.mark("calibrare terminata");
+            calibStep = -1;
+            toast("Calibrare terminata, multumesc!");
+        }
+        refresh();
+    }
+
+    private void buildTrips(LinearLayout col) {
+        LinearLayout card = Ui.card(this, col);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(Ui.text(this, "Calatorii", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        boolean on = Prefs.tripsEnabled(this);
+        boolean gps = TripRecorder.hasPermission(this);
+        head.addView(Ui.pill(this, !on ? "oprite" : gps ? "se inregistreaza" : "fara GPS",
+                !on ? Ui.MUTED : gps ? Ui.OK : Ui.WARN));
+        card.addView(head);
+        Ui.hint(this, card, "Traseul, viteza, turatia si kilometrajul fiecarui drum, pe "
+                + "status.faicu.ro/calatorii. Puncte in asteptare: " + PointQueue.size(this));
+        if (on && !gps) {
+            Ui.addButton(this, card, "Permite localizarea", Ui.PRIMARY, v -> askLocation());
+        }
+    }
+
+    private void askLocation() {
+        requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION}, PERM_LOCATION);
     }
 
     private void stat(LinearLayout parent, String label, String value, int color) {
@@ -396,6 +491,29 @@ public class MainActivity extends Activity {
         });
         row.addView(sw);
         srv.addView(row);
+        Ui.divider(this, srv);
+        LinearLayout trow = new LinearLayout(this);
+        trow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout ttexts = new LinearLayout(this);
+        ttexts.setOrientation(LinearLayout.VERTICAL);
+        ttexts.addView(Ui.text(this, "Inregistreaza calatoriile", 18, Ui.TEXT, true));
+        ttexts.addView(Ui.text(this, "GPS + date de la masina, la status.faicu.ro/calatorii", 13,
+                Ui.MUTED, false));
+        trow.addView(ttexts, new LinearLayout.LayoutParams(0, -2, 1));
+        Switch tsw = new Switch(this);
+        tsw.setChecked(Prefs.tripsEnabled(this));
+        tsw.setThumbTintList(ColorStateList.valueOf(Ui.TEXT));
+        tsw.setTrackTintList(new ColorStateList(new int[][] {{android.R.attr.state_checked}, {}},
+                new int[] {Ui.ACCENT, Ui.LINE}));
+        tsw.setOnCheckedChangeListener((b, on) -> {
+            Prefs.setTripsEnabled(this, on);
+            TripRecorder.check(getApplicationContext());
+            if (on && !TripRecorder.hasPermission(this)) askLocation();
+        });
+        trow.addView(tsw);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-1, -2);
+        tlp.topMargin = dp(this, 8);
+        srv.addView(trow, tlp);
 
         LinearLayout sys = Ui.card(this, col);
         Ui.title(this, sys, "Sistem");
@@ -505,6 +623,8 @@ public class MainActivity extends Activity {
                 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
                         != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[] {"android.permission.POST_NOTIFICATIONS"}, 2);
+        } else if (Prefs.tripsEnabled(this) && !TripRecorder.hasPermission(this)) {
+            askLocation();
         }
     }
 
@@ -585,6 +705,11 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
+        if (req == PERM_LOCATION) {
+            TripRecorder.check(getApplicationContext());
+            refresh();
+            return;
+        }
         if (req != PERM_AUDIO) return;
         if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
             pickFromMediaStore();

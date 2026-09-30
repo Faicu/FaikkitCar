@@ -71,6 +71,16 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
   XDA, la somnul adânc închide tot ce nu e în `skipkillapp.prop` (valori negative = nu se
   închide) / `unkillapp.txt` (în APK-ul com.syu.ms) / `protected_app.txt`.
+- Călătorii: `CanLink` (legătură permanentă la modulul CANBUS: c110/c1031/c109/c105/c106/c139),
+  `TripRecorder` (GPS `LocationManager` + CanLink; punct la 5 s în mers, 30 s cu motorul pe loc,
+  nimic cu motorul oprit, plus unul la oprire), `PointQueue` (fișier JSONL în filesDir, max
+  40.000), trimise de `Uploader` la `/api/vw-trip` în loturi de 300. Serverul (FaikkitBox,
+  tabela `vw_trip_point`, pagina `/calatorii`) împarte în călătorii la pauze > 5 min.
+  Serviciul are `foregroundServiceType="location"`; permisiunea se cere din aplicație.
+- Calibrare CAN (Acasă): pornește sonda 5 min și, la fiecare pas (uși, frână de mână,
+  lumini, semnalizare, marșarier, centură), `CanProbe.mark` scrie „CAN MARK n GATA: …” cu
+  ora exactă; codurile schimbate între două marcaje dau corespondența.
+- `Syu`: protocolul com.syu.ipc scris cu Parcel, folosit de `CanProbe` și `CanLink`.
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
 - Pornirea serviciului din `MainActivity` (`Prefs.markUiStart`, fereastră 5 s) nu mai contează
