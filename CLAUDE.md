@@ -36,8 +36,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
   folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
 - `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
-  și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconiță
-  adaptivă vectorială (`res/drawable/ic_launcher_*`, `mipmap-anydpi-v26`).
+  și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconița e
+  imaginea desenată de utilizator („FAIKKITVW”, săgeată cu sigla VW), ca strat față adaptiv
+  (`drawable-nodpi/ic_launcher_fg.png`, 432 px, imaginea pe ~80 dp) pe fundal #204671.
 - `CanProbe` („Sonda CAN” pe Acasă, 5 min, `can_probe_until`): se leagă la
   `com.syu.ms/app.ToolkitService` (acțiunea `com.syu.ms.toolkit`, AIDL `com.syu.ipc`:
   getRemoteModule=1, register=3 cu (callback, cod, 1), callback update=1) și ascultă
