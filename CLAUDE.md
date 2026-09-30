@@ -41,7 +41,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
-  lista de autostart Teyes; notează „Pornit din autostart”, pornește serviciul, `finish()`.
+  lista de autostart Teyes, care o lansează la ACC ON. Pornește serviciul cu extra
+  `acc_on` (`WelcomeService.startAccOn`) → `onStartCommand` redă direct („autostart
+  (ACC ON)”), fără să ceară o pauză. Motiv: la primul test real (30.09) o oprire scurtă de
+  contact NU a suspendat procesorul (serviciul a rămas viu, fără pauză, fără SCREEN_OFF),
+  dar autostart-ul a venit la ACC ON. Jurnalul notează „somn total de la boot”
+  (`elapsedRealtime - uptimeMillis`), ca să se vadă dacă unitatea a dormit.
 
 ## Ce știm despre somnul Teyes CC3 (forumuri XDA/4PDA/Drive2, neverificat pe unitate)
 

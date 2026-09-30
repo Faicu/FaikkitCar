@@ -44,8 +44,24 @@ public class WelcomeService extends Service {
                 }
             };
 
+    private static final String EXTRA_ACC_ON = "acc_on";
+
     static void start(Context c) {
         c.startForegroundService(new Intent(c, WelcomeService.class));
+    }
+
+    /**
+     * Autostart-ul Teyes lanseaza StartActivity la ACC ON, chiar si cand unitatea nu a
+     * apucat sa hiberneze (oprire scurta: procesorul merge, nu exista nicio pauza de
+     * detectat). Il tratam direct ca trezire.
+     */
+    static void startAccOn(Context c) {
+        c.startForegroundService(new Intent(c, WelcomeService.class).putExtra(EXTRA_ACC_ON, true));
+    }
+
+    /** Cat a stat procesorul suspendat de la boot: elapsedRealtime include somnul, uptime nu. */
+    static long sleptSec() {
+        return (SystemClock.elapsedRealtime() - SystemClock.uptimeMillis()) / 1000;
     }
 
     @Override
@@ -61,7 +77,8 @@ public class WelcomeService extends Service {
         long now = System.currentTimeMillis();
         long alive = Prefs.lastAlive(this);
         Prefs.log(this, "Serviciu pornit: boot #" + boot + " (anterior #" + lastBoot + "), uptime "
-                + SystemClock.elapsedRealtime() / 1000 + " s, ultima activitate "
+                + SystemClock.elapsedRealtime() / 1000 + " s (din care somn " + sleptSec()
+                + " s), ultima activitate "
                 + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
         Prefs.log(this, "Info: " + Prefs.deviceInfo(this).replace("\n", " | "));
         if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
@@ -162,6 +179,12 @@ public class WelcomeService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         // Fiecare startForegroundService() cere un startForeground() in 5 s.
         startForeground(1, buildNotification());
+        if (intent != null && intent.getBooleanExtra(EXTRA_ACC_ON, false)) {
+            long sinceTick = (SystemClock.elapsedRealtime() - lastTick) / 1000;
+            Prefs.log(this, "Autostart: somn total de la boot " + sleptSec() + " s, ultimul tick acum "
+                    + sinceTick + " s");
+            onWake("autostart (ACC ON)");
+        }
         return START_STICKY;
     }
 
