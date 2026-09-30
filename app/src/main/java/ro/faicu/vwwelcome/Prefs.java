@@ -23,7 +23,8 @@ final class Prefs {
     private static final int HISTORY_MAX = 20;
     private static final int LOG_MAX = 100;
     // Liniile netrimise inca la server; peste atat le pierdem pe cele mai vechi.
-    private static final int OUTBOX_MAX = 500;
+    // Incape si un diagnostic intreg (pana la 1500 de linii).
+    private static final int OUTBOX_MAX = 2000;
     private static final Random RANDOM = new Random();
 
     private Prefs() {}
@@ -125,6 +126,15 @@ final class Prefs {
 
     static void setDelayMs(Context c, long ms) {
         sp(c).edit().putLong("delay", Math.max(0, Math.min(15_000, ms))).apply();
+    }
+
+    /** Pauza adaugata cand unitatea chiar a hibernat (amplificatorul porneste mai greu). */
+    static long sleepExtraMs(Context c) {
+        return sp(c).getLong("sleep_extra", 2000);
+    }
+
+    static void setSleepExtraMs(Context c, long ms) {
+        sp(c).edit().putLong("sleep_extra", Math.max(0, Math.min(15_000, ms))).apply();
     }
 
     /** Volumul sunetului de bun venit, in procente din maxim; 0 = lasam volumul sistemului. */
@@ -248,6 +258,7 @@ final class Prefs {
         } catch (JSONException e) {
             return;
         }
+        while (box.length() > OUTBOX_MAX) box.remove(0);
         journal(c).edit().putString("outbox", box.toString()).apply();
         Uploader.kick(c);
     }
@@ -290,7 +301,8 @@ final class Prefs {
                 + "Build: " + Build.DISPLAY + "\n"
                 + "Optimizare baterie: " + (pm.isIgnoringBatteryOptimizations(c.getPackageName())
                         ? "dezactivata" : "ACTIVA") + ", notificari: " + (notif ? "da" : "NU") + "\n"
-                + "Prag " + thresholdSec(c) + " s, pauza " + delayMs(c) + " ms, volum "
+                + "Prag " + thresholdSec(c) + " s, pauza " + delayMs(c) + " ms (+"
+                + sleepExtraMs(c) + " ms dupa hibernare), volum "
                 + volumePercent(c) + "%, sunete " + sounds(c).length
                 + (randomOrder(c) ? " (aleatoriu)" : " (la rand)");
     }

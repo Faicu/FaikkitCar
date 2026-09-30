@@ -58,7 +58,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
 - Pornirea serviciului din `MainActivity` (`Prefs.markUiStart`, fereastră 5 s) nu mai contează
-  ca trezire „pornire proces”. Pauza implicită e 5 s.
+  ca trezire „pornire proces”. Pauza implicită e 5 s, plus `sleep_extra` (implicit 2 s,
+  setabil în UI) când procesorul a dormit ≥60 s de la ultimul tick (`sleptAtTick`): după o
+  hibernare de ~1 h se pierdea ~1 s din sunet la 5 s pauză.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
   lista de autostart Teyes, care o lansează la ACC ON. Pornește serviciul cu extra
   `acc_on` (`WelcomeService.startAccOn`) → `onStartCommand` redă direct („autostart
@@ -105,6 +107,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   NU a pornit la ACC ON → liniște. La pornirea următoare (5 min) autostart-ul a mers.
   Căutăm o listă albă Teyes (diagnosticul de mai sus); rezervă: automatizare pe telefon
   la conectarea Bluetooth.
+- ACC OFF ~1 h cu `com.mapgoo.diruite` (30.09, 1.1.15): serviciul a SUPRAVIEȚUIT somnului
+  (fără „Serviciu pornit” nou), SCREEN_OFF a venit la ~10 min după ACC OFF (intrarea în
+  somn); la ACC ON au venit și autostart-ul, și detecția prin pauză (3515 s), a doua
+  ignorată ca dublură. Sunet redat, dar fără ~1 s la început → pauza suplimentară (1.1.16).
 - Rămâne de testat: ACC OFF 2–5 min și peste noapte (hibernare / boot complet), plus cât
   de des ratează autostart-ul.
 - Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,

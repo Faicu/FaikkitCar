@@ -33,6 +33,8 @@ public class WelcomeService extends Service {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long lastTick;
+    // Somnul total (sleptSec) la ultimul tick: diferenta arata daca intre timp s-a hibernat.
+    private long sleptAtTick;
     private int count;
 
     // La trezire internetul revine abia dupa cateva secunde: atunci trimitem jurnalul adunat.
@@ -97,6 +99,7 @@ public class WelcomeService extends Service {
         Prefs.setLastAlive(this, now);
 
         lastTick = SystemClock.elapsedRealtime();
+        sleptAtTick = sleptSec();
         handler.postDelayed(tick, TICK_MS);
         IntentFilter screen = new IntentFilter(Intent.ACTION_SCREEN_ON);
         screen.addAction(Intent.ACTION_SCREEN_OFF);
@@ -119,6 +122,7 @@ public class WelcomeService extends Service {
             } else if (gap > LOG_GAP_MS) {
                 Prefs.log(WelcomeService.this, "Pauza " + gap / 1000 + " s (sub prag)");
             }
+            sleptAtTick = sleptSec();
             // Scriem pe disc doar la ~15 s, ca sa nu uzam memoria interna.
             if (++count % 3 == 0 || gap > TICK_MS * 2) {
                 Prefs.setLastAlive(WelcomeService.this, System.currentTimeMillis());
@@ -160,9 +164,13 @@ public class WelcomeService extends Service {
             if (f == null) {
                 result = "niciun sunet ales";
             } else {
-                // Pauza: lasam amplificatorul si audio-ul sa porneasca.
-                Player.play(this, f, Prefs.delayMs(this), true);
-                result = Prefs.soundName(f);
+                // Pauza: lasam amplificatorul si audio-ul sa porneasca. Dupa o hibernare
+                // adevarata porneste mai greu (se pierdea ~1 s la 5 s pauza), deci adaugam.
+                boolean hibernated = sleptSec() - sleptAtTick >= 60;
+                long delay = Prefs.delayMs(this) + (hibernated ? Prefs.sleepExtraMs(this) : 0);
+                Player.play(this, f, delay, true);
+                result = Prefs.soundName(f) + " (pauza " + delay / 1000.0 + " s"
+                        + (hibernated ? ", dupa hibernare" : "") + ")";
             }
         }
         Prefs.addHistory(this, reason + " → " + result);

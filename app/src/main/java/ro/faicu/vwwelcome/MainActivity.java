@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
     private Button order;
     private EditText threshold;
     private EditText delay;
+    private EditText sleepExtra;
     private TextView volumeLabel;
     private TextView history;
     private TextView log;
@@ -83,6 +84,10 @@ public class MainActivity extends Activity {
         delay = new EditText(this);
         delay.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         l.addView(delay);
+        l.addView(label("Pauza suplimentara dupa hibernare, in secunde (0-15)"));
+        sleepExtra = new EditText(this);
+        sleepExtra.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        l.addView(sleepExtra);
         l.addView(button("2. Salveaza pragul si pauza", v -> saveSettings()));
         fillSettings();
 
@@ -224,7 +229,8 @@ public class MainActivity extends Activity {
                 "Sunete: " + (sounds.length == 0 ? "NICIUNUL" : sounds.length) + "\n"
                 + "Optimizare baterie: " + (batteryOk ? "dezactivata (ok)" : "ACTIVA") + "\n"
                 + "Prag: " + Prefs.thresholdSec(this) + " s, pauza "
-                + Prefs.delayMs(this) / 1000.0 + " s\n");
+                + Prefs.delayMs(this) / 1000.0 + " s (+" + Prefs.sleepExtraMs(this) / 1000.0
+                + " s dupa hibernare)\n");
 
         soundList.removeAllViews();
         for (File f : sounds) {
@@ -385,6 +391,8 @@ public class MainActivity extends Activity {
             Prefs.setThresholdSec(this, Integer.parseInt(threshold.getText().toString().trim()));
             double sec = Double.parseDouble(delay.getText().toString().trim().replace(',', '.'));
             Prefs.setDelayMs(this, Math.round(sec * 1000));
+            double extra = Double.parseDouble(sleepExtra.getText().toString().trim().replace(',', '.'));
+            Prefs.setSleepExtraMs(this, Math.round(extra * 1000));
             toast("Salvat");
         } catch (NumberFormatException e) {
             toast("Numar invalid");
@@ -396,6 +404,7 @@ public class MainActivity extends Activity {
     private void fillSettings() {
         threshold.setText(String.valueOf(Prefs.thresholdSec(this)));
         delay.setText(String.valueOf(Prefs.delayMs(this) / 1000.0));
+        sleepExtra.setText(String.valueOf(Prefs.sleepExtraMs(this) / 1000.0));
     }
 
     private void askBattery() {
