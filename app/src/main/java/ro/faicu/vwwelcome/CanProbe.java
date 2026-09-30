@@ -28,7 +28,7 @@ import java.util.Map;
  * (callback, cod, 1); IModuleCallback.update = 1 (cod, int[], float[], String[]).
  */
 final class CanProbe {
-    static final long DURATION_MS = 45 * 60_000L;
+    static final long DURATION_MS = 5 * 60_000L;
     private static final String TOOLKIT = "com.syu.ipc.IRemoteToolkit";
     private static final String MODULE = "com.syu.ipc.IRemoteModule";
     private static final String CALLBACK = "com.syu.ipc.IModuleCallback";

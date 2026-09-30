@@ -38,7 +38,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
   și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconiță
   adaptivă vectorială (`res/drawable/ic_launcher_*`, `mipmap-anydpi-v26`).
-- `CanProbe` („Sonda CAN” pe Acasă, 45 min, `can_probe_until`): se leagă la
+- `CanProbe` („Sonda CAN” pe Acasă, 5 min, `can_probe_until`): se leagă la
   `com.syu.ms/app.ToolkitService` (acțiunea `com.syu.ms.toolkit`, AIDL `com.syu.ipc`:
   getRemoteModule=1, register=3 cu (callback, cod, 1), callback update=1) și ascultă
   modulul 0 (coduri 0–199) și 7 CANBUS (0–399, 1000–1299). Trimite doar schimbările, max
