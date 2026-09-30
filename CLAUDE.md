@@ -73,21 +73,18 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   alias `vwwelcome`). `app/build.gradle` citește `SIGNING_KEYSTORE` / `SIGNING_PASSWORD`;
   `versionCode` = `GITHUB_RUN_NUMBER`, `versionName` = `1.1.<N>`. Keystore-ul nu e în repo.
 
-## Stare (29.09.2026)
+## Stare (30.09.2026)
 
-- Ultimul build verde: `build-10` (1.1.10): diagnostic extins, `StartActivity` pentru
-  autostart, trimiterea jurnalului la status.faicu.ro. Nicio versiune nu a fost încă
-  instalată pe navigație; nimic nu e testat pe hardware real.
-- Urmează: utilizatorul instalează 1.1.10 la mașină și revine. Jurnalul se citește din
-  `/opt/faikkitbox/data/faikkitbox.db`, tabela `vw_log` (sau pagina `/vw`), nu mai e
-  nevoie de copiere manuală.
-- După build-6 s-a îmbunătățit diagnosticul (focus audio în jurnal, antet cu versiuni și
-  permisiuni, `QUICKBOOT_POWERON`, `USER_PRESENT`, jurnal separat de setări). Testul pe
-  navigație trebuie făcut cu un build care conține aceste schimbări, nu cu 1.1.6/1.1.7.
-- Build-ul cu `StartActivity` trebuie pus în lista de autostart înainte de test; jurnalul
-  arată cât de des vine „Pornit din autostart”.
+- Instalat pe navigație: 1.1.12 (`build-12`). Unitate: Android 10 (API 29), `sprd
+  ums512_1h10_Natv`, fără selector de fișiere (nici OPEN_DOCUMENT, nici GET_CONTENT).
+- Testat pe hardware: ACC OFF ~20–30 s → procesorul NU hibernează (somn 0 s, fără
+  SCREEN_OFF, serviciul rămâne viu); autostart-ul Teyes lansează „VW Welcome Start” la
+  ACC ON → sunetul se redă. Cu pauza 2,5 s se tăiau primele ~2 s; utilizatorul a pus 5 s
+  și se aude complet (implicitul din cod e încă 2,5 s).
+- Rămâne de testat: ACC OFF 2–5 min și peste noapte (hibernare / boot complet), plus cât
+  de des ratează autostart-ul.
 - Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,
-  2–5 min, peste noapte) și trimite jurnalul copiat din aplicație. În funcție de jurnal
+  2–5 min, peste noapte); jurnalul se citește din `vw_log` (FaikkitBox). În funcție de jurnal
   decidem dacă e nevoie de un watchdog (repornire cu `AlarmManager`).
   Atenție: dacă Teyes face force-stop la ACC OFF, alarmele se anulează și ele; atunci ar
   trebui căutat un broadcast ACC specific Teyes (logcat). Tot după test: opțiune de tip
