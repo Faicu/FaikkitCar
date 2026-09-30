@@ -51,6 +51,7 @@ public class WelcomeService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        CrashLog.install(this);
         startForeground(1, buildNotification());
 
         // Caz 1: boot nou. Contorul de boot-uri nu depinde de ceas, deci merge

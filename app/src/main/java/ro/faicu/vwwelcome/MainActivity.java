@@ -1,6 +1,8 @@
 package ro.faicu.vwwelcome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
@@ -10,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.text.InputType;
@@ -27,9 +30,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
+    private static final int PERM_AUDIO = 3;
 
     private TextView status;
     private LinearLayout soundList;
@@ -44,6 +50,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        CrashLog.install(this);
         // Si daca aplicatia e deschisa din autostart, serviciul trebuie sa porneasca.
         WelcomeService.start(this);
         int pad = (int) (24 * getResources().getDisplayMetrics().density);
@@ -227,12 +234,81 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Selectorul de fisiere Android lipseste pe unele navigatii (Teyes): incercam pe rand
+     * OPEN_DOCUMENT, GET_CONTENT, apoi lista noastra de fisiere audio din MediaStore.
+     */
     private void pickSound() {
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        i.addCategory(Intent.CATEGORY_OPENABLE);
-        i.setType("audio/*");
-        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(i, PICK_SOUND);
+        for (String action : new String[] {Intent.ACTION_OPEN_DOCUMENT, Intent.ACTION_GET_CONTENT}) {
+            Intent i = new Intent(action);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("audio/*");
+            i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            try {
+                startActivityForResult(i, PICK_SOUND);
+                return;
+            } catch (ActivityNotFoundException e) {
+                Prefs.log(this, "Selector fisiere indisponibil: " + action);
+            }
+        }
+        pickFromMediaStore();
+    }
+
+    private String audioPermission() {
+        return Build.VERSION.SDK_INT >= 33
+                ? "android.permission.READ_MEDIA_AUDIO"
+                : "android.permission.READ_EXTERNAL_STORAGE";
+    }
+
+    /** Lista proprie: fisierele audio indexate de Android (Download, Music, stick USB etc.). */
+    private void pickFromMediaStore() {
+        if (checkSelfPermission(audioPermission()) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {audioPermission()}, PERM_AUDIO);
+            return;
+        }
+        List<Uri> uris = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        try (Cursor c = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                new String[] {MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME},
+                null, null, MediaStore.Audio.Media.DISPLAY_NAME)) {
+            while (c != null && c.moveToNext()) {
+                uris.add(Uri.withAppendedPath(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, String.valueOf(c.getLong(0))));
+                names.add(c.getString(1));
+            }
+        } catch (Exception e) {
+            Prefs.log(this, "Lista audio: eroare " + e);
+        }
+        Prefs.log(this, "Lista audio: " + uris.size() + " fisiere");
+        if (uris.isEmpty()) {
+            toast("Niciun fisier audio gasit. Copiaza MP3-ul pe navigatie (ex. in Download)");
+            return;
+        }
+        boolean[] checked = new boolean[uris.size()];
+        new AlertDialog.Builder(this)
+                .setTitle("Alege sunetele")
+                .setMultiChoiceItems(names.toArray(new String[0]), checked,
+                        (d, which, on) -> checked[which] = on)
+                .setPositiveButton("Adauga", (d, w) -> {
+                    int added = 0;
+                    for (int i = 0; i < checked.length; i++) {
+                        if (checked[i] && copySound(uris.get(i))) added++;
+                    }
+                    toast(added == 1 ? "Sunet adaugat" : added + " sunete adaugate");
+                    refresh();
+                })
+                .setNegativeButton("Renunta", null)
+                .show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
+        if (req != PERM_AUDIO) return;
+        if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
+            pickFromMediaStore();
+        } else {
+            toast("Fara permisiune nu pot citi fisierele audio");
+        }
     }
 
     @Override

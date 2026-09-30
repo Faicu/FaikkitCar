@@ -185,6 +185,11 @@ final class Prefs {
         j.edit().putString(key, text.trim()).apply();
     }
 
+    /** Scrie pe disc acum ce era programat cu apply(): procesul e pe cale sa moara. */
+    static void flushNow(Context c) {
+        journal(c).edit().commit();
+    }
+
     static boolean uploadEnabled(Context c) {
         return sp(c).getBoolean("upload", true);
     }

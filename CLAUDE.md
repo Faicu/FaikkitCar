@@ -35,6 +35,11 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
   folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
 - `MainActivity`: UI construit din cod (fără XML); pornește serviciul în `onCreate`.
+  Adăugarea sunetelor: `ACTION_OPEN_DOCUMENT` → `ACTION_GET_CONTENT` → listă proprie din
+  `MediaStore.Audio` (cere `READ_EXTERNAL_STORAGE` / `READ_MEDIA_AUDIO`). Pe Teyes-ul
+  utilizatorului selectorul standard lipsea și aplicația cădea (1.1.10).
+- `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
+  `commit`, trimis la server la pornirea următoare.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
   lista de autostart Teyes; notează „Pornit din autostart”, pornește serviciul, `finish()`.
 
