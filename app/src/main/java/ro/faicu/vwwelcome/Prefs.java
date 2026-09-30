@@ -137,6 +137,37 @@ final class Prefs {
         sp(c).edit().putLong("sleep_extra", Math.max(0, Math.min(15_000, ms))).apply();
     }
 
+    /** Ultimul raspuns /api/vw-status (JSON) si momentul lui. */
+    static String status(Context c) {
+        return sp(c).getString("status_json", "{}");
+    }
+
+    static long statusAt(Context c) {
+        return sp(c).getLong("status_at", 0);
+    }
+
+    static void setStatus(Context c, String json) {
+        sp(c).edit().putString("status_json", json).putLong("status_at", System.currentTimeMillis()).apply();
+    }
+
+    /** Salutul vorbit dupa 3 minute de mers. */
+    static boolean greetEnabled(Context c) {
+        return sp(c).getBoolean("greet", true);
+    }
+
+    static void setGreetEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("greet", on).apply();
+    }
+
+    /** Avertizarea "usa deschisa" cand masina porneste din loc. */
+    static boolean doorAlertEnabled(Context c) {
+        return sp(c).getBoolean("door_alert", true);
+    }
+
+    static void setDoorAlertEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("door_alert", on).apply();
+    }
+
     /** Inregistrarea calatoriilor (GPS + date masina) la status.faicu.ro/calatorii. */
     static boolean tripsEnabled(Context c) {
         return sp(c).getBoolean("trips", true);

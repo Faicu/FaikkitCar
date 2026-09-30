@@ -63,7 +63,7 @@ final class Uploader {
         // Punctele de traseu (TripRecorder), pe ruta lor.
         while (true) {
             JSONArray batch = PointQueue.peek(c, POINT_BATCH);
-            if (batch.length() == 0) return;
+            if (batch.length() == 0) break;
             String error = post(URL_TRIP, "points", batch);
             if (error != null) {
                 Prefs.setUploadStatus(c, "eroare traseu: " + error);
@@ -71,6 +71,8 @@ final class Uploader {
             }
             PointQueue.drop(c, batch.length());
         }
+        // Avem internet: reimprospatam si starea (mentenanta, versiunea noua).
+        VwStatus.refreshIfOld(c);
     }
 
     /** Intoarce null la succes, altfel motivul. */

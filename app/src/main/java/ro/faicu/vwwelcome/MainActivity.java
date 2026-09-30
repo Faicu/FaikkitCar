@@ -230,6 +230,35 @@ public class MainActivity extends Activity {
             actions.addView(start, lp);
         }
 
+        org.json.JSONObject apk = VwStatus.newerApk(this);
+        if (apk != null) {
+            LinearLayout up = Ui.card(this, col);
+            up.addView(Ui.text(this, "Versiune noua: " + apk.optString("versionName"), 19, Ui.ACCENT, true));
+            Ui.hint(this, up, "Se descarca de pe status.faicu.ro si se instaleaza peste aceasta; "
+                    + "Android iti cere o confirmare.");
+            Ui.addButton(this, up, "Actualizeaza acum", Ui.PRIMARY, v -> {
+                toast("Descarc actualizarea...");
+                Updater.start(this, this::refresh);
+            });
+        }
+
+        java.util.List<VwStatus.Reminder> due = new java.util.ArrayList<>();
+        for (VwStatus.Reminder r : VwStatus.reminders(this)) if (r.soon || r.overdue) due.add(r);
+        if (!due.isEmpty()) {
+            LinearLayout mt = Ui.card(this, col);
+            Ui.title(this, mt, "Mentenanta");
+            for (VwStatus.Reminder r : due) {
+                LinearLayout row = new LinearLayout(this);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.addView(Ui.text(this, r.title, 17, Ui.TEXT, false), new LinearLayout.LayoutParams(0, -2, 1));
+                row.addView(Ui.pill(this, r.describe(), r.overdue ? Ui.BAD : Ui.WARN));
+                LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+                rlp.topMargin = dp(this, 10);
+                mt.addView(row, rlp);
+            }
+            Ui.hint(this, mt, "Se editeaza pe status.faicu.ro/calatorii.");
+        }
+
         if (!batteryOk()) {
             LinearLayout warn = Ui.card(this, col);
             warn.addView(Ui.text(this, "Optimizarea bateriei e activa", 18, Ui.WARN, true));
@@ -515,8 +544,26 @@ public class MainActivity extends Activity {
         tlp.topMargin = dp(this, 8);
         srv.addView(trow, tlp);
 
+        LinearLayout voice = Ui.card(this, col);
+        Ui.title(this, voice, "In mers");
+        toggle(voice, "Salut vorbit dupa 3 minute", "Ora zilei, temperatura de afara, mentenanta scadenta",
+                Prefs.greetEnabled(this), on -> Prefs.setGreetEnabled(this, on));
+        Ui.divider(this, voice);
+        toggle(voice, "Avertizare usa deschisa", "Cand masina porneste din loc cu o usa sau portbagajul deschis",
+                Prefs.doorAlertEnabled(this), on -> Prefs.setDoorAlertEnabled(this, on));
+        Ui.addButton(this, voice, "Asculta salutul acum", Ui.SECONDARY,
+                v -> Speaker.say(this, Greeting.salute(this, CanLink.get(this).temp()), false));
+
         LinearLayout sys = Ui.card(this, col);
         Ui.title(this, sys, "Sistem");
+        Ui.addButton(this, sys, "Verifica actualizari", Ui.SECONDARY, v -> new Thread(() -> {
+            boolean ok = VwStatus.refresh(this);
+            runOnUiThread(() -> {
+                toast(!ok ? "Serverul nu raspunde" : VwStatus.newerApk(this) != null
+                        ? "Exista o versiune noua, vezi Acasa" : "Ai ultima versiune");
+                refresh();
+            });
+        }).start());
         Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
         Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
         Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
@@ -525,6 +572,28 @@ public class MainActivity extends Activity {
             ui.postDelayed(this::refresh, 800);
         });
         Ui.addButton(this, sys, "Diagnostic Teyes (trimite la server)", Ui.SECONDARY, v -> runDiagnostics());
+    }
+
+    /** Rand cu titlu, explicatie si comutator. */
+    private void toggle(LinearLayout parent, String title, String help, boolean value,
+            java.util.function.Consumer<Boolean> onChange) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.addView(Ui.text(this, title, 17, Ui.TEXT, true));
+        texts.addView(Ui.text(this, help, 13, Ui.MUTED, false));
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+        Switch sw = new Switch(this);
+        sw.setChecked(value);
+        sw.setThumbTintList(ColorStateList.valueOf(Ui.TEXT));
+        sw.setTrackTintList(new ColorStateList(new int[][] {{android.R.attr.state_checked}, {}},
+                new int[] {Ui.ACCENT, Ui.LINE}));
+        sw.setOnCheckedChangeListener((b, on) -> onChange.accept(on));
+        row.addView(sw);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = dp(this, 12);
+        parent.addView(row, lp);
     }
 
     private void runDiagnostics() {
@@ -634,6 +703,12 @@ public class MainActivity extends Activity {
         refresh();
         // Serviciul pornit in onCreate apare in lista abia dupa cateva sute de ms.
         ui.postDelayed(this::updateStatus, 1000);
+        // Mentenanta si versiunea noua, daca starea de pe server e mai veche de 30 de minute.
+        new Thread(() -> {
+            long before = Prefs.statusAt(this);
+            VwStatus.refreshIfOld(this);
+            if (Prefs.statusAt(this) != before) runOnUiThread(this::refresh);
+        }).start();
     }
 
     /**

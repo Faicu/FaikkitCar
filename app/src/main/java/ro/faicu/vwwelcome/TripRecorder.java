@@ -23,6 +23,11 @@ final class TripRecorder implements LocationListener {
     private static final long SAMPLE_MS = 5_000;
     private static final long IDLE_MS = 30_000;
     private static final long LOCATION_FRESH_MS = 10_000;
+    // Salutul vorbit vine dupa atatea minute de mers efectiv de la pornire.
+    private static final long GREET_AFTER_MS = 3 * 60_000;
+    // Cu motorul oprit atat timp, oprim GPS-ul (navigatia sta treaza ~10 min dupa ACC OFF).
+    private static final long GPS_OFF_AFTER_MS = 60_000;
+    private static final double DOOR_ALERT_KMH = 5;
 
     private static TripRecorder instance;
 
@@ -34,6 +39,12 @@ final class TripRecorder implements LocationListener {
     private long lastPointAt;
     private boolean wasMoving;
     private boolean gpsOn;
+    // Starea drumului curent: resetata cand motorul sta oprit sau unitatea a dormit.
+    private long lastSampleAt;
+    private long movingMs;
+    private long engineOffSince;
+    private boolean greeted;
+    private boolean doorAlerted;
 
     private TripRecorder(Context c) {
         this.c = c.getApplicationContext();
@@ -120,6 +131,9 @@ final class TripRecorder implements LocationListener {
 
     private void sampleOnce() {
         long now = SystemClock.elapsedRealtime();
+        // Un gol mare intre esantioane = unitatea a dormit: incepe un drum nou.
+        if (lastSampleAt > 0 && now - lastSampleAt > 60_000) resetDrive();
+        lastSampleAt = now;
         Location loc = now - lastAt < LOCATION_FRESH_MS ? last : null;
         double gpsKmh = loc != null && loc.hasSpeed() ? loc.getSpeed() * 3.6 : Double.NaN;
         double canKmh = can.speed();
@@ -127,6 +141,7 @@ final class TripRecorder implements LocationListener {
         boolean moving = (!Double.isNaN(canKmh) && canKmh >= 1)
                 || (Double.isNaN(canKmh) && !Double.isNaN(gpsKmh) && gpsKmh >= 3);
         boolean engine = rpm > 300;
+        monitor(now, moving, engine, rpm, canKmh);
         long interval = moving ? SAMPLE_MS : engine ? IDLE_MS : Long.MAX_VALUE;
         // La oprire mai scriem un punct, ca sosirea sa fie exact unde a stat masina.
         boolean justStopped = wasMoving && !moving;
@@ -149,6 +164,48 @@ final class TripRecorder implements LocationListener {
             PointQueue.add(c, p);
         } catch (JSONException ignored) {
         }
+    }
+
+    private void resetDrive() {
+        movingMs = 0;
+        greeted = false;
+        doorAlerted = false;
+    }
+
+    /** Salutul dupa 3 minute de mers, avertizarea de usa deschisa si GPS-ul pornit doar cand trebuie. */
+    private void monitor(long now, boolean moving, boolean engine, int rpm, double canKmh) {
+        if (rpm == 0) {
+            if (engineOffSince == 0) engineOffSince = now;
+            if (now - engineOffSince > 2 * 60_000) resetDrive();
+            if (gpsOn && !moving && now - engineOffSince > GPS_OFF_AFTER_MS) stopGps();
+        } else {
+            engineOffSince = 0;
+        }
+        if ((engine || moving) && !gpsOn) startGps();
+
+        if (moving) movingMs += SAMPLE_MS;
+        if (!greeted && movingMs >= GREET_AFTER_MS) {
+            greeted = true;
+            if (Prefs.greetEnabled(c)) Speaker.say(c, Greeting.salute(c, can.temp()), false);
+        }
+
+        java.util.List<Integer> open = can.openDoors();
+        if (open.isEmpty()) {
+            doorAlerted = false;
+        } else if (!doorAlerted && !Double.isNaN(canKmh) && canKmh >= DOOR_ALERT_KMH) {
+            doorAlerted = true;
+            Prefs.log(c, "Usa deschisa in mers: " + open);
+            if (Prefs.doorAlertEnabled(c)) Speaker.say(c, Greeting.doorOpen(open), true);
+        }
+    }
+
+    private void stopGps() {
+        try {
+            c.getSystemService(LocationManager.class).removeUpdates(this);
+        } catch (Exception ignored) {
+        }
+        gpsOn = false;
+        Prefs.log(c, "Calatorii: GPS oprit, motorul e oprit");
     }
 
     private static double round1(double x) {

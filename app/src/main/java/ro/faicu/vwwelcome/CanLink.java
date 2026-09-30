@@ -15,6 +15,12 @@ import android.os.SystemClock;
  */
 final class CanLink {
     private static final int RPM = 110, SPEED = 1031, SPEED100 = 109, VOLT = 105, ODO = 106, TEMP = 139;
+    // Usile, din calibrarea ghidata: c1 sofer, c2 pasager fata, c3 spate stanga, c4 spate
+    // dreapta, c5 portbagaj (1 = deschis).
+    // Cu diacritice: textele sunt rostite de TextToSpeech.
+    static final String[] DOORS = {"ușa șoferului", "ușa pasagerului", "ușa din spate stânga",
+            "ușa din spate dreapta", "portbagajul"};
+    private final int[] doors = new int[DOORS.length];
     // O valoare mai veche de atat nu mai descrie masina (ex. MainServer nu mai trimite).
     private static final long FRESH_MS = 10_000;
 
@@ -85,11 +91,15 @@ final class CanLink {
                         case VOLT: volt = v / 100.0; voltAt = now; break;
                         case ODO: odo = v; odoAt = now; break;
                         case TEMP: temp = v / 10.0; tempAt = now; break;
-                        default: break;
+                        default:
+                            if (code >= 1 && code <= DOORS.length) doors[code - 1] = v;
+                            break;
                     }
                 }
             };
-            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP}) Syu.register(mod, cb, code);
+            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, 1, 2, 3, 4, 5}) {
+                Syu.register(mod, cb, code);
+            }
         } catch (Exception e) {
             Prefs.log(c, "Date masina: eroare " + e);
         }
@@ -120,5 +130,12 @@ final class CanLink {
 
     int odo() {
         return odoAt > 0 ? odo : -1;
+    }
+
+    /** Indicii (in DOORS) usilor deschise acum. */
+    java.util.List<Integer> openDoors() {
+        java.util.List<Integer> open = new java.util.ArrayList<>();
+        for (int i = 0; i < doors.length; i++) if (doors[i] == 1) open.add(i);
+        return open;
     }
 }

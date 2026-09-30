@@ -87,6 +87,19 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - Calibrare CAN (Acasă): pornește sonda 5 min și, la fiecare pas (uși, frână de mână,
   lumini, semnalizare, marșarier, centură), `CanProbe.mark` scrie „CAN MARK n GATA: …” cu
   ora exactă; codurile schimbate între două marcaje dau corespondența.
+- `VwStatus`: `/api/vw-status` (kilometraj, mentenanță, ultimul APK), reîmprospătat de
+  `Uploader` după trimitere dacă e mai vechi de 30 min și din aplicație; salvat în Prefs.
+- `Updater`: dacă `apk.versionCode` de pe server > `BuildConfig.VERSION_CODE`, butonul
+  „Actualizează acum” descarcă `/api/vw-apk/download` și instalează prin `PackageInstaller`
+  (confirmare Android prin `Updater$Result`; prima dată cere „surse necunoscute”). CI
+  publică APK-ul la `POST /api/vw-apk` după fiecare build pe main.
+- `Speaker` (TextToSpeech, ro-RO, ca ghidare de navigație; bip dacă nu există voce) +
+  `Greeting`: salut vorbit după 3 min de mers efectiv (ora zilei, temperatura CAN,
+  mentenanța scadentă), avertizare „ușă deschisă” la ≥ 5 km/h (uși c1–c5 din `CanLink`).
+  Logica e în `TripRecorder.monitor` (deci merge doar cu călătoriile pornite); tot acolo
+  GPS-ul se oprește după 1 min cu motorul oprit (rpm 0) și repornește la turație/mers.
+- Pe server (FaikkitBox): `/calatorii` are și „Unde e mașina” (ultimul punct GPS) și
+  Mentenanța (tabela `vw_reminder`).
 - `Syu`: protocolul com.syu.ipc scris cu Parcel, folosit de `CanProbe` și `CanLink`.
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
