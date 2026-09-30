@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Sonda CAN: asculta toate codurile modulelor MAIN (0) si CANBUS (7) ale MainServer-ului FYT
@@ -22,12 +24,35 @@ import java.util.Map;
 final class CanProbe {
     static final long DURATION_MS = 5 * 60_000L;
     private static final int MAX_LINES = 5000;
+    private static final int MAX_RECENT = 500;
 
     private static CanProbe running;
 
+    /** O schimbare de valoare, pentru afisarea live din calibrare. */
+    static final class Change {
+        final long t;
+        final String key, from, to;
+
+        Change(long t, String key, String from, String to) {
+            this.t = t;
+            this.key = key;
+            this.from = from;
+            this.to = to;
+        }
+
+        @Override
+        public String toString() {
+            return key + ": " + shortValue(from) + " → " + shortValue(to);
+        }
+    }
+
+    // Ultimele schimbari (fara prima valoare a fiecarui cod), citite de UI.
+    private static final List<Change> recent = new ArrayList<>();
+
     private final Context c;
     private final Handler handler;
-    private final Map<String, String> lastValue = new HashMap<>();
+    // Citit si din UI (findValue), deci concurent.
+    private final Map<String, String> lastValue = new ConcurrentHashMap<>();
     private final Map<String, Long> lastSent = new HashMap<>();
     private final Map<String, String> pending = new HashMap<>();
     private final List<String> lines = new ArrayList<>();
@@ -52,6 +77,67 @@ final class CanProbe {
             running.handler.post(running::stop);
             running = null;
         }
+    }
+
+    static synchronized boolean isRunning() {
+        return running != null;
+    }
+
+    /** Schimbarile de dupa momentul t, fara codurile din ignore (chei "m7 c110" sau prefixe). */
+    static List<Change> changesSince(long t, Set<String> ignore) {
+        List<Change> out = new ArrayList<>();
+        synchronized (recent) {
+            for (Change ch : recent) {
+                if (ch.t < t) continue;
+                boolean skip = false;
+                for (String ig : ignore) {
+                    if (ch.key.equals(ig) || (ig.endsWith("*") && ch.key.startsWith(ig.substring(0, ig.length() - 1)))) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (!skip) out.add(ch);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Codurile a caror valoare curenta se potriveste cu numarul dat (ex. litrii afisati de
+     * Car Info): egal, x10 sau x100, cu o marja de o unitate pentru rotunjire.
+     */
+    static synchronized List<String> findValue(double target) {
+        List<String> out = new ArrayList<>();
+        if (running == null) return out;
+        long[] wanted = {Math.round(target), Math.round(target * 10), Math.round(target * 100)};
+        for (Map.Entry<String, String> e : running.lastValue.entrySet()) {
+            String v = e.getValue();
+            int a = v.indexOf("i=["), b = v.indexOf(']', a + 3);
+            if (a < 0 || b < 0) continue;
+            String[] parts = v.substring(a + 3, b).split(",\\s*");
+            for (int i = 0; i < parts.length; i++) {
+                long n;
+                try {
+                    n = Long.parseLong(parts[i].trim());
+                } catch (NumberFormatException ex) {
+                    continue;
+                }
+                for (long w : wanted) {
+                    if (w > 0 && Math.abs(n - w) <= Math.max(1, w / 100)) {
+                        out.add(e.getKey() + (parts.length > 1 ? "[" + i + "]" : "") + "=" + n);
+                        break;
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /** "i=[1]" -> "1"; restul ramane cum e. */
+    static String shortValue(String v) {
+        if (v == null) return "?";
+        if (v.startsWith("i=[") && v.endsWith("]") && v.indexOf(',') < 0) return v.substring(3, v.length() - 1);
+        return v.length() > 60 ? v.substring(0, 60) + "…" : v;
     }
 
     /** Marcaj de calibrare, cu ora apasarii, intre liniile sondei. */
@@ -113,10 +199,22 @@ final class CanProbe {
             @Override
             void onUpdate(int code, int[] ints, float[] flts, String[] strs) {
                 long t = System.currentTimeMillis();
-                String value = "i=" + Arrays.toString(ints)
-                        + (flts != null && flts.length > 0 ? " f=" + Arrays.toString(flts) : "")
-                        + (strs != null && strs.length > 0 ? " s=" + Arrays.toString(strs) : "");
-                handler.post(() -> onValue(module, code, value, t));
+                String key;
+                String value;
+                if (module == Syu.MODULE_CANBUS && code == 1019 && ints != null && ints.length > 2 && ints[0] == 0x2E) {
+                    // Cadru brut Raise (0x2E, comanda, lungime, date...): cheie separata pe comanda,
+                    // altfel cadrele diferite s-ar "schimba" intre ele la fiecare mesaj.
+                    key = String.format(java.util.Locale.US, "m7 raw 0x%02x", ints[1])
+                            // 0x41 (date de bord) are subcomenzi diferite in primul octet de date.
+                            + (ints[1] == 0x41 && ints.length > 3 ? "/" + ints[3] : "");
+                    value = "i=" + Arrays.toString(Arrays.copyOfRange(ints, 2, ints.length));
+                } else {
+                    key = "m" + module + " c" + code;
+                    value = "i=" + Arrays.toString(ints)
+                            + (flts != null && flts.length > 0 ? " f=" + Arrays.toString(flts) : "")
+                            + (strs != null && strs.length > 0 ? " s=" + Arrays.toString(strs) : "");
+                }
+                handler.post(() -> onValue(key, value, t));
             }
         };
         int ok = 0;
@@ -131,10 +229,16 @@ final class CanProbe {
         add("CAN sonda: modul " + module + ", " + ok + "/" + codes.length + " coduri inregistrate", now);
     }
 
-    private void onValue(int module, int update, String value, long t) {
-        String key = "m" + module + " c" + update;
-        if (value.equals(lastValue.get(key))) return;
+    private void onValue(String key, String value, long t) {
+        String old = lastValue.get(key);
+        if (value.equals(old)) return;
         lastValue.put(key, value);
+        if (old != null) {
+            synchronized (recent) {
+                recent.add(new Change(t, key, old, value));
+                if (recent.size() > MAX_RECENT) recent.remove(0);
+            }
+        }
         Long prev = lastSent.get(key);
         if (prev != null && t - prev < 1000) {
             pending.put(key, value); // o trimitem la urmatorul flush, ultima valoare castiga

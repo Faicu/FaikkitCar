@@ -49,31 +49,61 @@ public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
     private static final int PERM_AUDIO = 3;
     private static final int PERM_LOCATION = 4;
-    // Pasii calibrarii CAN: fiecare "Gata" lasa un marcaj intre liniile sondei, ca sa leg
-    // codurile de actiuni. In pereche (fa / anuleaza), ca schimbarea sa se vada in ambele sensuri.
-    private static final String[] CALIBRATION = {
-            "Inchide toate usile, portbagajul si capota; motorul pornit, pe loc",
-            "Deschide usa soferului", "Inchide usa soferului",
-            "Deschide usa pasagerului din fata", "Inchide usa pasagerului din fata",
-            "Deschide usa din spate stanga", "Inchide usa din spate stanga",
-            "Deschide usa din spate dreapta", "Inchide usa din spate dreapta",
-            "Deschide portbagajul", "Inchide portbagajul",
-            "Elibereaza frana de mana (cu piciorul pe frana)", "Trage frana de mana",
-            "Aprinde faza scurta", "Stinge faza scurta",
-            "Aprinde faza lunga", "Stinge faza lunga",
-            "Semnalizare stanga pornita", "Semnalizare stanga oprita",
-            "Semnalizare dreapta pornita", "Semnalizare dreapta oprita",
-            "Avariile pornite", "Avariile oprite",
-            "Cupleaza marsarierul (cu frana apasata)", "Scoate marsarierul",
-            "Desfa centura soferului", "Pune centura soferului",
+    /** Un pas al calibrarii: ce faci, o precizare si daca cere litrii din Car Info. */
+    private static final class Step {
+        final String title, hint;
+        final boolean fuel;
+
+        Step(String title, String hint) {
+            this(title, hint, false);
+        }
+
+        Step(String title, String hint, boolean fuel) {
+            this.title = title;
+            this.hint = hint;
+            this.fuel = fuel;
+        }
+    }
+
+    // Doar ce nu stim inca (usile, viteza, turatia etc. sunt deja stabilite, vezi CLAUDE.md).
+    // Motorul oprit la inceput: frana de mana si marsarierul se pot testa in siguranta, cu o
+    // treapta bagata, si nimic nu se misca in fundal (turatie, tensiune).
+    private static final Step[] STEPS = {
+            new Step("Pregatire", "Contact pus, motorul OPRIT, o treapta bagata, frana de mana trasa, "
+                    + "centura cuplata, usile inchise. Apasa Gata cand e totul asa."),
+            new Step("Apasa pedala de frana si tine-o", "Doar pedala; nu atinge frana de mana."),
+            new Step("Elibereaza pedala de frana", ""),
+            new Step("Elibereaza frana de mana", "Masina e in viteza si cu motorul oprit, deci nu pleaca."),
+            new Step("Trage frana de mana", ""),
+            new Step("Baga marsarierul", "Cu ambreiajul apasat; motorul ramane oprit."),
+            new Step("Scoate marsarierul si baga treapta 1", ""),
+            new Step("Desfa centura soferului", ""),
+            new Step("Cupleaza centura soferului", ""),
+            new Step("Porneste motorul", "Treapta scoasa, frana de mana trasa."),
+            new Step("Apasa butonul AC", "Pornit sau oprit, conteaza doar schimbarea."),
+            new Step("Mareste ventilatorul climatronicului cu 2 trepte", ""),
+            new Step("Mareste temperatura pe partea soferului cu 1 grad", ""),
+            new Step("Porneste stergatoarele", ""),
+            new Step("Opreste stergatoarele", ""),
+            new Step("Rezervorul", "Deschide Car Info la pagina cu rezervorul, uita-te cati litri arata, "
+                    + "revino aici si scrie numarul.", true),
     };
+    // Coduri deja stabilite sau care se schimba singure; nu le aratam in timpul calibrarii.
+    private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
+            "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
+            "m7 c139", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
+            "m0 c41", "m0 c114", "m0 c115", "m0 c146", "m0 c179", "m0 c101", "m0 c40", "m0 c77"));
     private int calibStep = -1;
+    private long stepStart;
+    private final List<String> calibResults = new ArrayList<>();
+    private TextView liveChanges;
     private static final String[] TABS = {"Acasa", "Sunete", "Setari", "Jurnal"};
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final TextView[] tabViews = new TextView[TABS.length];
     private int tab;
     private FrameLayout content;
+    private ScrollView scroll;
     private TextView statusPill;
 
     @Override
@@ -102,7 +132,7 @@ public class MainActivity extends Activity {
         clp.topMargin = dp(this, 16);
         root.addView(content, clp);
         setContentView(root);
-        showTab(0);
+        showTab(0, false);
     }
 
     private View header() {
@@ -132,7 +162,7 @@ public class MainActivity extends Activity {
             TextView t = Ui.text(this, TABS[i], 17, Ui.MUTED, true);
             t.setGravity(Gravity.CENTER);
             t.setPadding(0, dp(this, 12), 0, dp(this, 12));
-            t.setOnClickListener(v -> showTab(index));
+            t.setOnClickListener(v -> showTab(index, false));
             tabViews[i] = t;
             bar.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
         }
@@ -142,7 +172,13 @@ public class MainActivity extends Activity {
         return bar;
     }
 
-    private void showTab(int index) {
+    /**
+     * Reconstruieste fila. La reimprospatarea aceleiasi file (dupa orice buton) pastram pozitia
+     * derularii; altfel fiecare apasare ducea ecranul inapoi sus.
+     */
+    private void showTab(int index, boolean keepScroll) {
+        int y = keepScroll && scroll != null ? scroll.getScrollY() : 0;
+        if (index != tab || !keepScroll) liveChanges = null;
         tab = index;
         for (int i = 0; i < tabViews.length; i++) {
             boolean on = i == index;
@@ -161,11 +197,13 @@ public class MainActivity extends Activity {
         sv.addView(col);
         content.removeAllViews();
         content.addView(sv);
+        scroll = sv;
+        if (y > 0) sv.post(() -> sv.scrollTo(0, y));
         updateStatus();
     }
 
     private void refresh() {
-        showTab(tab);
+        showTab(tab, true);
     }
 
     private boolean serviceRunning() {
@@ -297,29 +335,70 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, col);
         Ui.title(this, card, "Calibrare CAN");
         if (calibStep < 0) {
-            Ui.hint(this, card, "Cu masina pe loc si motorul pornit: aplicatia iti cere pe rand o "
-                    + "actiune (usi, frana de mana, lumini...), tu o faci si apesi Gata. Dureaza 2-3 minute.");
-            Ui.addButton(this, card, "Incepe calibrarea", Ui.SECONDARY, v -> {
-                Prefs.setCanProbeUntil(this, System.currentTimeMillis() + CanProbe.DURATION_MS);
-                CanProbe.check(getApplicationContext());
-                calibStep = 0;
-                // Sonda are nevoie de o clipa sa se lege la MainServer inainte de primul marcaj.
-                ui.postDelayed(() -> CanProbe.mark("start calibrare"), 1500);
-                refresh();
-            });
+            Ui.hint(this, card, "Cauta doar ce nu stim inca: frana (pedala / de mana), marsarierul, "
+                    + "centura, climatronicul, stergatoarele si litrii din rezervor. Usile, viteza, "
+                    + "turatia si restul sunt deja stabilite. Dureaza ~3 minute; la fiecare pas vezi "
+                    + "pe loc ce s-a schimbat.");
+            if (!calibResults.isEmpty()) {
+                TextView res = Ui.mono(this, String.join("\n", calibResults), 13);
+                LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+                rlp.topMargin = dp(this, 12);
+                card.addView(res, rlp);
+            }
+            Ui.addButton(this, card, calibResults.isEmpty() ? "Incepe calibrarea" : "Reia calibrarea",
+                    Ui.SECONDARY, v -> {
+                        Prefs.setCanProbeUntil(this, System.currentTimeMillis() + 10 * 60_000L);
+                        CanProbe.check(getApplicationContext());
+                        calibResults.clear();
+                        calibStep = 0;
+                        stepStart = System.currentTimeMillis();
+                        // Sonda are nevoie de o clipa sa se lege la MainServer inainte de marcaj.
+                        ui.postDelayed(() -> CanProbe.mark("start calibrare (doar necunoscutele)"), 1500);
+                        refresh();
+                    });
             return;
         }
-        Ui.hint(this, card, "Pasul " + (calibStep + 1) + " din " + CALIBRATION.length);
-        TextView step = Ui.text(this, CALIBRATION[calibStep], 22, Ui.TEXT, true);
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
-        slp.topMargin = dp(this, 10);
-        card.addView(step, slp);
+        Step step = STEPS[calibStep];
+        Ui.hint(this, card, "Pasul " + (calibStep + 1) + " din " + STEPS.length);
+        TextView title = Ui.text(this, step.title, 22, Ui.TEXT, true);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-1, -2);
+        tlp.topMargin = dp(this, 8);
+        card.addView(title, tlp);
+        if (!step.hint.isEmpty()) Ui.hint(this, card, step.hint);
+
+        EditText liters = null;
+        if (step.fuel) {
+            liters = Ui.field(this, card, "Litri in rezervor", "Cum ii arata Car Info", "", true);
+        } else {
+            // Ce s-a schimbat de cand a aparut pasul, actualizat live de liveTick.
+            LinearLayout box = new LinearLayout(this);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setBackground(Ui.round(this, Ui.CARD2, 12));
+            int p = dp(this, 12);
+            box.setPadding(p, p, p, p);
+            box.addView(Ui.text(this, "Schimbari vazute la acest pas", 13, Ui.MUTED, false));
+            liveChanges = Ui.mono(this, "", 14);
+            box.addView(liveChanges);
+            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+            blp.topMargin = dp(this, 12);
+            card.addView(box, blp);
+            updateLive();
+        }
+
+        EditText litersField = liters;
         LinearLayout btns = new LinearLayout(this);
-        btns.addView(Ui.button(this, "Gata", Ui.PRIMARY, v -> calibNext(true)),
+        btns.addView(Ui.button(this, "Gata", Ui.PRIMARY, v -> calibNext(true, litersField)),
                 new LinearLayout.LayoutParams(0, -2, 2));
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1);
+        rp.leftMargin = dp(this, 10);
+        btns.addView(Ui.button(this, "Repeta", Ui.SECONDARY, v -> {
+            stepStart = System.currentTimeMillis();
+            CanProbe.mark((calibStep + 1) + " REIA: " + step.title);
+            updateLive();
+        }), rp);
         LinearLayout.LayoutParams sk = new LinearLayout.LayoutParams(0, -2, 1);
         sk.leftMargin = dp(this, 10);
-        btns.addView(Ui.button(this, "Sari peste", Ui.SECONDARY, v -> calibNext(false)), sk);
+        btns.addView(Ui.button(this, "Sari", Ui.SECONDARY, v -> calibNext(false, null)), sk);
         LinearLayout.LayoutParams st = new LinearLayout.LayoutParams(0, -2, 1);
         st.leftMargin = dp(this, 10);
         btns.addView(Ui.button(this, "Opreste", Ui.DANGER, v -> {
@@ -332,12 +411,55 @@ public class MainActivity extends Activity {
         card.addView(btns, blp);
     }
 
-    private void calibNext(boolean done) {
-        CanProbe.mark((calibStep + 1) + " " + (done ? "GATA" : "SARIT") + ": " + CALIBRATION[calibStep]);
+    /** Schimbarile pasului curent, cate una pe cod (ultima valoare), fara codurile stiute. */
+    private String stepChanges() {
+        java.util.LinkedHashMap<String, CanProbe.Change> byKey = new java.util.LinkedHashMap<>();
+        for (CanProbe.Change ch : CanProbe.changesSince(stepStart, KNOWN)) {
+            CanProbe.Change first = byKey.get(ch.key);
+            // Pastram valoarea de dinainte de primul salt si pe cea de acum.
+            byKey.put(ch.key, first == null ? ch : new CanProbe.Change(ch.t, ch.key, first.from, ch.to));
+        }
+        List<String> out = new ArrayList<>();
+        for (CanProbe.Change ch : byKey.values()) out.add(ch.toString());
+        return String.join("\n", out);
+    }
+
+    private final Runnable liveTick = this::updateLive;
+
+    private void updateLive() {
+        ui.removeCallbacks(liveTick);
+        if (calibStep < 0 || liveChanges == null) return;
+        String changes = stepChanges();
+        liveChanges.setText(!CanProbe.isRunning() ? "sonda porneste..."
+                : changes.isEmpty() ? "inca nimic — fa actiunea" : changes);
+        ui.postDelayed(liveTick, 700);
+    }
+
+    private void calibNext(boolean done, EditText liters) {
+        Step step = STEPS[calibStep];
+        String found;
+        if (step.fuel && done) {
+            double l;
+            try {
+                l = Double.parseDouble(liters.getText().toString().trim().replace(',', '.'));
+            } catch (Exception e) {
+                toast("Scrie cati litri arata Car Info");
+                return;
+            }
+            List<String> cand = CanProbe.findValue(l);
+            found = l + " L -> " + (cand.isEmpty() ? "niciun cod cu aceasta valoare" : String.join(", ", cand));
+        } else {
+            found = done ? stepChanges().replace("\n", "; ") : "sarit";
+        }
+        if (found.isEmpty()) found = "nicio schimbare";
+        CanProbe.mark((calibStep + 1) + " " + (done ? "GATA" : "SARIT") + ": " + step.title + " | " + found);
+        if (calibStep > 0) calibResults.add((calibStep + 1) + ". " + step.title + ": " + found);
         calibStep++;
-        if (calibStep >= CALIBRATION.length) {
+        stepStart = System.currentTimeMillis();
+        if (calibStep >= STEPS.length) {
             CanProbe.mark("calibrare terminata");
             calibStep = -1;
+            liveChanges = null;
             toast("Calibrare terminata, multumesc!");
         }
         refresh();
@@ -698,6 +820,12 @@ public class MainActivity extends Activity {
         } else if (Prefs.tripsEnabled(this) && !TripRecorder.hasPermission(this)) {
             askLocation();
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        ui.removeCallbacks(liveTick);
     }
 
     @Override

@@ -84,9 +84,13 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   40.000), trimise de `Uploader` la `/api/vw-trip` în loturi de 300. Serverul (FaikkitBox,
   tabela `vw_trip_point`, pagina `/calatorii`) împarte în călătorii la pauze > 5 min.
   Serviciul are `foregroundServiceType="location"`; permisiunea se cere din aplicație.
-- Calibrare CAN (Acasă): pornește sonda 5 min și, la fiecare pas (uși, frână de mână,
-  lumini, semnalizare, marșarier, centură), `CanProbe.mark` scrie „CAN MARK n GATA: …” cu
-  ora exactă; codurile schimbate între două marcaje dau corespondența.
+- Calibrare CAN (Acasă, `STEPS` în MainActivity): doar necunoscutele — pedala de frână vs.
+  frâna de mână, marșarierul, centura (cu motorul oprit și o treaptă băgată), apoi pornirea
+  motorului, AC, ventilator, temperatură, ștergătoare și litrii din rezervor (introduși de
+  utilizator; `CanProbe.findValue` caută codurile cu acea valoare, ×1/×10/×100). Sonda 10 min;
+  la fiecare pas UI-ul arată live schimbările (`CanProbe.changesSince`, fără codurile din
+  `KNOWN`), iar marcajul „CAN MARK n GATA: … | schimbări” le trimite la server. Cadrele brute
+  Raise au cheie proprie pe comandă („m7 raw 0x21”, „m7 raw 0x41/2”).
 - `VwStatus`: `/api/vw-status` (kilometraj, mentenanță, ultimul APK), reîmprospătat de
   `Uploader` după trimitere dacă e mai vechi de 30 min și din aplicație; salvat în Prefs.
 - `Updater`: dacă `apk.versionCode` de pe server > `BuildConfig.VERSION_CODE`, butonul

@@ -61,6 +61,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | Funcție | Stare | Detalii |
 |---|---|---|
 | Citirea datelor CAN prin MainServer | ✅ | Sondă + calibrare ghidată, vezi [Datele mașinii](#datele-mașinii-can) |
+| Calibrare doar pentru ce nu știm (frână, marșarier, centură, clima, ștergătoare, rezervor) | 🧪 | Arată live ce s-a schimbat la fiecare pas și caută automat codul cu litrii din Car Info |
 | Înregistrarea călătoriilor (GPS + CAN) | 🧪 | Punct la 5 s în mers, 30 s pe loc cu motorul pornit, nimic cu motorul oprit. Primele puncte au sosit |
 | Pagina `/calatorii`: hartă, grafic viteză/turație, totaluri | 🧪 | Testată pe server cu date de probă; așteaptă primul drum real |
 | „Unde e mașina” (ultima poziție, Google Maps) | 🧪 | |
