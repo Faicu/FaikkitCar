@@ -65,8 +65,14 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - Coduri CAN găsite cu sonda (Golf 6, 30.09, 5 min cu mers scurt; modul 7 = CANBUS):
   c110 = c1032 turație (rpm, relanti ~750); c1031 viteză km/h; c109 viteză ×100;
   c105 tensiune ×100 (V); c106 kilometraj (km, 245066); c139 temp. exterioară ×10 (probabil);
-  m0 c179 f=[lon, lat, alt] GPS; c1–c5, c13, c49, c54, c103, c107 on/off (uși etc., de
-  mapat); c21 (0–3), c27/c28 (5/7/9) de mapat; c1033 neidentificat (33–301); c1049 [?, ~viteză];
+  m0 c179 f=[lon, lat, alt] GPS. Din calibrarea ghidată (30.09): c1 ușă șofer, c2 ușă
+  pasager față, c3 ușă spate stânga, c4 ușă spate dreapta, c5 portbagaj (1 = deschis);
+  c103 frâna (de mână sau pedala, ambiguu); c107 probabil marșarier (dar s-a schimbat și la
+  alți pași); c101 poate centura. Lumini, semnalizare, avarii: decodorul NU le trimite.
+  m0 c77 = atingerile pe ecran [apăsat, x, y] (de ignorat). Cadrul brut 0x41 sub 2 conține
+  turație, viteză, tensiune, temp. ext. și kilometraj (3 octeți); sub 1 = o valoare care
+  crește lent (132→136), posibil temp. lichid de răcire. c21 (0–3), c27/c28 (5/7/9) încă
+  nemapate; c1033 neidentificat (33–301); c1049 [?, ~viteză];
   c1019 = cadre brute Raise (0x2E, cmd, len, date, checksum): 0x14, 0x21 clima, 0x22/0x23
   radar, 0x24 uși, 0x26 unghi volan, 0x41 date bord, 0x7D frecvent. Combustibil/consum: încă negăsite.
 - Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
