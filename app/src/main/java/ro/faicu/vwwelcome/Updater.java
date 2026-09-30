@@ -24,8 +24,8 @@ import java.net.URL;
 final class Updater {
     private Updater() {}
 
-    /** Porneste actualizarea in fundal; onDone ruleaza pe firul UI la final. */
-    static void start(Activity a, Runnable onDone) {
+    /** Porneste actualizarea in fundal; onDone primeste pe firul UI eroarea (null = trimisa la instalare). */
+    static void start(Activity a, java.util.function.Consumer<String> onDone) {
         if (!a.getPackageManager().canRequestPackageInstalls()) {
             a.startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:" + a.getPackageName())));
@@ -35,7 +35,7 @@ final class Updater {
         new Thread(() -> {
             String error = install(c);
             if (error != null) Prefs.log(c, "Actualizare: " + error);
-            a.runOnUiThread(onDone);
+            a.runOnUiThread(() -> onDone.accept(error));
         }).start();
     }
 

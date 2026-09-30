@@ -16,6 +16,7 @@ final class Player {
     private static long lastPlay = -100_000;
     // Referinta statica: altfel MediaPlayer poate fi colectat de GC in timpul redarii.
     private static MediaPlayer current;
+    private static AudioFocusRequest currentFocus;
     // Volumul sistemului de dinainte de redare (-1 = nu l-am schimbat) si cel setat de noi.
     private static int restoreVolume = -1;
     private static int ourVolume;
@@ -69,6 +70,7 @@ final class Player {
 
         MediaPlayer mp = new MediaPlayer();
         current = mp;
+        currentFocus = focus;
         try {
             mp.setAudioAttributes(attrs);
             mp.setDataSource(f.getAbsolutePath());
@@ -132,7 +134,10 @@ final class Player {
     }
 
     private static void finish(Context c, MediaPlayer mp, AudioManager am, AudioFocusRequest focus) {
-        if (current == mp) current = null;
+        if (current == mp) {
+            current = null;
+            currentFocus = null;
+        }
         mp.release();
         restoreVolume(c, am);
         am.abandonAudioFocusRequest(focus);
@@ -145,6 +150,8 @@ final class Player {
         } catch (Exception ignored) {
         }
         current = null;
+        if (currentFocus != null) am.abandonAudioFocusRequest(currentFocus);
+        currentFocus = null;
         restoreVolume(c, am);
     }
 }

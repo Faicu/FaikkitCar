@@ -21,19 +21,20 @@ final class CanLink {
     static final String[] DOORS = {"ușa șoferului", "ușa pasagerului", "ușa din spate stânga",
             "ușa din spate dreapta", "portbagajul"};
     private final int[] doors = new int[DOORS.length];
-    // O valoare mai veche de atat nu mai descrie masina (ex. MainServer nu mai trimite).
-    private static final long FRESH_MS = 10_000;
 
     private static CanLink instance;
 
     private final Context c;
     private final Handler handler;
-    private boolean bound;
 
-    // Ultimele valori si momentul lor (elapsedRealtime); citite din alt fir, deci volatile.
+    // Ultimele valori primite; citite din alt fir, deci volatile. MainServer trimite doar
+    // schimbarile, asa ca o valoare "veche" e tot cea curenta (ex. viteza 0 cat stai pe loc,
+    // turatia 0 cu motorul oprit). NaN / -1 = nu am primit inca nimic.
     private volatile double speed = Double.NaN, volt = Double.NaN, temp = Double.NaN;
     private volatile int rpm = -1, odo = -1;
-    private volatile long speedAt, rpmAt, voltAt, tempAt, odoAt;
+    // Momentul ultimei viteze din c109 (x100); c1031 (km/h intregi) o inlocuieste doar daca
+    // c109 tace de 2 s, altfel viteza ar sari intre valoarea exacta si cea rotunjita.
+    private volatile long speed100At;
 
     private CanLink(Context c) {
         this.c = c.getApplicationContext();
@@ -63,6 +64,7 @@ final class CanLink {
     };
 
     private void bind() {
+        boolean bound;
         try {
             bound = c.bindService(Syu.toolkitIntent(), conn, Context.BIND_AUTO_CREATE);
         } catch (Exception e) {
@@ -82,15 +84,16 @@ final class CanLink {
                 @Override
                 void onUpdate(int code, int[] ints, float[] flts, String[] strs) {
                     if (ints == null || ints.length == 0) return;
-                    long now = SystemClock.elapsedRealtime();
                     int v = ints[0];
                     switch (code) {
-                        case RPM: rpm = v; rpmAt = now; break;
-                        case SPEED100: speed = v / 100.0; speedAt = now; break;
-                        case SPEED: if (now - speedAt > 2_000) { speed = v; speedAt = now; } break;
-                        case VOLT: volt = v / 100.0; voltAt = now; break;
-                        case ODO: odo = v; odoAt = now; break;
-                        case TEMP: temp = v / 10.0; tempAt = now; break;
+                        case RPM: rpm = v; break;
+                        case SPEED100: speed = v / 100.0; speed100At = SystemClock.elapsedRealtime(); break;
+                        case SPEED:
+                            if (SystemClock.elapsedRealtime() - speed100At > 2_000) speed = v;
+                            break;
+                        case VOLT: volt = v / 100.0; break;
+                        case ODO: odo = v; break;
+                        case TEMP: temp = v / 10.0; break;
                         default:
                             if (code >= 1 && code <= DOORS.length) doors[code - 1] = v;
                             break;
@@ -105,31 +108,29 @@ final class CanLink {
         }
     }
 
-    private static boolean fresh(long at) {
-        return at > 0 && SystemClock.elapsedRealtime() - at < FRESH_MS;
-    }
-
     /** Viteza de la masina, km/h; NaN daca nu stim. */
     double speed() {
-        return fresh(speedAt) ? speed : Double.NaN;
+        return speed;
     }
 
-    /** Turatia; -1 daca nu stim. MainServer trimite doar schimbari, deci o valoare stabila
-     * poate fi "veche": o consideram valabila cat timp motorul pare pornit (> 0). */
+    /** Turatia; -1 daca nu stim. */
     int rpm() {
-        return fresh(rpmAt) || rpm > 0 ? rpm : -1;
+        return rpm;
     }
 
+    /** Tensiunea bateriei, V; NaN daca nu stim. */
     double volt() {
-        return !Double.isNaN(volt) && voltAt > 0 ? volt : Double.NaN;
+        return volt;
     }
 
+    /** Temperatura exterioara, °C; NaN daca nu stim. */
     double temp() {
-        return tempAt > 0 ? temp : Double.NaN;
+        return temp;
     }
 
+    /** Kilometrajul; -1 daca nu stim. */
     int odo() {
-        return odoAt > 0 ? odo : -1;
+        return odo;
     }
 
     /** Indicii (in DOORS) usilor deschise acum. */

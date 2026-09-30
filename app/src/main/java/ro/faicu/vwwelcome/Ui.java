@@ -121,7 +121,7 @@ final class Ui {
         return t;
     }
 
-    static EditText input(Context c, String value, boolean decimal) {
+    private static EditText input(Context c, String value, boolean decimal) {
         EditText e = new EditText(c);
         e.setText(value);
         e.setTextColor(TEXT);

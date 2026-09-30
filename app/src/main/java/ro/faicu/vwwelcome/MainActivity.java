@@ -238,7 +238,10 @@ public class MainActivity extends Activity {
                     + "Android iti cere o confirmare.");
             Ui.addButton(this, up, "Actualizeaza acum", Ui.PRIMARY, v -> {
                 toast("Descarc actualizarea...");
-                Updater.start(this, this::refresh);
+                Updater.start(this, error -> {
+                    if (error != null) toast("Actualizare esuata: " + error);
+                    refresh();
+                });
             });
         }
 

@@ -19,12 +19,14 @@ import android.provider.Settings;
 import java.io.File;
 
 /**
- * Serviciu permanent care detecteaza trezirea din hibernare.
+ * Serviciul permanent: detecteaza pornirea masinii si reda sunetul, apoi tine in viata
+ * restul (trimiterea la server, calatoriile, sonda CAN).
  *
- * Principiu: la fiecare 5 secunde notam momentul pe ceasul elapsedRealtime
- * (care merge si in hibernare). Daca intre doua verificari au trecut mult mai
- * mult de 5 secunde, inseamna ca unitatea a fost "inghetata" si tocmai s-a
- * trezit -> redam sunetul. Nu depinde de niciun semnal specific Teyes.
+ * Pornirea se prinde pe trei cai, prima castiga (Player evita redarea dubla):
+ * - autostart-ul Teyes lanseaza StartActivity la ACC ON (singura cale la opririle scurte,
+ *   cand navigatia nu doarme);
+ * - tick-ul de 5 s pe elapsedRealtime (merge si in somn): o pauza peste prag = hibernare;
+ * - la pornirea serviciului: contor de boot schimbat sau proces repornit dupa o pauza.
  */
 public class WelcomeService extends Service {
     private static final long TICK_MS = 5000;
@@ -131,10 +133,10 @@ public class WelcomeService extends Service {
             }
             // Reincercam la ~30 s liniile ramase netrimise (ex. server indisponibil).
             if (count % 6 == 0 && (Prefs.outboxSize(WelcomeService.this) > 0
-                    || PointQueue.size(WelcomeService.this) > 0)) {
+                    || !PointQueue.isEmpty(WelcomeService.this))) {
                 Uploader.kick(WelcomeService.this);
             }
-            // Porneste / opreste sonda CAN dupa cum a fost activata din aplicatie.
+            // Pornesc / opresc sonda CAN si calatoriile dupa setarile din aplicatie.
             if (count % 6 == 0) {
                 CanProbe.check(WelcomeService.this);
                 TripRecorder.check(WelcomeService.this);

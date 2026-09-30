@@ -26,11 +26,11 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `Prefs`: sunete multiple în `filesDir/sounds` (`<millis>_<nume>`), la rând sau aleatoriu;
   istoric treziri (20); jurnal de diagnostic (100 de evenimente). Setările stau în
   preferințele `cfg` (rescrise la ~15 s de `lastAlive`), jurnalul și istoricul în
-  `journal`, mutate automat din `cfg` la prima rulare. `deviceInfo()` dă antetul
+  `journal` (fără migrare: pachetul `com.mapgoo.diruite` a pornit curat). `deviceInfo()` dă antetul
   jurnalului copiat (versiuni, model, optimizare baterie, notificări, setări).
 - `Uploader`: trimite jurnalul la `https://status.faicu.ro/api/vw-log` (FaikkitBox din
   `/opt/faikkitbox`, pagina admin `/vw`, tabela `vw_log`; citibil direct din
-  `/opt/faikkitbox/data/faikkitbox.db`). Coadă `outbox` în `journal` (max 500), loturi de
+  `/opt/faikkitbox/data/faikkitbox.db`). Coadă `outbox` în `journal` (max 2000), loturi de
   100, `Authorization: Bearer` cu `BuildConfig.VW_LOG_TOKEN` (secret GitHub
   `VW_LOG_TOKEN` = `VW_LOG_TOKEN` din `/opt/faikkitbox/.env`). Declanșat la fiecare
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
@@ -142,30 +142,25 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 
 ## Stare (30.09.2026)
 
-- Instalat pe navigație: 1.1.12 (`build-12`). Unitate: Android 10 (API 29), `sprd
-  ums512_1h10_Natv`, fără selector de fișiere (nici OPEN_DOCUMENT, nici GET_CONTENT).
-- Testat pe hardware: ACC OFF ~20–30 s → procesorul NU hibernează (somn 0 s, fără
-  SCREEN_OFF, serviciul rămâne viu); autostart-ul Teyes lansează „VW Welcome Start” la
-  ACC ON → sunetul se redă. Cu pauza 2,5 s se tăiau primele ~2 s; utilizatorul a pus 5 s
-  și se aude complet (implicitul din cod e încă 2,5 s).
-- ACC OFF ~40 min (30.09): unitatea a hibernat (somn 2415 s), aplicația a fost oprită
-  forțat la ~1 min după ACC OFF (fără restart START_STICKY după trezire), iar autostart-ul
-  NU a pornit la ACC ON → liniște. La pornirea următoare (5 min) autostart-ul a mers.
-  Căutăm o listă albă Teyes (diagnosticul de mai sus); rezervă: automatizare pe telefon
-  la conectarea Bluetooth.
-- ACC OFF ~1 h cu `com.mapgoo.diruite` (30.09, 1.1.15): serviciul a SUPRAVIEȚUIT somnului
-  (fără „Serviciu pornit” nou), SCREEN_OFF a venit la ~10 min după ACC OFF (intrarea în
-  somn); la ACC ON au venit și autostart-ul, și detecția prin pauză (3515 s), a doua
-  ignorată ca dublură. Sunet redat, dar fără ~1 s la început → pauza suplimentară (1.1.16).
-- Confirmat de utilizator (30.09): iconița nouă apare corect; pauza 5 s + 2 s după
-  hibernare (7 s) face sunetul să se audă întreg.
-- Rămâne de testat: ACC OFF 2–5 min și peste noapte (hibernare / boot complet), plus cât
-  de des ratează autostart-ul.
-- Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,
-  2–5 min, peste noapte); jurnalul se citește din `vw_log` (FaikkitBox). În funcție de jurnal
-  decidem dacă e nevoie de un watchdog (repornire cu `AlarmManager`).
-  Atenție: dacă Teyes face force-stop la ACC OFF, alarmele se anulează și ele; atunci ar
-  trebui căutat un broadcast ACC specific Teyes (logcat). Tot după test: opțiune de tip
-  de sunet „navigație” (`USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`, peste radio) vs. „media”.
-- Idei amânate: ore de liniște, sunet în funcție de ora zilei, fade-in, salut TTS, prag
-  diferit zi/noapte, iconiță proprie.
+Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`; ține-l la zi.
+
+- Pe navigație: `com.mapgoo.diruite` 1.1.22 (actualizarea din aplicație încă netestată).
+  Unitate: Android 10 (API 29), `sprd ums512_1h10_Natv`, fără selector de fișiere.
+- Comportament Teyes confirmat din jurnal: ACC OFF scurt (sub ~10 min) → procesorul NU
+  doarme, nu vine SCREEN_OFF, doar autostart-ul prinde ACC ON; ACC OFF lung → somn la ~10
+  min după ACC OFF (atunci vine SCREEN_OFF). Cu pachetul vechi, aplicația era oprită forțat
+  la somn (fără START_STICKY după trezire); cu `com.mapgoo.diruite` supraviețuiește. Autostart-ul
+  ratează uneori (o dată din câteva), iar detecția prin pauză acoperă cazurile cu somn.
+- Confirmat de utilizator: sunetul se aude întreg cu 5 s pauză (+2 s după hibernare);
+  iconița proprie apare corect.
+- Netestat încă în uz real: călătoriile în mers, vocea (nu știm dacă există TTS în
+  română), avertizarea de ușă, GPS-ul oprit cu motorul oprit, actualizarea din aplicație.
+- În lucru: nivelul combustibilului. „Car Info” afișează litrii; 1.1.22 extinde sonda la
+  CANBUS 0–1999 și la modulele 1–17. Utilizatorul o pornește cu Car Info deschis și spune
+  câți litri arată. Apoi: consum/cost pe călătorie (alimentări detectate automat sau
+  jurnal manual + estimare calibrată din turație × timp).
+- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`) se
+  împing de utilizator din pagina Tehnic; nu face push acolo.
+- Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
+  liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),
+  adaptor OBD2 pentru consum instantaneu.

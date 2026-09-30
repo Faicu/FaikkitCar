@@ -187,10 +187,4 @@ final class CanProbe {
         for (int i = 0; i < r.length; i++) r[i] = from + i;
         return r;
     }
-
-    private static int[] concat(int[] a, int[] b) {
-        int[] r = Arrays.copyOf(a, a.length + b.length);
-        System.arraycopy(b, 0, r, a.length, b.length);
-        return r;
-    }
 }

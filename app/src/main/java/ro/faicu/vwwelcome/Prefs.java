@@ -34,19 +34,11 @@ final class Prefs {
     }
 
     /**
-     * Jurnalul si istoricul stau separat de setari: "cfg" se rescrie la ~15 s (ora ultimei
-     * activitati) si nu vrem sa rescriem de fiecare data si cei cativa KB de jurnal.
+     * Jurnalul, istoricul si coada spre server stau separat de setari: "cfg" se rescrie la
+     * ~15 s (ora ultimei activitati) si nu vrem sa rescriem de fiecare data si jurnalul.
      */
-    private static synchronized SharedPreferences journal(Context c) {
-        SharedPreferences j = c.getSharedPreferences("journal", Context.MODE_PRIVATE);
-        SharedPreferences cfg = sp(c);
-        // Versiunile pana la 1.1.7 tineau jurnalul in "cfg": il mutam o singura data.
-        if (cfg.contains("log") || cfg.contains("history")) {
-            j.edit().putString("log", cfg.getString("log", ""))
-                    .putString("history", cfg.getString("history", "")).commit();
-            cfg.edit().remove("log").remove("history").apply();
-        }
-        return j;
+    private static SharedPreferences journal(Context c) {
+        return c.getSharedPreferences("journal", Context.MODE_PRIVATE);
     }
 
     /**
@@ -56,9 +48,6 @@ final class Prefs {
     static File soundsDir(Context c) {
         File dir = new File(c.getFilesDir(), "sounds");
         dir.mkdirs();
-        // Versiunea 1 pastra un singur sunet in filesDir/welcome_sound.
-        File old = new File(c.getFilesDir(), "welcome_sound");
-        if (old.exists()) old.renameTo(new File(dir, "0_sunet_initial"));
         return dir;
     }
 

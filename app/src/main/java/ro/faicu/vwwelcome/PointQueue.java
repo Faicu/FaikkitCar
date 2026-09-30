@@ -40,6 +40,11 @@ final class PointQueue {
         }
     }
 
+    /** Fara citirea fisierului: pentru verificarea din tick-ul de 5 s al serviciului. */
+    static synchronized boolean isEmpty(Context c) {
+        return file(c).length() == 0;
+    }
+
     static synchronized int size(Context c) {
         return readAll(c).size();
     }

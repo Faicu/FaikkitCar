@@ -39,6 +39,8 @@ final class TripRecorder implements LocationListener {
     private long lastPointAt;
     private boolean wasMoving;
     private boolean gpsOn;
+    // GPS-ul n-a putut porni fiindca lipsea permisiunea; check() il porneste cand apare.
+    private volatile boolean needsPermission;
     // Starea drumului curent: resetata cand motorul sta oprit sau unitatea a dormit.
     private long lastSampleAt;
     private long movingMs;
@@ -69,8 +71,10 @@ final class TripRecorder implements LocationListener {
             TripRecorder r = instance;
             instance = null;
             r.handler.post(r::stop);
-        } else if (on && !instance.gpsOn && hasPermission(c)) {
-            // Permisiunea a fost data intre timp din aplicatie.
+        } else if (on && instance.needsPermission && hasPermission(c)) {
+            // Permisiunea a fost data intre timp din aplicatie. (Nu repornim GPS-ul oprit
+            // intentionat de monitor() cu motorul oprit.)
+            instance.needsPermission = false;
             instance.handler.post(instance::startGps);
         }
     }
@@ -81,7 +85,11 @@ final class TripRecorder implements LocationListener {
     }
 
     private void startGps() {
-        if (gpsOn || !hasPermission(c)) return;
+        if (gpsOn) return;
+        if (!hasPermission(c)) {
+            needsPermission = true;
+            return;
+        }
         try {
             LocationManager lm = c.getSystemService(LocationManager.class);
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this, handler.getLooper());
