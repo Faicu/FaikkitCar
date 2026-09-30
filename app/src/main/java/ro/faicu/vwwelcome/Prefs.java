@@ -226,6 +226,19 @@ final class Prefs {
         journal(c).edit().putString("outbox", box.toString()).apply();
     }
 
+    /** Linii doar pentru server (ex. diagnostic), fara jurnalul local; o singura scriere. */
+    static synchronized void remoteOnly(Context c, java.util.List<String> lines) {
+        JSONArray box = outbox(c);
+        long t = System.currentTimeMillis();
+        try {
+            for (String line : lines) box.put(new JSONObject().put("t", t++).put("text", line));
+        } catch (JSONException e) {
+            return;
+        }
+        journal(c).edit().putString("outbox", box.toString()).apply();
+        Uploader.kick(c);
+    }
+
     static synchronized int outboxSize(Context c) {
         return outbox(c).length();
     }

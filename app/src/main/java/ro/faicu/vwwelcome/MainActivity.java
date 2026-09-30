@@ -140,6 +140,27 @@ public class MainActivity extends Activity {
             refresh();
         });
         l.addView(upload);
+        l.addView(button("Diagnostic Teyes (trimite la server)", v -> {
+            if (!Uploader.configured() || !Prefs.uploadEnabled(this)) {
+                toast("Trimiterea la server e oprita");
+                return;
+            }
+            toast("Diagnostic pornit, dureaza cateva secunde...");
+            new Thread(() -> {
+                String msg;
+                try {
+                    msg = "Diagnostic trimis: " + Diagnostics.run(this) + " linii";
+                } catch (Exception e) {
+                    msg = "Diagnostic: eroare " + e;
+                }
+                Prefs.log(this, msg);
+                String m = msg;
+                runOnUiThread(() -> {
+                    toast(m);
+                    refresh();
+                });
+            }).start();
+        }));
         l.addView(button("Copiaza jurnalul", v -> {
             getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(
                     "VW Welcome", Prefs.deviceInfo(this) + "\n\nIstoric:\n" + Prefs.history(this)

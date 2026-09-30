@@ -38,6 +38,11 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Adăugarea sunetelor: `ACTION_OPEN_DOCUMENT` → `ACTION_GET_CONTENT` → listă proprie din
   `MediaStore.Audio` (cere `READ_EXTERNAL_STORAGE` / `READ_MEDIA_AUDIO`). Pe Teyes-ul
   utilizatorului selectorul standard lipsea și aplicația cădea (1.1.10).
+- `Diagnostics` (butonul „Diagnostic Teyes”): trimite doar la server (`Prefs.remoteOnly`,
+  linii `DIAG …`) pachetele non-standard + componentele cu nume de somn/kill/autostart,
+  rândurile potrivite din `content://settings/{system,global,secure}` și textele potrivite
+  din `resources.arsc`/`classes*.dex` ale APK-urilor Teyes/Setări (plus contor pentru
+  cuvinte chinezești: 白名单, 保活, 休眠…). Cere `QUERY_ALL_PACKAGES`.
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
@@ -81,6 +86,11 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   SCREEN_OFF, serviciul rămâne viu); autostart-ul Teyes lansează „VW Welcome Start” la
   ACC ON → sunetul se redă. Cu pauza 2,5 s se tăiau primele ~2 s; utilizatorul a pus 5 s
   și se aude complet (implicitul din cod e încă 2,5 s).
+- ACC OFF ~40 min (30.09): unitatea a hibernat (somn 2415 s), aplicația a fost oprită
+  forțat la ~1 min după ACC OFF (fără restart START_STICKY după trezire), iar autostart-ul
+  NU a pornit la ACC ON → liniște. La pornirea următoare (5 min) autostart-ul a mers.
+  Căutăm o listă albă Teyes (diagnosticul de mai sus); rezervă: automatizare pe telefon
+  la conectarea Bluetooth.
 - Rămâne de testat: ACC OFF 2–5 min și peste noapte (hibernare / boot complet), plus cât
   de des ratează autostart-ul.
 - Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,
