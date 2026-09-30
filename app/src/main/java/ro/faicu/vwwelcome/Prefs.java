@@ -137,6 +137,15 @@ final class Prefs {
         sp(c).edit().putLong("sleep_extra", Math.max(0, Math.min(15_000, ms))).apply();
     }
 
+    /** Pana cand (ora reala, ms) ruleaza sonda CAN; 0 = oprita. */
+    static long canProbeUntil(Context c) {
+        return sp(c).getLong("can_probe_until", 0);
+    }
+
+    static void setCanProbeUntil(Context c, long t) {
+        sp(c).edit().putLong("can_probe_until", t).apply();
+    }
+
     /** Volumul sunetului de bun venit, in procente din maxim; 0 = lasam volumul sistemului. */
     static int volumePercent(Context c) {
         return sp(c).getInt("volume", 0);

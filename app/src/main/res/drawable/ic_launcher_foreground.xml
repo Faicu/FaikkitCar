@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Masina stilizata (hatchback, vedere laterala) cu unde sonore; zona sigura: cercul r=33. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- caroseria -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M22,64 L22,58 Q22,54 26,53 L34,51 L41,44 Q43,42 46,42 L60,42 Q63,42 65,45 L70,51 Q74,52 74,56 L74,64 Z" />
+    <!-- geamurile -->
+    <path
+        android:fillColor="#FF1E4FA8"
+        android:pathData="M37,51 L42.5,45.2 Q43.5,44.2 45,44.2 L51,44.2 L51,51 Z M53,44.2 L59.5,44.2 Q61,44.2 62,45.6 L66,51 L53,51 Z" />
+    <!-- rotile -->
+    <path
+        android:fillColor="#FF0F172A"
+        android:pathData="M27.5,64 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0 Z M56.5,64 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0 Z" />
+    <path
+        android:fillColor="#FFCBD5E1"
+        android:pathData="M31.5,64 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z M60.5,64 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+    <!-- undele sonore -->
+    <path
+        android:pathData="M79.2,43.8 A6,6 0 0,1 79.2,52.2"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M82.1,39.9 A11,11 0 0,1 82.1,56.1"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.7"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+</vector>

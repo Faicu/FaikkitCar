@@ -35,7 +35,16 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `VW_LOG_TOKEN` = `VW_LOG_TOKEN` din `/opt/faikkitbox/.env`). Declanșat la fiecare
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
   folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
-- `MainActivity`: UI construit din cod (fără XML); pornește serviciul în `onCreate`.
+- `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
+  și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconiță
+  adaptivă vectorială (`res/drawable/ic_launcher_*`, `mipmap-anydpi-v26`).
+- `CanProbe` („Sonda CAN” pe Acasă, 45 min, `can_probe_until`): se leagă la
+  `com.syu.ms/app.ToolkitService` (acțiunea `com.syu.ms.toolkit`, AIDL `com.syu.ipc`:
+  getRemoteModule=1, register=3 cu (callback, cod, 1), callback update=1) și ascultă
+  modulul 0 (coduri 0–199) și 7 CANBUS (0–399, 1000–1299). Trimite doar schimbările, max
+  1/s per cod, linii `CAN m<modul> c<cod> i=[…] f=[…] s=[…]`. Pornită/oprită din tick.
+  Referințe: AxesOfEvil/FYTCanbusMonitor, chrisuthe/7870-Projects. Mașina: Golf 6 (1K),
+  1.2 TSI 77 kW (CBZB), benzină, 2012.
   Adăugarea sunetelor: `ACTION_OPEN_DOCUMENT` → `ACTION_GET_CONTENT` → listă proprie din
   `MediaStore.Audio` (cere `READ_EXTERNAL_STORAGE` / `READ_MEDIA_AUDIO`). Pe Teyes-ul
   utilizatorului selectorul standard lipsea și aplicația cădea (1.1.10).
