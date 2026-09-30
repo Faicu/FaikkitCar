@@ -88,7 +88,12 @@ final class CanProbe {
     private void subscribe(IBinder toolkit) {
         add("CAN sonda conectata la MainServer", System.currentTimeMillis());
         subscribeModule(toolkit, Syu.MODULE_MAIN, range(0, 200));
-        subscribeModule(toolkit, Syu.MODULE_CANBUS, concat(range(0, 400), range(1000, 1300)));
+        // Tot intervalul CANBUS: nivelul rezervorului (afisat de "Car Info") nu era in 0-399/1000-1299.
+        subscribeModule(toolkit, Syu.MODULE_CANBUS, range(0, 2000));
+        // Si celelalte module cunoscute (radio, BT, sunet, DVR, OBD, CAN_UP...), la cautare.
+        for (int m : new int[] {1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}) {
+            subscribeModule(toolkit, m, range(0, 200));
+        }
     }
 
     private void subscribeModule(IBinder toolkit, int module, int[] codes) {

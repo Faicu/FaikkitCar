@@ -277,7 +277,7 @@ public class MainActivity extends Activity {
         can.addView(head);
         Ui.hint(this, can, "Asculta ce date primeste navigatia de la masina (viteza, turatie, "
                 + "temperatura, usi...) si le trimite la server. Porneste-o si, in 5 minute, fa cat mai "
-                + "multe actiuni: pornire motor, accelerari, frana, usi, lumini, semnalizare.");
+                + "multe actiuni. Pentru rezervor: deschide Car Info la pagina cu litrii.");
         Ui.addButton(this, can, active ? "Opreste sonda" : "Porneste pentru 5 minute",
                 active ? Ui.DANGER : Ui.SECONDARY, v -> {
                     Prefs.setCanProbeUntil(this, active ? 0 : System.currentTimeMillis() + CanProbe.DURATION_MS);
