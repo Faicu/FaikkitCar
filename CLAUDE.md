@@ -61,6 +61,13 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   mai fim închiși la somn și să avem voie la autostart. Neconfirmat încă pe unitate.
   Aplicația veche `ro.faicu.vwwelcome` trebuie dezinstalată manual. (`com.faicu.welcome`
   de pe unitate e o încercare mai veche a utilizatorului, nefolosită.)
+- Coduri CAN găsite cu sonda (Golf 6, 30.09, 5 min cu mers scurt; modul 7 = CANBUS):
+  c110 = c1032 turație (rpm, relanti ~750); c1031 viteză km/h; c109 viteză ×100;
+  c105 tensiune ×100 (V); c106 kilometraj (km, 245066); c139 temp. exterioară ×10 (probabil);
+  m0 c179 f=[lon, lat, alt] GPS; c1–c5, c13, c49, c54, c103, c107 on/off (uși etc., de
+  mapat); c21 (0–3), c27/c28 (5/7/9) de mapat; c1033 neidentificat (33–301); c1049 [?, ~viteză];
+  c1019 = cadre brute Raise (0x2E, cmd, len, date, checksum): 0x14, 0x21 clima, 0x22/0x23
+  radar, 0x24 uși, 0x26 unghi volan, 0x41 date bord, 0x7D frecvent. Combustibil/consum: încă negăsite.
 - Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
   XDA, la somnul adânc închide tot ce nu e în `skipkillapp.prop` (valori negative = nu se
   închide) / `unkillapp.txt` (în APK-ul com.syu.ms) / `protected_app.txt`.
