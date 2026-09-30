@@ -7,7 +7,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 
 | | |
 |---|---|
-| **Versiune curentă** | 1.1.23 (`build-23`), pachet `com.mapgoo.diruite` |
+| **Versiune curentă** | 1.1.24 (`build-24`), pachet `com.mapgoo.diruite` |
 | **Descărcare** | [VWWelcome.apk (ultimul build)](https://github.com/Faicu/welcometovw/releases/latest/download/VWWelcome.apk) sau din aplicație, „Actualizează acum” |
 | **De la distanță** | `status.faicu.ro/vw` (jurnal) · `status.faicu.ro/calatorii` (călătorii, poziție, mentenanță) |
 | **Actualizat** | 30.09.2026 |
@@ -76,8 +76,8 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 
 ## Ce urmează
 
-1. **La mașină:** actualizare la 1.1.23 din aplicație (primul test al actualizării), apoi
-   sonda CAN cu „Car Info” deschis la pagina cu litrii și valoarea afișată notată.
+1. **La mașină:** actualizare la 1.1.24 din aplicație (primul test al actualizării), apoi
+   calibrarea nouă (Acasă → „Calibrare CAN”); ultimul pas cere litrii din „Car Info”.
 2. **Consumul:** cu codul rezervorului găsit, alimentările se detectează automat, iar
    consumul și costul se calculează pe fiecare călătorie. Fără el: jurnal de alimentări
    introdus manual, plus estimare calibrată din turație și timp (±10–15%).
@@ -252,6 +252,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 21 | 30.09 | Salut vorbit, avertizare ușă, mentenanță, „unde e mașina”, actualizare din aplicație |
 | 22 | 30.09 | Sonda CAN extinsă (căutarea nivelului de combustibil) |
 | 23 | 30.09 | Curățenie: motorul oprit detectat corect (GPS econom, resetarea salutului), cod mort scos |
+| 24 | 30.09 | Calibrare doar pentru necunoscute, cu schimbările afișate live; derularea nu mai sare sus |
 
 ---
 
