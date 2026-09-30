@@ -157,6 +157,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   (fără „Serviciu pornit” nou), SCREEN_OFF a venit la ~10 min după ACC OFF (intrarea în
   somn); la ACC ON au venit și autostart-ul, și detecția prin pauză (3515 s), a doua
   ignorată ca dublură. Sunet redat, dar fără ~1 s la început → pauza suplimentară (1.1.16).
+- Confirmat de utilizator (30.09): iconița nouă apare corect; pauza 5 s + 2 s după
+  hibernare (7 s) face sunetul să se audă întreg.
 - Rămâne de testat: ACC OFF 2–5 min și peste noapte (hibernare / boot complet), plus cât
   de des ratează autostart-ul.
 - Plan convenit: utilizatorul instalează, configurează, face cicluri ACC OFF/ON (~30 s,
