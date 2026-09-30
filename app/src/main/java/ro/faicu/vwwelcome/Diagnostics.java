@@ -8,12 +8,15 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -29,7 +32,16 @@ final class Diagnostics {
             "(?i)white.?list|un.?kill|no.?kill|kill|keep.?alive|auto.?run|auto.?start|autostart"
                     + "|sleep|standby|acc.?(on|off|state)|protect|clean|background|boot");
     private static final String[] CHINESE = {"白名单", "保活", "休眠", "自启", "清理", "后台", "杀"};
-    private static final int MAX_LINES = 450;
+    private static final int MAX_LINES = 1500;
+    // Listele FYT: aplicatiile neinchise la somn (skipkillapp.prop, protected_app.txt,
+    // unkillapp.txt din com.syu.ms) si cele cu voie de autostart (pwctl_config.xml).
+    private static final Pattern FYT_FILE = Pattern.compile(
+            "(?i).*(kill|pwctl|protect|white|autostart|autorun|keepalive|sleep).*");
+    private static final String[] FYT_DIRS = {"/oem", "/oem/app", "/oem/etc", "/system/etc",
+            "/vendor/etc", "/product/etc", "/system/etc/sysconfig", "/vendor/etc/sysconfig"};
+    // Pachetele FYT/Teyes in care cautam fisiere de configurare si texte.
+    private static final Pattern FYT_PKG = Pattern.compile(
+            "com\\.syu\\.(ms|settings|ss|us|ps|carui)|com\\.yf2\\.teyesview|com\\.android\\.settings");
     private static final int MAX_STRINGS_PER_APK = 60;
     private static final long MAX_ENTRY_BYTES = 24L << 20;
 
@@ -39,6 +51,8 @@ final class Diagnostics {
     static int run(Context c) {
         List<String> out = new ArrayList<>();
         out.add("DIAG start");
+        fytFiles(out);
+        getprop(out);
         PackageManager pm = c.getPackageManager();
         List<ApplicationInfo> apps = pm.getInstalledApplications(0);
         List<ApplicationInfo> vendor = new ArrayList<>();
@@ -90,10 +104,8 @@ final class Diagnostics {
         }
 
         for (ApplicationInfo a : vendor) {
-            String id = (a.packageName + " " + pm.getApplicationLabel(a)).toLowerCase(Locale.ROOT);
-            if (!id.matches(".*(teyes|syu|fyt|sprd|unisoc|settings|setting|launcher|car|mcu|power).*")) {
-                continue;
-            }
+            if (!FYT_PKG.matcher(a.packageName).matches()) continue;
+            apkConfigFiles(a, out);
             scanApk(a, out);
             if (out.size() > MAX_LINES) break;
         }
@@ -101,6 +113,85 @@ final class Diagnostics {
         List<String> lines = out.size() > MAX_LINES ? out.subList(0, MAX_LINES) : out;
         Prefs.remoteOnly(c, lines);
         return lines.size();
+    }
+
+    /** Listeaza directoarele FYT si trimite continutul fisierelor cu nume relevante. */
+    private static void fytFiles(List<String> out) {
+        for (String dir : FYT_DIRS) {
+            String[] names = new File(dir).list();
+            if (names == null) {
+                out.add("DIAG DIR " + dir + ": inaccesibil");
+                continue;
+            }
+            java.util.Arrays.sort(names);
+            out.add("DIAG DIR " + dir + ": " + String.join(" ", names));
+            for (String n : names) {
+                File f = new File(dir, n);
+                if (!f.isFile() || !FYT_FILE.matcher(n).matches()) continue;
+                if (f.length() > 256 * 1024) {
+                    out.add("DIAG FILE " + f + ": prea mare (" + f.length() + " B)");
+                    continue;
+                }
+                try (InputStream in = new FileInputStream(f)) {
+                    addText(out, "DIAG FILE " + f, in);
+                } catch (Exception e) {
+                    out.add("DIAG FILE " + f + ": eroare " + e.getClass().getSimpleName());
+                }
+            }
+        }
+    }
+
+    /** Proprietatile de sistem FYT / somn / kill (getprop merge fara root). */
+    private static void getprop(List<String> out) {
+        Pattern p = Pattern.compile("(?i)fyt|syu|lsec|kill|sleep|acc|white|protect|pwctl|teyes");
+        try {
+            Process proc = Runtime.getRuntime().exec("getprop");
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (p.matcher(line).find()) out.add("DIAG PROP " + line);
+                }
+            }
+        } catch (Exception e) {
+            out.add("DIAG PROP eroare " + e);
+        }
+    }
+
+    /** Fisierele text din assets/ si res/raw/ ale APK-ului; cele relevante, cu tot continutul. */
+    private static void apkConfigFiles(ApplicationInfo a, List<String> out) {
+        List<String> names = new ArrayList<>();
+        try (ZipFile zip = new ZipFile(a.sourceDir)) {
+            for (java.util.Enumeration<? extends ZipEntry> en = zip.entries(); en.hasMoreElements(); ) {
+                ZipEntry e = en.nextElement();
+                String n = e.getName();
+                if (!(n.startsWith("assets/") || n.startsWith("res/raw/"))) continue;
+                if (!n.matches("(?i).*\\.(txt|prop|xml|json|cfg|conf|ini)$")) continue;
+                names.add(n);
+                if (FYT_FILE.matcher(n).matches() && e.getSize() <= 256 * 1024) {
+                    addText(out, "DIAG CFG " + a.packageName + "/" + n, zip.getInputStream(e));
+                }
+            }
+        } catch (Exception e) {
+            out.add("DIAG CFG " + a.packageName + ": eroare " + e.getClass().getSimpleName());
+            return;
+        }
+        out.add("DIAG CFG " + a.packageName + " fisiere: "
+                + (names.isEmpty() ? "niciunul" : String.join(" ", names)));
+    }
+
+    private static void addText(List<String> out, String prefix, InputStream in)
+            throws java.io.IOException {
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            String line;
+            int n = 0;
+            while ((line = r.readLine()) != null && n < 400) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                out.add(prefix + ": " + line);
+                n++;
+            }
+            out.add(prefix + ": [" + n + " linii]");
+        }
     }
 
     private static void addComps(List<String> out, String kind, ComponentInfo[] comps) {

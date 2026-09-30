@@ -42,7 +42,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   linii `DIAG …`) pachetele non-standard + componentele cu nume de somn/kill/autostart,
   rândurile potrivite din `content://settings/{system,global,secure}` și textele potrivite
   din `resources.arsc`/`classes*.dex` ale APK-urilor Teyes/Setări (plus contor pentru
-  cuvinte chinezești: 白名单, 保活, 休眠…). Cere `QUERY_ALL_PACKAGES`.
+  cuvinte chinezești: 白名单, 保活, 休眠…). Cere `QUERY_ALL_PACKAGES`. Citește și fișierele
+  FYT (`/oem/app/skipkillapp.prop`, `protected_app.txt`, `pwctl_config.xml`…),
+  `getprop` filtrat și fișierele de configurare din assets ale `com.syu.ms` & co.
+- Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
+  XDA, la somnul adânc închide tot ce nu e în `skipkillapp.prop` (valori negative = nu se
+  închide) / `unkillapp.txt` (în APK-ul com.syu.ms) / `protected_app.txt`.
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
 - `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
