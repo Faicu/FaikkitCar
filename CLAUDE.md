@@ -188,13 +188,16 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. Actualizarea din
   aplicație merge (1.1.24 → 1.1.27, 01.10 seara). Voci române: `ro-ro-x-vfv-local` și
   `ro-ro-x-vfv-network`, ambele q400; cea online întârzie ~3 s, deci de la 1.1.29
-  avertizările folosesc vocea locală. Ambele voci sună robotic (utilizatorul, 01.10). Netestat încă: avertizarea de ușă.
+  avertizările folosesc vocea locală. Ambele voci sună robotic (utilizatorul, 01.10), deci de la 1.1.30
+  salutul (neurgent, cu internet) vine ca MP3 de la `POST /api/vw-tts` (FaikkitBox, Piper
+  `ro_RO-mihai-medium` în `/opt/faikkitbox/data/piper`, nu în git; commit local `1e3faa4`),
+  redat ca ghidare de navigație; fără internet sau la eroare rămâne TextToSpeech. Netestat încă: avertizarea de ușă.
 - În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
   Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
   calibrată din turație × timp).
-- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`) se
+- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`, `1e3faa4`) se
   împing de utilizator din pagina Tehnic; nu face push acolo.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
   liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),

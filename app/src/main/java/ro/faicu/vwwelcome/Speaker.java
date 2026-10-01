@@ -2,13 +2,24 @@ package ro.faicu.vwwelcome;
 
 import android.content.Context;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.ToneGenerator;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
 
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -19,6 +30,8 @@ import java.util.Locale;
  * motor TTS (sau nu stie romana), avertizarile se reduc la un semnal sonor. Alegem cea mai
  * buna voce romana: cea online (mai naturala) cand avem internet, altfel cea locala. Vocea
  * online porneste cu ~3 s intarziere, deci avertizarile (urgente) folosesc vocea locala.
+ * Salutul (neurgent) vine, cand avem internet, ca MP3 de pe server (vocea Piper, mult mai
+ * naturala decat vocea Google de pe navigatie); daca nu merge, ramane TextToSpeech.
  */
 final class Speaker {
     private static TextToSpeech tts;
@@ -26,11 +39,89 @@ final class Speaker {
     private static String pending;
     private static boolean pendingUrgent;
     private static String currentVoice;
+    private static final String URL_TTS = "https://status.faicu.ro/api/vw-tts";
+    // Referinta statica: altfel MediaPlayer poate fi colectat de GC in timpul redarii.
+    private static MediaPlayer serverPlayer;
 
     private Speaker() {}
 
-    static synchronized void say(Context ctx, String text, boolean beepIfNoVoice) {
+    static void say(Context ctx, String text, boolean beepIfNoVoice) {
         Context c = ctx.getApplicationContext();
+        if (beepIfNoVoice || !Uploader.configured() || !online(c)) {
+            sayTts(c, text, beepIfNoVoice);
+            return;
+        }
+        new Thread(() -> {
+            try {
+                playServer(c, text, download(c, text));
+            } catch (Exception e) {
+                Prefs.log(c, "Voce server indisponibila (" + e.getMessage() + "), folosesc vocea locala");
+                sayTts(c, text, false);
+            }
+        }, "Speaker").start();
+    }
+
+    /** MP3-ul cu textul rostit de vocea de pe server, salvat in cache. */
+    private static File download(Context c, String text) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(URL_TTS).openConnection();
+        try {
+            conn.setConnectTimeout(5_000);
+            conn.setReadTimeout(10_000);
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(new JSONObject().put("text", text).toString().getBytes(StandardCharsets.UTF_8));
+            }
+            int code = conn.getResponseCode();
+            if (code != 200) throw new Exception("HTTP " + code);
+            File f = new File(c.getCacheDir(), "voce.mp3");
+            try (InputStream in = conn.getInputStream(); OutputStream out = new FileOutputStream(f)) {
+                byte[] buf = new byte[16384];
+                for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            }
+            return f;
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /** Ca ghidarea de navigatie: muzica isi coboara volumul cat vorbim. */
+    private static synchronized void playServer(Context c, String text, File f) throws Exception {
+        if (serverPlayer != null) serverPlayer.release();
+        AudioAttributes attrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build();
+        AudioManager am = c.getSystemService(AudioManager.class);
+        AudioFocusRequest focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(attrs)
+                .build();
+        MediaPlayer mp = new MediaPlayer();
+        serverPlayer = mp;
+        mp.setAudioAttributes(attrs);
+        mp.setDataSource(f.getAbsolutePath());
+        MediaPlayer.OnCompletionListener done = m -> {
+            synchronized (Speaker.class) {
+                if (serverPlayer == m) serverPlayer = null;
+            }
+            m.release();
+            am.abandonAudioFocusRequest(focus);
+        };
+        mp.setOnCompletionListener(done);
+        mp.setOnErrorListener((m, what, extra) -> {
+            Prefs.log(c, "Voce server: eroare MediaPlayer " + what + "/" + extra);
+            done.onCompletion(m);
+            return true;
+        });
+        mp.prepare();
+        am.requestAudioFocus(focus);
+        mp.start();
+        Prefs.log(c, "Voce: \"" + text + "\" (Piper, server)");
+    }
+
+    private static synchronized void sayTts(Context c, String text, boolean beepIfNoVoice) {
         // beepIfNoVoice = avertizare: trebuie sa se auda imediat.
         if (ready) {
             speakNow(c, text, beepIfNoVoice);
