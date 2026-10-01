@@ -70,7 +70,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   din nou la 1 la pornirea motorului, neclar), cu bitul 0x02 din cadrul brut 0x24; c107 0→1
   la eliberarea frânei de mână și n-a mai revenit; pedala de frână, marșarierul (cu motorul
   oprit) și ștergătoarele NU apar ca cod; marșarierul se vede doar indirect (radarul 0x22 și
-  m0 c12/c68/c70, camera). Clima: c10 și c11 0→1 la AC (+ c13 1→0), c21 = treapta
+  m0 c12/c68/c70, camera). Clima: c10 și c11 0→1 (+ c13 1→0, c21 0→1) la pasul AC, dar utilizatorul a apăsat de
+  fapt AUTO (care pornește și AC-ul), deci c10/c11 = AC/AUTO încă nedespărțite; c21 = treapta
   ventilatorului (1→3 la +2), c27/c28 = temperatura stânga/dreapta (9→11 la +1 °C, deci
   pași de 0,5 °C), cadrul brut 0x21 o conține pe toată. Lumini, semnalizare, avarii: decodorul NU le trimite.
   m0 c77 = atingerile pe ecran [apăsat, x, y] (de ignorat). Cadrul brut 0x41 sub 2 conține
