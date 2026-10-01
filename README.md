@@ -13,9 +13,9 @@ a crescut într-un proiect cu trei părți:
 | | |
 |---|---|
 | **Versiuni** | FaikkitCar 1.1.33 (`build-33`) · FaikkitCar Panel 1.0.1 (`panel-1`) |
-| **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/faikkitcar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mașina, jos, „Descarcă APK” |
+| **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mașina, jos, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
-| **Repo** | `Faicu/faikkitcar` (fost `welcometovw`) |
+| **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
 | **Actualizat** | 01.10.2026 |
 
 **Legendă:** ✅ confirmat în uz real · 🧪 construit, netestat în uz real · 🔍 în lucru ·
@@ -49,7 +49,7 @@ a crescut într-un proiect cu trei părți:
 ## Ce urmează
 
 1. **În mașină:** instalează manual FaikkitCar 1.1.33. În browserul navigației deschizi
-   [FaikkitCar.apk](https://github.com/Faicu/faikkitcar/releases/latest/download/FaikkitCar.apk)
+   [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk)
    și instalezi peste aplicația existentă; datele, setările și autostart-ul rămân.
    1.1.31 nu mai vede actualizările, pentru că le caută pe vechiul server. După
    instalare, coada se descarcă singură pe car.faicu.ro; de verificat în fila Jurnal.

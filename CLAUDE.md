@@ -4,7 +4,7 @@ Utilizatorul scrie în română; răspunde în română.
 
 ## Proiectul (de la 01.10.2026, fost „VW Welcome”)
 
-Repo `Faicu/faikkitcar` (fost `welcometovw`; GitHub redirecționează), pe server în
+Repo `Faicu/FaikkitCar` (fost `welcometovw`; GitHub redirecționează), pe server în
 `/opt/faikkitcar`. Proiect complet separat de FaikkitBox (`/opt/faikkitbox`): nimic despre
 mașină nu mai trebuie să rămână acolo.
 
@@ -217,7 +217,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `.github/workflows/build.yml` rulează la push și `workflow_dispatch`, publică artifactul
   `faikkitcar-apk` și un GitHub Release `build-<run_number>` marcat latest (nu rulează pentru
   `web/**`, `deploy/**`, `*.md`). Descărcare:
-  https://github.com/Faicu/faikkitcar/releases/latest/download/FaikkitCar.apk
+  https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk
 - Secretul `VW_LOG_TOKEN` e transmis la `gradle assembleDebug`; fără el build-ul merge,
   dar trimiterea jurnalului e dezactivată.
 - Semnare: secretele repo `KEYSTORE_BASE64` și `KEYSTORE_PASSWORD` (deja adăugate; PKCS12,
