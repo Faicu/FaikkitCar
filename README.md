@@ -53,31 +53,30 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | Iconița proprie („FAIKKITVW”) | ✅ | |
 | Jurnal trimis live la server | ✅ | Coadă locală, nu se pierde nimic fără semnal |
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
-| Diagnostic Teyes (aplicații de sistem, setări, liste FYT) | ✅ | Așa am găsit lista albă și protocolul MainServer |
 | Actualizare din aplicație | 🧪 | CI-ul publică APK-ul pe server, iar aplicația îl descarcă și îl instalează. De testat la 1.1.22 |
 
 ### Datele mașinii și călătoriile
 
 | Funcție | Stare | Detalii |
 |---|---|---|
-| Citirea datelor CAN prin MainServer | ✅ | Sondă + calibrare ghidată, vezi [Datele mașinii](#datele-mașinii-can) |
-| Calibrare doar pentru ce nu știm (frână, marșarier, centură, clima, ștergătoare, rezervor) | 🧪 | Arată live ce s-a schimbat la fiecare pas și caută automat codul cu litrii din Car Info |
-| Înregistrarea călătoriilor (GPS + CAN) | 🧪 | Punct la 5 s în mers, 30 s pe loc cu motorul pornit, nimic cu motorul oprit. Primele puncte au sosit |
+| Citirea datelor CAN prin MainServer | ✅ | Găsite cu sonda și calibrarea ghidată, vezi [Datele mașinii](#datele-mașinii-can) |
+| Calibrare doar pentru ce nu știm (frână, marșarier, centură, clima, ștergătoare, rezervor) | 🧪 | Arată live ce s-a schimbat la fiecare pas; sonda pornește doar de aici |
+| Înregistrarea călătoriilor (GPS + CAN) | ✅ | Punct la 5 s în mers, 30 s pe loc cu motorul pornit, nimic cu motorul oprit. Primul drum real pe 01.10 |
 | Pagina `/calatorii`: hartă, grafic viteză/turație, totaluri | 🧪 | Testată pe server cu date de probă; așteaptă primul drum real |
 | „Unde e mașina” (ultima poziție, Google Maps) | 🧪 | |
-| GPS oprit cu motorul oprit | 🧪 | După 1 min cu turația 0, pornit din nou la turație sau mers |
+| GPS oprit cu motorul oprit | ✅ | Văzut în jurnal pe 01.10. După 1 min cu turația 0, pornit din nou la turație sau mers |
 | Mentenanță după km/dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe `/calatorii`; cele scadente apar și pe navigație și în salut |
-| Salut vorbit după 3 min de mers | 🧪 | Ora zilei, temperatura de afară, mentenanța scadentă. **Nu știm încă dacă navigația are voce în română** |
+| Salut vorbit după 3 min de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Google TTS are română (rostit pe 01.10) |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Voce sau bip |
-| Nivelul combustibilului / consum pe călătorie | 🔍 | „Car Info” afișează litrii, deci datele există; urmează sonda cu Car Info deschis |
+| Nivelul combustibilului / consum pe călătorie | 🔍 | „Car Info” afișa litrii, dar acum nu mai arată nimic. Calibrare → „Doar rezervorul”: o captură înainte și una după alimentare, comparate pe server |
 | Jurnal de alimentări și cost pe călătorie | 💡 | Depinde de rezultatul de mai sus |
 
 ---
 
 ## Ce urmează
 
-1. **La mașină:** actualizare la 1.1.24 din aplicație (primul test al actualizării), apoi
-   calibrarea nouă (Acasă → „Calibrare CAN”); ultimul pas cere litrii din „Car Info”.
+1. **La mașină:** calibrarea nouă (Acasă → „Calibrare CAN”) pentru frână, marșarier,
+   centură, clima și ștergătoare; „Doar rezervorul” înainte și după o alimentare.
 2. **Consumul:** cu codul rezervorului găsit, alimentările se detectează automat, iar
    consumul și costul se calculează pe fiecare călătorie. Fără el: jurnal de alimentări
    introdus manual, plus estimare calibrată din turație și timp (±10–15%).
@@ -172,7 +171,7 @@ Găsite cu sonda CAN și cu calibrarea ghidată. Modul 7 = CANBUS, modul 0 = pri
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | — | Luminile, semnalizarea, avariile | nu sunt transmise de decodor |
-| ? | Litrii din rezervor | afișați de „Car Info”; codul e în căutare |
+| ? | Litrii din rezervor | în căutare, prin capturi înainte/după alimentare |
 
 ---
 
@@ -226,10 +225,10 @@ Codul e în `/opt/faikkitbox` (repo separat). Rutele VW folosesc cheia `VW_LOG_T
 | `StartActivity`, `BootReceiver` | Intrarea invizibilă pentru autostart; pornirea la boot/actualizare |
 | `Player` | Redarea sunetului (focus audio, volum, pauză) |
 | `TripRecorder`, `PointQueue` | Călătoriile (GPS + CAN), salutul, avertizarea de ușă, GPS-ul econom; coada de puncte pe disc |
-| `CanLink`, `CanProbe`, `Syu` | Datele mașinii din MainServer: legătura permanentă, sonda / calibrarea, protocolul |
+| `CanLink`, `CanProbe`, `Syu` | Datele mașinii din MainServer: legătura permanentă, sonda calibrării, protocolul |
 | `Speaker`, `Greeting` | Vocea (TextToSpeech, ro-RO) și textele rostite |
 | `Uploader`, `VwStatus`, `Updater` | Trimiterea la server, starea de pe server, actualizarea din aplicație |
-| `Prefs`, `Diagnostics`, `CrashLog` | Setări și jurnal, diagnosticul Teyes, căderile |
+| `Prefs`, `CrashLog` | Setări și jurnal, căderile |
 | `MainActivity`, `Ui` | Interfața |
 
 Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.md`](CLAUDE.md).

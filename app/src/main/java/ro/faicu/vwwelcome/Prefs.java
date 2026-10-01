@@ -287,12 +287,10 @@ final class Prefs {
         journal(c).edit().putString("outbox", box.toString()).apply();
     }
 
-    /** Linii doar pentru server (ex. diagnostic), fara jurnalul local; o singura scriere. */
-    static void remoteOnly(Context c, java.util.List<String> lines) {
-        remoteOnly(c, lines, null);
-    }
-
-    /** Ca mai sus, cu ora fiecarei linii (null = acum, crescator ca sa ramana unice). */
+    /**
+     * Linii doar pentru server (sonda CAN), fara jurnalul local; o singura scriere. times = ora
+     * fiecarei linii (null = acum, crescator ca sa ramana unice).
+     */
     static synchronized void remoteOnly(Context c, java.util.List<String> lines,
             java.util.List<Long> times) {
         JSONArray box = outbox(c);

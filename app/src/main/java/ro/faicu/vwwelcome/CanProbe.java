@@ -9,20 +9,19 @@ import android.os.IBinder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Sonda CAN: asculta toate codurile modulelor MAIN (0) si CANBUS (7) ale MainServer-ului FYT
- * (vezi Syu), ca sa aflam ce date primeste navigatia de la masina (Golf 6). Trimite la server
- * doar schimbarile, cel mult una pe secunda pentru fiecare cod, in linii "CAN m<modul>
- * c<cod> ...", cu ora exacta a schimbarii. Calibrarea adauga marcaje "CAN MARK ..." intre ele.
+ * Sonda CAN, pornita doar de calibrare: asculta toate codurile modulelor MainServer-ului FYT
+ * (vezi Syu) si tine local valorile si ultimele schimbari, pentru afisarea live. La server
+ * ajung doar marcajele calibrarii ("CAN MARK ...", cu schimbarile pasului) si capturile
+ * complete ("CAN SNAP ..."), nu fiecare schimbare.
  */
 final class CanProbe {
-    static final long DURATION_MS = 5 * 60_000L;
     private static final int MAX_LINES = 5000;
     private static final int MAX_RECENT = 500;
 
@@ -53,8 +52,6 @@ final class CanProbe {
     private final Handler handler;
     // Citit si din UI (findValue), deci concurent.
     private final Map<String, String> lastValue = new ConcurrentHashMap<>();
-    private final Map<String, Long> lastSent = new HashMap<>();
-    private final Map<String, String> pending = new HashMap<>();
     private final List<String> lines = new ArrayList<>();
     private final List<Long> times = new ArrayList<>();
     private int sent;
@@ -81,6 +78,11 @@ final class CanProbe {
 
     static synchronized boolean isRunning() {
         return running != null;
+    }
+
+    /** Cate coduri au trimis deja o valoare (0 cat timp sonda abia porneste). */
+    static synchronized int valueCount() {
+        return running == null ? 0 : running.lastValue.size();
     }
 
     /** Schimbarile de dupa momentul t, fara codurile din ignore (chei "m7 c110" sau prefixe). */
@@ -146,6 +148,21 @@ final class CanProbe {
         long t = System.currentTimeMillis();
         CanProbe p = running;
         p.handler.post(() -> p.add("CAN MARK " + text, t));
+    }
+
+    /** Toate valorile curente (in ordinea cheilor), ca sa le comparam pe server intre doua capturi. */
+    static synchronized void snapshot(String label) {
+        if (running == null) return;
+        long t = System.currentTimeMillis();
+        CanProbe p = running;
+        p.handler.post(() -> {
+            Map<String, String> all = new TreeMap<>(p.lastValue);
+            all.remove("m0 c77"); // atingerile pe ecran
+            p.add("CAN SNAP " + label + ": " + all.size() + " coduri", t);
+            for (Map.Entry<String, String> e : all.entrySet()) {
+                p.add("CAN SNAP " + label + " " + e.getKey() + " " + e.getValue(), t);
+            }
+        });
     }
 
     private final ServiceConnection conn = new ServiceConnection() {
@@ -233,20 +250,11 @@ final class CanProbe {
         String old = lastValue.get(key);
         if (value.equals(old)) return;
         lastValue.put(key, value);
-        if (old != null) {
-            synchronized (recent) {
-                recent.add(new Change(t, key, old, value));
-                if (recent.size() > MAX_RECENT) recent.remove(0);
-            }
+        if (old == null) return;
+        synchronized (recent) {
+            recent.add(new Change(t, key, old, value));
+            if (recent.size() > MAX_RECENT) recent.remove(0);
         }
-        Long prev = lastSent.get(key);
-        if (prev != null && t - prev < 1000) {
-            pending.put(key, value); // o trimitem la urmatorul flush, ultima valoare castiga
-            return;
-        }
-        lastSent.put(key, t);
-        pending.remove(key);
-        add("CAN " + key + " " + value, t);
     }
 
     private void add(String line, long t) {
@@ -256,12 +264,6 @@ final class CanProbe {
     }
 
     private void flush() {
-        long now = System.currentTimeMillis();
-        for (Map.Entry<String, String> e : pending.entrySet()) {
-            lastSent.put(e.getKey(), now);
-            add("CAN " + e.getKey() + " " + e.getValue(), now);
-        }
-        pending.clear();
         if (!lines.isEmpty()) {
             Prefs.remoteOnly(c, new ArrayList<>(lines), new ArrayList<>(times));
             sent += lines.size();
@@ -274,7 +276,7 @@ final class CanProbe {
     }
 
     private void stop() {
-        add("CAN sonda oprita, " + (sent + lines.size()) + " linii, " + lastValue.size() + " coduri vazute",
+        add("CAN sonda oprita, " + lastValue.size() + " coduri vazute",
                 System.currentTimeMillis());
         if (bound) {
             try {

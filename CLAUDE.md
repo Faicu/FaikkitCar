@@ -39,23 +39,20 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconița e
   imaginea desenată de utilizator („FAIKKITVW”, săgeată cu sigla VW), ca strat față adaptiv
   (`drawable-nodpi/ic_launcher_fg.png`, 432 px, imaginea pe ~80 dp) pe fundal #204671.
-- `CanProbe` („Sonda CAN” pe Acasă, 5 min, `can_probe_until`): se leagă la
-  `com.syu.ms/app.ToolkitService` (acțiunea `com.syu.ms.toolkit`, AIDL `com.syu.ipc`:
-  getRemoteModule=1, register=3 cu (callback, cod, 1), callback update=1) și ascultă
-  modulul 0 (coduri 0–199) și 7 CANBUS (0–399, 1000–1299). Trimite doar schimbările, max
-  1/s per cod, linii `CAN m<modul> c<cod> i=[…] f=[…] s=[…]`. Pornită/oprită din tick.
-  Referințe: AxesOfEvil/FYTCanbusMonitor, chrisuthe/7870-Projects. Mașina: Golf 6 (1K),
-  1.2 TSI 77 kW (CBZB), benzină, 2012.
-  Adăugarea sunetelor: `ACTION_OPEN_DOCUMENT` → `ACTION_GET_CONTENT` → listă proprie din
+- `CanProbe`: pornită doar de calibrare (10 min, `can_probe_until`, verificată din tick).
+  Se leagă la `com.syu.ms/app.ToolkitService` (acțiunea `com.syu.ms.toolkit`, AIDL
+  `com.syu.ipc`: getRemoteModule=1, register=3 cu (callback, cod, 1), callback update=1) și
+  ascultă modulul 0 (0–199), 7 CANBUS (0–1999) și 1–17 (0–199). Ține local valorile și
+  schimbările; la server trimite doar `CAN MARK …` (calibrarea) și `CAN SNAP <etichetă> <cheie>
+  <valoare>` (captura completă de la pasul rezervorului), nu fiecare schimbare (până la 1.1.24
+  trimitea `CAN m<modul> c<cod> i=[…] f=[…] s=[…]`). Referințe: AxesOfEvil/FYTCanbusMonitor,
+  chrisuthe/7870-Projects. Mașina: Golf 6 (1K), 1.2 TSI 77 kW (CBZB), benzină, 2012.
+- Adăugarea sunetelor (`MainActivity`): `ACTION_OPEN_DOCUMENT` → `ACTION_GET_CONTENT` → listă proprie din
   `MediaStore.Audio` (cere `READ_EXTERNAL_STORAGE` / `READ_MEDIA_AUDIO`). Pe Teyes-ul
   utilizatorului selectorul standard lipsea și aplicația cădea (1.1.10).
-- `Diagnostics` (butonul „Diagnostic Teyes”): trimite doar la server (`Prefs.remoteOnly`,
-  linii `DIAG …`) pachetele non-standard + componentele cu nume de somn/kill/autostart,
-  rândurile potrivite din `content://settings/{system,global,secure}` și textele potrivite
-  din `resources.arsc`/`classes*.dex` ale APK-urilor Teyes/Setări (plus contor pentru
-  cuvinte chinezești: 白名单, 保活, 休眠…). Cere `QUERY_ALL_PACKAGES`. Citește și fișierele
-  FYT (`/oem/app/skipkillapp.prop`, `protected_app.txt`, `pwctl_config.xml`…),
-  `getprop` filtrat și fișierele de configurare din assets ale `com.syu.ms` & co.
+- `Diagnostics` (butonul „Diagnostic Teyes”, linii `DIAG …` pe server, `QUERY_ALL_PACKAGES`)
+  a fost scos după 1.1.24; rezultatele (listele FYT `/oem/app/skipkillapp.prop`,
+  `protected_app.txt`, `pwctl_config.xml`, `unkill_app.txt` din com.syu.ms) sunt mai jos.
 - De la 1.1.15, `applicationId` = `com.mapgoo.diruite`: nume dintr-o aplicație chinezească
   neinstalată care apare atât în `unkill_app.txt` (assets/property din com.syu.ms, citit cu
   diagnosticul), cât și în `LaunchWhiteList` din `/oem/app/pwctl_config.xml`. Scop: să nu
@@ -86,8 +83,11 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Serviciul are `foregroundServiceType="location"`; permisiunea se cere din aplicație.
 - Calibrare CAN (Acasă, `STEPS` în MainActivity): doar necunoscutele — pedala de frână vs.
   frâna de mână, marșarierul, centura (cu motorul oprit și o treaptă băgată), apoi pornirea
-  motorului, AC, ventilator, temperatură, ștergătoare și litrii din rezervor (introduși de
-  utilizator; `CanProbe.findValue` caută codurile cu acea valoare, ×1/×10/×100). Sonda 10 min;
+  motorului, AC, ventilator, temperatură, ștergătoare și rezervorul. La rezervor litrii sunt
+  opționali (Car Info nu mai afișează nimic din 01.10; dacă sunt, `CanProbe.findValue` caută
+  codurile cu acea valoare, ×1/×10/×100) și se trimite mereu `CanProbe.snapshot`; butonul
+  „Doar rezervorul” sare direct la acest pas (captură înainte/după alimentare, comparate pe
+  server din `vw_log`). Sonda 10 min;
   la fiecare pas UI-ul arată live schimbările (`CanProbe.changesSince`, fără codurile din
   `KNOWN`), iar marcajul „CAN MARK n GATA: … | schimbări” le trimite la server. Cadrele brute
   Raise au cheie proprie pe comandă („m7 raw 0x21”, „m7 raw 0x41/2”).
@@ -160,12 +160,14 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   Excepție (01.10): după 17,7 h de somn s-a pierdut ~0,5 s din început (redare corectă în
   jurnal, deci ieșirea audio nu era gata); utilizatorul a pus în UI +3 s după hibernare.
   Dacă se mai pierde, varianta în cod: pauza în plus crescută cu durata somnului.
-- Netestat încă în uz real: călătoriile în mers, vocea (nu știm dacă există TTS în
-  română), avertizarea de ușă, GPS-ul oprit cu motorul oprit, actualizarea din aplicație.
-- În lucru: nivelul combustibilului. „Car Info” afișează litrii; 1.1.22 extinde sonda la
-  CANBUS 0–1999 și la modulele 1–17. Utilizatorul o pornește cu Car Info deschis și spune
-  câți litri arată. Apoi: consum/cost pe călătorie (alimentări detectate automat sau
-  jurnal manual + estimare calibrată din turație × timp).
+- Confirmat din jurnal (01.10, 1.1.24): primul drum înregistrat (`vw_trip_point`), salutul
+  rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. 1.1.20 → 1.1.24
+  instalat (probabil din aplicație, neconfirmat). Netestat încă: avertizarea de ușă.
+- În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
+  nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
+  rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
+  Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
+  calibrată din turație × timp).
 - FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`) se
   împing de utilizator din pagina Tehnic; nu face push acolo.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de

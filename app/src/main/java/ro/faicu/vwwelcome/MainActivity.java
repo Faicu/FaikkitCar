@@ -65,6 +65,9 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static final String FUEL_HINT = "Scrie cati litri sunt in rezervor (din Car Info, daca "
+            + "ii arata) sau lasa gol. Oricum se trimite la server o captura cu toate valorile; facuta "
+            + "o data inainte si o data dupa o alimentare, arata codul care a crescut.";
     // Doar ce nu stim inca (usile, viteza, turatia etc. sunt deja stabilite, vezi CLAUDE.md).
     // Motorul oprit la inceput: frana de mana si marsarierul se pot testa in siguranta, cu o
     // treapta bagata, si nimic nu se misca in fundal (turatie, tensiune).
@@ -85,9 +88,9 @@ public class MainActivity extends Activity {
             new Step("Mareste temperatura pe partea soferului cu 1 grad", ""),
             new Step("Porneste stergatoarele", ""),
             new Step("Opreste stergatoarele", ""),
-            new Step("Rezervorul", "Deschide Car Info la pagina cu rezervorul, uita-te cati litri arata, "
-                    + "revino aici si scrie numarul.", true),
+            new Step("Rezervorul", FUEL_HINT, true),
     };
+    private static final int FUEL_STEP = STEPS.length - 1;
     // Coduri deja stabilite sau care se schimba singure; nu le aratam in timpul calibrarii.
     private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
             "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
@@ -307,26 +310,6 @@ public class MainActivity extends Activity {
             Ui.addButton(this, warn, "Dezactiveaza optimizarea", Ui.SECONDARY, v -> askBattery());
         }
 
-        LinearLayout can = Ui.card(this, col);
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Sonda CAN", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
-        long until = Prefs.canProbeUntil(this);
-        boolean active = until > System.currentTimeMillis();
-        head.addView(Ui.pill(this, active ? "activa pana la " + hhmm(until) : "oprita",
-                active ? Ui.ACCENT : Ui.MUTED));
-        can.addView(head);
-        Ui.hint(this, can, "Asculta ce date primeste navigatia de la masina (viteza, turatie, "
-                + "temperatura, usi...) si le trimite la server. Porneste-o si, in 5 minute, fa cat mai "
-                + "multe actiuni. Pentru rezervor: deschide Car Info la pagina cu litrii.");
-        Ui.addButton(this, can, active ? "Opreste sonda" : "Porneste pentru 5 minute",
-                active ? Ui.DANGER : Ui.SECONDARY, v -> {
-                    Prefs.setCanProbeUntil(this, active ? 0 : System.currentTimeMillis() + CanProbe.DURATION_MS);
-                    CanProbe.check(getApplicationContext());
-                    toast(active ? "Sonda CAN oprita" : "Sonda CAN pornita");
-                    refresh();
-                });
-
         buildCalibration(col);
         buildTrips(col);
     }
@@ -338,7 +321,7 @@ public class MainActivity extends Activity {
             Ui.hint(this, card, "Cauta doar ce nu stim inca: frana (pedala / de mana), marsarierul, "
                     + "centura, climatronicul, stergatoarele si litrii din rezervor. Usile, viteza, "
                     + "turatia si restul sunt deja stabilite. Dureaza ~3 minute; la fiecare pas vezi "
-                    + "pe loc ce s-a schimbat.");
+                    + "pe loc ce s-a schimbat. „Doar rezervorul”: o captura inainte si una dupa alimentare.");
             if (!calibResults.isEmpty()) {
                 TextView res = Ui.mono(this, String.join("\n", calibResults), 13);
                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
@@ -346,16 +329,9 @@ public class MainActivity extends Activity {
                 card.addView(res, rlp);
             }
             Ui.addButton(this, card, calibResults.isEmpty() ? "Incepe calibrarea" : "Reia calibrarea",
-                    Ui.SECONDARY, v -> {
-                        Prefs.setCanProbeUntil(this, System.currentTimeMillis() + 10 * 60_000L);
-                        CanProbe.check(getApplicationContext());
-                        calibResults.clear();
-                        calibStep = 0;
-                        stepStart = System.currentTimeMillis();
-                        // Sonda are nevoie de o clipa sa se lege la MainServer inainte de marcaj.
-                        ui.postDelayed(() -> CanProbe.mark("start calibrare (doar necunoscutele)"), 1500);
-                        refresh();
-                    });
+                    Ui.SECONDARY, v -> startCalibration(0, "start calibrare (doar necunoscutele)"));
+            Ui.addButton(this, card, "Doar rezervorul", Ui.SECONDARY,
+                    v -> startCalibration(FUEL_STEP, "start rezervor"));
             return;
         }
         Step step = STEPS[calibStep];
@@ -368,7 +344,10 @@ public class MainActivity extends Activity {
 
         EditText liters = null;
         if (step.fuel) {
-            liters = Ui.field(this, card, "Litri in rezervor", "Cum ii arata Car Info", "", true);
+            liters = Ui.field(this, card, "Litri in rezervor", "Optional", "", true);
+            liveChanges = Ui.mono(this, "", 13);
+            card.addView(liveChanges);
+            updateLive();
         } else {
             // Ce s-a schimbat de cand a aparut pasul, actualizat live de liveTick.
             LinearLayout box = new LinearLayout(this);
@@ -411,6 +390,17 @@ public class MainActivity extends Activity {
         card.addView(btns, blp);
     }
 
+    private void startCalibration(int step, String mark) {
+        Prefs.setCanProbeUntil(this, System.currentTimeMillis() + 10 * 60_000L);
+        CanProbe.check(getApplicationContext());
+        calibResults.clear();
+        calibStep = step;
+        stepStart = System.currentTimeMillis();
+        // Sonda are nevoie de o clipa sa se lege la MainServer inainte de marcaj.
+        ui.postDelayed(() -> CanProbe.mark(mark), 1500);
+        refresh();
+    }
+
     /** Schimbarile pasului curent, cate una pe cod (ultima valoare), fara codurile stiute. */
     private String stepChanges() {
         java.util.LinkedHashMap<String, CanProbe.Change> byKey = new java.util.LinkedHashMap<>();
@@ -429,9 +419,14 @@ public class MainActivity extends Activity {
     private void updateLive() {
         ui.removeCallbacks(liveTick);
         if (calibStep < 0 || liveChanges == null) return;
-        String changes = stepChanges();
-        liveChanges.setText(!CanProbe.isRunning() ? "sonda porneste..."
-                : changes.isEmpty() ? "inca nimic — fa actiunea" : changes);
+        if (STEPS[calibStep].fuel) {
+            int n = CanProbe.valueCount();
+            liveChanges.setText(n == 0 ? "sonda porneste..." : "coduri citite: " + n);
+        } else {
+            String changes = stepChanges();
+            liveChanges.setText(!CanProbe.isRunning() ? "sonda porneste..."
+                    : changes.isEmpty() ? "inca nimic — fa actiunea" : changes);
+        }
         ui.postDelayed(liveTick, 700);
     }
 
@@ -439,15 +434,27 @@ public class MainActivity extends Activity {
         Step step = STEPS[calibStep];
         String found;
         if (step.fuel && done) {
-            double l;
-            try {
-                l = Double.parseDouble(liters.getText().toString().trim().replace(',', '.'));
-            } catch (Exception e) {
-                toast("Scrie cati litri arata Car Info");
+            if (CanProbe.valueCount() == 0) {
+                toast("Sonda inca porneste, mai asteapta o clipa");
                 return;
             }
-            List<String> cand = CanProbe.findValue(l);
-            found = l + " L -> " + (cand.isEmpty() ? "niciun cod cu aceasta valoare" : String.join(", ", cand));
+            String text = liters.getText().toString().trim().replace(',', '.');
+            double l = -1;
+            if (!text.isEmpty()) {
+                try {
+                    l = Double.parseDouble(text);
+                } catch (NumberFormatException e) {
+                    toast("Numar invalid");
+                    return;
+                }
+            }
+            CanProbe.snapshot(l < 0 ? "rezervor" : "rezervor " + l + " L");
+            if (l < 0) {
+                found = "captura trimisa";
+            } else {
+                List<String> cand = CanProbe.findValue(l);
+                found = l + " L -> " + (cand.isEmpty() ? "niciun cod cu aceasta valoare" : String.join(", ", cand));
+            }
         } else {
             found = done ? stepChanges().replace("\n", "; ") : "sarit";
         }
@@ -696,7 +703,6 @@ public class MainActivity extends Activity {
             toast("Serviciul ruleaza");
             ui.postDelayed(this::refresh, 800);
         });
-        Ui.addButton(this, sys, "Diagnostic Teyes (trimite la server)", Ui.SECONDARY, v -> runDiagnostics());
     }
 
     /** Rand cu titlu, explicatie si comutator. */
@@ -719,28 +725,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = dp(this, 12);
         parent.addView(row, lp);
-    }
-
-    private void runDiagnostics() {
-        if (!Uploader.configured() || !Prefs.uploadEnabled(this)) {
-            toast("Trimiterea la server e oprita");
-            return;
-        }
-        toast("Diagnostic pornit, dureaza cateva secunde...");
-        new Thread(() -> {
-            String msg;
-            try {
-                msg = "Diagnostic trimis: " + Diagnostics.run(this) + " linii";
-            } catch (Exception e) {
-                msg = "Diagnostic: eroare " + e;
-            }
-            Prefs.log(this, msg);
-            String m = msg;
-            runOnUiThread(() -> {
-                toast(m);
-                refresh();
-            });
-        }).start();
     }
 
     // ---------------------------------------------------------------- Jurnal
@@ -799,10 +783,6 @@ public class MainActivity extends Activity {
 
     private static String fmtSec(long ms) {
         return fmtNum(ms) + " s";
-    }
-
-    private static String hhmm(long t) {
-        return new SimpleDateFormat("HH:mm", Locale.US).format(new Date(t));
     }
 
     private static double parse(EditText e) {
