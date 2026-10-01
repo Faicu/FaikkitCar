@@ -79,7 +79,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   crește lent (132→136), posibil temp. lichid de răcire. c21 (0–3), c27/c28 (5/7/9) încă
   nemapate; c1033 neidentificat (33–301); c1049 [?, ~viteză];
   c104 = litri în rezervor (22 pe 30.09; ultimul octet din 0x41/2: rpm 2 B, viteză 2 B, tensiune 2 B,
-  temp 2 B, km 3 B, litri 1 B; de confirmat la alimentarea din 01.10);
+  temp 2 B, km 3 B, litri 1 B; CONFIRMAT la alimentarea din 01.10: 21 → 38 L pentru 16,0 L pe
+  bon; cu motorul oprit decodorul trimite 0, deci se ignoră valorile ≤ 0);
   c1019 = cadre brute Raise (0x2E, cmd, len, date, checksum): 0x14, 0x21 clima, 0x22/0x23
   radar, 0x24 uși, 0x26 unghi volan, 0x41 date bord, 0x7D frecvent. Combustibil/consum: încă negăsite.
 - Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
@@ -202,12 +203,15 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   `ro_RO-mihai-medium` în `/opt/faikkitbox/data/piper`, nu în git; commit local `1e3faa4`),
   redat ca ghidare de navigație; fără internet sau la eroare rămâne TextToSpeech. Confirmat
   în mașină pe 01.10 (1.1.30): „se aude destul de bine”. Netestat încă: avertizarea de ușă.
-- În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
+- Consum (FaikkitBox, commit local `bc95ca6`): consumul real = nivelul de la început −
+  cel de la sfârșit + salturile ≥ 3 L (alimentări), pe ultimele 90 de zile; de la 8 L
+  consumați calibrează estimarea pe drum (altfel plinurile, altfel factor 1).
+- (Istoric) În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
   Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
   calibrată din turație × timp).
-- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`, `1e3faa4`) se
+- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`, `1e3faa4`, `bc95ca6`) se
   împing de utilizator din pagina Tehnic; nu face push acolo.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
   liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),
