@@ -125,7 +125,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   mentenanța scadentă), avertizare „ușă deschisă” la ≥ 5 km/h (uși c1–c5 din `CanLink`).
   Logica e în `TripRecorder.monitor` (deci merge doar cu călătoriile pornite); tot acolo
   GPS-ul se oprește după 1 min cu motorul oprit (rpm 0) și repornește la turație/mers.
-- Pe server (FaikkitBox): `/calatorii` are și „Unde e mașina” (ultimul punct GPS),
+- Pe server (FaikkitBox): `/calatorii` are buton „Ascunde pornirile pe loc” (< 0,3 km și
+  < 8 km/h; totalurile le includ), „Unde e mașina” (ultimul punct GPS),
   Mentenanța (tabela `vw_reminder`) și Alimentările (tabela `vw_refuel`, commit local
   `fc7d1d7`). Combustibilul pe călătorie e estimat în `src/lib/vw/vw-fuel-model.ts` (linia
   Willans: lucru la roți din viteză + rotații × L/rotație, Golf 6 1.2 TSI) și înmulțit cu
@@ -211,7 +212,7 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
   Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
   calibrată din turație × timp).
-- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`, `1e3faa4`, `bc95ca6`) se
+- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`, `1e3faa4`, `bc95ca6`, `388074c`) se
   împing de utilizator din pagina Tehnic; nu face push acolo.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
   liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),
