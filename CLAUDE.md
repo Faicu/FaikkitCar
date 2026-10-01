@@ -66,8 +66,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   m0 c179 f=[lon, lat, alt] GPS. Din calibrarea ghidată (30.09): c1 ușă șofer, c2 ușă
   pasager față, c3 ușă spate stânga, c4 ușă spate dreapta, c5 portbagaj (1 = deschis);
   Calibrarea „doar necunoscutele” (01.10, 1.1.27, motor oprit la început): c101 = centura
-  șoferului desfăcută (1) ✓; c103 = frâna de mână (1 la eliberare, 0 la tragere; a sărit
-  din nou la 1 la pornirea motorului, neclar), cu bitul 0x02 din cadrul brut 0x24; c107 0→1
+  șoferului desfăcută (1) ✓; c103 = frâna de mână, 1 = eliberată ✓ (confirmat: la
+  pornirea motorului utilizatorul a eliberat-o), cu bitul 0x02 din cadrul brut 0x24; c107 0→1
   la eliberarea frânei de mână și n-a mai revenit; pedala de frână, marșarierul (cu motorul
   oprit) și ștergătoarele NU apar ca cod; marșarierul se vede doar indirect (radarul 0x22 și
   m0 c12/c68/c70, camera). Clima: c10 și c11 0→1 (+ c13 1→0, c21 0→1) la pasul AC, dar utilizatorul a apăsat de
@@ -188,7 +188,7 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. Actualizarea din
   aplicație merge (1.1.24 → 1.1.27, 01.10 seara). Voci române: `ro-ro-x-vfv-local` și
   `ro-ro-x-vfv-network`, ambele q400; cea online întârzie ~3 s, deci de la 1.1.29
-  avertizările folosesc vocea locală. Netestat încă: avertizarea de ușă.
+  avertizările folosesc vocea locală. Ambele voci sună robotic (utilizatorul, 01.10). Netestat încă: avertizarea de ușă.
 - În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.

@@ -168,7 +168,7 @@ Găsite cu sonda CAN și cu calibrarea ghidată. Modul 7 = CANBUS, modul 0 = pri
 | m7 c139 | Temperatura exterioară (×10), probabil | 230 = 23,0 °C |
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
-| m7 c103 | Frâna de mână (probabil) | 1 = eliberată |
+| m7 c103 | Frâna de mână | 1 = eliberată |
 | m7 c21, c27/c28, c10/c11 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC | 3, 11, 1 |
 | — | Pedala de frână, marșarierul, ștergătoarele | nu sunt transmise ca cod (marșarierul se vede doar prin radar/cameră) |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
