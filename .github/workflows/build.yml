@@ -57,9 +57,6 @@ jobs:
               --data-binary @FaikkitCar.apk "$1"
           }
           publish https://car.faicu.ro/api/car/apk || echo "::warning::Publicarea pe car.faicu.ro a esuat"
-          # Tranzitie: aplicatiile pana la 1.1.31 cauta actualizari pe status.faicu.ro.
-          # Se scoate dupa ce masina ruleaza o versiune FaikkitCar.
-          publish https://status.faicu.ro/api/vw-apk || echo "::warning::Publicarea pe status.faicu.ro a esuat"
       - uses: actions/upload-artifact@v4
         with:
           name: faikkitcar-apk

@@ -26,8 +26,16 @@ mașină nu mai trebuie să rămână acolo.
   `GET /api/car/apk/download`. API utilizator (cookie `fc_session` sau Bearer din
   `POST /api/login`): `/api/trips`, `/api/trips/points`, `/api/car`, `/api/reminders…`,
   `/api/fuel`, `/api/refuels…`, `/api/log`. Fără ștergerea jurnalului (nu se pierde nimic).
-  Datele din FaikkitBox au fost copiate cu `web/scripts/import-faikkitbox.ts` (idempotent,
-  verifică rând cu rând); copie de siguranță în `/root/backups/faikkitcar-20261001-215730`.
+  Migrarea din FaikkitBox s-a încheiat pe 01.10.2026: datele copiate cu
+  `web/scripts/import-faikkitbox.ts` (idempotent, verificare rând cu rând: 10.171 linii,
+  321 de puncte, 1 alimentare), apoi în FaikkitBox s-au șters codul, tabelele `vw_*`,
+  `data/vw-apk`, `data/vw-tts`, `data/piper` și `VW_LOG_TOKEN` (commit local `2c986a0`,
+  publicat de utilizator din Tehnic). Copie de siguranță completă (baza FaikkitBox de
+  dinainte, fișierele, `.env`): `/root/backups/faikkitcar-20261001-215730`.
+  Mașina mai rula 1.1.31 (trimite la `status.faicu.ro/api/vw-*`, acum 404): aplicația
+  păstrează datele în coadă la orice răspuns ≠ 200 (40.000 de puncte, 2.000 de linii) și le
+  trimite la car.faicu.ro după instalarea manuală a FaikkitCar ≥ 1.1.32 (1.1.31 nu mai vede
+  actualizări, căutându-le pe vechiul server).
 - `panel/`: aplicația nativă **FaikkitCar Panel** pentru telefon (`ro.faicu.faikkitcar.panel`,
   Java fără AndroidX, minSdk 26 / target 34, UI din cod ca `app/`, aceeași cheie de semnare).
   Login → token Bearer în SharedPreferences (`Store`); `Api` = aceleași rute ca site-ul.
@@ -159,8 +167,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `Updater`: dacă `apk.versionCode` de pe server > `BuildConfig.VERSION_CODE`, butonul
   „Actualizează acum” descarcă `/api/car/apk/download` și instalează prin `PackageInstaller`
   (confirmare Android prin `Updater$Result`; prima dată cere „surse necunoscute”). CI
-  publică APK-ul la `POST /api/car/apk` după fiecare build pe main (și, temporar, la vechiul
-  `status.faicu.ro/api/vw-apk`, ca mașina cu 1.1.31 să se poată actualiza; se scoate după).
+  publică APK-ul la `POST /api/car/apk` după fiecare build pe main.
 - `Speaker` (TextToSpeech, ro-RO, ca ghidare de navigație; bip dacă nu există voce; la
   fiecare mesaj alege cea mai bună voce română: calitate, apoi online dacă rețeaua e validată;
   scrie lista vocilor în jurnal, „Voce: voci romane …”; vocea implicită suna robotic) +
