@@ -157,6 +157,9 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   ratează uneori (o dată din câteva), iar detecția prin pauză acoperă cazurile cu somn.
 - Confirmat de utilizator: sunetul se aude întreg cu 5 s pauză (+2 s după hibernare);
   iconița proprie apare corect.
+  Excepție (01.10): după 17,7 h de somn s-a pierdut ~0,5 s din început (redare corectă în
+  jurnal, deci ieșirea audio nu era gata); utilizatorul a pus în UI +3 s după hibernare.
+  Dacă se mai pierde, varianta în cod: pauza în plus crescută cu durata somnului.
 - Netestat încă în uz real: călătoriile în mers, vocea (nu știm dacă există TTS în
   română), avertizarea de ușă, GPS-ul oprit cu motorul oprit, actualizarea din aplicație.
 - În lucru: nivelul combustibilului. „Car Info” afișează litrii; 1.1.22 extinde sonda la
