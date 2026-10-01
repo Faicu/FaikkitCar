@@ -17,23 +17,27 @@ import java.util.Locale;
  * Mesaje vorbite (salutul de dupa 3 minute, avertizarea de usa deschisa) prin TextToSpeech,
  * ca ghidare de navigatie: muzica doar isi coboara volumul. Daca pe navigatie nu exista un
  * motor TTS (sau nu stie romana), avertizarile se reduc la un semnal sonor. Alegem cea mai
- * buna voce romana: cea online (mai naturala) cand avem internet, altfel cea locala.
+ * buna voce romana: cea online (mai naturala) cand avem internet, altfel cea locala. Vocea
+ * online porneste cu ~3 s intarziere, deci avertizarile (urgente) folosesc vocea locala.
  */
 final class Speaker {
     private static TextToSpeech tts;
     private static boolean ready;
     private static String pending;
+    private static boolean pendingUrgent;
     private static String currentVoice;
 
     private Speaker() {}
 
     static synchronized void say(Context ctx, String text, boolean beepIfNoVoice) {
         Context c = ctx.getApplicationContext();
+        // beepIfNoVoice = avertizare: trebuie sa se auda imediat.
         if (ready) {
-            speakNow(c, text);
+            speakNow(c, text, beepIfNoVoice);
             return;
         }
         pending = text;
+        pendingUrgent = beepIfNoVoice;
         if (tts != null) return; // initializarea e in curs
         tts = new TextToSpeech(c, status -> {
             synchronized (Speaker.class) {
@@ -52,14 +56,14 @@ final class Speaker {
                         .build());
                 logVoices(c);
                 ready = true;
-                if (pending != null) speakNow(c, pending);
+                if (pending != null) speakNow(c, pending, pendingUrgent);
                 pending = null;
             }
         });
     }
 
-    private static void speakNow(Context c, String text) {
-        chooseVoice(c);
+    private static void speakNow(Context c, String text, boolean urgent) {
+        chooseVoice(c, !urgent && online(c));
         int r = tts.speak(text, TextToSpeech.QUEUE_ADD, null, "vw" + System.nanoTime());
         Prefs.log(c, "Voce: \"" + text + "\"" + (r == TextToSpeech.SUCCESS ? "" : " (eroare " + r + ")"));
     }
@@ -74,9 +78,8 @@ final class Speaker {
         Prefs.log(c, "Voce: voci romane " + (names.isEmpty() ? "niciuna in lista" : String.join(", ", names)));
     }
 
-    /** Cea mai buna voce romana pentru conexiunea de acum; o schimbam doar daca difera. */
-    private static void chooseVoice(Context c) {
-        boolean online = online(c);
+    /** Cea mai buna voce romana (online doar daca e permis); o schimbam doar daca difera. */
+    private static void chooseVoice(Context c, boolean online) {
         Voice best = null;
         for (Voice v : romanianVoices()) {
             if (notInstalled(v) || (v.isNetworkConnectionRequired() && !online)) continue;
@@ -86,7 +89,7 @@ final class Speaker {
         try {
             if (tts.setVoice(best) == TextToSpeech.SUCCESS) {
                 currentVoice = best.getName();
-                Prefs.log(c, "Voce: folosesc " + best.getName() + (online ? " (online)" : " (fara internet)"));
+                Prefs.log(c, "Voce: folosesc " + best.getName());
             }
         } catch (Exception e) {
             Prefs.log(c, "Voce: nu am putut alege " + best.getName() + " (" + e + ")");
