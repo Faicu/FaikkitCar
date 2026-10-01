@@ -53,16 +53,9 @@ a crescut într-un proiect cu trei părți:
    și instalezi peste aplicația existentă; datele, setările și autostart-ul rămân.
    1.1.31 nu mai vede actualizările, pentru că le caută pe vechiul server. După
    instalare, coada se descarcă singură pe car.faicu.ro; de verificat în fila Jurnal.
-2. **Remote Control:** instalează unitatea cu două sesiuni (`faikkitbox` și `faikkitcar`):
-   ```
-   cp /opt/faikkitcar/deploy/claude.service /etc/systemd/system/claude.service
-   systemctl daemon-reload && systemctl restart claude
-   ```
-   Restart-ul închide toate sesiunile Claude de pe server. Apoi, din sesiunea
-   `faikkitcar`: se șterge folderul vechi `/opt/welcometovw`.
-3. **FaikkitBox:** publică din pagina Tehnic commit-ul local `2c986a0` (scoaterea
+2. **FaikkitBox:** publică din pagina Tehnic commit-ul local `2c986a0` (scoaterea
    aplicației mașinii).
-4. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
+3. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
    să iasă costul pe drum. Plinul nu mai e necesar.
 5. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
    primii ~8 L.

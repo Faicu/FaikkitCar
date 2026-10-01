@@ -50,7 +50,7 @@ mașină nu mai trebuie să rămână acolo.
   /root/android/gradle-8.7/bin/gradle :app:assembleDebug` / `:panel:assembleDebug`. Emulator:
   AVD `panel` (Android 14, KVM), `emulator -avd panel -no-window`; test prin `adb` +
   `uiautomator dump` (capturi cu `adb exec-out screencap -p`).
-- Remote Control: `claude.service` va porni două sesiuni tmux, `faikkitbox` și `faikkitcar`.
+- Remote Control: `claude.service` pornește două sesiuni tmux, `faikkitbox` și `faikkitcar`.
 
 ## Aplicația din mașină
 
@@ -234,10 +234,9 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   (linii cu `version` 1.1.31 și ore din trecut) și că punctele noi au `fuel`.
   Unitate: Android 10 (API 29), `sprd ums512_1h10_Natv`, fără selector de fișiere.
 - Pe telefon: FaikkitCar Panel 1.0.1 instalat, login și date ok (confirmat de utilizator).
-- Rămase de la utilizator: instalarea `deploy/claude.service` + `systemctl restart claude`
-  (eu nu am voie: e serviciul care rulează sesiunea Claude); după aceea, din sesiunea nouă
-  `faikkitcar`, se șterge `/opt/welcometovw` (clona veche, din care rula sesiunea de pe
-  01.10; tmux `welcometovw`). Publicarea commit-ului FaikkitBox `2c986a0` din Tehnic.
+- Rămas de la utilizator: publicarea commit-ului FaikkitBox `2c986a0` din Tehnic.
+  `deploy/claude.service` e instalat (sesiunile tmux `faikkitbox` și `faikkitcar`), iar
+  clona veche `/opt/welcometovw` a fost ștearsă (01.10).
 - Login site/Panel: utilizatorul `faicu`, parola în `/opt/faikkitcar/.env` (`ADMIN_PASS`).
 - Pe mașină, Setări: pauza după hibernare 3 s (pusă de utilizator pe 01.10).
 - Comportament Teyes confirmat din jurnal: ACC OFF scurt (sub ~10 min) → procesorul NU
