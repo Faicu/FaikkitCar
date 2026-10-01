@@ -7,7 +7,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 
 | | |
 |---|---|
-| **Versiune curentă** | 1.1.29 (`build-29`), pachet `com.mapgoo.diruite` |
+| **Versiune curentă** | 1.1.31 (`build-31`), pachet `com.mapgoo.diruite` |
 | **Descărcare** | [VWWelcome.apk (ultimul build)](https://github.com/Faicu/welcometovw/releases/latest/download/VWWelcome.apk) sau din aplicație, „Actualizează acum” |
 | **De la distanță** | `status.faicu.ro/vw` (jurnal) · `status.faicu.ro/calatorii` (călătorii, poziție, mentenanță) |
 | **Actualizat** | 30.09.2026 |
@@ -260,6 +260,8 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 27 | 01.10 | Litrii din rezervor (CAN c104) la fiecare punct de drum; alimentările se văd în jurnal |
 | 28 | 01.10 | 1,2 s de liniște înaintea sunetului: începutul nu se mai taie după somn lung |
 | 29 | 01.10 | Avertizările vorbesc cu vocea locală (fără întârzierea vocii online) |
+| 30 | 01.10 | Salutul cu vocea Piper de pe server (mult mai naturală) |
+| 31 | 01.10 | Calibrare doar pentru ce e nesigur, cu motorul pornit (AC/AUTO, frână, marșarier, lumini, temperatură, rezervor) |
 
 ---
 
