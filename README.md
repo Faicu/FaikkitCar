@@ -68,7 +68,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | Mentenanță după km/dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe `/calatorii`; cele scadente apar și pe navigație și în salut |
 | Salut vorbit după 3 min de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Google TTS are română (rostit pe 01.10). Vocea implicită sună robotic; de la 1.1.26 se alege cea mai bună voce (online când e internet) |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Voce sau bip |
-| Nivelul combustibilului / consum pe călătorie | 🔍 | „Car Info” afișa litrii, dar acum nu mai arată nimic. Calibrare → „Doar rezervorul”: o captură înainte și una după alimentare, comparate pe server |
+| Nivelul combustibilului | 🧪 | Cod găsit în cadrul brut al decodorului (c104, litri); se înregistrează la fiecare punct de drum de la 1.1.27. De confirmat la o alimentare |
 | Jurnal de alimentări și cost pe călătorie | 🧪 | Pe `/calatorii`: plinurile dau consumul real și calibrează estimarea pe drum (din viteză și turație); costul cu prețul ultimei alimentări |
 
 ---
@@ -171,7 +171,7 @@ Găsite cu sonda CAN și cu calibrarea ghidată. Modul 7 = CANBUS, modul 0 = pri
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | — | Luminile, semnalizarea, avariile | nu sunt transmise de decodor |
-| ? | Litrii din rezervor | în căutare, prin capturi înainte/după alimentare |
+| m7 c104 | Litrii din rezervor (din cadrul Raise 0x41/2), de confirmat la o alimentare | 22 |
 
 ---
 

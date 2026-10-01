@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
     // Coduri deja stabilite sau care se schimba singure; nu le aratam in timpul calibrarii.
     private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
             "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
-            "m7 c139", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
+            "m7 c139", "m7 c104", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
             "m0 c41", "m0 c114", "m0 c115", "m0 c146", "m0 c179", "m0 c101", "m0 c40", "m0 c77"));
     private int calibStep = -1;
     private long stepStart;

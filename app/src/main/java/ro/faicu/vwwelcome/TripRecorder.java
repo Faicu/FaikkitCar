@@ -169,6 +169,7 @@ final class TripRecorder implements LocationListener {
             if (!Double.isNaN(can.volt())) p.put("v", can.volt());
             if (!Double.isNaN(can.temp())) p.put("temp", can.temp());
             if (can.odo() > 0) p.put("odo", can.odo());
+            if (can.fuel() > 0) p.put("fuel", can.fuel());
             PointQueue.add(c, p);
         } catch (JSONException ignored) {
         }

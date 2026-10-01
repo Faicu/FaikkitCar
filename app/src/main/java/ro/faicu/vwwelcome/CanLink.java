@@ -11,10 +11,14 @@ import android.os.SystemClock;
 /**
  * Legatura permanenta la datele masinii din MainServer (modulul CANBUS), pentru calatorii.
  * Codurile au fost gasite cu CanProbe pe Golf 6 (vezi CLAUDE.md): c110 turatie, c1031 viteza
- * km/h, c109 viteza x100, c105 tensiune x100, c106 kilometraj, c139 temperatura exterioara x10.
+ * km/h, c109 viteza x100, c105 tensiune x100, c106 kilometraj, c139 temperatura exterioara x10,
+ * c104 litrii din rezervor (ultimul camp din cadrul Raise 0x41/2, dupa kilometraj).
  */
 final class CanLink {
-    private static final int RPM = 110, SPEED = 1031, SPEED100 = 109, VOLT = 105, ODO = 106, TEMP = 139;
+    private static final int RPM = 110, SPEED = 1031, SPEED100 = 109, VOLT = 105, ODO = 106, TEMP = 139,
+            FUEL = 104;
+    // Un salt de atatia litri in rezervor (alimentare) se noteaza in jurnal.
+    private static final int FUEL_JUMP = 3;
     // Usile, din calibrarea ghidata: c1 sofer, c2 pasager fata, c3 spate stanga, c4 spate
     // dreapta, c5 portbagaj (1 = deschis).
     // Cu diacritice: textele sunt rostite de TextToSpeech.
@@ -31,7 +35,8 @@ final class CanLink {
     // schimbarile, asa ca o valoare "veche" e tot cea curenta (ex. viteza 0 cat stai pe loc,
     // turatia 0 cu motorul oprit). NaN / -1 = nu am primit inca nimic.
     private volatile double speed = Double.NaN, volt = Double.NaN, temp = Double.NaN;
-    private volatile int rpm = -1, odo = -1;
+    private volatile int rpm = -1, odo = -1, fuel = -1;
+    private int fuelLogged = -1;
     // Momentul ultimei viteze din c109 (x100); c1031 (km/h intregi) o inlocuieste doar daca
     // c109 tace de 2 s, altfel viteza ar sari intre valoarea exacta si cea rotunjita.
     private volatile long speed100At;
@@ -94,18 +99,34 @@ final class CanLink {
                         case VOLT: volt = v / 100.0; break;
                         case ODO: odo = v; break;
                         case TEMP: temp = v / 10.0; break;
+                        case FUEL: onFuel(v); break;
                         default:
                             if (code >= 1 && code <= DOORS.length) doors[code - 1] = v;
                             break;
                     }
                 }
             };
-            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, 1, 2, 3, 4, 5}) {
+            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, FUEL, 1, 2, 3, 4, 5}) {
                 Syu.register(mod, cb, code);
             }
         } catch (Exception e) {
             Prefs.log(c, "Date masina: eroare " + e);
         }
+    }
+
+    /** Prima valoare si salturile mari (alimentare) ajung in jurnal; restul doar in puncte. */
+    private void onFuel(int v) {
+        fuel = v;
+        if (v <= 0) return;
+        if (fuelLogged < 0 || Math.abs(v - fuelLogged) >= FUEL_JUMP) {
+            Prefs.log(c, "Rezervor: " + v + " L" + (fuelLogged < 0 ? "" : " (inainte " + fuelLogged + " L)"));
+            fuelLogged = v;
+        }
+    }
+
+    /** Litrii din rezervor; -1 daca nu stim. */
+    int fuel() {
+        return fuel;
     }
 
     /** Viteza de la masina, km/h; NaN daca nu stim. */

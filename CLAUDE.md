@@ -70,12 +70,15 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   turație, viteză, tensiune, temp. ext. și kilometraj (3 octeți); sub 1 = o valoare care
   crește lent (132→136), posibil temp. lichid de răcire. c21 (0–3), c27/c28 (5/7/9) încă
   nemapate; c1033 neidentificat (33–301); c1049 [?, ~viteză];
+  c104 = litri în rezervor (22 pe 30.09; ultimul octet din 0x41/2: rpm 2 B, viteză 2 B, tensiune 2 B,
+  temp 2 B, km 3 B, litri 1 B; de confirmat la alimentarea din 01.10);
   c1019 = cadre brute Raise (0x2E, cmd, len, date, checksum): 0x14, 0x21 clima, 0x22/0x23
   radar, 0x24 uși, 0x26 unghi volan, 0x41 date bord, 0x7D frecvent. Combustibil/consum: încă negăsite.
 - Platforma e FYT/SYU: `com.syu.ms` (MainServer) gestionează ACC (`U_ACC_ON`) și, conform
   XDA, la somnul adânc închide tot ce nu e în `skipkillapp.prop` (valori negative = nu se
   închide) / `unkillapp.txt` (în APK-ul com.syu.ms) / `protected_app.txt`.
-- Călătorii: `CanLink` (legătură permanentă la modulul CANBUS: c110/c1031/c109/c105/c106/c139),
+- Călătorii: `CanLink` (legătură permanentă la modulul CANBUS: c110/c1031/c109/c105/c106/c139/c104;
+  c104 = litrii din rezervor, jurnal „Rezervor: N L” la prima valoare și la salturi ≥ 3 L),
   `TripRecorder` (GPS `LocationManager` + CanLink; punct la 5 s în mers, 30 s cu motorul pe loc,
   nimic cu motorul oprit, plus unul la oprire), `PointQueue` (fișier JSONL în filesDir, max
   40.000), trimise de `Uploader` la `/api/vw-trip` în loturi de 300. Serverul (FaikkitBox,
@@ -175,7 +178,7 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
   Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
   calibrată din turație × timp).
-- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`) se
+- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`) se
   împing de utilizator din pagina Tehnic; nu face push acolo.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
   liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),
