@@ -66,7 +66,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | „Unde e mașina” (ultima poziție, Google Maps) | 🧪 | |
 | GPS oprit cu motorul oprit | ✅ | Văzut în jurnal pe 01.10. După 1 min cu turația 0, pornit din nou la turație sau mers |
 | Mentenanță după km/dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe `/calatorii`; cele scadente apar și pe navigație și în salut |
-| Salut vorbit după 3 min de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Google TTS are română (rostit pe 01.10) |
+| Salut vorbit după 3 min de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Google TTS are română (rostit pe 01.10). Vocea implicită sună robotic; de la 1.1.26 se alege cea mai bună voce (online când e internet) |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Voce sau bip |
 | Nivelul combustibilului / consum pe călătorie | 🔍 | „Car Info” afișa litrii, dar acum nu mai arată nimic. Calibrare → „Doar rezervorul”: o captură înainte și una după alimentare, comparate pe server |
 | Jurnal de alimentări și cost pe călătorie | 💡 | Depinde de rezultatul de mai sus |

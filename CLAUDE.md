@@ -97,7 +97,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   „Actualizează acum” descarcă `/api/vw-apk/download` și instalează prin `PackageInstaller`
   (confirmare Android prin `Updater$Result`; prima dată cere „surse necunoscute”). CI
   publică APK-ul la `POST /api/vw-apk` după fiecare build pe main.
-- `Speaker` (TextToSpeech, ro-RO, ca ghidare de navigație; bip dacă nu există voce) +
+- `Speaker` (TextToSpeech, ro-RO, ca ghidare de navigație; bip dacă nu există voce; la
+  fiecare mesaj alege cea mai bună voce română: calitate, apoi online dacă rețeaua e validată;
+  scrie lista vocilor în jurnal, „Voce: voci romane …”; vocea implicită suna robotic) +
   `Greeting`: salut vorbit după 3 min de mers efectiv (ora zilei, temperatura CAN,
   mentenanța scadentă), avertizare „ușă deschisă” la ≥ 5 km/h (uși c1–c5 din `CanLink`).
   Logica e în `TripRecorder.monitor` (deci merge doar cu călătoriile pornite); tot acolo
