@@ -184,8 +184,10 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   12,5–14 °C dimineața, kilometraj 245067→245070 pe ~3 km. Kilometrajul și temperatura
   nu sunt încă comparate de utilizator cu bordul.
 - Confirmat din jurnal (01.10, 1.1.24): primul drum înregistrat (`vw_trip_point`), salutul
-  rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. 1.1.20 → 1.1.24
-  instalat (probabil din aplicație, neconfirmat). Netestat încă: avertizarea de ușă.
+  rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. Actualizarea din
+  aplicație merge (1.1.24 → 1.1.27, 01.10 seara). Voci române: `ro-ro-x-vfv-local` și
+  `ro-ro-x-vfv-network`, ambele q400; cea online întârzie ~3 s, deci de la 1.1.29
+  avertizările folosesc vocea locală. Netestat încă: avertizarea de ușă.
 - În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.

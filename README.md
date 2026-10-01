@@ -53,7 +53,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | Iconița proprie („FAIKKITVW”) | ✅ | |
 | Jurnal trimis live la server | ✅ | Coadă locală, nu se pierde nimic fără semnal |
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
-| Actualizare din aplicație | 🧪 | CI-ul publică APK-ul pe server, iar aplicația îl descarcă și îl instalează. De testat la 1.1.22 |
+| Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe server, iar aplicația îl descarcă și îl instalează. Confirmată pe 01.10 (1.1.24 → 1.1.27) |
 
 ### Datele mașinii și călătoriile
 
@@ -167,7 +167,10 @@ Găsite cu sonda CAN și cu calibrarea ghidată. Modul 7 = CANBUS, modul 0 = pri
 | m7 c106 | Kilometrajul | 245.067 km |
 | m7 c139 | Temperatura exterioară (×10), probabil | 230 = 23,0 °C |
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
-| m7 c103, c107, c101 | Frână, marșarier, centură (ambigue) | 0/1 |
+| m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
+| m7 c103 | Frâna de mână (probabil) | 1 = eliberată |
+| m7 c21, c27/c28, c10/c11 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC | 3, 11, 1 |
+| — | Pedala de frână, marșarierul, ștergătoarele | nu sunt transmise ca cod (marșarierul se vede doar prin radar/cameră) |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | — | Luminile, semnalizarea, avariile | nu sunt transmise de decodor |
