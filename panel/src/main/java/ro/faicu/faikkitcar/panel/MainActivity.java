@@ -33,14 +33,17 @@ import java.util.concurrent.Executors;
 import static ro.faicu.faikkitcar.panel.Ui.dp;
 
 /**
- * FaikkitCar Panel: datele de pe car.faicu.ro pe telefon. Doua file, ca site-ul: Masina
- * (pozitie, totaluri, calatorii cu harta si grafic, alimentari, mentenanta) si Jurnal.
+ * FaikkitCar Panel: datele de pe car.faicu.ro pe telefon. Patru file jos, ca site-ul: Acum
+ * (starea masinii, calatoria in curs, rezervorul si autonomia, pozitia), Calatorii (lista; una
+ * aleasa se deschide pe ecranul ei, cu harta si grafic), Costuri (30 de zile, pe luni,
+ * alimentari) si Mai mult (mentenanta, jurnalul, actualizarea, iesirea din cont).
  * UI-ul e construit din cod; datele se citesc pe un fir de fundal si se redesenează doar
  * cand s-au schimbat (harta nu se reseteaza la fiecare reimprospatare).
  */
 public class MainActivity extends Activity {
     private static final long REFRESH_MS = 30_000;
-    private static final String[] TABS = {"Mașina", "Jurnal"};
+    private static final String[] TABS = {"Acum", "Călătorii", "Costuri", "Mai mult"};
+    private static final int NOW = 0, TRIPS = 1, COSTS = 2, MORE = 3;
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -53,12 +56,11 @@ public class MainActivity extends Activity {
     private final List<MapView> maps = new ArrayList<>();
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
-    private JSONArray trips, log;
-    private JSONObject car, fuel, newerApk;
+    private JSONArray trips, log, stats;
+    private JSONObject live, car, fuel, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
     private boolean eventsOnly = true;
-    private View tripCard;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -134,8 +136,9 @@ public class MainActivity extends Activity {
 
     private void logout() {
         Store.setToken(this, "");
-        trips = log = points = null;
-        car = fuel = newerApk = null;
+        trips = log = points = stats = null;
+        live = car = fuel = newerApk = null;
+        selected = null;
         shown = "";
         detachMaps();
         showLogin();
@@ -152,6 +155,11 @@ public class MainActivity extends Activity {
 
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
+        android.widget.ImageView logo = new android.widget.ImageView(this);
+        logo.setImageResource(R.drawable.logo);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(dp(this, 40), dp(this, 40));
+        llp.rightMargin = dp(this, 10);
+        head.addView(logo, llp);
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.addView(Ui.text(this, "FaikkitCar", 22, Ui.TEXT, true));
@@ -161,14 +169,6 @@ public class MainActivity extends Activity {
         refresh.setPadding(p, p / 2, p, p / 2);
         refresh.setOnClickListener(v -> load(true));
         head.addView(refresh);
-        TextView out = Ui.text(this, "Ieși", 15, Ui.MUTED, false);
-        out.setPadding(p, p / 2, 0, p / 2);
-        out.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setMessage("Ieși din cont?")
-                .setPositiveButton("Ieși", (d, w) -> logout())
-                .setNegativeButton("Nu", null)
-                .show());
-        head.addView(out);
         root.addView(head);
 
         LinearLayout bar = new LinearLayout(this);
@@ -177,10 +177,11 @@ public class MainActivity extends Activity {
         bar.setPadding(bp, bp, bp, bp);
         for (int i = 0; i < TABS.length; i++) {
             int index = i;
-            TextView t = Ui.text(this, TABS[i], 16, Ui.MUTED, true);
+            TextView t = Ui.text(this, TABS[i], 15, Ui.MUTED, true);
             t.setGravity(Gravity.CENTER);
             t.setPadding(0, dp(this, 10), 0, dp(this, 10));
             t.setOnClickListener(v -> {
+                if (tab == index && index == TRIPS) selected = null; // a doua atingere: inapoi la lista
                 tab = index;
                 shown = "";
                 styleTabs();
@@ -190,17 +191,20 @@ public class MainActivity extends Activity {
             tabViews[i] = t;
             bar.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
         }
-        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
-        blp.topMargin = dp(this, 10);
-        blp.bottomMargin = dp(this, 10);
-        root.addView(bar, blp);
 
         scroll = new ScrollView(this);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(0, 0, 0, dp(this, 24));
+        content.setPadding(0, 0, 0, dp(this, 12));
         scroll.addView(content);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 0, 1);
+        slp.topMargin = dp(this, 10);
+        root.addView(scroll, slp);
+        // Filele jos, la indemana degetului.
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+        blp.topMargin = dp(this, 6);
+        blp.bottomMargin = dp(this, 10);
+        root.addView(bar, blp);
         setContentView(root);
         styleTabs();
         render();
@@ -223,22 +227,38 @@ public class MainActivity extends Activity {
         boolean events = eventsOnly;
         io.execute(() -> {
             try {
-                if (forTab == 0) {
-                    JSONArray t = api.trips();
-                    JSONObject c = api.car();
-                    JSONObject f = api.fuel();
+                if (forTab == NOW) {
+                    JSONObject l = api.live();
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     ui.post(() -> {
-                        trips = t;
-                        car = c;
-                        fuel = f;
+                        live = l;
                         newerApk = apk;
                         render();
                     });
-                } else {
-                    JSONArray l = api.log(events);
+                } else if (forTab == TRIPS) {
+                    JSONArray t = api.trips();
                     ui.post(() -> {
+                        trips = t;
+                        render();
+                    });
+                } else if (forTab == COSTS) {
+                    JSONArray t = api.trips();
+                    JSONArray st = api.stats();
+                    JSONObject f = api.fuel();
+                    ui.post(() -> {
+                        trips = t;
+                        stats = st;
+                        fuel = f;
+                        render();
+                    });
+                } else {
+                    JSONObject c = api.car();
+                    JSONArray l = api.log(events);
+                    JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
+                    ui.post(() -> {
+                        car = c;
                         log = l;
+                        newerApk = apk;
                         render();
                     });
                 }
@@ -248,7 +268,8 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 ui.post(() -> toast("Nu pot citi datele: " + e.getMessage()));
             }
-            ui.postDelayed(tick, REFRESH_MS);
+            // Fila Acum se reimprospateaza mai des: starea vine de la masina la 15 s.
+            ui.postDelayed(tick, forTab == NOW ? 10_000 : REFRESH_MS);
         });
     }
 
@@ -267,24 +288,148 @@ public class MainActivity extends Activity {
     private void render() {
         if (content == null) return;
         String state = tab + "|" + selected + "|" + eventsOnly + "|" + Store.hideIdle(this) + "|"
-                + (tab == 0 ? trips + "|" + car + "|" + fuel + "|" + (newerApk != null) + "|" + pointsFor
-                        : String.valueOf(log));
+                + (newerApk != null) + "|"
+                + (tab == NOW ? String.valueOf(live)
+                        : tab == TRIPS ? trips + "|" + pointsFor
+                        : tab == COSTS ? trips + "|" + stats + "|" + fuel
+                        : car + "|" + log);
         if (state.equals(shown)) return;
         shown = state;
         int y = scroll.getScrollY();
         detachMaps();
-        tripCard = null;
         content.removeAllViews();
-        if (tab == 0) renderCar();
-        else renderLog();
+        if (tab == NOW) renderNow();
+        else if (tab == TRIPS) renderTrips();
+        else if (tab == COSTS) renderCosts();
+        else renderMore();
         scroll.post(() -> scroll.scrollTo(0, y));
     }
 
-    // ---------------------------------------------------------------- fila Masina
+    // ---------------------------------------------------------------- fila Acum
 
-    private static boolean isIdle(JSONObject t) {
-        return t.optDouble("distanceKm") < 0.3 && t.optDouble("maxSpeed", 0) < 8;
+    @Override
+    public void onBackPressed() {
+        // Din detaliile unei calatorii, „inapoi” duce la lista, nu iese din aplicatie.
+        if (content != null && tab == TRIPS && selected != null) {
+            selected = null;
+            render();
+            return;
+        }
+        super.onBackPressed();
     }
+
+    private void renderUpdate() {
+        if (newerApk == null) return;
+        LinearLayout up = Ui.card(this, content);
+        up.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 18, Ui.ACCENT, true));
+        Ui.hint(this, up, "Se descarcă de pe car.faicu.ro; Android îți cere o confirmare.");
+        Ui.addButton(this, up, "Actualizează acum", Ui.PRIMARY, v -> {
+            toast("Descarc actualizarea...");
+            Updater.start(this, error -> {
+                if (error != null) toast("Actualizare eșuată: " + error);
+            });
+        });
+    }
+
+    private static String stateLabel(String state) {
+        switch (state) {
+            case "driving": return "În mers";
+            case "engine": return "Motor pornit, pe loc";
+            case "contact": return "Doar contact";
+            default: return "Oprită";
+        }
+    }
+
+    private static int stateColor(String state) {
+        switch (state) {
+            case "driving": return Ui.ACCENT;
+            case "engine": return Ui.OK;
+            case "contact": return Ui.WARN;
+            default: return Ui.MUTED;
+        }
+    }
+
+    private void renderNow() {
+        renderUpdate();
+        if (live == null) {
+            Ui.hint(this, content, "Se încarcă...");
+            return;
+        }
+        String state = live.optString("state", "off");
+        LinearLayout card = Ui.card(this, content);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        View dot = new View(this);
+        dot.setBackground(Ui.round(this, stateColor(state), 8));
+        LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(dp(this, 16), dp(this, 16));
+        dlp.rightMargin = dp(this, 12);
+        row.addView(dot, dlp);
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.addView(Ui.text(this, stateLabel(state), 22, Ui.TEXT, true));
+        String since = live.isNull("since") ? "nicio stare primită încă"
+                : "de " + Fmt.ago(live.optString("since")).replaceFirst("^acum ", "")
+                        + " (din " + Fmt.hm(live.optString("since")) + ")";
+        texts.addView(Ui.text(this, since, 13, Ui.MUTED, false));
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+        card.addView(row);
+        JSONObject d = live.optJSONObject("data");
+        if (d != null) {
+            List<View> cells = new ArrayList<>();
+            cells.add(Ui.info(this, "Viteză", d.isNull("speed") ? "—" : Math.round(d.optDouble("speed")) + " km/h"));
+            cells.add(Ui.info(this, "Turație", d.isNull("rpm") ? "—" : d.optInt("rpm") + " rpm"));
+            cells.add(Ui.info(this, "Baterie", d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 2) + " V"));
+            cells.add(Ui.info(this, "Temp. afară", d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1) + " °C"));
+            cells.add(Ui.info(this, "Kilometraj", d.isNull("odo") ? "—" : Fmt.km(d.optLong("odo"))));
+            card.addView(Ui.grid(this, cells, 3));
+        }
+
+        JSONObject trip = live.optJSONObject("trip");
+        if (trip != null) {
+            LinearLayout tc = Ui.card(this, content);
+            Ui.title(this, tc, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
+            tc.addView(Ui.grid(this, tripCells(trip), 3));
+        }
+
+        JSONObject tank = live.optJSONObject("tank");
+        if (tank != null) {
+            JSONObject range = live.optJSONObject("range");
+            boolean real = range != null && range.optBoolean("real");
+            LinearLayout fc = Ui.card(this, content);
+            Ui.title(this, fc, "Rezervor");
+            List<View> cells = new ArrayList<>();
+            cells.add(Ui.info(this, "În rezervor", Fmt.num(tank.optDouble("liters"), 0) + " L"));
+            cells.add(Ui.info(this, "Autonomie", range == null ? "—" : "≈ " + range.optInt("km") + " km"));
+            cells.add(Ui.info(this, real ? "Consum real" : "Consum (est.)",
+                    range == null ? "—" : Fmt.num(range.optDouble("lPer100"), 1) + " L/100"));
+            fc.addView(Ui.grid(this, cells, 3));
+            Ui.hint(this, fc, "Până la gol, la consumul mediu" + (real ? " din nivelul rezervorului"
+                    : " estimat din drumuri") + "; citit " + Fmt.ago(tank.optString("at")) + ".");
+        }
+
+        JSONObject pos = live.optJSONObject("position");
+        if (pos != null) {
+            LinearLayout pc = Ui.card(this, content);
+            LinearLayout prow = new LinearLayout(this);
+            prow.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout pt = new LinearLayout(this);
+            pt.setOrientation(LinearLayout.VERTICAL);
+            pt.addView(Ui.text(this, "driving".equals(state) ? "Mașina e aici" : "Mașina e parcată aici", 18, Ui.TEXT, true));
+            pt.addView(Ui.text(this, "ultima poziție: " + Fmt.day(pos.optString("t")) + ", "
+                    + Fmt.hm(pos.optString("t")) + " (" + Fmt.ago(pos.optString("t")) + ")", 13, Ui.MUTED, false));
+            prow.addView(pt, new LinearLayout.LayoutParams(0, -2, 1));
+            double lat = pos.optDouble("lat"), lon = pos.optDouble("lon");
+            TextView gm = Ui.text(this, "Google Maps", 15, Ui.ACCENT, true);
+            gm.setPadding(dp(this, 10), dp(this, 8), 0, dp(this, 8));
+            gm.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon))));
+            prow.addView(gm);
+            pc.addView(prow);
+            addMap(content, MapBox.position(this, lat, lon), 220);
+        }
+    }
+
+    // ---------------------------------------------------------------- fila Calatorii
 
     private List<JSONObject> visibleTrips() {
         List<JSONObject> out = new ArrayList<>();
@@ -292,112 +437,55 @@ public class MainActivity extends Activity {
         boolean hide = Store.hideIdle(this);
         for (int i = 0; i < trips.length(); i++) {
             JSONObject t = trips.optJSONObject(i);
-            if (!hide || !isIdle(t)) out.add(t);
+            if (!hide || !t.optBoolean("idle")) out.add(t);
         }
         return out;
     }
 
-    private void renderCar() {
-        if (trips == null || car == null || fuel == null) {
+    private void renderTrips() {
+        if (trips == null) {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
-        if (newerApk != null) {
-            LinearLayout up = Ui.card(this, content);
-            up.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 18, Ui.ACCENT, true));
-            Ui.hint(this, up, "Se descarcă de pe car.faicu.ro; Android îți cere o confirmare.");
-            Ui.addButton(this, up, "Actualizează acum", Ui.PRIMARY, v -> {
-                toast("Descarc actualizarea...");
-                Updater.start(this, error -> {
-                    if (error != null) toast("Actualizare eșuată: " + error);
-                });
-            });
-        }
-        renderPosition();
-        renderStats();
-        List<JSONObject> list = visibleTrips();
-        JSONObject current = null;
-        for (JSONObject t : list) if (t.optString("start").equals(selected)) current = t;
-        if (current == null && !list.isEmpty()) current = list.get(0);
-        if (current != null) renderTrip(current);
-        renderFuel();
-        renderMaintenance();
-        renderTripList(list, current);
-    }
-
-    private void renderPosition() {
-        JSONObject pos = car.optJSONObject("position");
-        if (pos == null) return;
-        LinearLayout card = Ui.card(this, content);
-        boolean moving = pos.optDouble("speed", 0) >= 3
-                && System.currentTimeMillis() - Fmt.millis(pos.optString("t")) < 120_000;
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout texts = new LinearLayout(this);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        texts.addView(Ui.text(this, moving ? "Mașina e în mers" : "Mașina e parcată aici", 18, Ui.TEXT, true));
-        texts.addView(Ui.text(this, "ultima poziție: " + Fmt.day(pos.optString("t")) + ", "
-                + Fmt.hm(pos.optString("t")) + " (" + Fmt.ago(pos.optString("t")) + ")", 13, Ui.MUTED, false));
-        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
-        double lat = pos.optDouble("lat"), lon = pos.optDouble("lon");
-        TextView gm = Ui.text(this, "Google Maps", 15, Ui.ACCENT, true);
-        gm.setPadding(dp(this, 10), dp(this, 8), 0, dp(this, 8));
-        gm.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon))));
-        row.addView(gm);
-        card.addView(row);
-        addMap(content, MapBox.position(this, lat, lon), 220);
-    }
-
-    private void renderStats() {
-        long now = System.currentTimeMillis();
-        double km = 0, min = 0, liters = 0, cost = 0;
-        boolean hasCost = false;
-        int count = 0;
-        boolean hide = Store.hideIdle(this);
+        JSONObject open = null;
         for (int i = 0; i < trips.length(); i++) {
             JSONObject t = trips.optJSONObject(i);
-            if (now - Fmt.millis(t.optString("start")) >= 30L * 86_400_000) continue;
-            // Totalurile includ si pornirile pe loc (consuma combustibil); numarul se filtreaza.
-            km += t.optDouble("distanceKm");
-            min += t.optDouble("durationMin");
-            liters += t.optDouble("fuelL", 0);
-            if (!t.isNull("cost")) {
-                cost += t.optDouble("cost");
-                hasCost = true;
-            }
-            if (!hide || !isIdle(t)) count++;
+            if (t.optString("start").equals(selected)) open = t;
         }
-        LinearLayout card = Ui.card(this, content);
-        Ui.title(this, card, "Ultimele 30 de zile");
-        List<View> cells = new ArrayList<>();
-        cells.add(Ui.info(this, "Călătorii", String.valueOf(count)));
-        cells.add(Ui.info(this, "Distanță", Math.round(km) + " km"));
-        cells.add(Ui.info(this, "Timp la volan", Fmt.duration(min)));
-        cells.add(Ui.info(this, "Combustibil (est.)", "≈ " + Fmt.liters(liters)));
-        cells.add(Ui.info(this, "Consum (est.)", km >= 1 ? Fmt.num(liters / km * 100, 1) + " L/100" : "—"));
-        cells.add(Ui.info(this, "Cost (est.)", hasCost ? Fmt.lei(cost) : "—"));
-        card.addView(Ui.grid(this, cells, 3));
+        if (open != null) renderTrip(open);
+        else renderTripList(visibleTrips());
     }
 
-    private void renderTrip(JSONObject t) {
-        String start = t.optString("start"), end = t.optString("end");
-        LinearLayout card = Ui.card(this, content);
-        tripCard = card;
-        Ui.title(this, card, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end));
+    /** Valorile principale ale unei calatorii (si ale celei in curs, pe fila Acum). */
+    private List<View> tripCells(JSONObject t) {
         List<View> cells = new ArrayList<>();
         cells.add(Ui.info(this, "Distanță", Fmt.num(t.optDouble("distanceKm"), 1) + " km"));
         cells.add(Ui.info(this, "Durată", Fmt.duration(t.optDouble("durationMin"))));
         cells.add(Ui.info(this, "Viteză medie", t.isNull("avgSpeed") ? "—" : t.optInt("avgSpeed") + " km/h"));
-        cells.add(Ui.info(this, "Viteză max", t.isNull("maxSpeed") ? "—" : t.optInt("maxSpeed") + " km/h"));
-        cells.add(Ui.info(this, "Turație max", t.isNull("maxRpm") ? "—" : t.optInt("maxRpm") + " rpm"));
-        cells.add(Ui.info(this, "Baterie min", t.isNull("minVolt") ? "—" : Fmt.num(t.optDouble("minVolt"), 2) + " V"));
-        cells.add(Ui.info(this, "Temp. afară", t.isNull("tempC") ? "—" : Fmt.num(t.optDouble("tempC"), 1) + " °C"));
-        cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
         cells.add(Ui.info(this, "Combustibil (est.)", t.isNull("fuelL") ? "—" : "≈ " + Fmt.liters(t.optDouble("fuelL"))));
         cells.add(Ui.info(this, "Consum (est.)", t.isNull("lPer100") ? "—" : Fmt.num(t.optDouble("lPer100"), 1) + " L/100"));
         cells.add(Ui.info(this, "Cost (est.)", t.isNull("cost") ? "—" : Fmt.lei(t.optDouble("cost"))));
+        cells.add(Ui.info(this, "Viteză max", t.isNull("maxSpeed") ? "—" : t.optInt("maxSpeed") + " km/h"));
+        cells.add(Ui.info(this, "Turație max", t.isNull("maxRpm") ? "—" : t.optInt("maxRpm") + " rpm"));
         cells.add(Ui.info(this, "Pe loc, motor pornit", Fmt.duration(t.optDouble("idleMin"))));
+        return cells;
+    }
+
+    private void renderTrip(JSONObject t) {
+        String start = t.optString("start"), end = t.optString("end");
+        TextView back = Ui.text(this, "‹ Toate călătoriile", 16, Ui.ACCENT, true);
+        back.setPadding(0, dp(this, 4), 0, dp(this, 12));
+        back.setOnClickListener(v -> {
+            selected = null;
+            render();
+        });
+        content.addView(back);
+        LinearLayout card = Ui.card(this, content);
+        Ui.title(this, card, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end));
+        List<View> cells = tripCells(t);
+        cells.add(Ui.info(this, "Baterie min", t.isNull("minVolt") ? "—" : Fmt.num(t.optDouble("minVolt"), 2) + " V"));
+        cells.add(Ui.info(this, "Temp. afară", t.isNull("tempC") ? "—" : Fmt.num(t.optDouble("tempC"), 1) + " °C"));
+        cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
         cells.add(Ui.info(this, "Rezervor", t.isNull("fuelStart") || t.isNull("fuelEnd") ? "—"
                 : Fmt.num(t.optDouble("fuelStart"), 0) + " → " + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));
         card.addView(Ui.grid(this, cells, 3));
@@ -434,9 +522,9 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void renderTripList(List<JSONObject> list, JSONObject current) {
+    private void renderTripList(List<JSONObject> list) {
         int idle = 0;
-        for (int i = 0; i < trips.length(); i++) if (isIdle(trips.optJSONObject(i))) idle++;
+        for (int i = 0; i < trips.length(); i++) if (trips.optJSONObject(i).optBoolean("idle")) idle++;
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
@@ -460,8 +548,7 @@ public class MainActivity extends Activity {
             String start = t.optString("start");
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.VERTICAL);
-            boolean on = current != null && start.equals(current.optString("start"));
-            row.setBackground(Ui.round(this, on ? 0x2638BDF8 : Ui.CARD2, 14));
+            row.setBackground(Ui.round(this, Ui.CARD2, 14));
             int p = dp(this, 12);
             row.setPadding(p, p, p, p);
             LinearLayout top = new LinearLayout(this);
@@ -469,7 +556,8 @@ public class MainActivity extends Activity {
                     16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
             top.addView(Ui.text(this, Fmt.num(t.optDouble("distanceKm"), 1) + " km", 15, Ui.ACCENT, true));
             row.addView(top);
-            StringBuilder sub = new StringBuilder(Fmt.duration(t.optDouble("durationMin")));
+            StringBuilder sub = new StringBuilder(t.optBoolean("idle") ? "pe loc · " : "");
+            sub.append(Fmt.duration(t.optDouble("durationMin")));
             if (!t.isNull("avgSpeed")) sub.append(" · medie ").append(t.optInt("avgSpeed")).append(" km/h");
             if (!t.isNull("maxSpeed")) sub.append(" · max ").append(t.optInt("maxSpeed")).append(" km/h");
             if (!t.isNull("fuelL")) sub.append(" · ≈ ").append(Fmt.liters(t.optDouble("fuelL")));
@@ -478,13 +566,124 @@ public class MainActivity extends Activity {
             row.setOnClickListener(v -> {
                 selected = start;
                 render();
-                // La detaliile calatoriei alese (sub pozitie si totaluri).
-                scroll.post(() -> scroll.smoothScrollTo(0, tripCard == null ? 0 : tripCard.getTop()));
+                scroll.post(() -> scroll.scrollTo(0, 0));
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);
         }
+    }
+
+    // ---------------------------------------------------------------- fila Costuri
+
+    private void renderCosts() {
+        if (trips == null || stats == null || fuel == null) {
+            Ui.hint(this, content, "Se încarcă...");
+            return;
+        }
+        renderStats();
+        renderMonthly();
+        renderFuel();
+    }
+
+    private void renderStats() {
+        long now = System.currentTimeMillis();
+        double km = 0, min = 0, liters = 0, cost = 0;
+        boolean hasCost = false;
+        int count = 0;
+        for (int i = 0; i < trips.length(); i++) {
+            JSONObject t = trips.optJSONObject(i);
+            if (now - Fmt.millis(t.optString("start")) >= 30L * 86_400_000) continue;
+            // Totalurile includ si pornirile pe loc (consuma combustibil); numarul nu.
+            km += t.optDouble("distanceKm");
+            min += t.optDouble("durationMin");
+            liters += t.optDouble("fuelL", 0);
+            if (!t.isNull("cost")) {
+                cost += t.optDouble("cost");
+                hasCost = true;
+            }
+            if (!t.optBoolean("idle")) count++;
+        }
+        LinearLayout card = Ui.card(this, content);
+        Ui.title(this, card, "Ultimele 30 de zile");
+        List<View> cells = new ArrayList<>();
+        cells.add(Ui.info(this, "Călătorii", String.valueOf(count)));
+        cells.add(Ui.info(this, "Distanță", Math.round(km) + " km"));
+        cells.add(Ui.info(this, "Timp la volan", Fmt.duration(min)));
+        cells.add(Ui.info(this, "Combustibil (est.)", "≈ " + Fmt.liters(liters)));
+        cells.add(Ui.info(this, "Consum (est.)", km >= 1 ? Fmt.num(liters / km * 100, 1) + " L/100" : "—"));
+        cells.add(Ui.info(this, "Cost (est.)", hasCost ? Fmt.lei(cost) : "—"));
+        card.addView(Ui.grid(this, cells, 3));
+    }
+
+    private void renderMonthly() {
+        if (stats.length() == 0) return;
+        double maxKm = 1, maxLei = 1;
+        for (int i = 0; i < stats.length(); i++) {
+            JSONObject m = stats.optJSONObject(i);
+            maxKm = Math.max(maxKm, m.optDouble("km"));
+            maxLei = Math.max(maxLei, m.optDouble("cost", 0));
+        }
+        LinearLayout card = Ui.card(this, content);
+        Ui.title(this, card, "Pe luni");
+        for (int i = 0; i < stats.length(); i++) {
+            JSONObject m = stats.optJSONObject(i);
+            LinearLayout block = new LinearLayout(this);
+            block.setOrientation(LinearLayout.VERTICAL);
+            block.setPadding(0, dp(this, 8), 0, dp(this, 4));
+            LinearLayout top = new LinearLayout(this);
+            top.addView(Ui.text(this, Fmt.month(m.optString("month")), 16, Ui.TEXT, true),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            top.addView(Ui.text(this, m.optInt("trips") + " călătorii · " + Fmt.duration(m.optDouble("minutes")),
+                    13, Ui.MUTED, false));
+            block.addView(top);
+            block.addView(bar(m.optDouble("km") / maxKm, Ui.ACCENT, Fmt.num(m.optDouble("km"), 1) + " km"));
+            block.addView(bar(m.optDouble("cost", 0) / maxLei, Ui.WARN,
+                    m.isNull("cost") ? "—" : Fmt.lei(m.optDouble("cost")) + " (est.)"));
+            StringBuilder sub = new StringBuilder("≈ " + Fmt.liters(m.optDouble("liters")));
+            if (!m.isNull("lPer100")) sub.append(" · ").append(Fmt.num(m.optDouble("lPer100"), 1)).append(" L/100 km");
+            if (m.optDouble("refuelLiters") > 0) {
+                sub.append(" · alimentat ").append(Fmt.liters(m.optDouble("refuelLiters")));
+                if (!m.isNull("refuelLei")) sub.append(" (").append(Fmt.lei(m.optDouble("refuelLei"))).append(")");
+            }
+            block.addView(Ui.text(this, sub.toString(), 13, Ui.MUTED, false));
+            card.addView(block);
+        }
+    }
+
+    /** O bara orizontala (fractie 0..1) cu eticheta in dreapta. */
+    private View bar(double fraction, int color, String label) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(this, 3), 0, dp(this, 3));
+        LinearLayout track = new LinearLayout(this);
+        track.setBackground(Ui.round(this, Ui.CARD2, 5));
+        View fill = new View(this);
+        fill.setBackground(Ui.round(this, color, 5));
+        float f = (float) Math.max(0, Math.min(1, fraction));
+        track.setWeightSum(1);
+        track.addView(fill, new LinearLayout.LayoutParams(0, dp(this, 10), f));
+        row.addView(track, new LinearLayout.LayoutParams(0, dp(this, 10), 1));
+        TextView t = Ui.text(this, label, 13, Ui.TEXT, false);
+        t.setGravity(Gravity.END);
+        row.addView(t, new LinearLayout.LayoutParams(dp(this, 120), -2));
+        return row;
+    }
+
+    // ---------------------------------------------------------------- fila Mai mult
+
+    private void renderMore() {
+        renderUpdate();
+        if (car == null) {
+            Ui.hint(this, content, "Se încarcă...");
+            return;
+        }
+        renderMaintenance();
+        renderLog();
+        LinearLayout acc = Ui.card(this, content);
+        Ui.title(this, acc, "Aplicația");
+        Ui.hint(this, acc, "FaikkitCar Panel v" + BuildConfig.VERSION_NAME + " · date de pe car.faicu.ro");
+        Ui.addButton(this, acc, "Ieși din cont", Ui.SECONDARY, v -> confirm("Ieși din cont?", this::logout));
     }
 
     // ---------------------------------------------------------------- alimentari

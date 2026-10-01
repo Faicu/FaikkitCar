@@ -39,9 +39,11 @@ mașină nu mai trebuie să rămână acolo.
 - `panel/`: aplicația nativă **FaikkitCar Panel** pentru telefon (`ro.faicu.faikkitcar.panel`,
   Java fără AndroidX, minSdk 26 / target 34, UI din cod ca `app/`, aceeași cheie de semnare).
   Login → token Bearer în SharedPreferences (`Store`); `Api` = aceleași rute ca site-ul.
-  Fila Mașina (poziție + hartă osmdroid/OpenStreetMap, totaluri 30 de zile, călătoria aleasă
-  cu traseu și `ChartView`, alimentări și mentenanță cu dialoguri, lista cu „ascunde pornirile
-  pe loc”) și fila Jurnal; reîmprospătare la 30 s, redesenare doar la date schimbate.
+  Patru file jos, ca site-ul (din 02.10): Acum (`/api/live`: stare, călătoria în curs,
+  rezervor + autonomie, poziția pe hartă osmdroid), Călătorii (lista; cea aleasă pe ecranul ei,
+  cu traseu și `ChartView`; „înapoi” revine la listă), Costuri (30 de zile, pe luni din
+  `/api/stats` cu bare, alimentări) și Mai mult (mentenanță, jurnal, ieșire din cont).
+  Reîmprospătare la 10 s pe Acum, 30 s în rest, redesenare doar la date schimbate.
   Actualizare din aplicație (`Updater`): `GET /api/panel/apk` + `/api/panel/apk/download` (login);
   CI-ul separat `.github/workflows/panel.yml` publică la `POST /api/panel/apk` (CAR_TOKEN),
   release `panel-<N>`, `versionName` = `1.0.<N>`. Site-ul are link „Descarcă APK” pe fila Mașina.
@@ -86,9 +88,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
   folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
 - `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
-  și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconița e
-  imaginea desenată de utilizator („FAIKKITVW”, săgeată cu sigla VW), ca strat față adaptiv
-  (`drawable-nodpi/ic_launcher_fg.png`, 432 px, imaginea pe ~80 dp) pe fundal #204671.
+  și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconița: vezi „Iconița (02.10)” mai jos.
 - `CanProbe`: pornită doar de calibrare (10 min, `can_probe_until`, verificată din tick).
   Se leagă la `com.syu.ms/app.ToolkitService` (acțiunea `com.syu.ms.toolkit`, AIDL
   `com.syu.ipc`: getRemoteModule=1, register=3 cu (callback, cod, 1), callback update=1) și
@@ -175,9 +175,20 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   mentenanța scadentă), avertizare „ușă deschisă” la ≥ 5 km/h (uși c1–c5 din `CanLink`).
   Logica e în `TripRecorder.monitor` (deci merge doar cu călătoriile pornite); tot acolo
   GPS-ul se oprește după 1 min cu motorul oprit (rpm 0) și repornește la turație/mers.
-- Pe car.faicu.ro, fila Mașina: buton „Ascunde pornirile pe loc” (< 0,3 km și
-  < 8 km/h; totalurile le includ), „Unde e mașina” (ultimul punct GPS),
-  Mentenanța (tabela `reminder`) și Alimentările (tabela `refuel`). Combustibilul pe
+- Site-ul (`web/src/pages`): Acum (`Now.tsx`), Călătorii (`Trips.tsx`, listă + detaliu),
+  Costuri (`Costs.tsx`, 30 de zile, pe luni, alimentări din tabela `refuel`) și Mai mult
+  (`More.tsx`: mentenanța din tabela `reminder`, link Panel, jurnalul). `Trip.idle` (server,
+  < 0,5 km, prinde și manevrele din parcare) = „Ascunde pornirile pe loc”; totalurile le includ.
+- Starea live (de la 1.1.34): `TripRecorder.sendState` → `LiveState` → `POST /api/car/state`
+  la 15 s (60 s fără contact, imediat la schimbare), fără coadă; tabela `car_state` (un rând,
+  `web/server/live.ts`). Contactul e dedus în `CanLink.contact()`: cadre de bord Raise 0x41
+  (c1019) sau turație/tensiune în ultimele 10 s; schimbările apar în jurnal („Contact: pus/luat”)
+  — de verificat cu realitatea. Fără stare 90 s = oprită. Călătoria în curs = ultima, dacă s-a
+  terminat acum < 5 min. Autonomia = litrii ÷ consumul real (sau estimat pe 60 de zile).
+- Iconița (02.10): imaginea „FaikkitCar” cu săgeată de navigație dată de utilizator, decupată
+  cu colțuri rotunjite; în ambele aplicații (`ic_launcher_fg.png` 80/108 dp pe #1E4470 și
+  `drawable-nodpi/logo.png` în antet) și pe site (`web/public`: favicon, apple-touch, manifest,
+  `logo.png`). Sursa: 1024 px JPEG, nu e în repo. Combustibilul pe
   călătorie e estimat în `web/server/fuel-model.ts` (linia
   Willans: lucru la roți din viteză + rotații × L/rotație, Golf 6 1.2 TSI) și înmulțit cu
   factorul din intervalele plin → plin (ultimele 5, limitat la 0,4–2,5); costul = litri ×

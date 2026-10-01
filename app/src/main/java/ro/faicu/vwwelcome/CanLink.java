@@ -16,7 +16,10 @@ import android.os.SystemClock;
  */
 final class CanLink {
     private static final int RPM = 110, SPEED = 1031, SPEED100 = 109, VOLT = 105, ODO = 106, TEMP = 139,
-            FUEL = 104;
+            FUEL = 104, RAW = 1019;
+    // Cadrele brute Raise 0x41 (date de bord: turatie, viteza, tensiune...) vin de la bord,
+    // care e alimentat doar cu contactul pus; daca tac atatea secunde, contactul e luat.
+    private static final long CONTACT_MS = 10_000;
     // Un salt de atatia litri in rezervor (alimentare) se noteaza in jurnal.
     private static final int FUEL_JUMP = 3;
     // Usile, din calibrarea ghidata: c1 sofer, c2 pasager fata, c3 spate stanga, c4 spate
@@ -40,6 +43,9 @@ final class CanLink {
     // Momentul ultimei viteze din c109 (x100); c1031 (km/h intregi) o inlocuieste doar daca
     // c109 tace de 2 s, altfel viteza ar sari intre valoarea exacta si cea rotunjita.
     private volatile long speed100At;
+    // Ultimul cadru de bord (0x41) sau ultima turatie/tensiune primita; 0 = niciodata.
+    private volatile long dashAt;
+    private Boolean contactLogged;
 
     private CanLink(Context c) {
         this.c = c.getApplicationContext();
@@ -91,12 +97,15 @@ final class CanLink {
                     if (ints == null || ints.length == 0) return;
                     int v = ints[0];
                     switch (code) {
-                        case RPM: rpm = v; break;
+                        case RAW:
+                            if (ints.length > 1 && ints[0] == 0x2E && ints[1] == 0x41) dashAt = SystemClock.elapsedRealtime();
+                            break;
+                        case RPM: rpm = v; dashAt = SystemClock.elapsedRealtime(); break;
                         case SPEED100: speed = v / 100.0; speed100At = SystemClock.elapsedRealtime(); break;
                         case SPEED:
                             if (SystemClock.elapsedRealtime() - speed100At > 2_000) speed = v;
                             break;
-                        case VOLT: volt = v / 100.0; break;
+                        case VOLT: volt = v / 100.0; dashAt = SystemClock.elapsedRealtime(); break;
                         case ODO: odo = v; break;
                         case TEMP: temp = v / 10.0; break;
                         case FUEL: onFuel(v); break;
@@ -106,7 +115,7 @@ final class CanLink {
                     }
                 }
             };
-            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, FUEL, 1, 2, 3, 4, 5}) {
+            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, FUEL, RAW, 1, 2, 3, 4, 5}) {
                 Syu.register(mod, cb, code);
             }
         } catch (Exception e) {
@@ -122,6 +131,20 @@ final class CanLink {
             Prefs.log(c, "Rezervor: " + v + " L" + (fuelLogged < 0 ? "" : " (inainte " + fuelLogged + " L)"));
             fuelLogged = v;
         }
+    }
+
+    /**
+     * Contactul pus: datele de bord au venit in ultimele 10 s. Dedus (fara semnal ACC direct):
+     * dupa ACC OFF scurt unitatea ramane treaza ~10 min, dar bordul tace. Schimbarile ajung
+     * in jurnal, ca sa se poata verifica pe server.
+     */
+    boolean contact() {
+        boolean on = dashAt > 0 && SystemClock.elapsedRealtime() - dashAt < CONTACT_MS;
+        if (contactLogged == null || contactLogged != on) {
+            contactLogged = on;
+            Prefs.log(c, "Contact: " + (on ? "pus" : "luat") + " (date de bord " + (on ? "primite" : "absente") + ")");
+        }
+        return on;
     }
 
     /** Litrii din rezervor; -1 daca nu stim. */

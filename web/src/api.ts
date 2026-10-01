@@ -4,6 +4,8 @@
 import type { LogEntry } from "../server/log.ts";
 import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
+import type { Live } from "../server/live.ts";
+import type { MonthStats } from "../server/stats.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
 
 export class Unauthorized extends Error {}
@@ -25,6 +27,8 @@ export const api = {
   me: () => call<{ user: boolean }>("GET", "/api/me"),
   login: (user: string, pass: string) => call<{ ok: true }>("POST", "/api/login", { user, pass }),
   logout: () => call<{ ok: true }>("POST", "/api/logout"),
+  live: () => call<Live>("GET", "/api/live"),
+  stats: () => call<MonthStats[]>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
   tripPoints: (start: string, end: string) =>
     call<TripPoint[]>(
@@ -46,7 +50,7 @@ export const api = {
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 
-export type { FuelSummary, LogEntry, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+export type { FuelSummary, Live, LogEntry, MonthStats, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {
@@ -56,4 +60,31 @@ export function relativeTime(iso: string): string {
   if (s < 86_400) return `acum ${Math.round(s / 3600)} h`;
   const d = Math.round(s / 86_400);
   return d === 1 ? "ieri" : `acum ${d} zile`;
+}
+
+// Formatări comune paginilor.
+
+export function day(iso: string): string {
+  return new Date(iso).toLocaleDateString("ro-RO", { weekday: "short", day: "2-digit", month: "short" });
+}
+
+export function hm(iso: string): string {
+  return new Date(iso).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function duration(min: number): string {
+  if (min < 60) return `${Math.round(min)} min`;
+  return `${Math.floor(min / 60)} h ${Math.round(min % 60)} min`;
+}
+
+export function liters(n: number): string {
+  return `${n.toLocaleString("ro-RO", { maximumFractionDigits: n < 10 ? 2 : 1 })} L`;
+}
+
+export function lei(n: number): string {
+  return `${n.toLocaleString("ro-RO", { maximumFractionDigits: n < 100 ? 2 : 0 })} lei`;
+}
+
+export function num(n: number, digits = 1): string {
+  return n.toLocaleString("ro-RO", { maximumFractionDigits: digits });
 }

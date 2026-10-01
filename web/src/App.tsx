@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { QueryCache, QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Car, LogOut, ScrollText } from "lucide-react";
+import { Activity, LogOut, Menu, Route, Wallet } from "lucide-react";
 import { Toaster } from "sonner";
 
 import { api, Unauthorized } from "./api";
-import { LogPage } from "./pages/Log";
+import { CostsPage } from "./pages/Costs";
+import { MorePage } from "./pages/More";
+import { NowPage } from "./pages/Now";
 import { TripsPage } from "./pages/Trips";
 
 // La 401 (sesiune expirată) revenim la ecranul de login.
@@ -28,8 +30,10 @@ const queryClient = new QueryClient({
 });
 
 const TABS = [
-  { path: "/", label: "Mașina", icon: Car },
-  { path: "/jurnal", label: "Jurnal", icon: ScrollText },
+  { path: "/", label: "Acum", icon: Activity, page: NowPage },
+  { path: "/calatorii", label: "Călătorii", icon: Route, page: TripsPage },
+  { path: "/costuri", label: "Costuri", icon: Wallet, page: CostsPage },
+  { path: "/mai-mult", label: "Mai mult", icon: Menu, page: MorePage },
 ] as const;
 
 function usePath(): [string, (p: string) => void] {
@@ -70,7 +74,7 @@ function Login({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={submit} className="mx-auto mt-24 max-w-sm space-y-3 rounded-2xl glass-card p-6">
       <div className="flex items-center gap-2">
-        <Car className="h-6 w-6 text-sky-400" />
+        <img src="/logo.png" alt="" className="h-8 w-8" />
         <h1 className="text-xl font-semibold">FaikkitCar</h1>
       </div>
       <input
@@ -112,13 +116,17 @@ function Shell() {
       />
     );
   }
-  const tab = TABS.find((t) => t.path === path) ?? TABS[0];
+  // /jurnal (vechea filă) e acum în „Mai mult”.
+  const tab = TABS.find((t) => t.path === (path === "/jurnal" ? "/mai-mult" : path)) ?? TABS[0];
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 pb-24 pt-4">
       <header className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="" className="h-9 w-9" />
+          <div>
           <h1 className="text-xl font-semibold">FaikkitCar</h1>
           <p className="text-xs text-muted-foreground">Golf 6 · {tab.label}</p>
+          </div>
         </div>
         <button
           type="button"
@@ -138,7 +146,7 @@ function Shell() {
             key={t.path}
             type="button"
             onClick={() => go(t.path)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm ${
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-xs sm:flex-row sm:gap-2 sm:py-2 sm:text-sm ${
               t.path === tab.path ? "bg-sky-500/15 text-sky-400" : "text-muted-foreground"
             }`}
           >
@@ -147,7 +155,9 @@ function Shell() {
           </button>
         ))}
       </nav>
-      <main className="space-y-4">{tab.path === "/jurnal" ? <LogPage /> : <TripsPage />}</main>
+      <main className="space-y-4">
+        <tab.page />
+      </main>
     </div>
   );
 }

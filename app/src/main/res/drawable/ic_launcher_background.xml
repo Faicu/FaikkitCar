@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Albastrul de pe marginea iconitei desenate de utilizator (drawable-nodpi/ic_launcher_fg.png). -->
+<!-- Albastrul de pe marginea iconitei FaikkitCar (drawable-nodpi/ic_launcher_fg.png). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#FF204671" />
+    <solid android:color="#FF1E4470" />
 </shape>

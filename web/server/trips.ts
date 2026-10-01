@@ -49,6 +49,7 @@ export interface Trip {
   endPos: [number, number] | null;
   modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
   idleMin: number; // pe loc cu motorul pornit
+  idle: boolean; // pornire pe loc sau manevră (sub IDLE_KM): ascunsă la cerere
   // Completate de fuel.ts cu factorul din alimentări și prețul de atunci.
   fuelL: number | null;
   lPer100: number | null;
@@ -56,7 +57,10 @@ export interface Trip {
 }
 
 export const MAX_POINTS_PER_REQUEST = 500;
-const TRIP_GAP_MS = 5 * 60_000;
+export const TRIP_GAP_MS = 5 * 60_000;
+// Sub atâția km e o pornire pe loc sau o manevră în parcare (01.10: 13 m cu 12,9 km/h),
+// oricât de repede a mers; totalurile le includ, doar lista le poate ascunde.
+const IDLE_KM = 0.5;
 const MAX_POINTS = 2_000_000;
 
 function num(x: unknown): number | null {
@@ -199,6 +203,7 @@ function summarize(rows: Row[]): Trip {
     endPos,
     modelLiters: fuel.liters,
     idleMin: Math.round(fuel.idleMin * 10) / 10,
+    idle: distanceKm < IDLE_KM,
     fuelL: null,
     lPer100: null,
     cost: null,

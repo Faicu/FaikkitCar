@@ -13,7 +13,7 @@ a crescut într-un proiect cu trei părți:
 | | |
 |---|---|
 | **Versiuni** | FaikkitCar 1.1.33 (`build-33`) · FaikkitCar Panel 1.0.1 (`panel-1`) |
-| **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mașina, jos, „Descarcă APK” |
+| **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
 | **Actualizat** | 01.10.2026 |
@@ -85,7 +85,7 @@ a crescut într-un proiect cu trei părți:
 |---|---|---|
 | Nume nou: FaikkitCar / FaikkitCar Start | 🧪 | Din 1.1.32. Pachetul și componentele rămân aceleași, deci lista albă și autostart-ul Teyes nu se schimbă |
 | Interfață (temă întunecată, file Acasă / Sunete / Setări / Jurnal) | ✅ | |
-| Iconița proprie („FAIKKITVW”) | ✅ | |
+| Iconița FaikkitCar (săgeată de navigație) | 🧪 | Din 1.1.34, la fel în Panel și pe site |
 | Jurnal trimis live la server | ✅ | Coadă locală (2.000 de linii); la orice eroare a serverului datele rămân în coadă |
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează |
@@ -111,11 +111,15 @@ a crescut într-un proiect cu trei părți:
 | Funcție | Stare | Detalii |
 |---|---|---|
 | Login | ✅ | Site: cookie de 180 de zile. Panel: token păstrat în aplicație |
-| Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS |
-| Totaluri pe 30 de zile | ✅ | Călătorii, distanță, timp, combustibil, consum, cost |
-| Călătoria aleasă | ✅ | Detalii, traseu pe hartă (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor la plecare/sosire |
-| Ascunde pornirile pe loc | ✅ | Sub 0,3 km și sub 8 km/h; totalurile le includ în continuare |
-| Jurnalul navigației | ✅ | Filtru „doar evenimente”. Nu se poate goli, ca să nu se piardă nimic |
+| Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
+| Acum: starea mașinii | 🧪 | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Cere FaikkitCar ≥ 1.1.34; contactul e dedus din datele de bord, de verificat |
+| Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost, cu întârziere de ~30 s |
+| Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
+| Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
+| Costuri: 30 de zile și pe luni | 🧪 | Pe luni: km, timp, litri, L/100, cost estimat și ce s-a dat la pompă, cu bare |
+| Călătoria aleasă | ✅ | Pe ecranul ei: detalii, traseu (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor |
+| Ascunde pornirile pe loc | ✅ | Sub 0,5 km (prinde și manevrele din parcare); totalurile le includ în continuare |
+| Jurnalul navigației | ✅ | În „Mai mult”. Filtru „doar evenimente”. Nu se poate goli, ca să nu se piardă nimic |
 | Panel: actualizare din aplicație | 🧪 | CI-ul publică pe car.faicu.ro; Panel-ul arată „Actualizează acum” |
 
 ---
@@ -251,12 +255,13 @@ Rulează pe același server cu FaikkitBox, dar complet separat:
 |---|---|
 | `POST /api/car/log` | Jurnalul aplicației (ultimele 200.000 de linii) |
 | `POST /api/car/trip` | Punctele de traseu |
+| `POST /api/car/state` | Starea de acum (contact, turație, viteză, rezervor), la 15 s |
 | `GET /api/car/status` | Kilometraj, mentenanță și ultimul APK, citite de aplicație |
 | `POST /api/car/tts` | Salutul vorbit, vocea Piper „Mihai” (MP3, cu 0,4 s de liniște la început) |
 | `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → aplicația din mașină) |
 | `POST /api/panel/apk`, `GET /api/panel/apk[/download]` | APK-ul Panel (CI → telefon, cu login) |
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
-| `/api/trips`, `/api/trips/points`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/log` | Datele pentru site și Panel (cu login) |
+| `/api/live`, `/api/stats`, `/api/trips`, `/api/trips/points`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/log` | Datele pentru site și Panel (cu login) |
 
 Rutele `/api/car/*` și `POST /api/*/apk` cer cheia mașinii (`CAR_TOKEN`); restul, login-ul.
 
@@ -294,7 +299,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 ### Pe telefon (FaikkitCar Panel)
 
-1. Pe car.faicu.ro (logat), fila Mașina, jos: „Descarcă APK”.
+1. Pe car.faicu.ro (logat), fila Mai mult: „Descarcă APK”.
 2. Instalează (o singură dată: permite instalarea din browser) și intră cu același cont.
 3. Versiunile următoare vin din aplicație („Actualizează acum”).
 

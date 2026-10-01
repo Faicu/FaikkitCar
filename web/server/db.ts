@@ -63,6 +63,16 @@ export function getDb(): DatabaseSync {
       created_at TEXT NOT NULL
     );
 
+    -- Starea de acum a mașinii (POST /api/car/state, la ~15 s cât unitatea e trează):
+    -- un singur rând; since = de când e în starea state.
+    CREATE TABLE IF NOT EXISTS car_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      received_at TEXT NOT NULL,
+      state TEXT NOT NULL,
+      since TEXT NOT NULL,
+      data TEXT NOT NULL
+    );
+
     -- Alimentările: prețul dă costul drumurilor; plinurile sunt rezerva calibrării.
     CREATE TABLE IF NOT EXISTS refuel (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

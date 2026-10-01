@@ -38,6 +38,12 @@ final class Fmt {
         return pattern(iso, "dd MMM yyyy");
     }
 
+    /** „Octombrie 2026” din „2026-10”. */
+    static String month(String ym) {
+        String s = java.time.YearMonth.parse(ym).format(DateTimeFormatter.ofPattern("LLLL yyyy", RO));
+        return s.isEmpty() ? ym : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
     static String duration(double min) {
         if (min < 60) return Math.round(min) + " min";
         return (int) (min / 60) + " h " + Math.round(min % 60) + " min";

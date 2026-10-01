@@ -33,8 +33,10 @@ import {
   type ReminderInput,
 } from "./car.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, saveRefuel, type RefuelInput } from "./fuel.ts";
+import { readLive, saveState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
 import { insertPoints, MAX_POINTS_PER_REQUEST, readTripPoints, readTrips, type IncomingPoint } from "./trips.ts";
+import { readMonthlyStats } from "./stats.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
 
 const app = new Hono();
@@ -74,6 +76,13 @@ app.post("/api/car/trip", async (c) => {
     throw new HTTPException(400, { message: "Invalid points" });
   }
   return c.json({ ok: true, added: insertPoints(p.points as IncomingPoint[]) });
+});
+
+// Starea de acum (contact, turație, viteză...), la ~15 s cât unitatea e trează.
+app.post("/api/car/state", async (c) => {
+  requireCarToken(c);
+  const p = await json<IncomingState>(c, 4096);
+  return c.json({ ok: true, state: saveState(p) });
 });
 
 // Kilometrajul, mentenanța (salutul vorbit) și ultimul APK (actualizarea din aplicație).
@@ -196,6 +205,16 @@ app.get("/api/trips", (c) => {
 app.get("/api/trips/points", (c) => {
   requireUser(c);
   return c.json(readTripPoints(c.req.query("start") ?? "", c.req.query("end") ?? ""));
+});
+
+app.get("/api/live", (c) => {
+  requireUser(c);
+  return c.json(readLive());
+});
+
+app.get("/api/stats", (c) => {
+  requireUser(c);
+  return c.json(readMonthlyStats());
 });
 
 app.get("/api/car", (c) => {

@@ -150,6 +150,7 @@ final class TripRecorder implements LocationListener {
                 || (Double.isNaN(canKmh) && !Double.isNaN(gpsKmh) && gpsKmh >= 3);
         boolean engine = rpm > 300;
         monitor(now, moving, engine, rpm, canKmh);
+        sendState(loc, gpsKmh, canKmh, rpm, moving, engine);
         long interval = moving ? SAMPLE_MS : engine ? IDLE_MS : Long.MAX_VALUE;
         // La oprire mai scriem un punct, ca sosirea sa fie exact unde a stat masina.
         boolean justStopped = wasMoving && !moving;
@@ -171,6 +172,26 @@ final class TripRecorder implements LocationListener {
             if (can.odo() > 0) p.put("odo", can.odo());
             if (can.fuel() > 0) p.put("fuel", can.fuel());
             PointQueue.add(c, p);
+        } catch (JSONException ignored) {
+        }
+    }
+
+    /** Starea de acum pentru fila „Acum” (LiveState decide cand se trimite). */
+    private void sendState(Location loc, double gpsKmh, double canKmh, int rpm, boolean moving, boolean engine) {
+        if (!Prefs.uploadEnabled(c)) return;
+        boolean contact = can.contact() || engine;
+        String kind = moving ? "driving" : engine ? "engine" : contact ? "contact" : "off";
+        try {
+            JSONObject s = new JSONObject().put("t", System.currentTimeMillis()).put("contact", contact);
+            if (rpm >= 0) s.put("rpm", rpm);
+            if (!Double.isNaN(canKmh)) s.put("cs", round1(canKmh));
+            if (!Double.isNaN(gpsKmh)) s.put("gs", round1(gpsKmh));
+            if (!Double.isNaN(can.volt())) s.put("v", can.volt());
+            if (!Double.isNaN(can.temp())) s.put("temp", can.temp());
+            if (can.odo() > 0) s.put("odo", can.odo());
+            if (can.fuel() > 0) s.put("fuel", can.fuel());
+            if (loc != null) s.put("lat", loc.getLatitude()).put("lon", loc.getLongitude());
+            LiveState.maybeSend(kind, s);
         } catch (JSONException ignored) {
         }
     }

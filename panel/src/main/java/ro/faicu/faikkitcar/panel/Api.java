@@ -44,6 +44,14 @@ final class Api {
         }
     }
 
+    JSONObject live() throws Exception {
+        return new JSONObject(call("GET", "/api/live", null, true));
+    }
+
+    JSONArray stats() throws Exception {
+        return new JSONArray(call("GET", "/api/stats", null, true));
+    }
+
     JSONArray trips() throws Exception {
         return new JSONArray(call("GET", "/api/trips", null, true));
     }
