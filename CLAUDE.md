@@ -92,6 +92,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   40.000), trimise de `Uploader` la `/api/vw-trip` în loturi de 300. Serverul (FaikkitBox,
   tabela `vw_trip_point`, pagina `/calatorii`) împarte în călătorii la pauze > 5 min.
   Serviciul are `foregroundServiceType="location"`; permisiunea se cere din aplicație.
+- Rezultate calibrare 1.1.31 (01.10 seara, motor pornit): c11 = AC ✓ (bitul 0x40 din 0x21),
+  c49 = AUTO ✓ (0 la ventilator manual), c139 = temperatura exterioară ×10 ✓ (19 °C pe bord
+  = 190); faza scurtă = cadrul brut 0x14 (al doilea octet 0 → 84, iluminarea); bitul 0x02
+  din 0x24 = frâna de mână (cu c103). NU sunt transmise: pedala de frână, semnalizarea,
+  ștergătoarele. Marșarierul nu are cod curat (doar m0 c68 și radarul 0x22). c107 rămâne
+  neclar (stă pe 1). Rezervorul a scăzut 22 → 21 L după drum, coerent cu c104.
 - Calibrare CAN de la 1.1.31 (motor pornit, mașina parcată): AC / AUTO separat, pedala de
   frână, frâna de mână (pentru c107), marșarierul, faza scurtă, semnalizarea, temperatura de
   pe bord (număr introdus → `findValue`, confirmă c139) și rezervorul (opțional + captură).

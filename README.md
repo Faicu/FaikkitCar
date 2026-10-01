@@ -165,12 +165,14 @@ Găsite cu sonda CAN și cu calibrarea ghidată. Modul 7 = CANBUS, modul 0 = pri
 | m7 c1031 / c109 | Viteza (km/h / ×100) | 31 / 3171 |
 | m7 c105 | Tensiunea bateriei (×100) | 1400 = 14,0 V |
 | m7 c106 | Kilometrajul | 245.067 km |
-| m7 c139 | Temperatura exterioară (×10), probabil | 230 = 23,0 °C |
+| m7 c139 | Temperatura exterioară (×10) | 190 = 19,0 °C, ca pe bord |
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
 | m7 c103 | Frâna de mână | 1 = eliberată |
-| m7 c21, c27/c28, c10/c11 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC | 3, 11, 1 |
-| — | Pedala de frână, marșarierul, ștergătoarele | nu sunt transmise ca cod (marșarierul se vede doar prin radar/cameră) |
+| m7 c21, c27/c28, c11, c49 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC, AUTO | 3, 11, 1, 1 |
+| m7 raw 0x14 | Luminile aprinse (iluminarea bordului) | 0 / 84 |
+| — | Pedala de frână, semnalizarea, ștergătoarele | nu sunt transmise de decodor |
+| — | Marșarierul | fără cod curat; se vede doar prin radar/cameră |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | — | Luminile, semnalizarea, avariile | nu sunt transmise de decodor |
