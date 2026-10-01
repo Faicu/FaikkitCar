@@ -9,6 +9,15 @@ import { TripsPage } from "./pages/Trips";
 
 // La 401 (sesiune expirată) revenim la ecranul de login.
 let onUnauthorized = () => {};
+
+/**
+ * Schimbă starea de login. Nu folosim queryClient.clear(): ar scoate și interogarea „me”
+ * de sub componenta care o urmărește, iar ecranul ar rămâne blocat pe login.
+ */
+function setLoggedIn(user: boolean) {
+  queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" });
+  queryClient.setQueryData(["me"], { user });
+}
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (e) => {
@@ -93,16 +102,13 @@ function Login({ onDone }: { onDone: () => void }) {
 function Shell() {
   const me = useQuery({ queryKey: ["me"], queryFn: api.me, staleTime: Infinity });
   const [path, go] = usePath();
-  onUnauthorized = () => queryClient.setQueryData(["me"], { user: false });
+  onUnauthorized = () => setLoggedIn(false);
 
   if (me.isLoading) return null;
   if (!me.data?.user) {
     return (
       <Login
-        onDone={() => {
-          queryClient.clear();
-          queryClient.setQueryData(["me"], { user: true });
-        }}
+        onDone={() => setLoggedIn(true)}
       />
     );
   }
@@ -119,8 +125,7 @@ function Shell() {
           title="Ieși"
           onClick={async () => {
             await api.logout();
-            queryClient.clear();
-            queryClient.setQueryData(["me"], { user: false });
+            setLoggedIn(false);
           }}
           className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"
         >
