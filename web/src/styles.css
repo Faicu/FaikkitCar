@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* Tema întunecată a FaikkitBox, aceleași culori și carduri. */
+@theme {
+  --color-background: oklch(0.129 0.042 264.695);
+  --color-foreground: oklch(0.984 0.003 247.858);
+  --color-muted: oklch(0.279 0.041 260.031);
+  --color-muted-foreground: oklch(0.704 0.04 256.788);
+  --color-border: oklch(1 0 0 / 10%);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@utility glass-card {
+  background: color-mix(in oklab, var(--color-muted) 45%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-border) 60%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+@utility glass-card-hover {
+  transition: border-color 0.15s, background 0.15s;
+  &:hover {
+    border-color: color-mix(in oklab, oklch(0.746 0.16 232.661) 40%, var(--color-border));
+  }
+}
+
+@utility press-tile {
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+@utility skeleton-sweep {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-muted) 40%, transparent) 0%,
+    color-mix(in oklab, var(--color-muted) 70%, transparent) 50%,
+    color-mix(in oklab, var(--color-muted) 40%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: sweep 1.4s infinite linear;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}

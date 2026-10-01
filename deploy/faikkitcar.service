@@ -1,0 +1,38 @@
+# Serverul FaikkitCar (car.faicu.ro → tunelul Cloudflare → :3001).
+# Instalare: cp deploy/faikkitcar.service /etc/systemd/system/ && systemctl enable --now faikkitcar
+[Unit]
+Description=FaikkitCar (car.faicu.ro)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/faikkitcar/web
+EnvironmentFile=/opt/faikkitcar/.env
+ExecStart=/usr/bin/node server/index.ts
+Restart=always
+RestartSec=5
+TimeoutStopSec=5
+User=faikkitcar
+Group=faikkitcar
+Environment=HOME=/var/lib/faikkitcar
+Environment=NODE_ENV=production
+Environment=NODE_NO_WARNINGS=1
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/faikkitcar/data
+ProtectHostname=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
