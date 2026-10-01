@@ -194,7 +194,8 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   avertizările folosesc vocea locală. Ambele voci sună robotic (utilizatorul, 01.10), deci de la 1.1.30
   salutul (neurgent, cu internet) vine ca MP3 de la `POST /api/vw-tts` (FaikkitBox, Piper
   `ro_RO-mihai-medium` în `/opt/faikkitbox/data/piper`, nu în git; commit local `1e3faa4`),
-  redat ca ghidare de navigație; fără internet sau la eroare rămâne TextToSpeech. Netestat încă: avertizarea de ușă.
+  redat ca ghidare de navigație; fără internet sau la eroare rămâne TextToSpeech. Confirmat
+  în mașină pe 01.10 (1.1.30): „se aude destul de bine”. Netestat încă: avertizarea de ușă.
 - În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
