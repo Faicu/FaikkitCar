@@ -224,12 +224,22 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   alias `vwwelcome`). `app/build.gradle` citește `SIGNING_KEYSTORE` / `SIGNING_PASSWORD`;
   `versionCode` = `GITHUB_RUN_NUMBER`, `versionName` = `1.1.<N>`. Keystore-ul nu e în repo.
 
-## Stare (30.09.2026)
+## Stare (01.10.2026, seara)
 
 Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`; ține-l la zi.
 
-- Pe navigație: `com.mapgoo.diruite` 1.1.22 (actualizarea din aplicație încă netestată).
+- Pe navigație: `com.mapgoo.diruite` **1.1.31** (încă „VW Welcome”, trimite la vechiul
+  `status.faicu.ro/api/vw-*`, acum 404; datele stau în coadă). Utilizatorul instalează
+  manual FaikkitCar 1.1.33 din GitHub Releases; apoi de verificat în `log` că a sosit coada
+  (linii cu `version` 1.1.31 și ore din trecut) și că punctele noi au `fuel`.
   Unitate: Android 10 (API 29), `sprd ums512_1h10_Natv`, fără selector de fișiere.
+- Pe telefon: FaikkitCar Panel 1.0.1 instalat, login și date ok (confirmat de utilizator).
+- Rămase de la utilizator: instalarea `deploy/claude.service` + `systemctl restart claude`
+  (eu nu am voie: e serviciul care rulează sesiunea Claude); după aceea, din sesiunea nouă
+  `faikkitcar`, se șterge `/opt/welcometovw` (clona veche, din care rula sesiunea de pe
+  01.10; tmux `welcometovw`). Publicarea commit-ului FaikkitBox `2c986a0` din Tehnic.
+- Login site/Panel: utilizatorul `faicu`, parola în `/opt/faikkitcar/.env` (`ADMIN_PASS`).
+- Pe mașină, Setări: pauza după hibernare 3 s (pusă de utilizator pe 01.10).
 - Comportament Teyes confirmat din jurnal: ACC OFF scurt (sub ~10 min) → procesorul NU
   doarme, nu vine SCREEN_OFF, doar autostart-ul prinde ACC ON; ACC OFF lung → somn la ~10
   min după ACC OFF (atunci vine SCREEN_OFF). Cu pachetul vechi, aplicația era oprită forțat
