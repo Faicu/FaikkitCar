@@ -92,7 +92,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   40.000), trimise de `Uploader` la `/api/vw-trip` în loturi de 300. Serverul (FaikkitBox,
   tabela `vw_trip_point`, pagina `/calatorii`) împarte în călătorii la pauze > 5 min.
   Serviciul are `foregroundServiceType="location"`; permisiunea se cere din aplicație.
-- Calibrare CAN (Acasă, `STEPS` în MainActivity): doar necunoscutele — pedala de frână vs.
+- Calibrare CAN de la 1.1.31 (motor pornit, mașina parcată): AC / AUTO separat, pedala de
+  frână, frâna de mână (pentru c107), marșarierul, faza scurtă, semnalizarea, temperatura de
+  pe bord (număr introdus → `findValue`, confirmă c139) și rezervorul (opțional + captură).
+  Pașii cu număr au `Step.ask`. Varianta 1.1.24–1.1.30, descrisă mai jos: pedala de frână vs.
   frâna de mână, marșarierul, centura (cu motorul oprit și o treaptă băgată), apoi pornirea
   motorului, AC, ventilator, temperatură, ștergătoare și rezervorul. La rezervor litrii sunt
   opționali (Car Info nu mai afișează nimic din 01.10; dacă sunt, `CanProbe.findValue` caută

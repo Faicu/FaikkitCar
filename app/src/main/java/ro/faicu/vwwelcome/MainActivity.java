@@ -49,52 +49,62 @@ public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
     private static final int PERM_AUDIO = 3;
     private static final int PERM_LOCATION = 4;
-    /** Un pas al calibrarii: ce faci, o precizare si daca cere litrii din Car Info. */
+    /**
+     * Un pas al calibrarii: ce faci, o precizare si, optional, un numar citit de utilizator
+     * (ask = eticheta campului); fuel = pasul rezervorului, care trimite si o captura completa.
+     */
     private static final class Step {
-        final String title, hint;
+        final String title, hint, ask;
         final boolean fuel;
 
         Step(String title, String hint) {
-            this(title, hint, false);
+            this(title, hint, null, false);
         }
 
-        Step(String title, String hint, boolean fuel) {
+        Step(String title, String hint, String ask, boolean fuel) {
             this.title = title;
             this.hint = hint;
+            this.ask = ask;
             this.fuel = fuel;
         }
     }
 
-    private static final String FUEL_HINT = "Scrie cati litri sunt in rezervor (din Car Info, daca "
-            + "ii arata) sau lasa gol. Oricum se trimite la server o captura cu toate valorile; facuta "
-            + "o data inainte si o data dupa o alimentare, arata codul care a crescut.";
-    // Doar ce nu stim inca (usile, viteza, turatia etc. sunt deja stabilite, vezi CLAUDE.md).
-    // Motorul oprit la inceput: frana de mana si marsarierul se pot testa in siguranta, cu o
-    // treapta bagata, si nimic nu se misca in fundal (turatie, tensiune).
+    private static final String FUEL_HINT = "Daca stii cati litri sunt in rezervor, scrie-i; altfel "
+            + "lasa gol. Oricum se trimite la server o captura cu toate valorile; facuta o data "
+            + "inainte si o data dupa o alimentare, confirma codul rezervorului (c104).";
+    // Doar ce nu e sigur 100% (vezi CLAUDE.md): usile, centura, frana de mana, ventilatorul,
+    // temperatura climei, viteza, turatia etc. sunt stabilite. Totul cu motorul PORNIT si
+    // masina parcata: la 30.09/01.10 marsarierul si pedala de frana au fost testate doar cu
+    // motorul oprit, iar luminile doar cu sonda veche (fara modulele 1-17).
     private static final Step[] STEPS = {
-            new Step("Pregatire", "Contact pus, motorul OPRIT, o treapta bagata, frana de mana trasa, "
-                    + "centura cuplata, usile inchise. Apasa Gata cand e totul asa."),
-            new Step("Apasa pedala de frana si tine-o", "Doar pedala; nu atinge frana de mana."),
+            new Step("Pregatire", "Masina parcata, motorul PORNIT, frana de mana trasa, schimbatorul "
+                    + "in punctul mort (neutru), climatronicul pe AUTO, luminile stinse. Apasa Gata."),
+            new Step("Apasa doar butonul AC", "Ledul de pe butonul AC trebuie sa se stinga. Nu atinge AUTO."),
+            new Step("Apasa din nou butonul AC", "Ledul AC se aprinde la loc."),
+            new Step("Mareste ventilatorul cu o treapta", "Ledul AUTO se stinge (iesi din modul automat)."),
+            new Step("Apasa butonul AUTO", "Ledul AUTO se aprinde la loc."),
+            new Step("Apasa pedala de frana si tine-o", "Cu motorul pornit; tine-o pana apesi Gata."),
             new Step("Elibereaza pedala de frana", ""),
-            new Step("Elibereaza frana de mana", "Masina e in viteza si cu motorul oprit, deci nu pleaca."),
-            new Step("Trage frana de mana", ""),
-            new Step("Baga marsarierul", "Cu ambreiajul apasat; motorul ramane oprit."),
-            new Step("Scoate marsarierul si baga treapta 1", ""),
-            new Step("Desfa centura soferului", ""),
-            new Step("Cupleaza centura soferului", ""),
-            new Step("Porneste motorul", "Treapta scoasa, frana de mana trasa."),
-            new Step("Apasa butonul AC", "Pornit sau oprit, conteaza doar schimbarea."),
-            new Step("Mareste ventilatorul climatronicului cu 2 trepte", ""),
-            new Step("Mareste temperatura pe partea soferului cu 1 grad", ""),
-            new Step("Porneste stergatoarele", ""),
-            new Step("Opreste stergatoarele", ""),
-            new Step("Rezervorul", FUEL_HINT, true),
+            new Step("Apasa pedala de frana si elibereaza frana de mana",
+                    "Tine piciorul pe frana tot timpul; masina sta in neutru."),
+            new Step("Trage frana de mana la loc", "Apoi poti lua piciorul de pe frana."),
+            new Step("Baga marsarierul", "Ambreiajul apasat, piciorul pe frana, frana de mana trasa. "
+                    + "Asteapta sa porneasca camera/radarul, apoi Gata."),
+            new Step("Scoate marsarierul (neutru)", "Asteapta 2-3 secunde, apoi Gata."),
+            new Step("Aprinde faza scurta", "Butonul rotativ de lumini pe faza scurta."),
+            new Step("Stinge luminile", ""),
+            new Step("Semnalizare stanga", "Lasa-o sa clipeasca 2-3 secunde, apoi Gata."),
+            new Step("Opreste semnalizarea", ""),
+            new Step("Temperatura de afara", "Scrie cate grade arata bordul (ecranul dintre ceasuri).",
+                    "Grade pe bord", false),
+            new Step("Rezervorul", FUEL_HINT, "Litri in rezervor (optional)", true),
     };
     private static final int FUEL_STEP = STEPS.length - 1;
     // Coduri deja stabilite sau care se schimba singure; nu le aratam in timpul calibrarii.
     private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
             "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
             "m7 c139", "m7 c104", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
+            "m7 c101", "m7 c103", "m7 c21", "m7 c27", "m7 c28", "m7 c1019",
             "m0 c41", "m0 c114", "m0 c115", "m0 c146", "m0 c179", "m0 c101", "m0 c40", "m0 c77"));
     private int calibStep = -1;
     private long stepStart;
@@ -318,10 +328,10 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, col);
         Ui.title(this, card, "Calibrare CAN");
         if (calibStep < 0) {
-            Ui.hint(this, card, "Cauta doar ce nu stim inca: frana (pedala / de mana), marsarierul, "
-                    + "centura, climatronicul, stergatoarele si litrii din rezervor. Usile, viteza, "
-                    + "turatia si restul sunt deja stabilite. Dureaza ~3 minute; la fiecare pas vezi "
-                    + "pe loc ce s-a schimbat. „Doar rezervorul”: o captura inainte si una dupa alimentare.");
+            Ui.hint(this, card, "Doar ce nu e sigur: butoanele AC / AUTO, pedala de frana, marsarierul "
+                    + "si luminile (cu motorul pornit), temperatura de afara si rezervorul. Masina "
+                    + "parcata, motorul pornit; ~3 minute. La fiecare pas vezi pe loc ce s-a schimbat. "
+                    + "„Doar rezervorul”: o captura inainte si una dupa alimentare.");
             if (!calibResults.isEmpty()) {
                 TextView res = Ui.mono(this, String.join("\n", calibResults), 13);
                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
@@ -343,8 +353,12 @@ public class MainActivity extends Activity {
         if (!step.hint.isEmpty()) Ui.hint(this, card, step.hint);
 
         EditText liters = null;
-        if (step.fuel) {
-            liters = Ui.field(this, card, "Litri in rezervor", "Optional", "", true);
+        if (step.ask != null) {
+            liters = Ui.field(this, card, step.ask, "", "", true);
+            // Temperatura poate fi negativa iarna.
+            liters.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                    | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                    | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
             liveChanges = Ui.mono(this, "", 13);
             card.addView(liveChanges);
             updateLive();
@@ -419,7 +433,7 @@ public class MainActivity extends Activity {
     private void updateLive() {
         ui.removeCallbacks(liveTick);
         if (calibStep < 0 || liveChanges == null) return;
-        if (STEPS[calibStep].fuel) {
+        if (STEPS[calibStep].ask != null) {
             int n = CanProbe.valueCount();
             liveChanges.setText(n == 0 ? "sonda porneste..." : "coduri citite: " + n);
         } else {
@@ -433,27 +447,30 @@ public class MainActivity extends Activity {
     private void calibNext(boolean done, EditText liters) {
         Step step = STEPS[calibStep];
         String found;
-        if (step.fuel && done) {
+        if (step.ask != null && done) {
             if (CanProbe.valueCount() == 0) {
                 toast("Sonda inca porneste, mai asteapta o clipa");
                 return;
             }
             String text = liters.getText().toString().trim().replace(',', '.');
-            double l = -1;
+            Double value = null;
             if (!text.isEmpty()) {
                 try {
-                    l = Double.parseDouble(text);
+                    value = Double.parseDouble(text);
                 } catch (NumberFormatException e) {
                     toast("Numar invalid");
                     return;
                 }
+            } else if (!step.fuel) {
+                toast("Scrie numarul sau apasa Sari");
+                return;
             }
-            CanProbe.snapshot(l < 0 ? "rezervor" : "rezervor " + l + " L");
-            if (l < 0) {
+            if (step.fuel) CanProbe.snapshot(value == null ? "rezervor" : "rezervor " + value + " L");
+            if (value == null) {
                 found = "captura trimisa";
             } else {
-                List<String> cand = CanProbe.findValue(l);
-                found = l + " L -> " + (cand.isEmpty() ? "niciun cod cu aceasta valoare" : String.join(", ", cand));
+                List<String> cand = CanProbe.findValue(value);
+                found = value + " -> " + (cand.isEmpty() ? "niciun cod cu aceasta valoare" : String.join(", ", cand));
             }
         } else {
             found = done ? stepChanges().replace("\n", "; ") : "sarit";

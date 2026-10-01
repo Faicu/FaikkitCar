@@ -105,8 +105,8 @@ final class CanProbe {
     }
 
     /**
-     * Codurile a caror valoare curenta se potriveste cu numarul dat (ex. litrii afisati de
-     * Car Info): egal, x10 sau x100, cu o marja de o unitate pentru rotunjire.
+     * Codurile a caror valoare curenta se potriveste cu numarul dat (litrii din rezervor,
+     * temperatura de pe bord): egal, x10 sau x100, cu o marja de o unitate pentru rotunjire.
      */
     static synchronized List<String> findValue(double target) {
         List<String> out = new ArrayList<>();
@@ -125,7 +125,8 @@ final class CanProbe {
                     continue;
                 }
                 for (long w : wanted) {
-                    if (w > 0 && Math.abs(n - w) <= Math.max(1, w / 100)) {
+                    // Si valori negative (temperatura iarna); 0 s-ar potrivi cu prea multe coduri.
+                    if (w != 0 && Math.abs(n - w) <= Math.max(1, Math.abs(w) / 100)) {
                         out.add(e.getKey() + (parts.length > 1 ? "[" + i + "]" : "") + "=" + n);
                         break;
                     }
