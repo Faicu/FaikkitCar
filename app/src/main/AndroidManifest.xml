@@ -22,7 +22,7 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="VW Welcome">
+        android:label="FaikkitCar">
 
         <activity
             android:name=".MainActivity"
@@ -38,7 +38,7 @@
         <activity
             android:name=".StartActivity"
             android:exported="true"
-            android:label="VW Welcome Start"
+            android:label="FaikkitCar Start"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity=""
             android:excludeFromRecents="true"

@@ -14,12 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Starea de pe status.faicu.ro (/api/vw-status): kilometrajul, mentenanta si ultimul APK.
+ * Starea de pe car.faicu.ro (/api/car/status): kilometrajul, mentenanta si ultimul APK.
  * Citita de Uploader cel mult o data la 30 de minute (si la cerere din aplicatie) si pastrata
  * in Prefs, ca ecranul si salutul vorbit sa o aiba si fara internet.
  */
 final class VwStatus {
-    static final String BASE = "https://status.faicu.ro";
+    static final String BASE = "https://car.faicu.ro";
     private static final long MAX_AGE_MS = 30 * 60_000L;
 
     private VwStatus() {}
@@ -32,7 +32,7 @@ final class VwStatus {
 
     static boolean refresh(Context c) {
         try {
-            HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/vw-status").openConnection();
+            HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/car/status").openConnection();
             conn.setConnectTimeout(10_000);
             conn.setReadTimeout(15_000);
             conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);

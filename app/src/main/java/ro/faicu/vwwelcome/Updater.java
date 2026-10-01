@@ -17,9 +17,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * Actualizarea din aplicatie: descarca ultimul APK de pe status.faicu.ro (incarcat de CI) si
+ * Actualizarea din aplicatie: descarca ultimul APK de pe car.faicu.ro (incarcat de CI) si
  * il instaleaza prin PackageInstaller; Android cere o singura confirmare pe ecran. Prima data
- * trebuie permisa instalarea de aplicatii din VW Welcome (setarea "surse necunoscute").
+ * trebuie permisa instalarea de aplicatii din FaikkitCar (setarea "surse necunoscute").
  */
 final class Updater {
     private Updater() {}
@@ -46,7 +46,7 @@ final class Updater {
         PackageInstaller pi = c.getPackageManager().getPackageInstaller();
         HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) new URL(VwStatus.BASE + "/api/vw-apk/download").openConnection();
+            conn = (HttpURLConnection) new URL(VwStatus.BASE + "/api/car/apk/download").openConnection();
             conn.setConnectTimeout(15_000);
             conn.setReadTimeout(60_000);
             conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
@@ -57,7 +57,7 @@ final class Updater {
             int id = pi.createSession(params);
             try (PackageInstaller.Session session = pi.openSession(id)) {
                 try (InputStream in = conn.getInputStream();
-                     OutputStream out = session.openWrite("VWWelcome.apk", 0, -1)) {
+                     OutputStream out = session.openWrite("FaikkitCar.apk", 0, -1)) {
                     byte[] buf = new byte[65536];
                     int n;
                     while ((n = in.read(buf)) > 0) out.write(buf, 0, n);

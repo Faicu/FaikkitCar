@@ -190,11 +190,11 @@ public class WelcomeService extends Service {
     private Notification buildNotification() {
         NotificationManager nm = getSystemService(NotificationManager.class);
         NotificationChannel ch = new NotificationChannel(
-                "svc", "Serviciu VW Welcome", NotificationManager.IMPORTANCE_MIN);
+                "svc", "Serviciu FaikkitCar", NotificationManager.IMPORTANCE_MIN);
         nm.createNotificationChannel(ch);
         return new Notification.Builder(this, "svc")
                 .setSmallIcon(android.R.drawable.ic_media_play)
-                .setContentTitle("VW Welcome activ")
+                .setContentTitle("FaikkitCar activ")
                 .setOngoing(true)
                 .build();
     }

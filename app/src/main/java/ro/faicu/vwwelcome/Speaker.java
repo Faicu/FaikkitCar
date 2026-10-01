@@ -39,7 +39,7 @@ final class Speaker {
     private static String pending;
     private static boolean pendingUrgent;
     private static String currentVoice;
-    private static final String URL_TTS = "https://status.faicu.ro/api/vw-tts";
+    private static final String URL_TTS = "https://car.faicu.ro/api/car/tts";
     // Referinta statica: altfel MediaPlayer poate fi colectat de GC in timpul redarii.
     private static MediaPlayer serverPlayer;
 

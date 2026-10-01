@@ -126,7 +126,7 @@ final class Prefs {
         sp(c).edit().putLong("sleep_extra", Math.max(0, Math.min(15_000, ms))).apply();
     }
 
-    /** Ultimul raspuns /api/vw-status (JSON) si momentul lui. */
+    /** Ultimul raspuns /api/car/status (JSON) si momentul lui. */
     static String status(Context c) {
         return sp(c).getString("status_json", "{}");
     }
@@ -157,7 +157,7 @@ final class Prefs {
         sp(c).edit().putBoolean("door_alert", on).apply();
     }
 
-    /** Inregistrarea calatoriilor (GPS + date masina) la status.faicu.ro/calatorii. */
+    /** Inregistrarea calatoriilor (GPS + date masina) la car.faicu.ro. */
     static boolean tripsEnabled(Context c) {
         return sp(c).getBoolean("trips", true);
     }
@@ -223,7 +223,7 @@ final class Prefs {
      * redarea. Arata unde s-a oprit lantul cand trezirea nu e detectata.
      */
     static void log(Context c, String line) {
-        android.util.Log.i("VWWelcome", line);
+        android.util.Log.i("FaikkitCar", line);
         prepend(c, "log", now() + "  " + line, LOG_MAX);
         if (Uploader.configured() && uploadEnabled(c)) {
             enqueue(c, System.currentTimeMillis(), line);
@@ -340,7 +340,7 @@ final class Prefs {
         PowerManager pm = c.getSystemService(PowerManager.class);
         boolean notif = Build.VERSION.SDK_INT < 33 || c.checkSelfPermission(
                 "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED;
-        return "VW Welcome " + version + " [" + c.getPackageName() + "]\n"
+        return "FaikkitCar " + version + " [" + c.getPackageName() + "]\n"
                 + "Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + "), "
                 + Build.MANUFACTURER + " " + Build.MODEL + "\n"
                 + "Build: " + Build.DISPLAY + "\n"

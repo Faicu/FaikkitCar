@@ -49,62 +49,35 @@ public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
     private static final int PERM_AUDIO = 3;
     private static final int PERM_LOCATION = 4;
-    /**
-     * Un pas al calibrarii: ce faci, o precizare si, optional, un numar citit de utilizator
-     * (ask = eticheta campului); fuel = pasul rezervorului, care trimite si o captura completa.
-     */
+    /** Un pas al calibrarii: ce faci si o precizare. */
     private static final class Step {
-        final String title, hint, ask;
-        final boolean fuel;
+        final String title, hint;
 
         Step(String title, String hint) {
-            this(title, hint, null, false);
-        }
-
-        Step(String title, String hint, String ask, boolean fuel) {
             this.title = title;
             this.hint = hint;
-            this.ask = ask;
-            this.fuel = fuel;
         }
     }
 
-    private static final String FUEL_HINT = "Daca stii cati litri sunt in rezervor, scrie-i; altfel "
-            + "lasa gol. Oricum se trimite la server o captura cu toate valorile; facuta o data "
-            + "inainte si o data dupa o alimentare, confirma codul rezervorului (c104).";
-    // Doar ce nu e sigur 100% (vezi CLAUDE.md): usile, centura, frana de mana, ventilatorul,
-    // temperatura climei, viteza, turatia etc. sunt stabilite. Totul cu motorul PORNIT si
-    // masina parcata: la 30.09/01.10 marsarierul si pedala de frana au fost testate doar cu
-    // motorul oprit, iar luminile doar cu sonda veche (fara modulele 1-17).
+    // Doar ce a ramas nesigur (vezi CLAUDE.md): c107, care a sarit la eliberarea franei de mana
+    // si n-a mai revenit, si marsarierul, care nu are un cod curat. Restul e confirmat.
     private static final Step[] STEPS = {
             new Step("Pregatire", "Masina parcata, motorul PORNIT, frana de mana trasa, schimbatorul "
-                    + "in punctul mort (neutru), climatronicul pe AUTO, luminile stinse. Apasa Gata."),
-            new Step("Apasa doar butonul AC", "Ledul de pe butonul AC trebuie sa se stinga. Nu atinge AUTO."),
-            new Step("Apasa din nou butonul AC", "Ledul AC se aprinde la loc."),
-            new Step("Mareste ventilatorul cu o treapta", "Ledul AUTO se stinge (iesi din modul automat)."),
-            new Step("Apasa butonul AUTO", "Ledul AUTO se aprinde la loc."),
-            new Step("Apasa pedala de frana si tine-o", "Cu motorul pornit; tine-o pana apesi Gata."),
-            new Step("Elibereaza pedala de frana", ""),
+                    + "in punctul mort (neutru). Apasa Gata."),
             new Step("Apasa pedala de frana si elibereaza frana de mana",
                     "Tine piciorul pe frana tot timpul; masina sta in neutru."),
             new Step("Trage frana de mana la loc", "Apoi poti lua piciorul de pe frana."),
             new Step("Baga marsarierul", "Ambreiajul apasat, piciorul pe frana, frana de mana trasa. "
                     + "Asteapta sa porneasca camera/radarul, apoi Gata."),
             new Step("Scoate marsarierul (neutru)", "Asteapta 2-3 secunde, apoi Gata."),
-            new Step("Aprinde faza scurta", "Butonul rotativ de lumini pe faza scurta."),
-            new Step("Stinge luminile", ""),
-            new Step("Semnalizare stanga", "Lasa-o sa clipeasca 2-3 secunde, apoi Gata."),
-            new Step("Opreste semnalizarea", ""),
-            new Step("Temperatura de afara", "Scrie cate grade arata bordul (ecranul dintre ceasuri).",
-                    "Grade pe bord", false),
-            new Step("Rezervorul", FUEL_HINT, "Litri in rezervor (optional)", true),
     };
-    private static final int FUEL_STEP = STEPS.length - 1;
     // Coduri deja stabilite sau care se schimba singure; nu le aratam in timpul calibrarii.
     private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
             "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
             "m7 c139", "m7 c104", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
             "m7 c101", "m7 c103", "m7 c21", "m7 c27", "m7 c28", "m7 c1019",
+            "m7 c10", "m7 c11", "m7 c13", "m7 c49", "m7 raw 0x21", "m7 raw 0x14",
+            "m1 c*", "m4 c*", "m8 c*",
             "m0 c41", "m0 c114", "m0 c115", "m0 c146", "m0 c179", "m0 c101", "m0 c40", "m0 c77"));
     private int calibStep = -1;
     private long stepStart;
@@ -157,7 +130,7 @@ public class MainActivity extends Activity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setPadding(dp(this, 14), 0, 0, 0);
-        texts.addView(Ui.text(this, "VW Welcome", 26, Ui.TEXT, true));
+        texts.addView(Ui.text(this, "FaikkitCar", 26, Ui.TEXT, true));
         texts.addView(Ui.text(this, "v" + BuildConfig.VERSION_NAME + " · Golf 6", 14, Ui.MUTED, false));
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
         statusPill = Ui.pill(this, "", Ui.OK);
@@ -285,7 +258,7 @@ public class MainActivity extends Activity {
         if (apk != null) {
             LinearLayout up = Ui.card(this, col);
             up.addView(Ui.text(this, "Versiune noua: " + apk.optString("versionName"), 19, Ui.ACCENT, true));
-            Ui.hint(this, up, "Se descarca de pe status.faicu.ro si se instaleaza peste aceasta; "
+            Ui.hint(this, up, "Se descarca de pe car.faicu.ro si se instaleaza peste aceasta; "
                     + "Android iti cere o confirmare.");
             Ui.addButton(this, up, "Actualizeaza acum", Ui.PRIMARY, v -> {
                 toast("Descarc actualizarea...");
@@ -310,28 +283,26 @@ public class MainActivity extends Activity {
                 rlp.topMargin = dp(this, 10);
                 mt.addView(row, rlp);
             }
-            Ui.hint(this, mt, "Se editeaza pe status.faicu.ro/calatorii.");
+            Ui.hint(this, mt, "Se editeaza pe car.faicu.ro.");
         }
 
         if (!batteryOk()) {
             LinearLayout warn = Ui.card(this, col);
             warn.addView(Ui.text(this, "Optimizarea bateriei e activa", 18, Ui.WARN, true));
-            Ui.hint(this, warn, "Android poate opri serviciul. Dezactiveaz-o pentru VW Welcome.");
+            Ui.hint(this, warn, "Android poate opri serviciul. Dezactiveaz-o pentru FaikkitCar.");
             Ui.addButton(this, warn, "Dezactiveaza optimizarea", Ui.SECONDARY, v -> askBattery());
         }
 
-        buildCalibration(col);
         buildTrips(col);
     }
 
     private void buildCalibration(LinearLayout col) {
         LinearLayout card = Ui.card(this, col);
-        Ui.title(this, card, "Calibrare CAN");
+        Ui.title(this, card, "Calibrare CAN (avansat)");
         if (calibStep < 0) {
-            Ui.hint(this, card, "Doar ce nu e sigur: butoanele AC / AUTO, pedala de frana, marsarierul "
-                    + "si luminile (cu motorul pornit), temperatura de afara si rezervorul. Masina "
-                    + "parcata, motorul pornit; ~3 minute. La fiecare pas vezi pe loc ce s-a schimbat. "
-                    + "„Doar rezervorul”: o captura inainte si una dupa alimentare.");
+            Ui.hint(this, card, "Doar ce a ramas nesigur: un cod legat de frana de mana (c107) si "
+                    + "marsarierul. Tot restul e confirmat; nu e nevoie s-o faci. Masina parcata, "
+                    + "motorul pornit; ~1 minut.");
             if (!calibResults.isEmpty()) {
                 TextView res = Ui.mono(this, String.join("\n", calibResults), 13);
                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
@@ -340,8 +311,6 @@ public class MainActivity extends Activity {
             }
             Ui.addButton(this, card, calibResults.isEmpty() ? "Incepe calibrarea" : "Reia calibrarea",
                     Ui.SECONDARY, v -> startCalibration(0, "start calibrare (doar necunoscutele)"));
-            Ui.addButton(this, card, "Doar rezervorul", Ui.SECONDARY,
-                    v -> startCalibration(FUEL_STEP, "start rezervor"));
             return;
         }
         Step step = STEPS[calibStep];
@@ -352,17 +321,7 @@ public class MainActivity extends Activity {
         card.addView(title, tlp);
         if (!step.hint.isEmpty()) Ui.hint(this, card, step.hint);
 
-        EditText liters = null;
-        if (step.ask != null) {
-            liters = Ui.field(this, card, step.ask, "", "", true);
-            // Temperatura poate fi negativa iarna.
-            liters.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                    | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-                    | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-            liveChanges = Ui.mono(this, "", 13);
-            card.addView(liveChanges);
-            updateLive();
-        } else {
+        {
             // Ce s-a schimbat de cand a aparut pasul, actualizat live de liveTick.
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
@@ -378,9 +337,8 @@ public class MainActivity extends Activity {
             updateLive();
         }
 
-        EditText litersField = liters;
         LinearLayout btns = new LinearLayout(this);
-        btns.addView(Ui.button(this, "Gata", Ui.PRIMARY, v -> calibNext(true, litersField)),
+        btns.addView(Ui.button(this, "Gata", Ui.PRIMARY, v -> calibNext(true)),
                 new LinearLayout.LayoutParams(0, -2, 2));
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1);
         rp.leftMargin = dp(this, 10);
@@ -391,7 +349,7 @@ public class MainActivity extends Activity {
         }), rp);
         LinearLayout.LayoutParams sk = new LinearLayout.LayoutParams(0, -2, 1);
         sk.leftMargin = dp(this, 10);
-        btns.addView(Ui.button(this, "Sari", Ui.SECONDARY, v -> calibNext(false, null)), sk);
+        btns.addView(Ui.button(this, "Sari", Ui.SECONDARY, v -> calibNext(false)), sk);
         LinearLayout.LayoutParams st = new LinearLayout.LayoutParams(0, -2, 1);
         st.leftMargin = dp(this, 10);
         btns.addView(Ui.button(this, "Opreste", Ui.DANGER, v -> {
@@ -433,48 +391,15 @@ public class MainActivity extends Activity {
     private void updateLive() {
         ui.removeCallbacks(liveTick);
         if (calibStep < 0 || liveChanges == null) return;
-        if (STEPS[calibStep].ask != null) {
-            int n = CanProbe.valueCount();
-            liveChanges.setText(n == 0 ? "sonda porneste..." : "coduri citite: " + n);
-        } else {
-            String changes = stepChanges();
-            liveChanges.setText(!CanProbe.isRunning() ? "sonda porneste..."
-                    : changes.isEmpty() ? "inca nimic — fa actiunea" : changes);
-        }
+        String changes = stepChanges();
+        liveChanges.setText(!CanProbe.isRunning() ? "sonda porneste..."
+                : changes.isEmpty() ? "inca nimic — fa actiunea" : changes);
         ui.postDelayed(liveTick, 700);
     }
 
-    private void calibNext(boolean done, EditText liters) {
+    private void calibNext(boolean done) {
         Step step = STEPS[calibStep];
-        String found;
-        if (step.ask != null && done) {
-            if (CanProbe.valueCount() == 0) {
-                toast("Sonda inca porneste, mai asteapta o clipa");
-                return;
-            }
-            String text = liters.getText().toString().trim().replace(',', '.');
-            Double value = null;
-            if (!text.isEmpty()) {
-                try {
-                    value = Double.parseDouble(text);
-                } catch (NumberFormatException e) {
-                    toast("Numar invalid");
-                    return;
-                }
-            } else if (!step.fuel) {
-                toast("Scrie numarul sau apasa Sari");
-                return;
-            }
-            if (step.fuel) CanProbe.snapshot(value == null ? "rezervor" : "rezervor " + value + " L");
-            if (value == null) {
-                found = "captura trimisa";
-            } else {
-                List<String> cand = CanProbe.findValue(value);
-                found = value + " -> " + (cand.isEmpty() ? "niciun cod cu aceasta valoare" : String.join(", ", cand));
-            }
-        } else {
-            found = done ? stepChanges().replace("\n", "; ") : "sarit";
-        }
+        String found = done ? stepChanges().replace("\n", "; ") : "sarit";
         if (found.isEmpty()) found = "nicio schimbare";
         CanProbe.mark((calibStep + 1) + " " + (done ? "GATA" : "SARIT") + ": " + step.title + " | " + found);
         if (calibStep > 0) calibResults.add((calibStep + 1) + ". " + step.title + ": " + found);
@@ -500,7 +425,7 @@ public class MainActivity extends Activity {
                 !on ? Ui.MUTED : gps ? Ui.OK : Ui.WARN));
         card.addView(head);
         Ui.hint(this, card, "Traseul, viteza, turatia si kilometrajul fiecarui drum, pe "
-                + "status.faicu.ro/calatorii. Puncte in asteptare: " + PointQueue.size(this));
+                + "car.faicu.ro. Puncte in asteptare: " + PointQueue.size(this));
         if (on && !gps) {
             Ui.addButton(this, card, "Permite localizarea", Ui.PRIMARY, v -> askLocation());
         }
@@ -654,7 +579,7 @@ public class MainActivity extends Activity {
         texts.addView(Ui.text(this, "Trimite jurnalul la server", 18, Ui.TEXT, true));
         String st = Prefs.uploadStatus(this);
         texts.addView(Ui.text(this, !Uploader.configured() ? "Indisponibil in acest build"
-                : "status.faicu.ro · in asteptare: " + Prefs.outboxSize(this)
+                : "car.faicu.ro · in asteptare: " + Prefs.outboxSize(this)
                         + (st.isEmpty() ? "" : " · ultima: " + st), 13, Ui.MUTED, false));
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
         Switch sw = new Switch(this);
@@ -675,7 +600,7 @@ public class MainActivity extends Activity {
         LinearLayout ttexts = new LinearLayout(this);
         ttexts.setOrientation(LinearLayout.VERTICAL);
         ttexts.addView(Ui.text(this, "Inregistreaza calatoriile", 18, Ui.TEXT, true));
-        ttexts.addView(Ui.text(this, "GPS + date de la masina, la status.faicu.ro/calatorii", 13,
+        ttexts.addView(Ui.text(this, "GPS + date de la masina, la car.faicu.ro", 13,
                 Ui.MUTED, false));
         trow.addView(ttexts, new LinearLayout.LayoutParams(0, -2, 1));
         Switch tsw = new Switch(this);
@@ -720,6 +645,8 @@ public class MainActivity extends Activity {
             toast("Serviciul ruleaza");
             ui.postDelayed(this::refresh, 800);
         });
+
+        buildCalibration(col);
     }
 
     /** Rand cu titlu, explicatie si comutator. */
@@ -761,7 +688,7 @@ public class MainActivity extends Activity {
 
         LinearLayout log = Ui.card(this, col);
         Ui.title(this, log, "Jurnal diagnostic");
-        Ui.hint(this, log, "Ultimele 100 de evenimente. Jurnalul complet e pe status.faicu.ro.");
+        Ui.hint(this, log, "Ultimele 100 de evenimente. Jurnalul complet e pe car.faicu.ro.");
         String l = Prefs.logText(this);
         TextView lt = Ui.mono(this, l.isEmpty() ? "gol" : l, 12);
         LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, -2);
@@ -770,7 +697,7 @@ public class MainActivity extends Activity {
         LinearLayout btns = new LinearLayout(this);
         btns.addView(Ui.button(this, "Copiaza", Ui.SECONDARY, v -> {
             getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(
-                    "VW Welcome", Prefs.deviceInfo(this) + "\n\nIstoric:\n" + Prefs.history(this)
+                    "FaikkitCar", Prefs.deviceInfo(this) + "\n\nIstoric:\n" + Prefs.history(this)
                             + "\n\nJurnal:\n" + Prefs.logText(this)));
             toast("Jurnal copiat in clipboard");
         }), new LinearLayout.LayoutParams(0, -2, 1));
@@ -975,7 +902,7 @@ public class MainActivity extends Activity {
             try {
                 startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
             } catch (Exception ignored) {
-                toast("Seteaza manual din Setari > Aplicatii > VW Welcome > Baterie");
+                toast("Seteaza manual din Setari > Aplicatii > FaikkitCar > Baterie");
             }
         }
     }

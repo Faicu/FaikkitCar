@@ -15,14 +15,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Trimite jurnalul la status.faicu.ro (pagina /vw), ca sa poata fi citit de la distanta.
+ * Trimite jurnalul la car.faicu.ro (fila Jurnal), ca sa poata fi citit de la distanta.
  * Liniile stau in coada din Prefs pana primim 200; dupa trezire internetul revine abia
  * dupa cateva secunde, deci trimiterea se reia la revenirea retelei si periodic din tick.
  * Aici nu scriem cu Prefs.log: fiecare linie noua ar intra din nou in coada.
  */
 final class Uploader {
-    private static final String URL_LOG = "https://status.faicu.ro/api/vw-log";
-    private static final String URL_TRIP = "https://status.faicu.ro/api/vw-trip";
+    private static final String URL_LOG = "https://car.faicu.ro/api/car/log";
+    private static final String URL_TRIP = "https://car.faicu.ro/api/car/trip";
     private static final int POINT_BATCH = 300;
     private static final int BATCH = 100;
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
@@ -97,7 +97,7 @@ final class Uploader {
             int code = conn.getResponseCode();
             return code == 200 ? null : "HTTP " + code;
         } catch (Exception e) {
-            Log.w("VWWelcome", "Trimitere jurnal esuata", e);
+            Log.w("FaikkitCar", "Trimitere jurnal esuata", e);
             return e.getClass().getSimpleName();
         } finally {
             if (conn != null) conn.disconnect();

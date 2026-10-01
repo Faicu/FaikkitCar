@@ -1,8 +1,38 @@
-# VW Welcome – context pentru Claude
+# FaikkitCar – context pentru Claude
 
 Utilizatorul scrie în română; răspunde în română.
 
-## Ce e
+## Proiectul (de la 01.10.2026, fost „VW Welcome”)
+
+Repo `Faicu/faikkitcar` (fost `welcometovw`; GitHub redirecționează), pe server în
+`/opt/faikkitcar`. Proiect complet separat de FaikkitBox (`/opt/faikkitbox`): nimic despre
+mașină nu mai trebuie să rămână acolo.
+
+- `app/`: aplicația din mașină, **FaikkitCar** (+ „FaikkitCar Start” pentru autostart).
+  `applicationId` rămâne `com.mapgoo.diruite` (lista albă Teyes) și pachetul Java rămâne
+  `ro.faicu.vwwelcome` (lista de autostart Teyes reține componenta exactă).
+- `web/`: serverul **car.faicu.ro** (Cloudflare Tunnel → `http://192.168.1.192:3001`),
+  serviciul systemd `faikkitcar` (unitatea în `deploy/faikkitcar.service`, utilizator
+  `faikkitcar`, `ProtectSystem=strict`, scrie doar în `/opt/faikkitcar/data`). Node 22
+  rulează direct `server/index.ts` (Hono, `node:sqlite`, tipurile TS se șterg, deci doar
+  sintaxă ștergibilă și importuri cu `.ts`); site-ul e React + Vite + Tailwind în `web/src`,
+  construit în `web/dist` (`npm run build`, apoi `systemctl restart faikkitcar`).
+  Config în `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS`
+  (login site + Panel), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`).
+  Date în `/opt/faikkitcar/data`: `faikkitcar.db` (tabele `log`, `trip_point`, `reminder`,
+  `refuel`), `apk/`, `tts/` (cache voce), `piper/` (binar + model, nu în git).
+  API mașină (Bearer `CAR_TOKEN`): `POST /api/car/log`, `POST /api/car/trip`,
+  `GET /api/car/status`, `POST /api/car/tts`, `GET|POST /api/car/apk`,
+  `GET /api/car/apk/download`. API utilizator (cookie `fc_session` sau Bearer din
+  `POST /api/login`): `/api/trips`, `/api/trips/points`, `/api/car`, `/api/reminders…`,
+  `/api/fuel`, `/api/refuels…`, `/api/log`. Fără ștergerea jurnalului (nu se pierde nimic).
+  Datele din FaikkitBox au fost copiate cu `web/scripts/import-faikkitbox.ts` (idempotent,
+  verifică rând cu rând); copie de siguranță în `/root/backups/faikkitcar-20261001-215730`.
+- `panel/` (în lucru): aplicația nativă **FaikkitCar Panel** pentru telefon, cu datele de
+  pe car.faicu.ro prin același API.
+- Remote Control: `claude.service` va porni două sesiuni tmux, `faikkitbox` și `faikkitcar`.
+
+## Aplicația din mașină
 
 Aplicație Android nativă în Java (fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34,
 AGP 8.5.2; namespace/cod Java `ro.faicu.vwwelcome`, dar `applicationId` =
@@ -29,11 +59,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   preferințele `cfg` (rescrise la ~15 s de `lastAlive`), jurnalul și istoricul în
   `journal` (fără migrare: pachetul `com.mapgoo.diruite` a pornit curat). `deviceInfo()` dă antetul
   jurnalului copiat (versiuni, model, optimizare baterie, notificări, setări).
-- `Uploader`: trimite jurnalul la `https://status.faicu.ro/api/vw-log` (FaikkitBox din
-  `/opt/faikkitbox`, pagina admin `/vw`, tabela `vw_log`; citibil direct din
-  `/opt/faikkitbox/data/faikkitbox.db`). Coadă `outbox` în `journal` (max 2000), loturi de
-  100, `Authorization: Bearer` cu `BuildConfig.VW_LOG_TOKEN` (secret GitHub
-  `VW_LOG_TOKEN` = `VW_LOG_TOKEN` din `/opt/faikkitbox/.env`). Declanșat la fiecare
+- `Uploader`: trimite jurnalul la `https://car.faicu.ro/api/car/log` (fila Jurnal, tabela
+  `log`; citibil direct din `/opt/faikkitcar/data/faikkitcar.db`). Coadă `outbox` în
+  `journal` (max 2000), loturi de 100, `Authorization: Bearer` cu `BuildConfig.VW_LOG_TOKEN`
+  (secret GitHub `VW_LOG_TOKEN` = `CAR_TOKEN` din `/opt/faikkitcar/.env`). Declanșat la fiecare
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
   folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
 - `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
@@ -90,8 +119,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   c104 = litrii din rezervor, jurnal „Rezervor: N L” la prima valoare și la salturi ≥ 3 L),
   `TripRecorder` (GPS `LocationManager` + CanLink; punct la 5 s în mers, 30 s cu motorul pe loc,
   nimic cu motorul oprit, plus unul la oprire), `PointQueue` (fișier JSONL în filesDir, max
-  40.000), trimise de `Uploader` la `/api/vw-trip` în loturi de 300. Serverul (FaikkitBox,
-  tabela `vw_trip_point`, pagina `/calatorii`) împarte în călătorii la pauze > 5 min.
+  40.000), trimise de `Uploader` la `/api/car/trip` în loturi de 300. Serverul (tabela `trip_point`,
+  fila Mașina) împarte în călătorii la pauze > 5 min.
   Serviciul are `foregroundServiceType="location"`; permisiunea se cere din aplicație.
 - Rezultate calibrare 1.1.31 (01.10 seara, motor pornit): c11 = AC ✓ (bitul 0x40 din 0x21),
   c49 = AUTO ✓ (0 la ventilator manual), c139 = temperatura exterioară ×10 ✓ (19 °C pe bord
@@ -99,7 +128,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   din 0x24 = frâna de mână (cu c103). NU sunt transmise: pedala de frână, semnalizarea,
   ștergătoarele. Marșarierul nu are cod curat (doar m0 c68 și radarul 0x22). c107 rămâne
   neclar (stă pe 1). Rezervorul a scăzut 22 → 21 L după drum, coerent cu c104.
-- Calibrare CAN de la 1.1.31 (motor pornit, mașina parcată): AC / AUTO separat, pedala de
+- Calibrare CAN de la 1.1.32: doar c107 (frâna de mână) și marșarierul, în Setări („avansat”);
+  restul e confirmat. 1.1.31 (motor pornit, mașina parcată): AC / AUTO separat, pedala de
   frână, frâna de mână (pentru c107), marșarierul, faza scurtă, semnalizarea, temperatura de
   pe bord (număr introdus → `findValue`, confirmă c139) și rezervorul (opțional + captură).
   Pașii cu număr au `Step.ask`. Varianta 1.1.24–1.1.30, descrisă mai jos: pedala de frână vs.
@@ -108,16 +138,17 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   opționali (Car Info nu mai afișează nimic din 01.10; dacă sunt, `CanProbe.findValue` caută
   codurile cu acea valoare, ×1/×10/×100) și se trimite mereu `CanProbe.snapshot`; butonul
   „Doar rezervorul” sare direct la acest pas (captură înainte/după alimentare, comparate pe
-  server din `vw_log`). Sonda 10 min;
+  server din `log`). Sonda 10 min;
   la fiecare pas UI-ul arată live schimbările (`CanProbe.changesSince`, fără codurile din
   `KNOWN`), iar marcajul „CAN MARK n GATA: … | schimbări” le trimite la server. Cadrele brute
   Raise au cheie proprie pe comandă („m7 raw 0x21”, „m7 raw 0x41/2”).
-- `VwStatus`: `/api/vw-status` (kilometraj, mentenanță, ultimul APK), reîmprospătat de
+- `VwStatus`: `/api/car/status` (kilometraj, mentenanță, ultimul APK), reîmprospătat de
   `Uploader` după trimitere dacă e mai vechi de 30 min și din aplicație; salvat în Prefs.
 - `Updater`: dacă `apk.versionCode` de pe server > `BuildConfig.VERSION_CODE`, butonul
-  „Actualizează acum” descarcă `/api/vw-apk/download` și instalează prin `PackageInstaller`
+  „Actualizează acum” descarcă `/api/car/apk/download` și instalează prin `PackageInstaller`
   (confirmare Android prin `Updater$Result`; prima dată cere „surse necunoscute”). CI
-  publică APK-ul la `POST /api/vw-apk` după fiecare build pe main.
+  publică APK-ul la `POST /api/car/apk` după fiecare build pe main (și, temporar, la vechiul
+  `status.faicu.ro/api/vw-apk`, ca mașina cu 1.1.31 să se poată actualiza; se scoate după).
 - `Speaker` (TextToSpeech, ro-RO, ca ghidare de navigație; bip dacă nu există voce; la
   fiecare mesaj alege cea mai bună voce română: calitate, apoi online dacă rețeaua e validată;
   scrie lista vocilor în jurnal, „Voce: voci romane …”; vocea implicită suna robotic) +
@@ -125,10 +156,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   mentenanța scadentă), avertizare „ușă deschisă” la ≥ 5 km/h (uși c1–c5 din `CanLink`).
   Logica e în `TripRecorder.monitor` (deci merge doar cu călătoriile pornite); tot acolo
   GPS-ul se oprește după 1 min cu motorul oprit (rpm 0) și repornește la turație/mers.
-- Pe server (FaikkitBox): `/calatorii` are buton „Ascunde pornirile pe loc” (< 0,3 km și
+- Pe car.faicu.ro, fila Mașina: buton „Ascunde pornirile pe loc” (< 0,3 km și
   < 8 km/h; totalurile le includ), „Unde e mașina” (ultimul punct GPS),
-  Mentenanța (tabela `vw_reminder`) și Alimentările (tabela `vw_refuel`, commit local
-  `fc7d1d7`). Combustibilul pe călătorie e estimat în `src/lib/vw/vw-fuel-model.ts` (linia
+  Mentenanța (tabela `reminder`) și Alimentările (tabela `refuel`). Combustibilul pe
+  călătorie e estimat în `web/server/fuel-model.ts` (linia
   Willans: lucru la roți din viteză + rotații × L/rotație, Golf 6 1.2 TSI) și înmulțit cu
   factorul din intervalele plin → plin (ultimele 5, limitat la 0,4–2,5); costul = litri ×
   prețul ultimei alimentări. Drumul din 01.10 (3 km, 9 min pe loc) ≈ 0,38 L brut.
@@ -140,7 +171,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   ca trezire „pornire proces”. Pauza implicită e 5 s, plus `sleep_extra` (implicit 2 s,
   setabil în UI) când procesorul a dormit ≥60 s de la ultimul tick (`sleptAtTick`): după o
   hibernare de ~1 h se pierdea ~1 s din sunet la 5 s pauză.
-- `StartActivity` („VW Welcome Start”, a doua iconiță, translucidă, fără UI): pentru
+- `StartActivity` („FaikkitCar Start”, a doua iconiță, translucidă, fără UI): pentru
   lista de autostart Teyes, care o lansează la ACC ON. Pornește serviciul cu extra
   `acc_on` (`WelcomeService.startAccOn`) → `onStartCommand` redă direct („autostart
   (ACC ON)”), fără să ceară o pauză. Motiv: la primul test real (30.09) o oprire scurtă de
@@ -165,8 +196,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 
 - Nu există Gradle wrapper; CI folosește Gradle 8.7 / JDK 17 (`gradle assembleDebug`).
 - `.github/workflows/build.yml` rulează la push și `workflow_dispatch`, publică artifactul
-  `vw-welcome-apk` și un GitHub Release `build-<run_number>` marcat latest.
-  Descărcare: https://github.com/Faicu/welcometovw/releases/latest/download/VWWelcome.apk
+  `faikkitcar-apk` și un GitHub Release `build-<run_number>` marcat latest (nu rulează pentru
+  `web/**`, `deploy/**`, `*.md`). Descărcare:
+  https://github.com/Faicu/faikkitcar/releases/latest/download/FaikkitCar.apk
 - Secretul `VW_LOG_TOKEN` e transmis la `gradle assembleDebug`; fără el build-ul merge,
   dar trimiterea jurnalului e dezactivată.
 - Semnare: secretele repo `KEYSTORE_BASE64` și `KEYSTORE_PASSWORD` (deja adăugate; PKCS12,
@@ -195,16 +227,16 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   relanti 635–750 rpm, 1100–1700 rpm la 25–50 km/h, 13,9–14,55 V cu motorul pornit,
   12,5–14 °C dimineața, kilometraj 245067→245070 pe ~3 km. Kilometrajul și temperatura
   nu sunt încă comparate de utilizator cu bordul.
-- Confirmat din jurnal (01.10, 1.1.24): primul drum înregistrat (`vw_trip_point`), salutul
+- Confirmat din jurnal (01.10, 1.1.24): primul drum înregistrat, salutul
   rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. Actualizarea din
   aplicație merge (1.1.24 → 1.1.27, 01.10 seara). Voci române: `ro-ro-x-vfv-local` și
   `ro-ro-x-vfv-network`, ambele q400; cea online întârzie ~3 s, deci de la 1.1.29
   avertizările folosesc vocea locală. Ambele voci sună robotic (utilizatorul, 01.10), deci de la 1.1.30
-  salutul (neurgent, cu internet) vine ca MP3 de la `POST /api/vw-tts` (FaikkitBox, Piper
-  `ro_RO-mihai-medium` în `/opt/faikkitbox/data/piper`, nu în git; commit local `1e3faa4`),
+  salutul (neurgent, cu internet) vine ca MP3 de la `POST /api/car/tts` (Piper
+  `ro_RO-mihai-medium` în `/opt/faikkitcar/data/piper`, nu în git),
   redat ca ghidare de navigație; fără internet sau la eroare rămâne TextToSpeech. Confirmat
   în mașină pe 01.10 (1.1.30): „se aude destul de bine”. Netestat încă: avertizarea de ușă.
-- Consum (FaikkitBox, commit local `bc95ca6`): consumul real = nivelul de la început −
+- Consum (`web/server/fuel.ts`): consumul real = nivelul de la început −
   cel de la sfârșit + salturile ≥ 3 L (alimentări), pe ultimele 90 de zile; de la 8 L
   consumați calibrează estimarea pe drum (altfel plinurile, altfel factor 1).
 - (Istoric) În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
@@ -212,8 +244,6 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
   Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
   calibrată din turație × timp).
-- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`, `70c28ee`, `1e3faa4`, `bc95ca6`, `388074c`) se
-  împing de utilizator din pagina Tehnic; nu face push acolo.
-- Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
+- Idei neîncepute: alertă pe telefon la pornirea mașinii (prin FaikkitCar Panel), ore de
   liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),
   adaptor OBD2 pentru consum instantaneu.

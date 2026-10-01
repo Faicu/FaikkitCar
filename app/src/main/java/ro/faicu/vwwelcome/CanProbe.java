@@ -12,14 +12,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Sonda CAN, pornita doar de calibrare: asculta toate codurile modulelor MainServer-ului FYT
  * (vezi Syu) si tine local valorile si ultimele schimbari, pentru afisarea live. La server
- * ajung doar marcajele calibrarii ("CAN MARK ...", cu schimbarile pasului) si capturile
- * complete ("CAN SNAP ..."), nu fiecare schimbare.
+ * ajung doar marcajele calibrarii ("CAN MARK ...", cu schimbarile pasului), nu fiecare
+ * schimbare.
  */
 final class CanProbe {
     private static final int MAX_LINES = 5000;
@@ -50,7 +49,7 @@ final class CanProbe {
 
     private final Context c;
     private final Handler handler;
-    // Citit si din UI (findValue), deci concurent.
+    // Citit din firul sondei si la oprire.
     private final Map<String, String> lastValue = new ConcurrentHashMap<>();
     private final List<String> lines = new ArrayList<>();
     private final List<Long> times = new ArrayList<>();
@@ -80,11 +79,6 @@ final class CanProbe {
         return running != null;
     }
 
-    /** Cate coduri au trimis deja o valoare (0 cat timp sonda abia porneste). */
-    static synchronized int valueCount() {
-        return running == null ? 0 : running.lastValue.size();
-    }
-
     /** Schimbarile de dupa momentul t, fara codurile din ignore (chei "m7 c110" sau prefixe). */
     static List<Change> changesSince(long t, Set<String> ignore) {
         List<Change> out = new ArrayList<>();
@@ -104,38 +98,6 @@ final class CanProbe {
         return out;
     }
 
-    /**
-     * Codurile a caror valoare curenta se potriveste cu numarul dat (litrii din rezervor,
-     * temperatura de pe bord): egal, x10 sau x100, cu o marja de o unitate pentru rotunjire.
-     */
-    static synchronized List<String> findValue(double target) {
-        List<String> out = new ArrayList<>();
-        if (running == null) return out;
-        long[] wanted = {Math.round(target), Math.round(target * 10), Math.round(target * 100)};
-        for (Map.Entry<String, String> e : running.lastValue.entrySet()) {
-            String v = e.getValue();
-            int a = v.indexOf("i=["), b = v.indexOf(']', a + 3);
-            if (a < 0 || b < 0) continue;
-            String[] parts = v.substring(a + 3, b).split(",\\s*");
-            for (int i = 0; i < parts.length; i++) {
-                long n;
-                try {
-                    n = Long.parseLong(parts[i].trim());
-                } catch (NumberFormatException ex) {
-                    continue;
-                }
-                for (long w : wanted) {
-                    // Si valori negative (temperatura iarna); 0 s-ar potrivi cu prea multe coduri.
-                    if (w != 0 && Math.abs(n - w) <= Math.max(1, Math.abs(w) / 100)) {
-                        out.add(e.getKey() + (parts.length > 1 ? "[" + i + "]" : "") + "=" + n);
-                        break;
-                    }
-                }
-            }
-        }
-        return out;
-    }
-
     /** "i=[1]" -> "1"; restul ramane cum e. */
     static String shortValue(String v) {
         if (v == null) return "?";
@@ -149,21 +111,6 @@ final class CanProbe {
         long t = System.currentTimeMillis();
         CanProbe p = running;
         p.handler.post(() -> p.add("CAN MARK " + text, t));
-    }
-
-    /** Toate valorile curente (in ordinea cheilor), ca sa le comparam pe server intre doua capturi. */
-    static synchronized void snapshot(String label) {
-        if (running == null) return;
-        long t = System.currentTimeMillis();
-        CanProbe p = running;
-        p.handler.post(() -> {
-            Map<String, String> all = new TreeMap<>(p.lastValue);
-            all.remove("m0 c77"); // atingerile pe ecran
-            p.add("CAN SNAP " + label + ": " + all.size() + " coduri", t);
-            for (Map.Entry<String, String> e : all.entrySet()) {
-                p.add("CAN SNAP " + label + " " + e.getKey() + " " + e.getValue(), t);
-            }
-        });
     }
 
     private final ServiceConnection conn = new ServiceConnection() {

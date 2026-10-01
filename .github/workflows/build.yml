@@ -2,6 +2,11 @@ name: Build APK
 
 on:
   push:
+    # Site-ul (web/) și documentația nu schimbă APK-ul: nu facem o versiune nouă pentru ele.
+    paths-ignore:
+      - 'web/**'
+      - 'deploy/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
@@ -33,32 +38,37 @@ jobs:
         env:
           SIGNING_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           VW_LOG_TOKEN: ${{ secrets.VW_LOG_TOKEN }}
-      - run: cp app/build/outputs/apk/debug/app-debug.apk VWWelcome.apk
-      # Actualizarea din aplicatie ia APK-ul de pe status.faicu.ro (FaikkitBox, /api/vw-apk).
-      - name: Publish APK to status.faicu.ro
+      - run: cp app/build/outputs/apk/debug/app-debug.apk FaikkitCar.apk
+      # Actualizarea din aplicatie ia APK-ul de pe car.faicu.ro (/api/car/apk).
+      - name: Publish APK to car.faicu.ro
         if: github.ref == 'refs/heads/main'
         env:
           VW_LOG_TOKEN: ${{ secrets.VW_LOG_TOKEN }}
         run: |
           if [ -z "$VW_LOG_TOKEN" ]; then echo "::warning::VW_LOG_TOKEN lipseste, APK-ul nu e publicat"; exit 0; fi
-          curl -sS --fail-with-body -X POST \
-            -H "Authorization: Bearer $VW_LOG_TOKEN" \
-            -H "X-Version-Code: ${{ github.run_number }}" \
-            -H "X-Version-Name: 1.1.${{ github.run_number }}" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @VWWelcome.apk https://status.faicu.ro/api/vw-apk \
-            || echo "::warning::Publicarea APK-ului pe status.faicu.ro a esuat"
+          publish() {
+            curl -sS --fail-with-body -X POST \
+              -H "Authorization: Bearer $VW_LOG_TOKEN" \
+              -H "X-Version-Code: ${{ github.run_number }}" \
+              -H "X-Version-Name: 1.1.${{ github.run_number }}" \
+              -H "Content-Type: application/vnd.android.package-archive" \
+              --data-binary @FaikkitCar.apk "$1"
+          }
+          publish https://car.faicu.ro/api/car/apk || echo "::warning::Publicarea pe car.faicu.ro a esuat"
+          # Tranzitie: aplicatiile pana la 1.1.31 cauta actualizari pe status.faicu.ro.
+          # Se scoate dupa ce masina ruleaza o versiune FaikkitCar.
+          publish https://status.faicu.ro/api/vw-apk || echo "::warning::Publicarea pe status.faicu.ro a esuat"
       - uses: actions/upload-artifact@v4
         with:
-          name: vw-welcome-apk
-          path: VWWelcome.apk
+          name: faikkitcar-apk
+          path: FaikkitCar.apk
       # Fiecare build devine un release nou, marcat "latest", deci linkul
-      # releases/latest/download/VWWelcome.apk arata mereu ultimul APK.
+      # releases/latest/download/FaikkitCar.apk arata mereu ultimul APK.
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: VW Welcome build ${{ github.run_number }}
+          name: FaikkitCar build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           body: "APK de debug construit din ${{ github.ref_name }} @ ${{ github.sha }}."
           make_latest: true
-          files: VWWelcome.apk
+          files: FaikkitCar.apk

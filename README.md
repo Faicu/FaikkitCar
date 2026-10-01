@@ -1,16 +1,19 @@
-# VW Welcome
+# FaikkitCar
+
+> Fost „VW Welcome”. Proiectul are trei părți: aplicația din mașină (**FaikkitCar**, `app/`),
+> site-ul **car.faicu.ro** (`web/`) și aplicația de telefon **FaikkitCar Panel** (`panel/`, în lucru).
 
 Aplicație Android pentru navigația **Teyes CC3 2K** din **VW Golf 6** (1.2 TSI, 2012):
 redă un sunet de bun venit la fiecare pornire a mașinii și a crescut într-un mic
 „calculator de bord” conectat: călătorii cu hartă, date de la mașină, mentenanță, voce în
-mers, actualizări din aplicație. Totul se vede și de la distanță, pe `status.faicu.ro`.
+mers, actualizări din aplicație. Totul se vede și de la distanță, pe `car.faicu.ro`.
 
 | | |
 |---|---|
 | **Versiune curentă** | 1.1.31 (`build-31`), pachet `com.mapgoo.diruite` |
-| **Descărcare** | [VWWelcome.apk (ultimul build)](https://github.com/Faicu/welcometovw/releases/latest/download/VWWelcome.apk) sau din aplicație, „Actualizează acum” |
-| **De la distanță** | `status.faicu.ro/vw` (jurnal) · `status.faicu.ro/calatorii` (călătorii, poziție, mentenanță) |
-| **Actualizat** | 30.09.2026 |
+| **Descărcare** | [FaikkitCar.apk (ultimul build)](https://github.com/Faicu/faikkitcar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” |
+| **De la distanță** | `car.faicu.ro` (fila Mașina: poziție, călătorii, alimentări, mentenanță · fila Jurnal) |
+| **Actualizat** | 01.10.2026 |
 
 ---
 
@@ -38,7 +41,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 
 | Funcție | Stare | Detalii |
 |---|---|---|
-| Sunet la pornire după o oprire scurtă | ✅ | Prin autostart-ul Teyes („VW Welcome Start”). La opriri scurte navigația nu doarme deloc |
+| Sunet la pornire după o oprire scurtă | ✅ | Prin autostart-ul Teyes („FaikkitCar Start”). La opriri scurte navigația nu doarme deloc |
 | Sunet după hibernare (opriri lungi) | ✅ | Serviciul supraviețuiește somnului și măsoară pauza. Testat ~1 h și ~8 min |
 | Pauză înainte de redare | ✅ | 5 s, plus încă 2 s după o hibernare adevărată: amplificatorul pornește mai greu |
 | Anti-dublare | ✅ | Autostart și pauza detectată în același timp dau o singură redare (fereastră de 20 s) |
@@ -62,14 +65,14 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | Citirea datelor CAN prin MainServer | ✅ | Găsite cu sonda și calibrarea ghidată, vezi [Datele mașinii](#datele-mașinii-can) |
 | Calibrare doar pentru ce nu știm (frână, marșarier, centură, clima, ștergătoare, rezervor) | 🧪 | Arată live ce s-a schimbat la fiecare pas; sonda pornește doar de aici |
 | Înregistrarea călătoriilor (GPS + CAN) | ✅ | Punct la 5 s în mers, 30 s pe loc cu motorul pornit, nimic cu motorul oprit. Primul drum real pe 01.10 |
-| Pagina `/calatorii`: hartă, grafic viteză/turație, totaluri | 🧪 | Testată pe server cu date de probă; așteaptă primul drum real |
+| Site-ul car.faicu.ro: hartă, grafic viteză/turație, totaluri | 🧪 | Testată pe server cu date de probă; așteaptă primul drum real |
 | „Unde e mașina” (ultima poziție, Google Maps) | 🧪 | |
 | GPS oprit cu motorul oprit | ✅ | Văzut în jurnal pe 01.10. După 1 min cu turația 0, pornit din nou la turație sau mers |
-| Mentenanță după km/dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe `/calatorii`; cele scadente apar și pe navigație și în salut |
+| Mentenanță după km/dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe car.faicu.ro; cele scadente apar și pe navigație și în salut |
 | Salut vorbit după 3 min de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Google TTS are română (rostit pe 01.10). Vocile Google de pe navigație sună robotic; de la 1.1.30 salutul vine de pe server, cu vocea Piper „Mihai” (fără internet rămâne Google); confirmată în mașină |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Voce sau bip |
 | Nivelul combustibilului | ✅ | c104, în litri; confirmat la alimentarea din 01.10 (21 → 38 L pentru 16 L pe bon) |
-| Jurnal de alimentări și cost pe călătorie | 🧪 | Pe `/calatorii`: consumul real din nivelul rezervorului (fără plinuri) calibrează estimarea pe drum (din viteză și turație); costul cu prețul ultimei alimentări |
+| Jurnal de alimentări și cost pe călătorie | 🧪 | Pe car.faicu.ro: consumul real din nivelul rezervorului (fără plinuri) calibrează estimarea pe drum (din viteză și turație); costul cu prețul ultimei alimentări |
 
 ---
 
@@ -81,7 +84,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
    consumul și costul se calculează pe fiecare călătorie. Fără el: jurnal de alimentări
    introdus manual, plus estimare calibrată din turație și timp (±10–15%).
 3. **Primele drumuri reale:** verificarea traseelor, a distanțelor și a împărțirii în
-   călătorii pe `/calatorii`.
+   călătorii pe car.faicu.ro.
 4. **Vocea:** Setări → „Ascultă salutul acum”. Jurnalul arată dacă există un motor de
    voce în română. Dacă nu există, salutul se face din MP3-uri sau se instalează un
    motor de voce.
@@ -101,17 +104,17 @@ flowchart LR
     DEC["Decodor CAN (Raise)"]
     MS["MainServer<br/>com.syu.ms"]
     AS["Autostart Teyes"]
-    subgraph App["VW Welcome (com.mapgoo.diruite)"]
+    subgraph App["FaikkitCar (com.mapgoo.diruite)"]
       WS["WelcomeService<br/>detecție pornire + sunet"]
       TR["TripRecorder<br/>GPS + CAN, voce, uși"]
       CL["CanLink / CanProbe"]
       UP["Uploader<br/>cozi locale"]
     end
   end
-  subgraph Server["status.faicu.ro (FaikkitBox)"]
-    API["/api/vw-log · vw-trip · vw-status · vw-apk"]
+  subgraph Server["car.faicu.ro (web/, serviciul faikkitcar)"]
+    API["/api/car/log · trip · status · tts · apk"]
     DB[("SQLite")]
-    PG["Pagini /vw și /calatorii"]
+    PG["Site: Mașina, Jurnal"]
   end
   GH["GitHub Actions<br/>build + semnare"]
 
@@ -133,7 +136,7 @@ folosește mai multe căi, iar prima care prinde pornirea redă sunetul:
 
 | Situație | Ce face Teyes | Ce prinde pornirea |
 |---|---|---|
-| Oprire scurtă (sub ~10 min) | Doar stinge ecranul; procesorul merge mai departe | **Autostart-ul Teyes**, care lansează „VW Welcome Start” la ACC ON |
+| Oprire scurtă (sub ~10 min) | Doar stinge ecranul; procesorul merge mai departe | **Autostart-ul Teyes**, care lansează „FaikkitCar Start” la ACC ON |
 | Oprire lungă | Intră în somn la ~10 min după ACC OFF | **Pauza măsurată de serviciu**; de obicei vine și autostart-ul |
 | Boot complet (după ~72 h sau reporniri periodice) | Pornește de la zero | **Contorul de boot-uri** Android |
 
@@ -180,18 +183,22 @@ Găsite cu sonda CAN și cu calibrarea ghidată. Modul 7 = CANBUS, modul 0 = pri
 
 ---
 
-## Serverul `status.faicu.ro` (FaikkitBox)
+## Serverul `car.faicu.ro` (`web/`)
 
-Codul e în `/opt/faikkitbox` (repo separat). Rutele VW folosesc cheia `VW_LOG_TOKEN`.
+Rulează pe același server cu FaikkitBox, dar complet separat: `/opt/faikkitcar`, serviciul
+systemd `faikkitcar`, portul 3001, prin Cloudflare Tunnel. Node + Hono, SQLite, site React.
 
-| Rută / pagină | Rol |
+| Rută | Rol |
 |---|---|
-| `POST /api/vw-log` | Jurnalul aplicației (tabela `vw_log`, ultimele 200.000 de linii) |
-| `POST /api/vw-trip` | Punctele de traseu (tabela `vw_trip_point`) |
-| `GET /api/vw-status` | Kilometraj, mentenanță și ultimul APK, citite de aplicație |
-| `POST /api/vw-apk`, `GET /api/vw-apk/download` | APK-ul publicat de CI și descărcat de aplicație |
-| `/vw` (admin) | Jurnalul live, cu filtru „doar evenimente” |
-| `/calatorii` (admin) | Unde e mașina, totaluri, lista călătoriilor, hartă, grafic, mentenanță |
+| `POST /api/car/log` | Jurnalul aplicației (tabela `log`, ultimele 200.000 de linii) |
+| `POST /api/car/trip` | Punctele de traseu (tabela `trip_point`) |
+| `GET /api/car/status` | Kilometraj, mentenanță și ultimul APK, citite de aplicație |
+| `POST /api/car/tts` | Salutul vorbit, vocea Piper „Mihai” (MP3) |
+| `POST /api/car/apk`, `GET /api/car/apk/download` | APK-ul publicat de CI și descărcat de aplicație |
+| `POST /api/login` + `/api/trips`, `/api/car`, `/api/fuel`, `/api/log`… | Site-ul și aplicația Panel (cu login) |
+
+Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN` în `/opt/faikkitcar/.env`); restul,
+login-ul din același fișier.
 
 ---
 
@@ -200,7 +207,7 @@ Codul e în `/opt/faikkitbox` (repo separat). Rutele VW folosesc cheia `VW_LOG_T
 1. Instalează APK-ul. Versiunile următoare vin din aplicație: Acasă → „Actualizează acum”.
 2. **Sunete:** „+ Adaugă sunete” și alegi din lista fișierelor audio de pe navigație.
 3. **Setări:** dezactivează optimizarea bateriei și permite localizarea când ți se cere.
-4. **Autostart Teyes:** adaugă „VW Welcome Start”.
+4. **Autostart Teyes:** adaugă „FaikkitCar Start” (fostul „VW Welcome Start”, aceeași intrare).
 5. Test: Acasă → „▶ Redă acum”.
 
 ---
@@ -209,13 +216,15 @@ Codul e în `/opt/faikkitbox` (repo separat). Rutele VW folosesc cheia `VW_LOG_T
 
 - GitHub Actions (`.github/workflows/build.yml`), Gradle 8.7 / JDK 17, la fiecare push:
   APK de debug semnat, GitHub Release `build-N` (marcat „latest”) și publicare pe
-  `status.faicu.ro/api/vw-apk`. Commit-urile cu `[skip ci]` nu fac build.
+  `car.faicu.ro/api/car/apk`. Commit-urile cu `[skip ci]` și cele doar în `web/`,
+  `deploy/` sau `*.md` nu fac build.
 - Versiune: `versionCode` = numărul build-ului, `versionName` = `1.1.<N>`.
 - Secretele repo-ului (Settings → Secrets and variables → Actions):
   - `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`: cheia de semnare (PKCS12, alias `vwwelcome`).
     Aceeași cheie la fiecare build, altfel actualizarea cere dezinstalare. **Păstrează o
     copie a keystore-ului.**
-  - `VW_LOG_TOKEN`: cheia pentru `status.faicu.ro`, aceeași ca în `/opt/faikkitbox/.env`.
+  - `VW_LOG_TOKEN`: cheia mașinii pentru `car.faicu.ro`, aceeași ca `CAR_TOKEN` din
+    `/opt/faikkitcar/.env`.
 - Local: `gradle assembleDebug` (necesită Android SDK cu platforma 34).
 
 ---

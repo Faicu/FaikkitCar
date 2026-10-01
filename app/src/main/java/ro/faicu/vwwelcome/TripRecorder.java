@@ -16,7 +16,7 @@ import org.json.JSONObject;
 /**
  * Inregistreaza calatoriile: pozitia GPS (Android) plus datele masinii (CanLink), intr-un
  * punct la 5 s cand masina merge si la 30 s cand motorul merge pe loc; cu motorul oprit si
- * masina pe loc, nimic. Punctele merg in PointQueue si de acolo la status.faicu.ro/calatorii,
+ * masina pe loc, nimic. Punctele merg in PointQueue si de acolo la car.faicu.ro,
  * unde se impart in calatorii la pauzele de peste 5 minute.
  */
 final class TripRecorder implements LocationListener {

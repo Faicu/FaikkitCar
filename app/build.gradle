@@ -19,7 +19,7 @@ android {
         targetSdk 33
         versionCode buildNumber
         versionName "1.1.${buildNumber}"
-        // Cheia pentru status.faicu.ro/api/vw-log, din secretul VW_LOG_TOKEN al repo-ului.
+        // Cheia pentru car.faicu.ro/api/car/log, din secretul VW_LOG_TOKEN al repo-ului.
         // Fara ea, trimiterea jurnalului e dezactivata.
         buildConfigField "String", "VW_LOG_TOKEN", "\"${System.getenv('VW_LOG_TOKEN') ?: ''}\""
     }

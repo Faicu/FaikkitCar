@@ -27,7 +27,7 @@ final class CrashLog {
                 Prefs.log(c, sb.toString());
                 Prefs.flushNow(c);
             } catch (Throwable t) {
-                Log.e("VWWelcome", "CrashLog", t);
+                Log.e("FaikkitCar", "CrashLog", t);
             }
             if (previous != null) previous.uncaughtException(thread, e);
         });
