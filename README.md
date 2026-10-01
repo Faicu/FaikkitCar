@@ -69,7 +69,7 @@ mers, actualizări din aplicație. Totul se vede și de la distanță, pe `statu
 | Salut vorbit după 3 min de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Google TTS are română (rostit pe 01.10). Vocea implicită sună robotic; de la 1.1.26 se alege cea mai bună voce (online când e internet) |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Voce sau bip |
 | Nivelul combustibilului / consum pe călătorie | 🔍 | „Car Info” afișa litrii, dar acum nu mai arată nimic. Calibrare → „Doar rezervorul”: o captură înainte și una după alimentare, comparate pe server |
-| Jurnal de alimentări și cost pe călătorie | 💡 | Depinde de rezultatul de mai sus |
+| Jurnal de alimentări și cost pe călătorie | 🧪 | Pe `/calatorii`: plinurile dau consumul real și calibrează estimarea pe drum (din viteză și turație); costul cu prețul ultimei alimentări |
 
 ---
 

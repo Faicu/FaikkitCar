@@ -104,8 +104,13 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   mentenanța scadentă), avertizare „ușă deschisă” la ≥ 5 km/h (uși c1–c5 din `CanLink`).
   Logica e în `TripRecorder.monitor` (deci merge doar cu călătoriile pornite); tot acolo
   GPS-ul se oprește după 1 min cu motorul oprit (rpm 0) și repornește la turație/mers.
-- Pe server (FaikkitBox): `/calatorii` are și „Unde e mașina” (ultimul punct GPS) și
-  Mentenanța (tabela `vw_reminder`).
+- Pe server (FaikkitBox): `/calatorii` are și „Unde e mașina” (ultimul punct GPS),
+  Mentenanța (tabela `vw_reminder`) și Alimentările (tabela `vw_refuel`, commit local
+  `fc7d1d7`). Combustibilul pe călătorie e estimat în `src/lib/vw/vw-fuel-model.ts` (linia
+  Willans: lucru la roți din viteză + rotații × L/rotație, Golf 6 1.2 TSI) și înmulțit cu
+  factorul din intervalele plin → plin (ultimele 5, limitat la 0,4–2,5); costul = litri ×
+  prețul ultimei alimentări. Drumul din 01.10 (3 km, 9 min pe loc) ≈ 0,38 L brut.
+  Etapa 2, dacă trebuie mai precis: adaptor OBD2 Bluetooth (MAP + IAT + rpm).
 - `Syu`: protocolul com.syu.ipc scris cu Parcel, folosit de `CanProbe` și `CanLink`.
 - `CrashLog`: handler global care scrie „CADERE: …” (excepție + 6 cadre) în jurnal cu
   `commit`, trimis la server la pornirea următoare.
@@ -170,7 +175,7 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.
   Apoi: consum/cost pe călătorie (alimentări detectate automat sau jurnal manual + estimare
   calibrată din turație × timp).
-- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`) se
+- FaikkitBox: commit-urile VW locale (`187e120`, `5409073`, `fddba0d`, `5dc2304`, `fc7d1d7`) se
   împing de utilizator din pagina Tehnic; nu face push acolo.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii (web push FaikkitBox), ore de
   liniște, sunet după ora zilei, codurile CAN ambigue (frână de mână, marșarier, centură),
