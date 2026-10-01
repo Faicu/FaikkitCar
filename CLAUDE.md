@@ -28,8 +28,20 @@ mașină nu mai trebuie să rămână acolo.
   `/api/fuel`, `/api/refuels…`, `/api/log`. Fără ștergerea jurnalului (nu se pierde nimic).
   Datele din FaikkitBox au fost copiate cu `web/scripts/import-faikkitbox.ts` (idempotent,
   verifică rând cu rând); copie de siguranță în `/root/backups/faikkitcar-20261001-215730`.
-- `panel/` (în lucru): aplicația nativă **FaikkitCar Panel** pentru telefon, cu datele de
-  pe car.faicu.ro prin același API.
+- `panel/`: aplicația nativă **FaikkitCar Panel** pentru telefon (`ro.faicu.faikkitcar.panel`,
+  Java fără AndroidX, minSdk 26 / target 34, UI din cod ca `app/`, aceeași cheie de semnare).
+  Login → token Bearer în SharedPreferences (`Store`); `Api` = aceleași rute ca site-ul.
+  Fila Mașina (poziție + hartă osmdroid/OpenStreetMap, totaluri 30 de zile, călătoria aleasă
+  cu traseu și `ChartView`, alimentări și mentenanță cu dialoguri, lista cu „ascunde pornirile
+  pe loc”) și fila Jurnal; reîmprospătare la 30 s, redesenare doar la date schimbate.
+  Actualizare din aplicație (`Updater`): `GET /api/panel/apk` + `/api/panel/apk/download` (login);
+  CI-ul separat `.github/workflows/panel.yml` publică la `POST /api/panel/apk` (CAR_TOKEN),
+  release `panel-<N>`, `versionName` = `1.0.<N>`. Site-ul are link „Descarcă APK” pe fila Mașina.
+- Build local (fără CI): JDK 17, Gradle 8.7 și Android SDK 34 în `/root/android`
+  (`local.properties` → `sdk.dir=/root/android/sdk`); `JAVA_HOME=/root/android/jdk
+  /root/android/gradle-8.7/bin/gradle :app:assembleDebug` / `:panel:assembleDebug`. Emulator:
+  AVD `panel` (Android 14, KVM), `emulator -avd panel -no-window`; test prin `adb` +
+  `uiautomator dump` (capturi cu `adb exec-out screencap -p`).
 - Remote Control: `claude.service` va porni două sesiuni tmux, `faikkitbox` și `faikkitcar`.
 
 ## Aplicația din mașină

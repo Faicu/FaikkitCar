@@ -1,4 +1,4 @@
-name: Build APK
+name: Build FaikkitCar
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
     paths-ignore:
       - 'web/**'
       - 'deploy/**'
+      - 'panel/**'
+      - '.github/workflows/panel.yml'
       - '**.md'
   workflow_dispatch:
 
@@ -34,7 +36,7 @@ jobs:
           else
             echo "::warning::Secretul KEYSTORE_BASE64 lipseste: APK-ul e semnat cu o cheie de debug temporara si nu se va putea instala peste versiunea anterioara."
           fi
-      - run: gradle assembleDebug
+      - run: gradle :app:assembleDebug
         env:
           SIGNING_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           VW_LOG_TOKEN: ${{ secrets.VW_LOG_TOKEN }}

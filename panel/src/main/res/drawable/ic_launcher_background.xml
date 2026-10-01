@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Aceeași iconiță ca FaikkitCar, pe fond închis: cele două aplicații se deosebesc ușor. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FF0B1020" />
+</shape>

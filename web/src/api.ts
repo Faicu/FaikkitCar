@@ -42,6 +42,7 @@ export const api = {
   fuel: () => call<FuelSummary>("GET", "/api/fuel"),
   saveRefuel: (r: RefuelInput) => call<{ ok: true }>("POST", "/api/refuels", r),
   deleteRefuel: (id: number) => call<{ ok: true }>("DELETE", `/api/refuels/${id}`),
+  panelApk: () => call<{ versionCode: number; versionName?: string; size?: number }>("GET", "/api/panel/apk"),
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 

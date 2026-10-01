@@ -1,7 +1,9 @@
 # FaikkitCar
 
 > Fost „VW Welcome”. Proiectul are trei părți: aplicația din mașină (**FaikkitCar**, `app/`),
-> site-ul **car.faicu.ro** (`web/`) și aplicația de telefon **FaikkitCar Panel** (`panel/`, în lucru).
+> site-ul **car.faicu.ro** (`web/`) și aplicația de telefon **FaikkitCar Panel** (`panel/`):
+> aceleași date ca site-ul (poziție, călătorii cu hartă și grafic, alimentări, mentenanță,
+> jurnal). Panel-ul se descarcă de pe car.faicu.ro (fila Mașina, jos) și apoi se actualizează singur.
 
 Aplicație Android pentru navigația **Teyes CC3 2K** din **VW Golf 6** (1.2 TSI, 2012):
 redă un sunet de bun venit la fiecare pornire a mașinii și a crescut într-un mic

@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Ca la aplicatia din masina: numarul build-ului din GitHub Actions si aceeasi cheie fixa.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+def keystore = System.getenv('SIGNING_KEYSTORE')
+
+android {
+    namespace 'ro.faicu.faikkitcar.panel'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ro.faicu.faikkitcar.panel'
+        minSdk 26
+        targetSdk 34
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        if (keystore) {
+            fixed {
+                storeFile file(keystore)
+                storePassword System.getenv('SIGNING_PASSWORD')
+                keyAlias 'vwwelcome'
+                keyPassword System.getenv('SIGNING_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            if (keystore) signingConfig signingConfigs.fixed
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Harta (OpenStreetMap), fara cheie Google.
+    implementation 'org.osmdroid:osmdroid-android:6.1.20'
+}

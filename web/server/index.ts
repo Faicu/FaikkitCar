@@ -112,7 +112,8 @@ app.get("/api/car/apk", (c) => {
   return c.json(readApkInfo() ?? { versionCode: 0 });
 });
 
-app.post("/api/car/apk", async (c) => {
+/** Primește un APK de la CI (octeții + X-Version-Code / X-Version-Name). */
+async function receiveApk(c: Context, kind: "car" | "panel") {
   requireCarToken(c);
   const versionCode = Number(c.req.header("x-version-code"));
   const versionName = String(c.req.header("x-version-name") ?? "").slice(0, 40);
@@ -124,18 +125,38 @@ app.post("/api/car/apk", async (c) => {
   if (body.length > 60 * 1024 * 1024) throw new HTTPException(413, { message: "Too large" });
   // Un APK e o arhivă ZIP: primii octeți sunt „PK”.
   if (body[0] !== 0x50 || body[1] !== 0x4b) throw new HTTPException(400, { message: "Not an APK" });
-  return c.json(saveApk(body, versionCode, versionName));
-});
+  return c.json(saveApk(body, versionCode, versionName, kind));
+}
+
+function sendApk(c: Context, kind: "car" | "panel") {
+  if (!apkExists(kind)) throw new HTTPException(404, { message: "No APK" });
+  const info = readApkInfo(kind);
+  return c.body(Readable.toWeb(createReadStream(apkPath(kind))) as ReadableStream, 200, {
+    "Content-Type": "application/vnd.android.package-archive",
+    "Content-Length": String(info?.size ?? ""),
+    "Content-Disposition": `attachment; filename="${kind === "car" ? "FaikkitCar" : "FaikkitCarPanel"}.apk"`,
+    "Cache-Control": "no-store",
+  });
+}
+
+app.post("/api/car/apk", (c) => receiveApk(c, "car"));
 
 app.get("/api/car/apk/download", (c) => {
   requireCarToken(c);
-  if (!apkExists()) throw new HTTPException(404, { message: "No APK" });
-  const info = readApkInfo();
-  return c.body(Readable.toWeb(createReadStream(apkPath())) as ReadableStream, 200, {
-    "Content-Type": "application/vnd.android.package-archive",
-    "Content-Length": String(info?.size ?? ""),
-    "Cache-Control": "no-store",
-  });
+  return sendApk(c, "car");
+});
+
+// Aplicația Panel: CI-ul o încarcă tot cu CAR_TOKEN; telefonul o citește cu login-ul.
+app.post("/api/panel/apk", (c) => receiveApk(c, "panel"));
+
+app.get("/api/panel/apk", (c) => {
+  requireUser(c);
+  return c.json(readApkInfo("panel") ?? { versionCode: 0 });
+});
+
+app.get("/api/panel/apk/download", (c) => {
+  requireUser(c);
+  return sendApk(c, "panel");
 });
 
 // ----------------------------------------------------------- login (site + Panel)

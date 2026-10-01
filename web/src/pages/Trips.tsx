@@ -119,6 +119,8 @@ export function TripsPage() {
 
       {car && <Maintenance reminders={car.reminders} odometer={car.odometer} />}
 
+      <PanelDownload />
+
       <div className="space-y-2">
         {idleCount > 0 && (
           <div className="flex justify-end">
@@ -242,5 +244,25 @@ function Info({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-medium">{value}</p>
     </div>
+  );
+}
+
+/** Linkul către aplicația de telefon, doar când CI-ul a publicat-o. */
+function PanelDownload() {
+  const { data } = useQuery({ queryKey: ["panelApk"], queryFn: api.panelApk, staleTime: 60_000 });
+  if (!data || data.versionCode <= 0) return null;
+  return (
+    <a
+      href="/api/panel/apk/download"
+      className="flex items-center justify-between rounded-2xl glass-card glass-card-hover p-4"
+    >
+      <div>
+        <p className="font-semibold">FaikkitCar Panel pentru telefon</p>
+        <p className="text-xs text-muted-foreground">
+          Versiunea {data.versionName} · apoi se actualizează singură
+        </p>
+      </div>
+      <span className="text-sm text-sky-400">Descarcă APK</span>
+    </a>
   );
 }
