@@ -1,0 +1,20 @@
+# Claude Remote Control pe server: câte o sesiune tmux pentru fiecare proiect.
+# Instalare: cp deploy/claude-rc /usr/local/bin/ && cp deploy/claude.service /etc/systemd/system/
+#            && systemctl daemon-reload && systemctl restart claude
+# Atenție: restart-ul închide toate sesiunile Claude care rulează pe serverul tmux al serviciului.
+[Unit]
+Description=Claude Remote Control (faikkitbox + faikkitcar)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/bin/tmux new-session -d -s faikkitbox -x 200 -y 50 "/usr/local/bin/claude-rc /opt/faikkitbox faikkitbox"
+ExecStartPost=/usr/bin/tmux new-session -d -s faikkitcar -x 200 -y 50 "/usr/local/bin/claude-rc /opt/faikkitcar faikkitcar"
+ExecStop=/usr/bin/tmux kill-server
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
