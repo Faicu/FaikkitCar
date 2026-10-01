@@ -19,7 +19,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - `BootReceiver`: `BOOT_COMPLETED`, `QUICKBOOT_POWERON` (android și htc),
   `MY_PACKAGE_REPLACED` pornesc serviciul. `LOCKED_BOOT_COMPLETED` e omis intenționat
   (ar cere directBootAware, iar setările sunt în stocarea criptată).
-- `Player`: `MediaPlayer` ținut static, `AUDIOFOCUS_GAIN_TRANSIENT`, pauză configurabilă
+- `Player`: `MediaPlayer` ținut static, `AUDIOFOCUS_GAIN_TRANSIENT`, 1,2 s de liniște înainte
+  (pornește ieșirea audio), pauză configurabilă
   (0–15 s, implicit 2,5 s), volum opțional în % din `STREAM_MUSIC` (0 = volumul sistemului),
   refăcut după redare; protecție anti-dublare de 20 s (butonul Test o ocolește).
   Schimbările de focus audio din timpul redării se notează în jurnal (doar notare).
@@ -167,9 +168,11 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   ratează uneori (o dată din câteva), iar detecția prin pauză acoperă cazurile cu somn.
 - Confirmat de utilizator: sunetul se aude întreg cu 5 s pauză (+2 s după hibernare);
   iconița proprie apare corect.
-  Excepție (01.10): după 17,7 h de somn s-a pierdut ~0,5 s din început (redare corectă în
-  jurnal, deci ieșirea audio nu era gata); utilizatorul a pus în UI +3 s după hibernare.
-  Dacă se mai pierde, varianta în cod: pauza în plus crescută cu durata somnului.
+  Excepție (01.10): după 17,7 h de somn s-a pierdut ~0,5 s din început; utilizatorul a pus
+  +3 s după hibernare, dar seara (12 h somn, pauză 8 s) s-a pierdut din nou. Deci nu e
+  timpul de la trezire: ieșirea audio Teyes pornește abia cu primul sunet (și/sau MCU-ul
+  taie la schimbarea volumului). De la 1.1.28 `Player` redă 1,2 s de liniște (`AudioTrack`,
+  aceleași atribute) după setarea volumului și abia apoi pornește MP3-ul.
 - Verificat pe drumul din 01.10: viteza CAN vs GPS +0,8 km/h în medie (abatere 2,2),
   relanti 635–750 rpm, 1100–1700 rpm la 25–50 km/h, 13,9–14,55 V cu motorul pornit,
   12,5–14 °C dimineața, kilometraj 245067→245070 pe ~3 km. Kilometrajul și temperatura

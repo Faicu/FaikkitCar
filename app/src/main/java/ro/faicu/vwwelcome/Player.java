@@ -3,7 +3,9 @@ package ro.faicu.vwwelcome;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
+import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
@@ -20,6 +22,10 @@ final class Player {
     // Volumul sistemului de dinainte de redare (-1 = nu l-am schimbat) si cel setat de noi.
     private static int restoreVolume = -1;
     private static int ourVolume;
+    // Liniste redata inainte de sunet: pe Teyes iesirea audio porneste abia cu primul sunet
+    // (si dupa schimbarea volumului), deci primele ~0,5 s se pierdeau oricat asteptam inainte.
+    private static final int WARMUP_MS = 1200;
+    private static AudioTrack warmup;
 
     private Player() {}
 
@@ -84,14 +90,62 @@ final class Player {
                 return true;
             });
             mp.prepare();
-            mp.start();
-            Prefs.log(c, "Redare pornita: " + Prefs.soundName(f) + ", " + mp.getDuration() / 1000
-                    + " s, focus audio " + (granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-                            ? "primit" : "REFUZAT (" + granted + ")"));
+            boolean warm = startWarmup(c, attrs);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (current != mp) return; // oprit intre timp de o alta redare
+                try {
+                    mp.start();
+                } catch (Exception e) {
+                    Prefs.log(c, "Redare: eroare la pornire " + e);
+                    finish(c, mp, am, focus);
+                    return;
+                } finally {
+                    stopWarmup();
+                }
+                Prefs.log(c, "Redare pornita: " + Prefs.soundName(f) + ", " + mp.getDuration() / 1000
+                        + " s, focus audio " + (granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                                ? "primit" : "REFUZAT (" + granted + ")")
+                        + (warm ? ", dupa " + WARMUP_MS + " ms de liniste" : ""));
+            }, warm ? WARMUP_MS : 0);
         } catch (Exception e) {
             Prefs.log(c, "Redare: eroare " + e);
             finish(c, mp, am, focus);
         }
+    }
+
+    /** Porneste iesirea audio cu liniste, pe acelasi tip de flux ca sunetul. */
+    private static boolean startWarmup(Context c, AudioAttributes attrs) {
+        stopWarmup();
+        try {
+            int rate = 44100;
+            int bytes = rate * WARMUP_MS / 1000 * 4; // stereo, 16 biti
+            AudioTrack t = new AudioTrack.Builder()
+                    .setAudioAttributes(attrs)
+                    .setAudioFormat(new AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(rate)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                            .build())
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .setBufferSizeInBytes(bytes)
+                    .build();
+            t.write(new byte[bytes], 0, bytes);
+            t.play();
+            warmup = t;
+            return true;
+        } catch (Exception e) {
+            Prefs.log(c, "Redare: liniste de pornire indisponibila (" + e + ")");
+            return false;
+        }
+    }
+
+    private static void stopWarmup() {
+        if (warmup == null) return;
+        try {
+            warmup.release();
+        } catch (Exception ignored) {
+        }
+        warmup = null;
     }
 
     private static String focusName(int change) {
@@ -144,6 +198,7 @@ final class Player {
     }
 
     private static void stopCurrent(Context c, AudioManager am) {
+        stopWarmup();
         if (current == null) return;
         try {
             current.release();
