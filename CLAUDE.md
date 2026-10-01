@@ -170,6 +170,10 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   Excepție (01.10): după 17,7 h de somn s-a pierdut ~0,5 s din început (redare corectă în
   jurnal, deci ieșirea audio nu era gata); utilizatorul a pus în UI +3 s după hibernare.
   Dacă se mai pierde, varianta în cod: pauza în plus crescută cu durata somnului.
+- Verificat pe drumul din 01.10: viteza CAN vs GPS +0,8 km/h în medie (abatere 2,2),
+  relanti 635–750 rpm, 1100–1700 rpm la 25–50 km/h, 13,9–14,55 V cu motorul pornit,
+  12,5–14 °C dimineața, kilometraj 245067→245070 pe ~3 km. Kilometrajul și temperatura
+  nu sunt încă comparate de utilizator cu bordul.
 - Confirmat din jurnal (01.10, 1.1.24): primul drum înregistrat (`vw_trip_point`), salutul
   rostit cu `com.google.android.tts` în română, GPS oprit cu motorul oprit. 1.1.20 → 1.1.24
   instalat (probabil din aplicație, neconfirmat). Netestat încă: avertizarea de ușă.
