@@ -198,7 +198,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Verificat pe 01.10 seara: „Contact: luat” la 20:32:41Z, exact la oprirea motorului (ultimul
   punct 20:32), „pus” la pornire; cu cheia scoasă unitatea mai trimite „off” la 60 s până
   adoarme. Netestat: contact pus cu motorul oprit.
-- Detalii live (02.10, 1.1.36, nepublicat): `CanLink` mai citește c11 AC, c49 AUTO, c21
+- Detalii live (02.10, 1.1.36 + Panel 1.0.4, publicat): `CanLink` mai citește c11 AC, c49 AUTO, c21
   ventilator, c27/c28 temperatura setată, c1033, c101 centura, c103 frâna de mână, octetul de
   stare 0x41/1 (`onRaw`, acceptă și prefixul 0xFF) și marșarierul (modulul 0, c68 = [1, 1]).
   Le trimite brute în `x` la `/api/car/state`; `live.ts` (`details`) le traduce: temperatura
@@ -271,6 +271,10 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   de la 1.1.31 a sosit (3.058 de linii). Două drumuri pe 01.10 seara (shaorma: 1,5 km,
   oprire 10 min, 3,6 km), plus calibrarea de mai sus.
   Unitate: Android 10 (API 29), `sprd ums512_1h10_Natv`, fără selector de fișiere.
+- 02.10 dimineața: în mașină 1.1.35 (din aplicație), „Doar contact” confirmat (stare
+  „contact”, rpm 0, ~11,7 V), apoi motor pornit cu starea la 5 s. La trezire, datele de bord
+  tac ~10 s, deci a apărut o dată „Contact: luat” 5 s (07:37:15 local). Publicate apoi
+  1.1.36 și Panel 1.0.4.
 - Pe telefon: FaikkitCar Panel 1.0.2 (din aplicație). Commit-ul FaikkitBox `2c986a0` e
   publicat. `deploy/claude.service` e instalat (sesiunile tmux `faikkitbox` și `faikkitcar`), iar
   clona veche `/opt/welcometovw` a fost ștearsă (01.10).
