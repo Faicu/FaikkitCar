@@ -31,6 +31,14 @@ export interface TripPoint {
   rpm: number | null;
 }
 
+/** O oprire dintre părțile unei călătorii combinate: unde a stat mașina și cât. */
+export interface TripStop {
+  from: string; // ultimul punct înainte de oprire
+  to: string; // primul punct după
+  minutes: number;
+  pos: [number, number] | null;
+}
+
 export interface Trip {
   start: string;
   end: string;
@@ -39,6 +47,7 @@ export interface Trip {
   durationMin: number; // de la plecare la sosire, cu tot cu opririle dintre părți
   parts: number; // călătorii combinate de utilizator (1 = una singură)
   stopMin: number; // opririle dintre părți (motor oprit), scăzute din viteza medie
+  stops: TripStop[];
   maxSpeed: number | null;
   avgSpeed: number | null; // km/h, pe durata fără opririle dintre părți
   maxRpm: number | null;
@@ -180,9 +189,23 @@ function summarize(rows: Row[], parts = 1): Trip {
   const end = rows[rows.length - 1].device_at;
   const durationMin = (new Date(end).getTime() - new Date(start).getTime()) / 60_000;
   let stopMs = 0;
-  for (let i = 1; i < rows.length; i++) {
-    const gap = new Date(rows[i].device_at).getTime() - new Date(rows[i - 1].device_at).getTime();
-    if (gap > TRIP_GAP_MS) stopMs += gap;
+  const stops: TripStop[] = [];
+  let lastPos: [number, number] | null = null;
+  for (let i = 0; i < rows.length; i++) {
+    if (i > 0) {
+      const gap = new Date(rows[i].device_at).getTime() - new Date(rows[i - 1].device_at).getTime();
+      if (gap > TRIP_GAP_MS) {
+        stopMs += gap;
+        stops.push({
+          from: rows[i - 1].device_at,
+          to: rows[i].device_at,
+          minutes: Math.round(gap / 6_000) / 10,
+          // Unde a parcat: ultima poziție bună dinainte, altfel prima de după.
+          pos: lastPos ?? pos(rows[i]),
+        });
+      }
+    }
+    lastPos = pos(rows[i]) ?? lastPos;
   }
   const movingMin = durationMin - stopMs / 60_000;
   const tank = rows.map((r) => r.fuel).filter((f): f is number => f !== null && f > 0);
@@ -201,6 +224,7 @@ function summarize(rows: Row[], parts = 1): Trip {
     distanceKm: Math.round(distanceKm * 10) / 10,
     durationMin: Math.round(durationMin * 10) / 10,
     parts,
+    stops,
     stopMin: Math.round((stopMs / 60_000) * 10) / 10,
     maxSpeed: maxSpeed === null ? null : Math.round(maxSpeed),
     avgSpeed: movingMin > 0 ? Math.round((distanceKm / movingMin) * 60) : null,

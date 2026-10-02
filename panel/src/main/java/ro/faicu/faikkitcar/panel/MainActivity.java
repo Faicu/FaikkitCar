@@ -637,7 +637,17 @@ public class MainActivity extends Activity {
             });
             return;
         }
-        MapView map = MapBox.route(this, points);
+        JSONArray stops = t.optJSONArray("stops");
+        if (stops != null && stops.length() > 0) {
+            LinearLayout sc = Ui.card(this, content);
+            Ui.title(this, sc, "Opriri (galben pe hartă)");
+            for (int i = 0; i < stops.length(); i++) {
+                JSONObject s = stops.optJSONObject(i);
+                sc.addView(Ui.text(this, Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to"))
+                        + " · " + Fmt.duration(s.optDouble("minutes")), 15, Ui.TEXT, false));
+            }
+        }
+        MapView map = MapBox.route(this, points, stops);
         if (map != null) addMap(content, map, 280);
         if (points.length() >= 2) {
             LinearLayout chart = Ui.card(this, content);

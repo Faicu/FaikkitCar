@@ -251,11 +251,22 @@ function TripDetail({
         {trip.startPos && (
           <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" /> verde = plecare, roșu = sosire
+            {trip.stops.length > 0 ? ", galben = oprire" : ""}
           </p>
         )}
         <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />
       </div>
-      {points && <TripMap points={points} />}
+      {trip.stops.length > 0 && (
+        <div className="rounded-2xl glass-card p-4 text-sm">
+          <p className="font-semibold">Opriri</p>
+          {trip.stops.map((s) => (
+            <p key={s.from} className="mt-1 text-muted-foreground">
+              {hm(s.from)}–{hm(s.to)} · {duration(s.minutes)}
+            </p>
+          ))}
+        </div>
+      )}
+      {points && <TripMap points={points} stops={trip.stops} />}
       {points && <TripChart points={points} />}
     </div>
   );

@@ -219,6 +219,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end
   ultimei} unește și intervalele suprapuse; `POST /api/trips/split` {start} le desface.
   Butoanele sunt în detaliile călătoriei (site `Trips.tsx` și Panel `renderTrip`).
+  `Trip.stops` (de la 02.10): fiecare oprire dintre părți cu `from`/`to`, minute și poziția
+  (ultima bună dinainte); pe hartă puncte galbene (site: tooltip permanent în `TripMap`;
+  Panel: bula osmdroid `bonuspack_bubble` la atingere) și listă „Opriri” în detalii.
 - Iconița (02.10): imaginea „FaikkitCar” cu săgeată de navigație dată de utilizator, decupată
   cu colțuri rotunjite; în ambele aplicații (`ic_launcher_fg.png` 80/108 dp pe #1E4470 și
   `drawable-nodpi/logo.png` în antet) și pe site (`web/public`: favicon, apple-touch, manifest,

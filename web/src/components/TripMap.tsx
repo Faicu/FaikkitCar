@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 
-import type { TripPoint } from "../api";
+import { duration, hm, type Trip, type TripPoint } from "../api";
 
 // Harta traseului (Leaflet + OpenStreetMap). Leaflet atinge `window` la import,
 // deci îl încărcăm doar în browser, din efect.
-export function TripMap({ points }: { points: TripPoint[] }) {
+export function TripMap({ points, stops = [] }: { points: TripPoint[]; stops?: Trip["stops"] }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Lista de opriri vine nouă la fiecare reîmprospătare: harta se reface doar dacă diferă.
+  const stopsKey = JSON.stringify(stops);
 
   useEffect(() => {
     const coords = points
@@ -49,13 +51,30 @@ export function TripMap({ points }: { points: TripPoint[] }) {
         fillColor: "#ef4444",
         fillOpacity: 1,
       }).addTo(map);
+      // Opririle dintre părțile unei călătorii combinate (galben, cu ora și durata).
+      for (const s of JSON.parse(stopsKey) as Trip["stops"]) {
+        if (!s.pos) continue;
+        L.circleMarker(s.pos, {
+          radius: 9,
+          color: "#fff",
+          weight: 2,
+          fillColor: "#f59e0b",
+          fillOpacity: 1,
+        })
+          .bindTooltip(`Oprire ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
+            permanent: true,
+            direction: "top",
+            offset: [0, -8],
+          })
+          .addTo(map);
+      }
       map.fitBounds(line.getBounds(), { padding: [24, 24], maxZoom: 16 });
     });
     return () => {
       cancelled = true;
       map?.remove();
     };
-  }, [points]);
+  }, [points, stopsKey]);
 
   const hasCoords = points.some((p) => p.lat !== null);
   return hasCoords ? (

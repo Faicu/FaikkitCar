@@ -71,8 +71,11 @@ final class MapBox {
         return map;
     }
 
-    /** Traseul: linie albastra, verde = plecare, rosu = sosire. Null daca nu are GPS. */
-    static MapView route(Context c, JSONArray points) {
+    /**
+     * Traseul: linie albastra, verde = plecare, rosu = sosire, galben = opririle dintre partile
+     * unei calatorii combinate (atinge punctul pentru ora si durata). Null daca nu are GPS.
+     */
+    static MapView route(Context c, JSONArray points, JSONArray stops) {
         List<GeoPoint> geo = new ArrayList<>();
         for (int i = 0; i < points.length(); i++) {
             JSONObject p = points.optJSONObject(i);
@@ -94,6 +97,18 @@ final class MapBox {
         map.getOverlays().add(line);
         map.getOverlays().add(dot(c, map, geo.get(0), 0xFF22C55E, 14));
         map.getOverlays().add(dot(c, map, geo.get(geo.size() - 1), 0xFFEF4444, 14));
+        for (int i = 0; stops != null && i < stops.length(); i++) {
+            JSONObject s = stops.optJSONObject(i);
+            JSONArray pos = s.optJSONArray("pos");
+            if (pos == null) continue;
+            Marker m = dot(c, map, new GeoPoint(pos.optDouble(0), pos.optDouble(1)), Ui.WARN, 18);
+            // Bula standard osmdroid, cu titlul: „Oprire 10 min · 23:32–23:42”.
+            m.setInfoWindow(new org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
+                    org.osmdroid.library.R.layout.bonuspack_bubble, map));
+            m.setTitle("Oprire " + Fmt.duration(s.optDouble("minutes")) + " · "
+                    + Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to")));
+            map.getOverlays().add(m);
+        }
         BoundingBox box = BoundingBox.fromGeoPointsSafe(geo);
         // zoomToBoundingBox merge doar dupa ce harta are dimensiuni.
         map.addOnFirstLayoutListener((v, l, t, r, b) -> {
