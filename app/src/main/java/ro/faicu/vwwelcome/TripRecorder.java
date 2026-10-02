@@ -193,6 +193,10 @@ final class TripRecorder implements LocationListener {
             if (can.fuel() > 0) p.put("fuel", can.fuel());
             // Consumul instantaneu (c1033, de confirmat): doar in mers, pe loc nu are sens.
             if (moving && can.instant() >= 0) p.put("ic", can.instant());
+            // Clima si centura pe fiecare punct: timpul cu AC pe drum, AC-ul in consum, mers fara centura.
+            if (can.ac() >= 0) p.put("ac", can.ac());
+            if (can.fan() >= 0) p.put("fan", can.fan());
+            if (can.belt() >= 0) p.put("belt", can.belt() == 0 ? 1 : 0);
             if (!Double.isNaN(pendingCrank)) {
                 p.put("cv", Math.round(pendingCrank * 100) / 100.0);
                 pendingCrank = Double.NaN;

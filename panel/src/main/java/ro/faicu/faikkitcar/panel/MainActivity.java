@@ -612,7 +612,20 @@ public class MainActivity extends Activity {
                 : Fmt.num(crank, 2) + " V" + (crank < 9.6 ? " ⚠" : "")));
         cells.add(Ui.info(this, "Baterie în mers", Double.isNaN(run) ? "—"
                 : Fmt.num(run, 2) + " V" + (run < 13.5 || run > 14.9 ? " ⚠" : "")));
-        cells.add(Ui.info(this, "Temp. afară", t.isNull("tempC") ? "—" : Fmt.num(t.optDouble("tempC"), 1) + " °C"));
+        // Afara la plecare → la sosire, daca s-a schimbat.
+        String temp = t.isNull("tempC") ? "—" : (!t.isNull("tempStartC") && t.optDouble("tempStartC") != t.optDouble("tempC")
+                ? Fmt.num(t.optDouble("tempStartC"), 1) + " → " : "") + Fmt.num(t.optDouble("tempC"), 1) + " °C";
+        cells.add(Ui.info(this, "Temp. afară", temp));
+        // Clima si centura: doar la drumurile inregistrate cu 1.1.40+ (altfel null).
+        if (t.has("acMin") && !t.isNull("acMin")) {
+            double ac = t.optDouble("acMin");
+            double drive = Math.max(t.optDouble("durationMin") - t.optDouble("stopMin"), 0.1);
+            cells.add(Ui.info(this, "AC pornit", ac > 0
+                    ? Fmt.shortDuration(ac) + " (" + Math.round(ac / drive * 100) + "%)" : "nu"));
+        }
+        if (t.has("noBeltMin") && !t.isNull("noBeltMin") && t.optDouble("noBeltMin") > 0) {
+            cells.add(Ui.info(this, "Fără centură în mers", Fmt.shortDuration(t.optDouble("noBeltMin")) + " ⚠"));
+        }
         cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
         cells.add(Ui.info(this, "Rezervor", t.isNull("fuelStart") || t.isNull("fuelEnd") ? "—"
                 : Fmt.num(t.optDouble("fuelStart"), 0) + " → " + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));

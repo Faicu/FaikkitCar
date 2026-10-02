@@ -141,5 +141,13 @@ export function getDb(): DatabaseSync {
   if (!cols("trip_point").includes("cons")) db.exec(`ALTER TABLE trip_point ADD COLUMN cons REAL`);
   // Tensiunea minimă la pornirea motorului (demarorul), măsurată în mașină (1.1.39+).
   if (!cols("trip_point").includes("crank")) db.exec(`ALTER TABLE trip_point ADD COLUMN crank REAL`);
+  // Clima și centura pe fiecare punct (1.1.40+): AC 1/0, treapta ventilatorului, centura pusă 1/0.
+  for (const [col, type] of [
+    ["ac", "INTEGER"],
+    ["fan", "INTEGER"],
+    ["belt", "INTEGER"],
+  ]) {
+    if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
+  }
   return db;
 }

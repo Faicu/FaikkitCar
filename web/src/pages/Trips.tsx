@@ -128,6 +128,12 @@ function volts(v: number | null, warn: boolean): string {
   return `${v.toLocaleString("ro-RO", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} V${warn ? " ⚠" : ""}`;
 }
 
+/** „13 °C” sau „13 → 16 °C” dacă s-a schimbat pe drum. */
+function tempRange(from: number | null, to: number | null): string {
+  if (to === null) return "—";
+  return from !== null && from !== to ? `${num(from)} → ${num(to)} °C` : `${num(to)} °C`;
+}
+
 /** Valorile unei călătorii (și ale celei în curs, pe fila Acum). */
 export function TripCells({ trip }: { trip: Trip }) {
   return (
@@ -257,7 +263,20 @@ function TripDetail({
             label="Baterie în mers"
             value={volts(trip.runVolt, trip.runVolt !== null && (trip.runVolt < 13.5 || trip.runVolt > 14.9))}
           />
-          <Info label="Temp. exterioară" value={trip.tempC !== null ? `${trip.tempC} °C` : "—"} />
+          <Info label="Temp. afară" value={tempRange(trip.tempStartC, trip.tempC)} />
+          {trip.acMin !== null && (
+            <Info
+              label="AC pornit"
+              value={
+                trip.acMin > 0
+                  ? `${shortDuration(trip.acMin)} (${Math.round((trip.acMin / Math.max(trip.durationMin - trip.stopMin, 0.1)) * 100)}%)`
+                  : "nu"
+              }
+            />
+          )}
+          {trip.noBeltMin !== null && trip.noBeltMin > 0 && (
+            <Info label="Fără centură în mers" value={`${shortDuration(trip.noBeltMin)} ⚠`} />
+          )}
           <Info
             label="Kilometraj"
             value={trip.odoEnd !== null ? `${trip.odoEnd.toLocaleString("ro-RO")} km` : "—"}

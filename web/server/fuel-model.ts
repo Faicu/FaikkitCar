@@ -17,6 +17,8 @@ export const FUEL_MODEL = {
   joulesPerLiter: 32e6 * 0.27,
   // ~0,6 L/h la relanti (750 rpm = 45.000 rotații/h).
   litersPerRev: 1.33e-5,
+  // Compresorul AC: ~1,5 kW mediu (pornit/oprit ciclic) ≈ 0,4 L/h în plus cu motorul pornit.
+  acLitersPerHour: 0.4,
 };
 
 /** Peste atâtea secunde între două puncte nu știm ce s-a întâmplat (motor oprit, fără date). */
@@ -26,6 +28,7 @@ export interface FuelSample {
   t: number; // epoch ms
   speed: number | null; // km/h
   rpm: number | null;
+  ac?: boolean; // AC pornit
 }
 
 export interface FuelEstimate {
@@ -38,6 +41,7 @@ export function estimateFuel(samples: FuelSample[]): FuelEstimate {
   let work = 0;
   let revs = 0;
   let idleS = 0;
+  let acLiters = 0;
   for (let i = 1; i < samples.length; i++) {
     const a = samples[i - 1];
     const b = samples[i];
@@ -46,6 +50,7 @@ export function estimateFuel(samples: FuelSample[]): FuelEstimate {
     const rpm = a.rpm ?? b.rpm;
     if (rpm === null || rpm <= 0) continue; // motorul oprit: nu consumă
     revs += (rpm / 60) * dt;
+    if (a.ac) acLiters += (m.acLitersPerHour / 3600) * dt;
     const v1 = (a.speed ?? 0) / 3.6;
     const v2 = (b.speed ?? 0) / 3.6;
     const v = (v1 + v2) / 2;
@@ -61,7 +66,7 @@ export function estimateFuel(samples: FuelSample[]): FuelEstimate {
     if (power > 0) work += power * dt;
   }
   return {
-    liters: work / m.joulesPerLiter + revs * m.litersPerRev,
+    liters: work / m.joulesPerLiter + revs * m.litersPerRev + acLiters,
     idleMin: idleS / 60,
   };
 }

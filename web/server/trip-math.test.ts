@@ -20,6 +20,8 @@ function p(s: number, speed: number, lonKm: number | null, extra: Partial<PointR
     fuel: 37,
     cons: null,
     crank: null,
+    ac: null,
+    belt: null,
     ...extra,
   };
 }
@@ -114,6 +116,26 @@ describe("bateria", () => {
   it("măsurarea din mașină are prioritate", () => {
     const rows = [p(0, 0, 0, { volt: 14, crank: 9.8 }), p(35, 30, 0.04, { volt: 14.3 })];
     expect(analyze(rows).crankVolt).toBe(9.8);
+  });
+});
+
+describe("clima și centura", () => {
+  it("minutele cu AC și cele în mers fără centură", () => {
+    const rows = [
+      p(0, 0, 0, { ac: 1, belt: 1 }),
+      p(30, 30, 0.04, { ac: 1, belt: 0 }),
+      p(90, 30, 0.5, { ac: 0, belt: 0 }),
+      p(120, 30, 0.75, { ac: 0, belt: 1 }),
+    ];
+    const m = analyze(rows);
+    expect(m.acMin).toBe(1.5); // 0–90 s
+    expect(m.noBeltMin).toBe(1.5); // 30–120 s, în mers
+  });
+
+  it("drumurile vechi, fără date de climă: null, nu 0", () => {
+    const m = analyze([p(0, 30, 0), p(5, 30, 0.04)]);
+    expect(m.acMin).toBeNull();
+    expect(m.noBeltMin).toBeNull();
   });
 });
 

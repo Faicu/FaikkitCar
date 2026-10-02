@@ -33,6 +33,9 @@ export interface IncomingPoint {
   fuel?: number | null; // litri în rezervor
   ic?: number | null; // probabil consumul instantaneu al bordului (c1033), L/100 km x10
   cv?: number | null; // tensiunea minimă la pornirea motorului (demarorul), V
+  ac?: number | null; // AC pornit 1/0
+  fan?: number | null; // treapta ventilatorului
+  belt?: number | null; // centura șoferului pusă 1/0
 }
 
 export interface TripPoint {
@@ -79,8 +82,9 @@ export function insertPoints(points: IncomingPoint[]): number {
   const now = new Date().toISOString();
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO trip_point
-       (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
+        ac, fan, belt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -105,6 +109,9 @@ export function insertPoints(points: IncomingPoint[]): number {
         num(p.fuel),
         num(p.ic),
         num(p.cv),
+        num(p.ac),
+        num(p.fan),
+        num(p.belt),
       );
       added += Number(r.changes);
     }
@@ -140,7 +147,8 @@ const allTrips = memo((): Trip[] => {
   const since = new Date(Date.now() - HISTORY_DAYS * 86_400_000).toISOString();
   const rows = getDb()
     .prepare(
-      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank
+      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
+              ac, belt
        FROM trip_point WHERE device_at >= ? ORDER BY device_at`,
     )
     .all(since) as unknown as PointRow[];

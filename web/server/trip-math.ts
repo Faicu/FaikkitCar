@@ -24,6 +24,8 @@ export interface PointRow {
   fuel: number | null;
   cons: number | null; // probabil consumul instantaneu al bordului (c1033), L/100 km ×10
   crank: number | null; // tensiunea minimă la pornire, măsurată în mașină (1.1.39+)
+  ac: number | null; // AC pornit 1/0 (1.1.40+)
+  belt: number | null; // centura șoferului pusă 1/0 (1.1.40+)
 }
 
 /** O oprire cu motorul oprit în mijlocul călătoriei (ex. magazin, sau între părți combinate). */
@@ -56,7 +58,12 @@ export interface TripMetrics {
   odoEnd: number | null;
   fuelStart: number | null; // litri în rezervor (CAN), la plecare și la sosire
   fuelEnd: number | null;
-  tempC: number | null;
+  tempC: number | null; // la sosire
+  tempStartC: number | null; // la plecare
+  // Clima și centura (de la 1.1.40; null la drumurile mai vechi): minutele cu AC pornit (motorul
+  // pornit) și cele în mers fără centura șoferului.
+  acMin: number | null;
+  noBeltMin: number | null;
   // Bateria: căderea de la demaror (sub ~9,6 V = baterie slabă), din măsurarea mașinii sau, la
   // drumurile vechi, din primele 30 s după pornire dacă s-a prins o cădere (< 12 V); și mediana
   // cu motorul pornit de cel puțin un minut (încărcarea, 13,8–14,7 V).
@@ -148,6 +155,10 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
   let stopMs = 0;
   const stops: TripStop[] = [];
   let lastPos: [number, number] | null = null;
+  let acMs = 0;
+  let noBeltMs = 0;
+  let climateKnown = false;
+  let beltKnown = false;
   let boardL = 0;
   let boardKm = 0;
   let movingKm = 0;
@@ -167,6 +178,13 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
       const dt = t[i] - t[i - 1];
       const va = speedOf(a) ?? 0;
       const still = va < STILL_KMH && v < STILL_KMH;
+      // Starea de la începutul segmentului ține tot segmentul (punctele vin la 5–30 s).
+      if (dt <= POINT_GAP_MS) {
+        if (a.ac !== null) climateKnown = true;
+        if (a.ac === 1 && (a.rpm ?? 0) > 0) acMs += dt;
+        if (a.belt !== null) beltKnown = true;
+        if (a.belt === 0 && va >= STILL_KMH) noBeltMs += dt;
+      }
       if (dt > POINT_GAP_MS && still) {
         // Motorul oprit între puncte: o oprire, iar episodul pe loc de dinainte se încheie.
         stopMs += dt;
@@ -274,7 +292,7 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
   const durationMs = t[t.length - 1] - t[0];
   const drivingMs = durationMs - stopMs; // fără opririle cu motorul oprit
   const fuel = estimateFuel(
-    rows.map((r, i) => ({ t: t[i], speed: speedOf(r), rpm: r.rpm })),
+    rows.map((r, i) => ({ t: t[i], speed: speedOf(r), rpm: r.rpm, ac: r.ac === 1 })),
   );
   // Măsurarea din mașină are prioritate; altfel doar o cădere reală prinsă într-un punct.
   const measured = rows.map((r) => r.crank).filter((c): c is number => c !== null && c > 5);
@@ -302,6 +320,9 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
     fuelStart: tank.length ? tank[0] : null,
     fuelEnd: tank.length ? tank[tank.length - 1] : null,
     tempC: temps.length ? temps[temps.length - 1] : null,
+    tempStartC: temps.length ? temps[0] : null,
+    acMin: climateKnown ? round(acMs / 60_000) : null,
+    noBeltMin: beltKnown ? round(noBeltMs / 60_000) : null,
     crankVolt: crankVolt === null ? null : round(crankVolt, 2),
     runVolt: runVolts.length ? round(medianOf(runVolts), 2) : null,
     startPos,

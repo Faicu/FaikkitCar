@@ -234,6 +234,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   jurnal „Pornire motor: baterie minim …”), altfel minimul din primele 30 s doar dacă < 12 V
   (punctul a prins căderea; 02.10: 10,45 V); `runVolt` = mediana cu motorul pornit ≥ 1 min
   (încărcarea, normal 13,5–14,9 V; 14,35 V pe 02.10). Pe site și în Panel cu ⚠ în afara limitelor.
+  Clima și centura pe punct (1.1.40+, coloanele `ac`, `fan`, `belt` în `trip_point`):
+  `acMin` (AC pornit cu motorul pornit), `noBeltMin` (în mers fără centura șoferului), null la
+  drumurile mai vechi; `tempStartC` / `tempC` (afară la plecare / sosire). Modelul de consum
+  adaugă AC-ul: `acLitersPerHour` 0,4 L/h cu motorul pornit (calibrarea corectează restul).
   Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s), `trafficMaxMin`, `standMin`, `movingMin`,
   `avgSpeed` (fără opririle cu motorul oprit), `movingAvgSpeed`, `boardLPer100` (c1033
   integrat pe km în mers, dacă acoperă ≥ 80%). `trips.ts`: doar baza, gruparea (pauze > 5
