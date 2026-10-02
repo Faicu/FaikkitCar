@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.37 (`build-37`) · FaikkitCar Panel 1.0.5 (`panel-5`) |
+| **Versiuni** | FaikkitCar 1.1.37 (`build-37`) · FaikkitCar Panel 1.0.6 (`panel-6`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
