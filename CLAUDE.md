@@ -198,7 +198,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Verificat pe 01.10 seara: „Contact: luat” la 20:32:41Z, exact la oprirea motorului (ultimul
   punct 20:32), „pus” la pornire; cu cheia scoasă unitatea mai trimite „off” la 60 s până
   adoarme. Netestat: contact pus cu motorul oprit.
-- Călătorii combinate (02.10, nepublicat încă): tabela `trip_join` (start, end); bucățile
+- Călătorii combinate (02.10, publicat: Panel 1.0.3): tabela `trip_join` (start, end); bucățile
   care încep în același interval devin una (`readTripsSince`), cu `parts` și `stopMin`
   (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end
   ultimei} unește și intervalele suprapuse; `POST /api/trips/split` {start} le desface.

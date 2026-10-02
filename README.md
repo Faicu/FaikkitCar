@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.34 (`build-34`) · FaikkitCar Panel 1.0.2 (`panel-2`) |
+| **Versiuni** | FaikkitCar 1.1.35 (`build-35`) · FaikkitCar Panel 1.0.3 (`panel-3`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -48,13 +48,12 @@ a crescut într-un proiect cu trei părți:
 - 🧪 **Consumul pe călătorie** se estimează din viteză și turație și se corectează automat
   din nivelul rezervorului, după ~8 L consumați.
 - 🧪 **Combinarea călătoriilor** (ex. dus-întors cu o oprire scurtă), pe site și în Panel:
-  gata în cod, nepublicată încă.
+  publicată (Panel 1.0.3).
 
 ---
 
 ## Ce urmează
 
-1. **Publicarea** combinării călătoriilor (server + Panel), când terminăm modificările.
 2. **De verificat în mașină:** „Doar contact” (cheia pusă, motorul oprit, ~1 min) apare
    pe fila Acum; în jurnal trebuie „Contact: pus” fără turație.
 3. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
@@ -115,7 +114,7 @@ a crescut într-un proiect cu trei părți:
 | Login | ✅ | Site: cookie de 180 de zile. Panel: token păstrat în aplicație |
 | Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
-| Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server); nepublicat |
+| Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server) |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost, cu întârziere de ~30 s |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
