@@ -113,7 +113,10 @@ final class CanLink {
                         case TEMP_R: tempR = v; break;
                         case INSTANT: instant = v; break;
                         case BELT: belt = v; break;
-                        case HANDBRAKE: handbrake = v; break;
+                        case HANDBRAKE:
+                            if (handbrake >= 0 && v != handbrake) logHandbrake("c103 " + handbrake + " -> " + v);
+                            handbrake = v;
+                            break;
                         case RPM: rpm = v; dashAt = SystemClock.elapsedRealtime(); break;
                         case SPEED100: speed = v / 100.0; speed100At = SystemClock.elapsedRealtime(); break;
                         case SPEED:
@@ -157,7 +160,18 @@ final class CanLink {
         int o = ints[0] == 0x2E ? 0 : ints.length > 1 && ints[0] == 0xFF && ints[1] == 0x2E ? 1 : -1;
         if (o < 0 || ints.length < o + 2 || ints[o + 1] != 0x41) return;
         dashAt = SystemClock.elapsedRealtime();
-        if (ints.length > o + 4 && ints[o + 3] == 1) status41 = ints[o + 4];
+        if (ints.length > o + 4 && ints[o + 3] == 1) {
+            int v = ints[o + 4];
+            if (status41 >= 0 && ((v ^ status41) & 0x20) != 0) {
+                logHandbrake("0x41/1 bitul 0x20 " + ((v & 0x20) != 0 ? "1 (eliberata)" : "0 (trasa)"));
+            }
+            status41 = v;
+        }
+    }
+
+    /** Pana confirmam care cod e frana de mana: fiecare schimbare ajunge in jurnal. */
+    private void logHandbrake(String what) {
+        Prefs.log(c, "Frana de mana: " + what + " (c103=" + handbrake + ", 0x41/1=" + status41 + ")");
     }
 
     /** Prima valoare si salturile mari (alimentare) ajung in jurnal; restul doar in puncte. */

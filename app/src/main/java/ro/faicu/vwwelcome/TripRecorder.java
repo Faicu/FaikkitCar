@@ -214,7 +214,11 @@ final class TripRecorder implements LocationListener {
             x.put("rev", can.reverse());
             x.put("doors", new org.json.JSONArray(can.openDoors()));
             s.put("x", x);
-            LiveState.maybeSend(kind, s);
+            // Fara consumul instantaneu (se schimba mereu); restul declanseaza trimiterea.
+            Object ic = x.remove("ic");
+            String details = x.toString();
+            if (ic != null) x.put("ic", ic);
+            LiveState.maybeSend(kind, details, s);
         } catch (JSONException ignored) {
         }
     }

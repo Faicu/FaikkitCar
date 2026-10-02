@@ -208,6 +208,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   pe loc; integrat pe drumul din 30.09 dă 15,6 L/100 (0,7 km, oraș, rece). Se salvează și în
   `trip_point.cons` (coloană adăugată prin migrare în `db.ts`), doar în mers, ca să fie
   comparat cu rezervorul. Temperatura din habitaclu NU e transmisă de decodor.
+  Confirmat de utilizator pe 02.10 (drumul de dimineață): bitul 0x80 din 0x41/1 = faza
+  scurtă (pornită automat de la bloc) ✓, centura (c101) ✓, clima AUTO/AC/treapta 2/21 °C
+  trimisă. Frâna de mână trasă chiar înainte de contact a apărut „eliberată” (c103 = 1),
+  deci de la 1.1.37 serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea
+  pleacă imediat la orice schimbare de detaliu (`LiveState.maybeSend(kind, details, …)`), iar
+  fiecare schimbare a frânei ajunge în jurnal („Frana de mana: …”) ca să vedem codul corect.
 - Călătorii combinate (02.10, publicat: Panel 1.0.3): tabela `trip_join` (start, end); bucățile
   care încep în același interval devin una (`readTripsSince`), cu `parts` și `stopMin`
   (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end

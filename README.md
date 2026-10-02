@@ -116,7 +116,7 @@ a crescut într-un proiect cu trei părți:
 | Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
 | Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server) |
-| Acum: climă și detalii | 🧪 | De la 1.1.36: AC, AUTO, ventilator, temperaturile setate (formula de confirmat), afară; uși deschise, centură, frâna de mână, marșarier, lumini (probabil), consumul instantaneu al bordului (c1033, presupus). Habitaclul nu e transmis de decodor |
+| Acum: climă și detalii | 🧪 | De la 1.1.36: AC, AUTO, ventilator, temperaturile setate (formula de confirmat), afară; uși deschise, centură, frâna de mână, marșarier, faza scurtă, consumul instantaneu al bordului (c1033, presupus). Habitaclul nu e transmis de decodor |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost, cu întârziere de ~30 s |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
@@ -217,7 +217,7 @@ vs. GPS: +0,8 km/h în medie).
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
 | m7 c103 | Frâna de mână | 1 = eliberată |
 | m7 raw 0x24, bitul 0x02 | Frâna de mână (confirmat din nou pe 01.10) | 6 = eliberată, 4 = trasă |
-| m7 raw 0x41/1 | Biți de stare: 0x20 = frâna de mână eliberată (confirmat), 0x80 = probabil luminile | 0 / 32 / 128 / 160 |
+| m7 raw 0x41/1 | Biți de stare: 0x20 = frâna de mână eliberată (confirmat), 0x80 = faza scurtă (confirmat 02.10) | 0 / 32 / 128 / 160 |
 | m0 c68 | Marșarierul | [1, 1] = băgat; [9, 1] după ce iese; [0, 0] la pornire |
 | m7 c21, c27/c28, c11, c49 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC, AUTO | 3, 11, 1, 1 |
 | m7 raw 0x14 | Luminile aprinse (iluminarea bordului) | 0 / 84 |

@@ -31,17 +31,23 @@ final class LiveState {
 
     private static long lastSentAt;
     private static String lastKind = "";
+    private static String lastDetails = "";
 
     private LiveState() {}
 
-    /** Apelat la fiecare esantion din TripRecorder (5 s); trimite doar cand e cazul. */
-    static void maybeSend(String kind, JSONObject state) {
+    /**
+     * Apelat la fiecare esantion din TripRecorder (5 s); trimite doar cand e cazul. `details`
+     * (usi, frana de mana, clima...) schimbate = trimitere imediata, ca ultima stare dinainte
+     * de luarea contactului sa fie cea reala (ex. frana trasa chiar inainte).
+     */
+    static void maybeSend(String kind, String details, JSONObject state) {
         if (!Uploader.configured()) return;
         long now = SystemClock.elapsedRealtime();
         long every = "off".equals(kind) ? IDLE_MS : "contact".equals(kind) ? CONTACT_MS : ENGINE_MS;
-        if (kind.equals(lastKind) && now - lastSentAt < every) return;
+        if (kind.equals(lastKind) && details.equals(lastDetails) && now - lastSentAt < every) return;
         if (!busy.compareAndSet(false, true)) return;
         lastKind = kind;
+        lastDetails = details;
         lastSentAt = now;
         EXEC.execute(() -> {
             try {

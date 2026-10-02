@@ -123,7 +123,9 @@ function details(p: IncomingState, state: CarState) {
     instantL100: state === "driving" && x.ic !== undefined ? x.ic / 10 : null,
     doorsOpen: (x.doors ?? []).map((i) => DOORS[i]).filter((d): d is string => d !== undefined),
     belt: x.belt === undefined ? null : x.belt === 0,
-    handbrake: x.hb !== undefined ? x.hb === 0 : released === null ? null : !released,
+    // Bitul 0x20 din 0x41/1 s-a schimbat sigur la tragere (calibrarea din 01.10); c103 nu a
+    // reacționat la tragerea din 02.10, deci rămâne doar rezervă.
+    handbrake: released !== null ? !released : x.hb !== undefined ? x.hb === 0 : null,
     reverse: x.rev ?? null,
     lights: bit(0x80),
   };
