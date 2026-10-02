@@ -214,12 +214,23 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   deci de la 1.1.37 (publicat) serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea
   pleacă imediat la orice schimbare de detaliu (`LiveState.maybeSend(kind, details, …)`), iar
   fiecare schimbare a frânei ajunge în jurnal („Frana de mana: …”) ca să vedem codul corect.
-- Opriri în trafic (02.10, `trafficStops` în `trips.ts`): episoadele cu motorul pornit și
-  viteza < 1 km/h, de la primul punct pe loc la primul punct în mers (±5 s, punctul de mers
-  vine la eșantionul următor); rupte la goluri > 60 s (motor oprit). Între două porțiuni de
-  mers și ≤ 10 min = trafic (semafor, coloană; utilizatorul stă și 4–5 min la semafor), altfel
-  (plecare, sosire, > 10 min) = staționare. Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s),
-  `trafficMaxMin`, `standMin`, `movingAvgSpeed`. `idleMin` rămâne pentru modelul de consum.
+- Calculele călătoriilor (reorganizate 02.10): `web/server/trip-math.ts` (pur, testat în
+  `trip-math.test.ts`) face totul din segmentele dintre puncte consecutive: gol > 60 s cu
+  mașina pe loc = oprire cu motorul oprit (`stops`, `stopMin`; orice oprire, nu doar între
+  părți combinate); ambele capete < 1 km/h = pe loc (distanța 0, fără zgomotul GPS); altfel
+  mers: distanța GPS între fixuri bune la ≤ 15 s (salturile > 2 × viteza ignorate), altfel
+  din viteză (GPS, sau CAN × `canScale`: GPS/CAN pe istoric, 0,85–1,05, implicit 0,95;
+  vitezometrul arată ~6% în plus). Verificat 30.09–02.10: 16,2 km față de 16 km pe
+  kilometraj (CAN integrat ar da 16,9). Kilometrajul (1 km rezoluție) nu mai e folosit la
+  distanță. Opririle cu motorul pornit (< 1 km/h, rpm > 0), de la primul punct pe loc la
+  primul în mers (±5 s): între două porțiuni de mers și ≤ 10 min = trafic (semafor, coloană;
+  utilizatorul stă și 4–5 min la semafor), altfel (plecare, sosire, > 10 min) = staționare.
+  Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s), `trafficMaxMin`, `standMin`, `movingMin`,
+  `avgSpeed` (fără opririle cu motorul oprit), `movingAvgSpeed`, `boardLPer100` (c1033
+  integrat pe km în mers, dacă acoperă ≥ 80%). `trips.ts`: doar baza, gruparea (pauze > 5
+  min, combinări), locurile (plecarea = parcarea anterioară dacă primul fix e la ≤ 300 m) și
+  cache: `memo` din `db.ts` refăcut la `dataChanged()` (puncte noi, combinări, locuri,
+  alimentări) plus rezumate per bucată; o cerere live costă ~0,1 ms.
   02.10 dimineața, Splaiul Independenței (Grozăvești): coloană 07:46:30–07:52:20 cu trei
   opriri de ~75, ~80 și ~90 s; total drum: 4,3 min în trafic (5 opriri), 2,2 min staționare.
   Live: starea „traffic” („Oprit în trafic”) e calculată în `readLive` din „engine” + drumul
@@ -237,9 +248,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end
   ultimei} unește și intervalele suprapuse; `POST /api/trips/split` {start} le desface.
   Butoanele sunt în detaliile călătoriei (site `Trips.tsx` și Panel `renderTrip`).
-  `Trip.stops` (de la 02.10): fiecare oprire dintre părți cu `from`/`to`, minute și poziția
-  (ultima bună dinainte); pe hartă puncte galbene (site: tooltip permanent în `TripMap`;
-  Panel: bula osmdroid `bonuspack_bubble` la atingere) și listă „Opriri” în detalii.
+  `Trip.stops`: fiecare oprire cu motorul oprit (> 60 s) cu `from`/`to`, minute, poziția
+  (ultima bună dinainte) și locul salvat; pe hartă puncte galbene (site: tooltip permanent în
+  `TripMap`; Panel: bula osmdroid `bonuspack_bubble` la atingere) și lista „Opriri cu motorul
+  oprit” în detalii.
 - Iconița (02.10): imaginea „FaikkitCar” cu săgeată de navigație dată de utilizator, decupată
   cu colțuri rotunjite; în ambele aplicații (`ic_launcher_fg.png` 80/108 dp pe #1E4470 și
   `drawable-nodpi/logo.png` în antet) și pe site (`web/public`: favicon, apple-touch, manifest,
@@ -332,9 +344,14 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   `ro_RO-mihai-medium` în `/opt/faikkitcar/data/piper`, nu în git),
   redat ca ghidare de navigație; fără internet sau la eroare rămâne TextToSpeech. Confirmat
   în mașină pe 01.10 (1.1.30): „se aude destul de bine”. Netestat încă: avertizarea de ușă.
-- Consum (`web/server/fuel.ts`): consumul real = nivelul de la început −
-  cel de la sfârșit + salturile ≥ 3 L (alimentări), pe ultimele 90 de zile; de la 8 L
-  consumați calibrează estimarea pe drum (altfel plinurile, altfel factor 1).
+- Consum (`fuel-model.ts` `levelConsumption`, `fuel.ts`): consumul real = nivelul de la
+  început − cel de la sfârșit + alimentările, pe ultimele 90 de zile. Nivelurile sunt
+  mediane pe 10 minute (c104 oscilează 37/38); o alimentare = salt ≥ 3 L, cu litrii de pe bon
+  dacă e în jurnal la ≤ 3 h, altfel diferența medianelor din jurul saltului (01.10: 16 L de
+  pe bon în loc de 18 din salt). De la 8 L consumați calibrează estimarea pe drum (altfel
+  plinurile, altfel factor 1). Calibrarea e în `fuelState` (memo). Rezervorul afișat =
+  mediana ultimelor 10 minute. `/api/stats` = {last30, months} din `stats.ts` (un singur
+  agregator, aceleași cifre pe site și în Panel).
 - (Istoric) În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar
   rezervorul” înainte și după o alimentare, apoi diferența capturilor `CAN SNAP` pe server.

@@ -1,12 +1,22 @@
 // ---------------------------------------------------------------------------
 // Călătoriile mașinii (FaikkitCar): puncte de traseu cu GPS și date CAN, primite
 // prin POST /api/car/trip. O călătorie = puncte consecutive fără pauză mai lungă
-// de TRIP_GAP_MS; statisticile se calculează la citire. Server-only (node:sqlite).
+// de TRIP_GAP_MS (sau combinate de utilizator); valorile vin din trip-math.ts și se
+// recalculează doar la date noi (memo din db.ts). Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
-import { getDb } from "./db.ts";
-import { estimateFuel } from "./fuel-model.ts";
+import { dataChanged, getDb, memo } from "./db.ts";
 import { placeAt, readPlaces } from "./places.ts";
+import {
+  analyze,
+  canScale,
+  haversineKm,
+  pos,
+  speedOf,
+  type PointRow,
+  type TripMetrics,
+  type TripStop,
+} from "./trip-math.ts";
 
 export interface IncomingPoint {
   t: number; // epoch ms, ceasul navigației
@@ -32,59 +42,31 @@ export interface TripPoint {
   rpm: number | null;
 }
 
-/** O oprire dintre părțile unei călătorii combinate: unde a stat mașina și cât. */
-export interface TripStop {
-  from: string; // ultimul punct înainte de oprire
-  to: string; // primul punct după
-  minutes: number;
-  pos: [number, number] | null;
-  place: string | null; // locul salvat, dacă oprirea e într-unul
-}
+export type { TripStop };
 
-export interface Trip {
-  start: string;
-  end: string;
-  points: number;
-  distanceKm: number;
-  durationMin: number; // de la plecare la sosire, cu tot cu opririle dintre părți
+export interface Trip extends TripMetrics {
   parts: number; // călătorii combinate de utilizator (1 = una singură)
-  stopMin: number; // opririle dintre părți (motor oprit), scăzute din viteza medie
-  stops: TripStop[];
-  maxSpeed: number | null;
-  avgSpeed: number | null; // km/h, pe durata fără opririle dintre părți
-  maxRpm: number | null;
-  odoStart: number | null;
-  odoEnd: number | null;
-  fuelStart: number | null; // litri în rezervor (CAN), la plecare și la sosire
-  fuelEnd: number | null;
-  tempC: number | null;
-  minVolt: number | null;
-  startPos: [number, number] | null;
-  endPos: [number, number] | null;
   fromPlace: string | null; // locurile salvate (places.ts) de la plecare și sosire
   toPlace: string | null;
-  modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
-  idleMin: number; // pe loc cu motorul pornit (modelul de consum)
-  // Opririle cu motorul pornit, după context (trafficStops): între două porțiuni de mers =
-  // în trafic (semafor, coloană), la plecare / sosire sau peste 10 min = staționare.
-  trafficMin: number;
-  trafficStops: number;
-  trafficMaxMin: number; // cea mai lungă oprire în trafic
-  standMin: number;
-  movingAvgSpeed: number | null; // km/h, doar pe timpul în mișcare
   idle: boolean; // pornire pe loc sau manevră (sub IDLE_KM): ascunsă la cerere
-  // Completate de fuel.ts cu factorul din alimentări și prețul de atunci.
+  // Completate de fuel.ts cu factorul de calibrare și prețul de atunci.
   fuelL: number | null;
   lPer100: number | null;
   cost: number | null;
 }
 
 export const MAX_POINTS_PER_REQUEST = 500;
+/** O pauză mai lungă desparte două călătorii (dacă nu sunt combinate). */
 export const TRIP_GAP_MS = 5 * 60_000;
 // Sub atâția km e o pornire pe loc sau o manevră în parcare (01.10: 13 m cu 12,9 km/h),
 // oricât de repede a mers; totalurile le includ, doar lista le poate ascunde.
 const IDLE_KM = 0.5;
 const MAX_POINTS = 2_000_000;
+// Câte zile de istoric se calculează (statisticile pe 12 luni au nevoie de ~372).
+const HISTORY_DAYS = 400;
+// Plecarea e locul unde a parcat la sfârșitul drumului anterior, dacă primul fix GPS e la
+// cel mult atât de el (GPS-ul prinde semnal uneori abia după câteva sute de metri).
+const PARKED_MATCH_KM = 0.3;
 
 function num(x: unknown): number | null {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
@@ -132,224 +114,42 @@ export function insertPoints(points: IncomingPoint[]): number {
     db.exec("ROLLBACK");
     throw e;
   }
+  if (added > 0) dataChanged();
   return added;
 }
 
-interface Row {
-  device_at: string;
-  lat: number | null;
-  lon: number | null;
-  acc: number | null;
-  gps_speed: number | null;
-  can_speed: number | null;
-  rpm: number | null;
-  volt: number | null;
-  temp: number | null;
-  odo: number | null;
-  fuel: number | null;
-}
+// Rezumatele bucăților deja calculate: în mers vin puncte noi la ~10 s, dar se schimbă doar
+// ultima călătorie, deci celelalte nu se mai recalculează.
+const summaries = new Map<string, TripMetrics>();
 
-function haversineKm(a: [number, number], b: [number, number]): number {
-  const R = 6371;
-  const rad = Math.PI / 180;
-  const dLat = (b[0] - a[0]) * rad;
-  const dLon = (b[1] - a[1]) * rad;
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-function pos(r: Row): [number, number] | null {
-  if (r.lat === null || r.lon === null) return null;
-  if (r.acc !== null && r.acc > 60) return null; // fix GPS prea imprecis
-  return [r.lat, r.lon];
-}
-
-// O oprire la mijlocul drumului mai lungă de atât nu mai e trafic, ci staționare.
-const TRAFFIC_MAX_MS = 10 * 60_000;
-// Peste atâtea secunde fără puncte, motorul a fost oprit (pe loc punctele vin la 30 s).
-const POINT_GAP_MS = 60_000;
-
-/**
- * Opririle cu motorul pornit: de la primul punct pe loc până la primul punct în mers (în mers
- * punctele vin la 5 s, deci ±5 s). Una între două porțiuni de mers e în trafic; cele de la
- * capete și cele foarte lungi sunt staționare.
- */
-function trafficStops(rows: Row[]) {
-  type Ep = { from: number; to: number; movedBefore: boolean; movedAfter: boolean };
-  const eps: Ep[] = [];
-  let cur: Ep | null = null;
-  let moved = false;
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    const t = new Date(r.device_at).getTime();
-    const prevT = i > 0 ? new Date(rows[i - 1].device_at).getTime() : t;
-    if (t - prevT > POINT_GAP_MS) {
-      // Motorul a fost oprit între puncte: oprirea de dinainte se încheie acolo.
-      if (cur) {
-        eps.push(cur);
-        cur = null;
-      }
-      moved = false;
-    }
-    const speed = r.can_speed ?? r.gps_speed ?? 0;
-    const engine = (r.rpm ?? 0) > 0;
-    if (speed < 1 && engine) {
-      if (!cur) cur = { from: t, to: t, movedBefore: moved, movedAfter: false };
-      cur.to = t;
-    } else if (speed >= 1) {
-      if (cur) {
-        cur.to = t;
-        cur.movedAfter = true;
-        eps.push(cur);
-        cur = null;
-      }
-      moved = true;
-    }
+function analyzeCached(rows: PointRow[], scale: number): TripMetrics {
+  const key = `${rows[0].device_at}|${rows[rows.length - 1].device_at}|${rows.length}|${scale}`;
+  let m = summaries.get(key);
+  if (!m) {
+    if (summaries.size > 5_000) summaries.clear();
+    m = analyze(rows, scale);
+    summaries.set(key, m);
   }
-  if (cur) eps.push(cur);
-  let trafficMs = 0;
-  let standMs = 0;
-  let maxMs = 0;
-  let count = 0;
-  for (const e of eps) {
-    const ms = e.to - e.from;
-    if (e.movedBefore && e.movedAfter && ms <= TRAFFIC_MAX_MS) {
-      trafficMs += ms;
-      maxMs = Math.max(maxMs, ms);
-      if (ms >= 5_000) count++;
-    } else {
-      standMs += ms;
-    }
-  }
-  return { trafficMs, standMs, maxMs, count };
+  return m;
 }
 
-function summarize(rows: Row[], parts = 1): Trip {
-  let gpsKm = 0;
-  let last: [number, number] | null = null;
-  let maxSpeed: number | null = null;
-  let maxRpm: number | null = null;
-  let minVolt: number | null = null;
-  let startPos: [number, number] | null = null;
-  let endPos: [number, number] | null = null;
-  for (const r of rows) {
-    const p = pos(r);
-    if (p) {
-      // Săriturile de peste 2 km între două puncte sunt erori de GPS, nu drum.
-      if (last) {
-        const d = haversineKm(last, p);
-        if (d < 2) gpsKm += d;
-      }
-      last = p;
-      startPos ??= p;
-      endPos = p;
-    }
-    const speed = r.can_speed ?? r.gps_speed;
-    if (speed !== null) maxSpeed = Math.max(maxSpeed ?? 0, speed);
-    if (r.rpm !== null) maxRpm = Math.max(maxRpm ?? 0, r.rpm);
-    if (r.volt !== null && r.volt > 5) minVolt = Math.min(minVolt ?? 99, r.volt);
-  }
-  const odos = rows.map((r) => r.odo).filter((o): o is number => o !== null && o > 0);
-  const odoStart = odos.length ? odos[0] : null;
-  const odoEnd = odos.length ? odos[odos.length - 1] : null;
-  // Kilometrajul are rezoluție de 1 km: îl preferăm doar pe drumuri mai lungi.
-  const odoKm = odoStart !== null && odoEnd !== null ? odoEnd - odoStart : null;
-  const distanceKm = odoKm !== null && odoKm >= 5 ? odoKm : gpsKm;
-  const start = rows[0].device_at;
-  const end = rows[rows.length - 1].device_at;
-  const durationMin = (new Date(end).getTime() - new Date(start).getTime()) / 60_000;
-  let stopMs = 0;
-  const stops: TripStop[] = [];
-  let lastPos: [number, number] | null = null;
-  for (let i = 0; i < rows.length; i++) {
-    if (i > 0) {
-      const gap = new Date(rows[i].device_at).getTime() - new Date(rows[i - 1].device_at).getTime();
-      if (gap > TRIP_GAP_MS) {
-        stopMs += gap;
-        stops.push({
-          from: rows[i - 1].device_at,
-          to: rows[i].device_at,
-          minutes: Math.round(gap / 6_000) / 10,
-          // Unde a parcat: ultima poziție bună dinainte, altfel prima de după.
-          pos: lastPos ?? pos(rows[i]),
-          place: null,
-        });
-      }
-    }
-    lastPos = pos(rows[i]) ?? lastPos;
-  }
-  const movingMin = durationMin - stopMs / 60_000;
-  const traffic = trafficStops(rows);
-  const movingOnlyMin = movingMin - (traffic.trafficMs + traffic.standMs) / 60_000;
-  const tank = rows.map((r) => r.fuel).filter((f): f is number => f !== null && f > 0);
-  const temps = rows.map((r) => r.temp).filter((t): t is number => t !== null);
-  const fuel = estimateFuel(
-    rows.map((r) => ({
-      t: new Date(r.device_at).getTime(),
-      speed: r.can_speed ?? r.gps_speed,
-      rpm: r.rpm,
-    })),
-  );
-  return {
-    start,
-    end,
-    points: rows.length,
-    distanceKm: Math.round(distanceKm * 10) / 10,
-    durationMin: Math.round(durationMin * 10) / 10,
-    parts,
-    stops,
-    stopMin: Math.round((stopMs / 60_000) * 10) / 10,
-    maxSpeed: maxSpeed === null ? null : Math.round(maxSpeed),
-    avgSpeed: movingMin > 0 ? Math.round((distanceKm / movingMin) * 60) : null,
-    maxRpm,
-    odoStart,
-    odoEnd,
-    fuelStart: tank.length ? tank[0] : null,
-    fuelEnd: tank.length ? tank[tank.length - 1] : null,
-    tempC: temps.length ? temps[temps.length - 1] : null,
-    minVolt: minVolt === null ? null : Math.round(minVolt * 100) / 100,
-    startPos,
-    endPos,
-    fromPlace: null,
-    toPlace: null,
-    modelLiters: fuel.liters,
-    idleMin: Math.round(fuel.idleMin * 10) / 10,
-    trafficMin: Math.round((traffic.trafficMs / 60_000) * 10) / 10,
-    trafficStops: traffic.count,
-    trafficMaxMin: Math.round((traffic.maxMs / 60_000) * 10) / 10,
-    standMin: Math.round((traffic.standMs / 60_000) * 10) / 10,
-    movingAvgSpeed: movingOnlyMin > 0.5 ? Math.round((distanceKm / movingOnlyMin) * 60) : null,
-    idle: parts === 1 && distanceKm < IDLE_KM,
-    fuelL: null,
-    lPer100: null,
-    cost: null,
-  };
-}
-
-/** Călătoriile din ultimele `days` zile, cele mai noi primele. */
-export function readTrips(days = 60): Trip[] {
-  return readTripsSince(new Date(Date.now() - days * 86_400_000).toISOString());
-}
-
-/** Călătoriile începute după `since` (ISO), cele mai noi primele. */
-export function readTripsSince(since: string): Trip[] {
+/** Toate călătoriile din istoric, crescător; recalculate doar la date noi. */
+const allTrips = memo((): Trip[] => {
+  const since = new Date(Date.now() - HISTORY_DAYS * 86_400_000).toISOString();
   const rows = getDb()
     .prepare(
-      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel
+      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons
        FROM trip_point WHERE device_at >= ? ORDER BY device_at`,
     )
-    .all(since) as unknown as Row[];
+    .all(since) as unknown as PointRow[];
+  const scale = canScale(rows);
   // Întâi bucățile despărțite de pauze; trei-patru puncte izolate (ex. o repornire pe loc)
   // nu sunt o călătorie.
-  const groups: Row[][] = [];
-  let cur: Row[] = [];
+  const groups: PointRow[][] = [];
+  let cur: PointRow[] = [];
   for (const r of rows) {
     const prev = cur[cur.length - 1];
-    if (
-      prev &&
-      new Date(r.device_at).getTime() - new Date(prev.device_at).getTime() > TRIP_GAP_MS
-    ) {
+    if (prev && Date.parse(r.device_at) - Date.parse(prev.device_at) > TRIP_GAP_MS) {
       groups.push(cur);
       cur = [];
     }
@@ -359,32 +159,54 @@ export function readTripsSince(since: string): Trip[] {
   // Apoi cele combinate de utilizator (tabela trip_join): bucățile consecutive care încep
   // în același interval devin o singură călătorie.
   const joins = readJoins();
-  const joinOf = (g: Row[]) =>
+  const joinOf = (g: PointRow[]) =>
     joins.findIndex((j) => g[0].device_at >= j.start && g[0].device_at <= j.end);
-  const trips: Trip[] = [];
-  let merged: Row[] = [];
-  let parts = 0;
+  const merged: Array<{ rows: PointRow[]; parts: number }> = [];
   let mergedJoin = -1;
   for (const g of groups.filter((g) => g.length >= 5)) {
     const j = joinOf(g);
-    if (parts > 0 && (j < 0 || j !== mergedJoin)) {
-      trips.push(summarize(merged, parts));
-      merged = [];
-      parts = 0;
+    const last = merged[merged.length - 1];
+    if (last && j >= 0 && j === mergedJoin) {
+      last.rows = last.rows.concat(g);
+      last.parts++;
+    } else {
+      merged.push({ rows: g, parts: 1 });
     }
-    merged = merged.concat(g);
-    parts++;
     mergedJoin = j;
   }
-  if (parts > 0) trips.push(summarize(merged, parts));
   const places = readPlaces();
-  return trips
-    .map((t) => ({
-      ...t,
-      fromPlace: placeAt(t.startPos, places),
-      toPlace: placeAt(t.endPos, places),
-      stops: t.stops.map((s) => ({ ...s, place: placeAt(s.pos, places) })),
-    }))
+  let parkedAt: [number, number] | null = null;
+  return merged.map(({ rows: r, parts }) => {
+    const m = analyzeCached(r, scale);
+    // Unde a plecat: unde a parcat ultima dată, dacă primul fix e aproape (fix întârziat).
+    const from =
+      parkedAt && m.startPos && haversineKm(parkedAt, m.startPos) <= PARKED_MATCH_KM
+        ? parkedAt
+        : m.startPos;
+    parkedAt = m.endPos ?? parkedAt;
+    return {
+      ...m,
+      parts,
+      stops: m.stops.map((s) => ({ ...s, place: placeAt(s.pos, places) })),
+      fromPlace: placeAt(from, places),
+      toPlace: placeAt(m.endPos, places),
+      idle: parts === 1 && m.distanceKm < IDLE_KM,
+      fuelL: null,
+      lPer100: null,
+      cost: null,
+    };
+  });
+});
+
+/** Călătoriile începute în ultimele `days` zile, cele mai noi primele. */
+export function readTrips(days = 60): Trip[] {
+  return readTripsSince(new Date(Date.now() - days * 86_400_000).toISOString());
+}
+
+/** Călătoriile începute după `since` (ISO), cele mai noi primele. */
+export function readTripsSince(since: string): Trip[] {
+  return allTrips()
+    .filter((t) => t.start >= since)
     .reverse();
 }
 
@@ -422,11 +244,13 @@ export function joinTrips(start: string, end: string): void {
     db.exec("ROLLBACK");
     throw e;
   }
+  dataChanged();
 }
 
 /** Desparte la loc călătoria combinată care începe la `start`. */
 export function splitTrip(start: string): void {
   getDb().prepare(`DELETE FROM trip_join WHERE start <= ? AND end >= ?`).run(start, start);
+  dataChanged();
 }
 
 /** Punctele unei călătorii (între `start` și `end`, inclusiv), pentru hartă și grafic. */
@@ -436,14 +260,14 @@ export function readTripPoints(start: string, end: string): TripPoint[] {
       `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm FROM trip_point
        WHERE device_at BETWEEN ? AND ? ORDER BY device_at`,
     )
-    .all(start, end) as unknown as Row[];
+    .all(start, end) as unknown as PointRow[];
   return rows.map((r) => {
     const p = pos(r);
     return {
       t: r.device_at,
       lat: p ? p[0] : null,
       lon: p ? p[1] : null,
-      speed: r.can_speed ?? r.gps_speed,
+      speed: speedOf(r),
       rpm: r.rpm,
     };
   });

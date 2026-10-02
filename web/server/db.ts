@@ -13,6 +13,36 @@ export function dataDir(): string {
 
 let db: DatabaseSync | null = null;
 
+// Versiunea datelor din care se calculează călătoriile (puncte, combinări, locuri,
+// alimentări): crește la fiecare scriere, iar calculele scumpe se refac doar atunci.
+let version = 0;
+
+export function dataChanged(): void {
+  version++;
+}
+
+/**
+ * Rezultatul lui `fn`, refăcut doar după o schimbare a datelor (dataChanged) sau a cheii
+ * `extra` (ex. ziua, pentru ferestrele de timp ca „ultimele 30 de zile”).
+ */
+export function memo<T>(fn: () => T, extra: () => string = () => ""): () => T {
+  let at = "";
+  let value: T;
+  return () => {
+    const key = `${version}|${extra()}`;
+    if (at !== key) {
+      value = fn();
+      at = key;
+    }
+    return value;
+  };
+}
+
+/** Cheie care se schimbă la fiecare oră (ferestrele de timp ale statisticilor). */
+export function hourKey(): string {
+  return new Date().toISOString().slice(0, 13);
+}
+
 export function getDb(): DatabaseSync {
   if (db) return db;
   const path = process.env.FAIKKITCAR_DB ?? `${dataDir()}/faikkitcar.db`;

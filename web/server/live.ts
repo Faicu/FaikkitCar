@@ -6,15 +6,14 @@
 // ---------------------------------------------------------------------------
 
 import { readLastPosition, type Position } from "./car.ts";
-import { getDb } from "./db.ts";
+import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
+import { TRAFFIC_MAX_MS } from "./trip-math.ts";
 import { readTrips, TRIP_GAP_MS, type Trip } from "./trips.ts";
 
-// „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive).
+// „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive), cu aceeași
+// limită ca la călătorii (trip-math.ts).
 export type CarState = "off" | "contact" | "engine" | "traffic" | "driving";
-
-// Ca la călătorii (trips.ts): oprit cu motorul pornit după ce a mers, cel mult atât = trafic.
-const TRAFFIC_MAX_MS = 10 * 60_000;
 
 export interface IncomingState {
   t?: number;
@@ -236,8 +235,11 @@ export function readLive(): Live {
   }
 
   const fuel = readFuelSummary();
+  // Nivelul din punctele de traseu (mediană pe 10 min); fără puncte recente (doar contact),
+  // ultima citire din stare.
+  const tankOld = !fuel.tank || Date.now() - Date.parse(fuel.tank.at) > 10 * 60_000;
   const tank =
-    data?.fuel != null ? { liters: data.fuel, at: row!.received_at } : fuel.tank;
+    data?.fuel != null && tankOld ? { liters: data.fuel, at: row!.received_at } : fuel.tank;
   let range: Live["range"] = null;
   const real = fuel.avgLPer100 !== null;
   const lPer100 = fuel.avgLPer100 ?? estimatedLPer100();
@@ -248,9 +250,9 @@ export function readLive(): Live {
 }
 
 /** Consumul estimat pe ultimele 60 de zile, cât nu există încă unul real din rezervor. */
-function estimatedLPer100(): number | null {
+const estimatedLPer100 = memo((): number | null => {
   const trips = applyFuel(readTrips(60));
   const km = trips.reduce((s, t) => s + t.distanceKm, 0);
   const liters = trips.reduce((s, t) => s + (t.fuelL ?? 0), 0);
   return km >= 5 ? (liters / km) * 100 : null;
-}
+}, hourKey);

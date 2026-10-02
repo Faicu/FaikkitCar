@@ -5,7 +5,7 @@
 // alimentări. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
-import { getDb } from "./db.ts";
+import { dataChanged, getDb, memo } from "./db.ts";
 import {
   calibrate,
   priceAt,
@@ -72,21 +72,25 @@ function readLevels(): LevelReading[] {
   ).map((r) => ({ t: r.device_at, fuel: r.fuel, odo: r.odo }));
 }
 
-/** Călătoriile care pot intra în calibrare: de la primul plin sau prima citire de nivel. */
-function calibrationFor(refuels: FuelRefuel[], levels = readLevels()) {
+/**
+ * Alimentările, nivelurile și calibrarea, calculate o dată per versiune a datelor. Intră
+ * călătoriile de la primul plin sau de la prima citire de nivel.
+ */
+const fuelState = memo(() => {
+  const refuels = readRefuels();
+  const levels = readLevels();
   const starts = [refuels.find((r) => r.full)?.at, levels[0]?.t].filter(
     (x): x is string => x !== undefined,
   );
   const trips = starts.length ? readTripsSince(starts.sort()[0]) : [];
-  return calibrate(refuels, trips, levels);
-}
+  return { refuels, levels, cal: calibrate(refuels, trips, levels) };
+});
 
 /** Completează litrii, consumul și costul călătoriilor (aceeași calibrare pentru toate). */
 export function applyFuel(trips: Trip[]): Trip[] {
-  const refuels = readRefuels();
-  const { factor } = calibrationFor(refuels);
+  const { refuels, cal } = fuelState();
   return trips.map((t) => {
-    const fuelL = t.modelLiters * factor;
+    const fuelL = t.modelLiters * cal.factor;
     const price = priceAt(refuels, t.start);
     return {
       ...t,
@@ -97,10 +101,16 @@ export function applyFuel(trips: Trip[]): Trip[] {
   });
 }
 
+function currentLevel(levels: LevelReading[]): number {
+  const end = Date.parse(levels[levels.length - 1].t);
+  const xs = levels.filter((l) => end - Date.parse(l.t) <= 10 * 60_000).map((l) => l.fuel);
+  const s = xs.sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
 export function readFuelSummary(): FuelSummary {
-  const refuels = readRefuels();
-  const levels = readLevels();
-  const cal = calibrationFor(refuels, levels);
+  const { refuels, levels, cal } = fuelState();
   const last = levels[levels.length - 1];
   const byTo = new Map<number, FuelInterval>(cal.intervals.map((i) => [i.toId, i]));
   const withKm = cal.intervals.filter((i) => i.km !== null);
@@ -120,7 +130,8 @@ export function readFuelSummary(): FuelSummary {
     lastPrice: priced.length ? priced[priced.length - 1].price : null,
     source: cal.source,
     level: cal.level,
-    tank: last ? { liters: last.fuel, at: last.t } : null,
+    // Mediana ultimelor 10 minute: citirile oscilează cu 1 L (37/38).
+    tank: last ? { liters: currentLevel(levels), at: last.t } : null,
   };
 }
 
@@ -172,8 +183,10 @@ export function saveRefuel(input: RefuelInput): void {
       `INSERT INTO refuel (at, odo, liters, price, full, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(...values, new Date().toISOString());
   }
+  dataChanged();
 }
 
 export function deleteRefuel(id: number): void {
   getDb().prepare(`DELETE FROM refuel WHERE id = ?`).run(id);
+  dataChanged();
 }

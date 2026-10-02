@@ -6,7 +6,7 @@ import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live } from "../server/live.ts";
 import type { Place, PlaceInput } from "../server/places.ts";
-import type { MonthStats } from "../server/stats.ts";
+import type { MonthStats, PeriodStats, Stats } from "../server/stats.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
 
 export class Unauthorized extends Error {}
@@ -32,7 +32,7 @@ export const api = {
   // Cu `after`, serverul răspunde abia la o stare nouă de la mașină (cel mult 25 s).
   live: (after?: string | null, signal?: AbortSignal) =>
     call<Live>("GET", after ? `/api/live?after=${encodeURIComponent(after)}` : "/api/live", undefined, signal),
-  stats: () => call<MonthStats[]>("GET", "/api/stats"),
+  stats: () => call<Stats>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
   joinTrips: (start: string, end: string) => call<{ ok: true }>("POST", "/api/trips/join", { start, end }),
   splitTrip: (start: string) => call<{ ok: true }>("POST", "/api/trips/split", { start }),
@@ -59,7 +59,7 @@ export const api = {
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 
-export type { FuelSummary, Live, LogEntry, MonthStats, Place, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+export type { FuelSummary, Live, LogEntry, MonthStats, PeriodStats, Place, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {

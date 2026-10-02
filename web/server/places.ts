@@ -3,7 +3,7 @@
 // „de la” / „până la” după ele, iar mașina parcată spune unde stă. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
-import { getDb } from "./db.ts";
+import { dataChanged, getDb } from "./db.ts";
 
 export interface Place {
   id: number;
@@ -78,8 +78,10 @@ export function savePlace(input: PlaceInput): void {
       new Date().toISOString(),
     );
   }
+  dataChanged();
 }
 
 export function deletePlace(id: number): void {
   getDb().prepare(`DELETE FROM place WHERE id = ?`).run(id);
+  dataChanged();
 }

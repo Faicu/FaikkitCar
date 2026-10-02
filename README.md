@@ -232,14 +232,34 @@ vs. GPS: +0,8 km/h în medie).
 
 ---
 
+## Cum se calculează o călătorie
+
+Totul se calculează pe server (`web/server/trip-math.ts`), din punctele trimise de mașină
+(la 5 s în mers, la 30 s pe loc cu motorul pornit, nimic cu motorul oprit), segment cu
+segment:
+
+- **Distanța:** din GPS cât timp are semnal bun; fără GPS (tunel, fix întârziat), din
+  viteză. Pe loc, zgomotul GPS nu se adună. Verificat: 16,2 km pe 30.09–02.10, față de
+  16 km pe kilometraj.
+- **Opririle cu motorul oprit** (orice pauză de peste 1 minut): la „Opriri”, cu loc și
+  durată; nu intră în viteza medie. Peste 5 minute despart două călătorii (dacă nu le
+  combini).
+- **Opririle cu motorul pornit:** între două porțiuni de mers și sub 10 minute = **în
+  trafic** (semafor, coloană); la plecare, la sosire sau mai lungi = **staționare**.
+- **Viteza medie** e pe tot drumul fără opririle cu motorul oprit; **viteza în mișcare**
+  doar pe timpul în care mașina se deplasează.
+- **Locurile:** plecarea e locul unde a parcat ultima dată, chiar dacă GPS-ul prinde semnal
+  abia după câteva sute de metri.
+
 ## Consumul de combustibil
 
 - **Estimarea pe drum** (`web/server/fuel-model.ts`) folosește un model fizic al
   Golf-ului: accelerări, aer, rulare, plus rotațiile motorului (frecări, mers în gol).
-  Calculează litri, L/100 km și timpul stat pe loc cu motorul pornit.
 - **Consumul real** vine din nivelul rezervorului citit de la mașină: nivelul de la început
-  − nivelul de acum + ce s-a alimentat între timp (saltul de cel puțin 3 L). E calculat pe
-  ultimele 90 de zile.
+  − nivelul de acum + ce s-a alimentat între timp. Nivelurile sunt mediane pe 10 minute
+  (citirile oscilează cu 1 L), iar o alimentare din jurnal intră cu litrii de pe bon. E
+  calculat pe ultimele 90 de zile.
+- **Consumul bordului** (c1033, de confirmat) apare separat pe fiecare drum, în mers.
 - **Corecția:** după ~8 L consumați, estimarea de pe fiecare drum e înmulțită cu raportul
   „real / estimat”. Fără nivel, corecția vine din plinuri.
 - **Costul** = litrii estimați × prețul ultimei alimentări introduse.

@@ -50,8 +50,9 @@ final class Api {
         return new JSONObject(call("GET", path, null, true, 40_000));
     }
 
-    JSONArray stats() throws Exception {
-        return new JSONArray(call("GET", "/api/stats", null, true));
+    /** {last30, months}: totalurile calculate pe server (aceleasi ca pe site). */
+    JSONObject stats() throws Exception {
+        return new JSONObject(call("GET", "/api/stats", null, true));
     }
 
     JSONArray trips() throws Exception {

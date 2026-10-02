@@ -45,7 +45,7 @@ import {
   type IncomingPoint,
 } from "./trips.ts";
 import { deletePlace, readPlaces, savePlace, type PlaceInput } from "./places.ts";
-import { readMonthlyStats } from "./stats.ts";
+import { readStats } from "./stats.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
 
 const app = new Hono();
@@ -246,7 +246,7 @@ app.get("/api/live", async (c) => {
 
 app.get("/api/stats", (c) => {
   requireUser(c);
-  return c.json(readMonthlyStats());
+  return c.json(readStats());
 });
 
 app.get("/api/car", (c) => {

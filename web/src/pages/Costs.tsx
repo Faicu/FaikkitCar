@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Stat } from "../components/Cells";
 import { FuelLog } from "../components/FuelLog";
-import { api, duration, lei, liters, num, type MonthStats, type Trip } from "../api";
+import { api, duration, lei, liters, num, type MonthStats, type PeriodStats } from "../api";
 
 const LIVE = { refetchInterval: 30_000, staleTime: 15_000 };
 
@@ -11,38 +11,36 @@ function monthName(m: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Fila Costuri: ultimele 30 de zile, pe luni și alimentările. */
+/** Fila Costuri: ultimele 30 de zile, pe luni și alimentările (totalurile vin de la server). */
 export function CostsPage() {
-  const { data: trips } = useQuery({ queryKey: ["trips"], queryFn: api.trips, ...LIVE });
   const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: api.stats, ...LIVE });
   const { data: fuel } = useQuery({ queryKey: ["fuel"], queryFn: api.fuel, ...LIVE });
   return (
     <>
-      {trips && <Last30 trips={trips} />}
-      {stats && stats.length > 0 && <Monthly months={stats} />}
+      {stats && <Last30 s={stats.last30} />}
+      {stats && stats.months.length > 0 && <Monthly months={stats.months} />}
       {fuel && <FuelLog fuel={fuel} />}
     </>
   );
 }
 
-function Last30({ trips }: { trips: Trip[] }) {
-  // Totalurile includ și pornirile pe loc (consumă combustibil); doar numărul le exclude.
-  const month = trips.filter((t) => Date.now() - new Date(t.start).getTime() < 30 * 86_400_000);
-  const km = month.reduce((s, t) => s + t.distanceKm, 0);
-  const min = month.reduce((s, t) => s + t.durationMin, 0);
-  const l = month.reduce((s, t) => s + (t.fuelL ?? 0), 0);
-  const cost = month.some((t) => t.cost !== null) ? month.reduce((s, t) => s + (t.cost ?? 0), 0) : null;
+function Last30({ s }: { s: PeriodStats }) {
   return (
     <div className="space-y-2">
       <h2 className="px-1 text-sm font-semibold text-muted-foreground">Ultimele 30 de zile</h2>
       <div className="grid grid-cols-3 gap-2">
-        <Stat label="Călătorii" value={String(month.filter((t) => !t.idle).length)} />
-        <Stat label="Distanță" value={`${Math.round(km)} km`} />
-        <Stat label="Timp la volan" value={duration(min)} />
-        <Stat label="Combustibil (est.)" value={`≈ ${liters(l)}`} />
-        <Stat label="Consum (est.)" value={km >= 1 ? `${num((l / km) * 100)} L/100` : "—"} />
-        <Stat label="Cost (est.)" value={cost !== null ? lei(cost) : "—"} />
+        <Stat label="Călătorii" value={String(s.trips)} />
+        <Stat label="Distanță" value={`${Math.round(s.km)} km`} />
+        <Stat label="Timp la volan" value={duration(s.minutes)} />
+        <Stat label="Combustibil (est.)" value={`≈ ${liters(s.liters)}`} />
+        <Stat label="Consum (est.)" value={s.lPer100 !== null ? `${num(s.lPer100)} L/100` : "—"} />
+        <Stat label="Cost (est.)" value={s.cost !== null ? lei(s.cost) : "—"} />
       </div>
+      {s.trafficMin > 0 && (
+        <p className="px-1 text-xs text-muted-foreground">
+          Din timpul la volan, {duration(s.trafficMin)} oprit în trafic.
+        </p>
+      )}
     </div>
   );
 }

@@ -113,23 +113,32 @@ describe("priceAt", () => {
 describe("levelConsumption", () => {
   const r = (t: string, fuel: number, odo: number) => ({ t, fuel, odo });
 
-  it("drumul real din 01.10: 22 → 21, alimentare +17 → 38 → 37", () => {
-    const c = levelConsumption([
-      r("2026-10-01T17:01:00Z", 22, 245070),
-      r("2026-10-01T17:12:00Z", 21, 245071),
-      r("2026-10-01T17:32:00Z", 38, 245073),
-      r("2026-10-01T17:35:00Z", 37, 245074),
-    ]);
-    expect(c).toMatchObject({ liters: 2, refills: 17, km: 4, lPer100: null });
+  const real = [
+    r("2026-10-01T17:01:00Z", 22, 245070),
+    r("2026-10-01T17:12:00Z", 21, 245071),
+    r("2026-10-01T17:32:00Z", 38, 245073),
+    r("2026-10-01T17:35:00Z", 37, 245074),
+  ];
+
+  it("drumul real din 01.10, fără bon: saltul din mediana nivelurilor (21 → 37,5)", () => {
+    expect(levelConsumption(real)).toMatchObject({ liters: 1, refills: 16.5, km: 4, lPer100: null });
   });
 
-  it("oscilațiile de 1 L se anulează între capete", () => {
+  it("drumul real din 01.10, cu bonul de 16 L din jurnal", () => {
+    expect(levelConsumption(real, [{ at: "2026-10-01T17:32:00Z", liters: 16 }])).toMatchObject({
+      liters: 0.5,
+      refills: 16,
+    });
+  });
+
+  it("oscilațiile de 1 L se anulează: capetele sunt mediane pe 10 minute", () => {
     const c = levelConsumption([
-      r("a1", 40, 1000),
-      r("a2", 39, 1050),
-      r("a3", 40, 1100),
-      r("a4", 39, 1150),
-      r("a5", 30, 1200),
+      r("2026-10-01T10:00:00Z", 40, 1000),
+      r("2026-10-01T10:03:00Z", 39, 1000),
+      r("2026-10-01T10:06:00Z", 40, 1001),
+      r("2026-10-01T12:00:00Z", 30, 1150),
+      r("2026-10-01T12:04:00Z", 31, 1200),
+      r("2026-10-01T12:08:00Z", 30, 1200),
     ]);
     expect(c).toMatchObject({ liters: 10, refills: 0, km: 200, lPer100: 5 });
   });

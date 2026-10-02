@@ -112,29 +112,76 @@ export interface LevelConsumption {
 const REFILL_JUMP = 3;
 /** Sub atâția litri consumați, rezoluția de 1 L a nivelului strică factorul. */
 const MIN_LEVEL_LITERS = 8;
+/** Nivelul la un moment dat = mediana citirilor din atâtea minute (oscilează 37/38 L). */
+const LEVEL_WINDOW_MS = 10 * 60_000;
+/** O alimentare din jurnal se potrivește cu un salt al nivelului la cel mult atâtea ore. */
+const REFUEL_MATCH_MS = 3 * 3_600_000;
+
+function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
 
 /**
- * Consumul real din nivelul rezervorului: fluctuațiile mici se anulează între capete, deci
- * eroarea rămâne ~1 L oricât de lungă e perioada. `readings` crescător după timp, fuel > 0.
+ * Mediana nivelului pornind de la citirea `i`, în direcția `dir`, pe cel mult LEVEL_WINDOW_MS
+ * și fără să treacă de `limit` (indexul unei alimentări).
  */
-export function levelConsumption(readings: LevelReading[]): LevelConsumption | null {
-  if (readings.length < 2) return null;
-  let refills = 0;
-  for (let i = 1; i < readings.length; i++) {
-    const jump = readings[i].fuel - readings[i - 1].fuel;
-    if (jump >= REFILL_JUMP) refills += jump;
+function levelAround(readings: LevelReading[], i: number, dir: 1 | -1, limit: number): number {
+  const t0 = Date.parse(readings[i].t);
+  const xs: number[] = [];
+  for (let k = i; k >= 0 && k < readings.length; k += dir) {
+    if (dir === 1 ? k > limit : k < limit) break;
+    if (Math.abs(Date.parse(readings[k].t) - t0) > LEVEL_WINDOW_MS) break;
+    xs.push(readings[k].fuel);
   }
-  const first = readings[0];
-  const last = readings[readings.length - 1];
-  const liters = first.fuel - last.fuel + refills;
+  return median(xs);
+}
+
+/**
+ * Consumul real din nivelul rezervorului: nivelul de la început − cel de la sfârșit + ce s-a
+ * alimentat. Nivelurile sunt mediane pe 10 minute (citirile oscilează cu 1 L); o alimentare
+ * e un salt ≥ 3 L, cu litrii de pe bon dacă e în jurnal (`refuels`), altfel cu diferența
+ * nivelurilor din jurul saltului. Eroarea rămâne ~1 L oricât de lungă e perioada.
+ * `readings` crescător după timp, fuel > 0.
+ */
+export function levelConsumption(
+  readings: LevelReading[],
+  refuels: Array<{ at: string; liters: number }> = [],
+): LevelConsumption | null {
+  if (readings.length < 2) return null;
+  const jumps: number[] = [];
+  for (let i = 1; i < readings.length; i++) {
+    if (readings[i].fuel - readings[i - 1].fuel >= REFILL_JUMP) jumps.push(i);
+  }
+  const used = new Set<number>();
+  let refills = 0;
+  jumps.forEach((i, n) => {
+    const t = Date.parse(readings[i].t);
+    const k = refuels.findIndex(
+      (r, idx) => !used.has(idx) && Math.abs(Date.parse(r.at) - t) <= REFUEL_MATCH_MS,
+    );
+    if (k >= 0) {
+      used.add(k);
+      refills += refuels[k].liters;
+    } else {
+      const before = levelAround(readings, i - 1, -1, n > 0 ? jumps[n - 1] : 0);
+      const after = levelAround(readings, i, 1, n + 1 < jumps.length ? jumps[n + 1] - 1 : readings.length - 1);
+      refills += Math.max(0, after - before);
+    }
+  });
+  const last = readings.length - 1;
+  const startLevel = levelAround(readings, 0, 1, jumps.length ? jumps[0] - 1 : last);
+  const endLevel = levelAround(readings, last, -1, jumps.length ? jumps[jumps.length - 1] : 0);
+  const liters = Math.round((startLevel - endLevel + refills) * 10) / 10;
   const odos = readings.map((r) => r.odo).filter((o): o is number => o !== null && o > 0);
   const km =
     odos.length >= 2 && odos[odos.length - 1] > odos[0] ? odos[odos.length - 1] - odos[0] : null;
   return {
-    from: first.t,
-    to: last.t,
+    from: readings[0].t,
+    to: readings[last].t,
     liters,
-    refills,
+    refills: Math.round(refills * 10) / 10,
     km,
     lPer100: km !== null && km >= 50 ? (liters / km) * 100 : null,
   };
@@ -185,7 +232,7 @@ export function calibrate(
   const real = used.reduce((s, i) => s + i.liters, 0);
   const clamp = (x: number) => Math.min(FACTOR_MAX, Math.max(FACTOR_MIN, x));
   // Nivelul din rezervor are prioritate: nu cere plinuri și acoperă toate drumurile.
-  const level = levelConsumption(readings);
+  const level = levelConsumption(readings, refuels);
   if (level && level.liters >= MIN_LEVEL_LITERS) {
     const levelModel = trips
       .filter((t) => t.start >= level.from && t.start <= level.to)

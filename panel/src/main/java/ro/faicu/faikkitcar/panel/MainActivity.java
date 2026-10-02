@@ -56,8 +56,8 @@ public class MainActivity extends Activity {
     private final List<MapView> maps = new ArrayList<>();
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
-    private JSONArray trips, log, stats, places;
-    private JSONObject live, car, fuel, newerApk;
+    private JSONArray trips, log, places;
+    private JSONObject live, car, fuel, stats, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
     private boolean eventsOnly = true;
@@ -138,8 +138,8 @@ public class MainActivity extends Activity {
     private void logout() {
         stopLive();
         Store.setToken(this, "");
-        trips = log = points = stats = places = null;
-        live = car = fuel = newerApk = null;
+        trips = log = points = places = null;
+        live = car = fuel = stats = newerApk = null;
         selected = null;
         shown = "";
         detachMaps();
@@ -246,11 +246,9 @@ public class MainActivity extends Activity {
                         render();
                     });
                 } else if (forTab == COSTS) {
-                    JSONArray t = api.trips();
-                    JSONArray st = api.stats();
+                    JSONObject st = api.stats();
                     JSONObject f = api.fuel();
                     ui.post(() -> {
-                        trips = t;
                         stats = st;
                         fuel = f;
                         render();
@@ -345,7 +343,7 @@ public class MainActivity extends Activity {
                 + (newerApk != null) + "|"
                 + (tab == NOW ? String.valueOf(live)
                         : tab == TRIPS ? trips + "|" + pointsFor
-                        : tab == COSTS ? trips + "|" + stats + "|" + fuel
+                        : tab == COSTS ? stats + "|" + fuel
                         : car + "|" + places + "|" + log);
         if (state.equals(shown)) return;
         shown = state;
@@ -614,8 +612,13 @@ public class MainActivity extends Activity {
         cells.add(Ui.info(this, "Rezervor", t.isNull("fuelStart") || t.isNull("fuelEnd") ? "—"
                 : Fmt.num(t.optDouble("fuelStart"), 0) + " → " + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));
         int parts = t.optInt("parts", 1);
-        if (parts > 1) cells.add(Ui.info(this, "Opriri între părți", Fmt.duration(t.optDouble("stopMin"))));
+        if (t.optDouble("stopMin") > 0) {
+            cells.add(Ui.info(this, "Opriri cu motorul oprit", Fmt.shortDuration(t.optDouble("stopMin"))));
+        }
+        boolean board = !t.isNull("boardLPer100") && t.has("boardLPer100");
+        if (board) cells.add(Ui.info(this, "Consum bord* (în mers)", Fmt.num(t.optDouble("boardLPer100"), 1) + " L/100"));
         card.addView(Ui.grid(this, cells, 3));
+        if (board) Ui.hint(this, card, "* din consumul instantaneu al bordului (c1033), de confirmat cu afișajul din bord.");
 
         // Combinarea cu vecinele (ex. dus-intors cu o oprire scurta) si despartirea.
         List<String> labels = new ArrayList<>();
@@ -661,7 +664,7 @@ public class MainActivity extends Activity {
         JSONArray stops = t.optJSONArray("stops");
         if (stops != null && stops.length() > 0) {
             LinearLayout sc = Ui.card(this, content);
-            Ui.title(this, sc, "Opriri (galben pe hartă)");
+            Ui.title(this, sc, "Opriri cu motorul oprit (galben pe hartă)");
             for (int i = 0; i < stops.length(); i++) {
                 JSONObject s = stops.optJSONObject(i);
                 sc.addView(Ui.text(this, Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to"))
@@ -766,57 +769,45 @@ public class MainActivity extends Activity {
     // ---------------------------------------------------------------- fila Costuri
 
     private void renderCosts() {
-        if (trips == null || stats == null || fuel == null) {
+        if (stats == null || fuel == null) {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
-        renderStats();
-        renderMonthly();
+        renderStats(stats.optJSONObject("last30"));
+        renderMonthly(stats.optJSONArray("months"));
         renderFuel();
     }
 
-    private void renderStats() {
-        long now = System.currentTimeMillis();
-        double km = 0, min = 0, liters = 0, cost = 0;
-        boolean hasCost = false;
-        int count = 0;
-        for (int i = 0; i < trips.length(); i++) {
-            JSONObject t = trips.optJSONObject(i);
-            if (now - Fmt.millis(t.optString("start")) >= 30L * 86_400_000) continue;
-            // Totalurile includ si pornirile pe loc (consuma combustibil); numarul nu.
-            km += t.optDouble("distanceKm");
-            min += t.optDouble("durationMin");
-            liters += t.optDouble("fuelL", 0);
-            if (!t.isNull("cost")) {
-                cost += t.optDouble("cost");
-                hasCost = true;
-            }
-            if (!t.optBoolean("idle")) count++;
-        }
+    /** Ultimele 30 de zile, calculate pe server (aceleasi cifre ca pe site). */
+    private void renderStats(JSONObject s) {
+        if (s == null) return;
         LinearLayout card = Ui.card(this, content);
         Ui.title(this, card, "Ultimele 30 de zile");
         List<View> cells = new ArrayList<>();
-        cells.add(Ui.info(this, "Călătorii", String.valueOf(count)));
-        cells.add(Ui.info(this, "Distanță", Math.round(km) + " km"));
-        cells.add(Ui.info(this, "Timp la volan", Fmt.duration(min)));
-        cells.add(Ui.info(this, "Combustibil (est.)", "≈ " + Fmt.liters(liters)));
-        cells.add(Ui.info(this, "Consum (est.)", km >= 1 ? Fmt.num(liters / km * 100, 1) + " L/100" : "—"));
-        cells.add(Ui.info(this, "Cost (est.)", hasCost ? Fmt.lei(cost) : "—"));
+        cells.add(Ui.info(this, "Călătorii", String.valueOf(s.optInt("trips"))));
+        cells.add(Ui.info(this, "Distanță", Math.round(s.optDouble("km")) + " km"));
+        cells.add(Ui.info(this, "Timp la volan", Fmt.duration(s.optDouble("minutes"))));
+        cells.add(Ui.info(this, "Combustibil (est.)", "≈ " + Fmt.liters(s.optDouble("liters"))));
+        cells.add(Ui.info(this, "Consum (est.)", s.isNull("lPer100") ? "—" : Fmt.num(s.optDouble("lPer100"), 1) + " L/100"));
+        cells.add(Ui.info(this, "Cost (est.)", s.isNull("cost") ? "—" : Fmt.lei(s.optDouble("cost"))));
         card.addView(Ui.grid(this, cells, 3));
+        if (s.optDouble("trafficMin") > 0) {
+            Ui.hint(this, card, "Din timpul la volan, " + Fmt.duration(s.optDouble("trafficMin")) + " oprit în trafic.");
+        }
     }
 
-    private void renderMonthly() {
-        if (stats.length() == 0) return;
+    private void renderMonthly(JSONArray months) {
+        if (months == null || months.length() == 0) return;
         double maxKm = 1, maxLei = 1;
-        for (int i = 0; i < stats.length(); i++) {
-            JSONObject m = stats.optJSONObject(i);
+        for (int i = 0; i < months.length(); i++) {
+            JSONObject m = months.optJSONObject(i);
             maxKm = Math.max(maxKm, m.optDouble("km"));
             maxLei = Math.max(maxLei, m.optDouble("cost", 0));
         }
         LinearLayout card = Ui.card(this, content);
         Ui.title(this, card, "Pe luni");
-        for (int i = 0; i < stats.length(); i++) {
-            JSONObject m = stats.optJSONObject(i);
+        for (int i = 0; i < months.length(); i++) {
+            JSONObject m = months.optJSONObject(i);
             LinearLayout block = new LinearLayout(this);
             block.setOrientation(LinearLayout.VERTICAL);
             block.setPadding(0, dp(this, 8), 0, dp(this, 4));

@@ -258,8 +258,11 @@ function TripDetail({
             }
           />
           <Info label="Puncte" value={String(trip.points)} />
-          {trip.parts > 1 && (
-            <Info label="Opriri între părți" value={duration(trip.stopMin)} />
+          {trip.stopMin > 0 && (
+            <Info label="Opriri cu motorul oprit" value={shortDuration(trip.stopMin)} />
+          )}
+          {trip.boardLPer100 !== null && (
+            <Info label="Consum bord* (în mers)" value={`${num(trip.boardLPer100)} L/100 km`} />
           )}
         </div>
         {trip.startPos && (
@@ -268,11 +271,16 @@ function TripDetail({
             {trip.stops.length > 0 ? ", galben = oprire" : ""}
           </p>
         )}
+        {trip.boardLPer100 !== null && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            * din consumul instantaneu al bordului (c1033), de confirmat cu afișajul din bord.
+          </p>
+        )}
         <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />
       </div>
       {trip.stops.length > 0 && (
         <div className="rounded-2xl glass-card p-4 text-sm">
-          <p className="font-semibold">Opriri</p>
+          <p className="font-semibold">Opriri cu motorul oprit</p>
           {trip.stops.map((s) => (
             <p key={s.from} className="mt-1 text-muted-foreground">
               {hm(s.from)}–{hm(s.to)} · {duration(s.minutes)}
