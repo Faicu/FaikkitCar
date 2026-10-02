@@ -214,13 +214,37 @@ public class MainActivity extends Activity {
 
     // ---------------------------------------------------------------- Acasa
 
+    // Titlul din Acasa urmeaza starea masinii (ca fila „Acum” din Panel), la 2 s.
+    private TextView homeHeadline;
+    private final Runnable homeTick = new Runnable() {
+        @Override
+        public void run() {
+            if (tab != 0 || homeHeadline == null) return;
+            homeHeadline.setText(carHeadline());
+            ui.postDelayed(this, 2_000);
+        }
+    };
+
+    /** „In mers · 34 km/h”, „Motor pornit”, „Contact pus” sau „Gata de drum”. */
+    private String carHeadline() {
+        CanLink can = CanLink.get(this);
+        double kmh = can.speed();
+        if (!Double.isNaN(kmh) && kmh >= 1) return "In mers · " + Math.round(kmh) + " km/h";
+        if (can.rpm() > 300) return "Motor pornit";
+        if (can.dashFresh()) return "Contact pus";
+        return "Gata de drum";
+    }
+
     private void buildHome(LinearLayout col) {
         LinearLayout hero = Ui.card(this, col);
         boolean running = serviceRunning();
         File[] sounds = Prefs.sounds(this);
         String headline = !running ? "Serviciul e oprit"
-                : sounds.length == 0 ? "Alege un sunet" : "Gata de drum";
-        hero.addView(Ui.text(this, headline, 28, Ui.TEXT, true));
+                : sounds.length == 0 ? "Alege un sunet" : carHeadline();
+        homeHeadline = Ui.text(this, headline, 28, Ui.TEXT, true);
+        hero.addView(homeHeadline);
+        ui.removeCallbacks(homeTick);
+        if (running && sounds.length > 0) ui.postDelayed(homeTick, 2_000);
         String last = firstLine(Prefs.history(this));
         Ui.hint(this, hero, last == null ? "Nicio trezire inregistrata inca."
                 : "Ultima trezire: " + last);
@@ -750,6 +774,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         ui.removeCallbacks(liveTick);
+        ui.removeCallbacks(homeTick);
     }
 
     @Override

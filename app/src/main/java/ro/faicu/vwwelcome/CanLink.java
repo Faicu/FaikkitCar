@@ -139,12 +139,17 @@ final class CanLink {
      * in jurnal, ca sa se poata verifica pe server.
      */
     boolean contact() {
-        boolean on = dashAt > 0 && SystemClock.elapsedRealtime() - dashAt < CONTACT_MS;
+        boolean on = dashFresh();
         if (contactLogged == null || contactLogged != on) {
             contactLogged = on;
             Prefs.log(c, "Contact: " + (on ? "pus" : "luat") + " (date de bord " + (on ? "primite" : "absente") + ")");
         }
         return on;
+    }
+
+    /** Datele de bord au venit in ultimele 10 s (fara jurnal; pentru UI). */
+    boolean dashFresh() {
+        return dashAt > 0 && SystemClock.elapsedRealtime() - dashAt < CONTACT_MS;
     }
 
     /** Litrii din rezervor; -1 daca nu stim. */
