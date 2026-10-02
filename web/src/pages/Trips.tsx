@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Info } from "../components/Cells";
 import { TripMap } from "../components/TripMap";
 import { TripChart } from "../components/TripChart";
-import { api, day, duration, hm, lei, liters, num, route, type Trip } from "../api";
+import { api, day, duration, hm, lei, liters, num, route, shortDuration, type Trip } from "../api";
 
 const LIVE = { refetchInterval: 15_000, staleTime: 10_000 };
 const HIDE_IDLE_KEY = "calatorii.hideIdle";
@@ -134,7 +134,10 @@ export function TripCells({ trip }: { trip: Trip }) {
       <Info label="Cost (est.)" value={trip.cost !== null ? lei(trip.cost) : "—"} />
       <Info label="Viteză max" value={trip.maxSpeed !== null ? `${trip.maxSpeed} km/h` : "—"} />
       <Info label="Turație max" value={trip.maxRpm !== null ? `${trip.maxRpm} rpm` : "—"} />
-      <Info label="Pe loc, motor pornit" value={duration(trip.idleMin)} />
+      <Info
+        label="Opriri în trafic"
+        value={trip.trafficStops > 0 ? `${shortDuration(trip.trafficMin)} (${trip.trafficStops})` : "—"}
+      />
     </div>
   );
 }
@@ -231,6 +234,15 @@ function TripDetail({
         {route(trip) && <p className="mt-1 text-sm text-sky-300">{route(trip)}</p>}
         <TripCells trip={trip} />
         <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+          <Info
+            label="Cea mai lungă în trafic"
+            value={trip.trafficStops > 0 ? shortDuration(trip.trafficMaxMin) : "—"}
+          />
+          <Info label="Staționare, motor pornit" value={shortDuration(trip.standMin)} />
+          <Info
+            label="Viteză în mișcare"
+            value={trip.movingAvgSpeed !== null ? `${trip.movingAvgSpeed} km/h` : "—"}
+          />
           <Info label="Baterie min" value={trip.minVolt !== null ? `${trip.minVolt} V` : "—"} />
           <Info label="Temp. exterioară" value={trip.tempC !== null ? `${trip.tempC} °C` : "—"} />
           <Info

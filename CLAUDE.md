@@ -214,6 +214,14 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   deci de la 1.1.37 (publicat) serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea
   pleacă imediat la orice schimbare de detaliu (`LiveState.maybeSend(kind, details, …)`), iar
   fiecare schimbare a frânei ajunge în jurnal („Frana de mana: …”) ca să vedem codul corect.
+- Opriri în trafic (02.10, `trafficStops` în `trips.ts`): episoadele cu motorul pornit și
+  viteza < 1 km/h, de la primul punct pe loc la primul punct în mers (±5 s, punctul de mers
+  vine la eșantionul următor); rupte la goluri > 60 s (motor oprit). Între două porțiuni de
+  mers și ≤ 10 min = trafic (semafor, coloană; utilizatorul stă și 4–5 min la semafor), altfel
+  (plecare, sosire, > 10 min) = staționare. Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s),
+  `trafficMaxMin`, `standMin`, `movingAvgSpeed`. `idleMin` rămâne pentru modelul de consum.
+  02.10 dimineața, Splaiul Independenței (Grozăvești): coloană 07:46:30–07:52:20 cu trei
+  opriri de ~75, ~80 și ~90 s; total drum: 4,3 min în trafic (5 opriri), 2,2 min staționare.
 - Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază 150 m), `web/server/places.ts`;
   `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
   parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site

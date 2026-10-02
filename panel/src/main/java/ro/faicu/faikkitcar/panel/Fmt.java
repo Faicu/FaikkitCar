@@ -51,6 +51,14 @@ final class Fmt {
         return s.isEmpty() ? ym : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
+    /** Sub 10 minute, cu secunde („1 min 30 s”, „45 s”); altfel ca duration. */
+    static String shortDuration(double min) {
+        if (min >= 10) return duration(min);
+        long sec = Math.round(min * 60);
+        if (sec < 60) return sec + " s";
+        return sec % 60 != 0 ? sec / 60 + " min " + sec % 60 + " s" : sec / 60 + " min";
+    }
+
     static String duration(double min) {
         if (min < 60) return Math.round(min) + " min";
         return (int) (min / 60) + " h " + Math.round(min % 60) + " min";

@@ -64,7 +64,14 @@ export interface Trip {
   fromPlace: string | null; // locurile salvate (places.ts) de la plecare și sosire
   toPlace: string | null;
   modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
-  idleMin: number; // pe loc cu motorul pornit
+  idleMin: number; // pe loc cu motorul pornit (modelul de consum)
+  // Opririle cu motorul pornit, după context (trafficStops): între două porțiuni de mers =
+  // în trafic (semafor, coloană), la plecare / sosire sau peste 10 min = staționare.
+  trafficMin: number;
+  trafficStops: number;
+  trafficMaxMin: number; // cea mai lungă oprire în trafic
+  standMin: number;
+  movingAvgSpeed: number | null; // km/h, doar pe timpul în mișcare
   idle: boolean; // pornire pe loc sau manevră (sub IDLE_KM): ascunsă la cerere
   // Completate de fuel.ts cu factorul din alimentări și prețul de atunci.
   fuelL: number | null;
@@ -158,6 +165,66 @@ function pos(r: Row): [number, number] | null {
   return [r.lat, r.lon];
 }
 
+// O oprire la mijlocul drumului mai lungă de atât nu mai e trafic, ci staționare.
+const TRAFFIC_MAX_MS = 10 * 60_000;
+// Peste atâtea secunde fără puncte, motorul a fost oprit (pe loc punctele vin la 30 s).
+const POINT_GAP_MS = 60_000;
+
+/**
+ * Opririle cu motorul pornit: de la primul punct pe loc până la primul punct în mers (în mers
+ * punctele vin la 5 s, deci ±5 s). Una între două porțiuni de mers e în trafic; cele de la
+ * capete și cele foarte lungi sunt staționare.
+ */
+function trafficStops(rows: Row[]) {
+  type Ep = { from: number; to: number; movedBefore: boolean; movedAfter: boolean };
+  const eps: Ep[] = [];
+  let cur: Ep | null = null;
+  let moved = false;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const t = new Date(r.device_at).getTime();
+    const prevT = i > 0 ? new Date(rows[i - 1].device_at).getTime() : t;
+    if (t - prevT > POINT_GAP_MS) {
+      // Motorul a fost oprit între puncte: oprirea de dinainte se încheie acolo.
+      if (cur) {
+        eps.push(cur);
+        cur = null;
+      }
+      moved = false;
+    }
+    const speed = r.can_speed ?? r.gps_speed ?? 0;
+    const engine = (r.rpm ?? 0) > 0;
+    if (speed < 1 && engine) {
+      if (!cur) cur = { from: t, to: t, movedBefore: moved, movedAfter: false };
+      cur.to = t;
+    } else if (speed >= 1) {
+      if (cur) {
+        cur.to = t;
+        cur.movedAfter = true;
+        eps.push(cur);
+        cur = null;
+      }
+      moved = true;
+    }
+  }
+  if (cur) eps.push(cur);
+  let trafficMs = 0;
+  let standMs = 0;
+  let maxMs = 0;
+  let count = 0;
+  for (const e of eps) {
+    const ms = e.to - e.from;
+    if (e.movedBefore && e.movedAfter && ms <= TRAFFIC_MAX_MS) {
+      trafficMs += ms;
+      maxMs = Math.max(maxMs, ms);
+      if (ms >= 5_000) count++;
+    } else {
+      standMs += ms;
+    }
+  }
+  return { trafficMs, standMs, maxMs, count };
+}
+
 function summarize(rows: Row[], parts = 1): Trip {
   let gpsKm = 0;
   let last: [number, number] | null = null;
@@ -213,6 +280,8 @@ function summarize(rows: Row[], parts = 1): Trip {
     lastPos = pos(rows[i]) ?? lastPos;
   }
   const movingMin = durationMin - stopMs / 60_000;
+  const traffic = trafficStops(rows);
+  const movingOnlyMin = movingMin - (traffic.trafficMs + traffic.standMs) / 60_000;
   const tank = rows.map((r) => r.fuel).filter((f): f is number => f !== null && f > 0);
   const temps = rows.map((r) => r.temp).filter((t): t is number => t !== null);
   const fuel = estimateFuel(
@@ -246,6 +315,11 @@ function summarize(rows: Row[], parts = 1): Trip {
     toPlace: null,
     modelLiters: fuel.liters,
     idleMin: Math.round(fuel.idleMin * 10) / 10,
+    trafficMin: Math.round((traffic.trafficMs / 60_000) * 10) / 10,
+    trafficStops: traffic.count,
+    trafficMaxMin: Math.round((traffic.maxMs / 60_000) * 10) / 10,
+    standMin: Math.round((traffic.standMs / 60_000) * 10) / 10,
+    movingAvgSpeed: movingOnlyMin > 0.5 ? Math.round((distanceKm / movingOnlyMin) * 60) : null,
     idle: parts === 1 && distanceKm < IDLE_KM,
     fuelL: null,
     lPer100: null,

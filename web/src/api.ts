@@ -86,6 +86,14 @@ export function duration(min: number): string {
   return `${Math.floor(min / 60)} h ${Math.round(min % 60)} min`;
 }
 
+/** Sub 10 minute, cu secunde („1 min 30 s”, „45 s”); altfel ca duration. */
+export function shortDuration(min: number): string {
+  if (min >= 10) return duration(min);
+  const sec = Math.round(min * 60);
+  if (sec < 60) return `${sec} s`;
+  return sec % 60 ? `${Math.floor(sec / 60)} min ${sec % 60} s` : `${sec / 60} min`;
+}
+
 export function liters(n: number): string {
   return `${n.toLocaleString("ro-RO", { maximumFractionDigits: n < 10 ? 2 : 1 })} L`;
 }

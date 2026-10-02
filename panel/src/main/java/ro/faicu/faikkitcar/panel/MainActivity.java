@@ -575,7 +575,9 @@ public class MainActivity extends Activity {
         cells.add(Ui.info(this, "Cost (est.)", t.isNull("cost") ? "—" : Fmt.lei(t.optDouble("cost"))));
         cells.add(Ui.info(this, "Viteză max", t.isNull("maxSpeed") ? "—" : t.optInt("maxSpeed") + " km/h"));
         cells.add(Ui.info(this, "Turație max", t.isNull("maxRpm") ? "—" : t.optInt("maxRpm") + " rpm"));
-        cells.add(Ui.info(this, "Pe loc, motor pornit", Fmt.duration(t.optDouble("idleMin"))));
+        int stops = t.optInt("trafficStops");
+        cells.add(Ui.info(this, "Opriri în trafic", stops > 0
+                ? Fmt.shortDuration(t.optDouble("trafficMin")) + " (" + stops + ")" : "—"));
         return cells;
     }
 
@@ -592,6 +594,11 @@ public class MainActivity extends Activity {
         Ui.title(this, card, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end));
         if (!Fmt.route(t).isEmpty()) card.addView(Ui.text(this, Fmt.route(t), 15, Ui.ACCENT, false));
         List<View> cells = tripCells(t);
+        cells.add(Ui.info(this, "Cea mai lungă în trafic", t.optInt("trafficStops") > 0
+                ? Fmt.shortDuration(t.optDouble("trafficMaxMin")) : "—"));
+        cells.add(Ui.info(this, "Staționare, motor pornit", Fmt.shortDuration(t.optDouble("standMin"))));
+        cells.add(Ui.info(this, "Viteză în mișcare", t.isNull("movingAvgSpeed") ? "—"
+                : t.optInt("movingAvgSpeed") + " km/h"));
         cells.add(Ui.info(this, "Baterie min", t.isNull("minVolt") ? "—" : Fmt.num(t.optDouble("minVolt"), 2) + " V"));
         cells.add(Ui.info(this, "Temp. afară", t.isNull("tempC") ? "—" : Fmt.num(t.optDouble("tempC"), 1) + " °C"));
         cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
