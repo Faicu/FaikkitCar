@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { Maintenance } from "../components/Maintenance";
+import { Places } from "../components/Places";
 import { api } from "../api";
 import { LogPage } from "./Log";
 
@@ -10,6 +11,7 @@ export function MorePage() {
   return (
     <>
       {car && <Maintenance reminders={car.reminders} odometer={car.odometer} />}
+      <Places />
       <PanelDownload />
       <h2 className="px-1 pt-2 text-sm font-semibold text-muted-foreground">Jurnalul aplicației din mașină</h2>
       <LogPage />

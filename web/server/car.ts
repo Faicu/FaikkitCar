@@ -5,12 +5,14 @@
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
+import { placeAt } from "./places.ts";
 
 export interface Position {
   t: string;
   lat: number;
   lon: number;
   speed: number | null;
+  place: string | null; // locul salvat în care stă, dacă e într-unul
 }
 
 export interface ReminderInput {
@@ -54,7 +56,13 @@ export function readLastPosition(): Position | null {
       }
     | undefined;
   if (!r) return null;
-  return { t: r.device_at, lat: r.lat, lon: r.lon, speed: r.can_speed ?? r.gps_speed };
+  return {
+    t: r.device_at,
+    lat: r.lat,
+    lon: r.lon,
+    speed: r.can_speed ?? r.gps_speed,
+    place: placeAt([r.lat, r.lon]),
+  };
 }
 
 /** Kilometrajul cel mai recent raportat de mașină. */

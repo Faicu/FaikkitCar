@@ -61,7 +61,7 @@ export function TripMap({ points, stops = [] }: { points: TripPoint[]; stops?: T
           fillColor: "#f59e0b",
           fillOpacity: 1,
         })
-          .bindTooltip(`Oprire ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
+          .bindTooltip(`${s.place ?? "Oprire"} ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
             permanent: true,
             direction: "top",
             offset: [0, -8],

@@ -6,6 +6,7 @@
 
 import { getDb } from "./db.ts";
 import { estimateFuel } from "./fuel-model.ts";
+import { placeAt, readPlaces } from "./places.ts";
 
 export interface IncomingPoint {
   t: number; // epoch ms, ceasul navigației
@@ -37,6 +38,7 @@ export interface TripStop {
   to: string; // primul punct după
   minutes: number;
   pos: [number, number] | null;
+  place: string | null; // locul salvat, dacă oprirea e într-unul
 }
 
 export interface Trip {
@@ -59,6 +61,8 @@ export interface Trip {
   minVolt: number | null;
   startPos: [number, number] | null;
   endPos: [number, number] | null;
+  fromPlace: string | null; // locurile salvate (places.ts) de la plecare și sosire
+  toPlace: string | null;
   modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
   idleMin: number; // pe loc cu motorul pornit
   idle: boolean; // pornire pe loc sau manevră (sub IDLE_KM): ascunsă la cerere
@@ -202,6 +206,7 @@ function summarize(rows: Row[], parts = 1): Trip {
           minutes: Math.round(gap / 6_000) / 10,
           // Unde a parcat: ultima poziție bună dinainte, altfel prima de după.
           pos: lastPos ?? pos(rows[i]),
+          place: null,
         });
       }
     }
@@ -237,6 +242,8 @@ function summarize(rows: Row[], parts = 1): Trip {
     minVolt: minVolt === null ? null : Math.round(minVolt * 100) / 100,
     startPos,
     endPos,
+    fromPlace: null,
+    toPlace: null,
     modelLiters: fuel.liters,
     idleMin: Math.round(fuel.idleMin * 10) / 10,
     idle: parts === 1 && distanceKm < IDLE_KM,
@@ -296,7 +303,15 @@ export function readTripsSince(since: string): Trip[] {
     mergedJoin = j;
   }
   if (parts > 0) trips.push(summarize(merged, parts));
-  return trips.reverse();
+  const places = readPlaces();
+  return trips
+    .map((t) => ({
+      ...t,
+      fromPlace: placeAt(t.startPos, places),
+      toPlace: placeAt(t.endPos, places),
+      stops: t.stops.map((s) => ({ ...s, place: placeAt(s.pos, places) })),
+    }))
+    .reverse();
 }
 
 interface Join {

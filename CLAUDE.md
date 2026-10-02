@@ -214,6 +214,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   deci de la 1.1.37 (publicat) serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea
   pleacă imediat la orice schimbare de detaliu (`LiveState.maybeSend(kind, details, …)`), iar
   fiecare schimbare a frânei ajunge în jurnal („Frana de mana: …”) ca să vedem codul corect.
+- Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază 150 m), `web/server/places.ts`;
+  `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
+  parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site
+  `components/Places.tsx` (Mai mult), în Panel `renderPlaces` (Mai mult, „+ Unde e mașina”).
+  Salvate direct în bază pe 02.10: Acasă 44.44058, 26.03458 (parcarea de acasă) și Serviciu
+  44.44166, 26.06091 (strada de la serviciu).
 - Călătorii combinate (02.10, publicat: Panel 1.0.3): tabela `trip_join` (start, end); bucățile
   care încep în același interval devin una (`readTripsSince`), cu `parts` și `stopMin`
   (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end

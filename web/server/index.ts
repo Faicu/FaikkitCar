@@ -44,6 +44,7 @@ import {
   splitTrip,
   type IncomingPoint,
 } from "./trips.ts";
+import { deletePlace, readPlaces, savePlace, type PlaceInput } from "./places.ts";
 import { readMonthlyStats } from "./stats.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
 
@@ -268,6 +269,23 @@ app.delete("/api/reminders/:id", (c) => {
 app.post("/api/reminders/:id/done", (c) => {
   requireUser(c);
   markReminderDone(Number(c.req.param("id")));
+  return c.json({ ok: true });
+});
+
+app.get("/api/places", (c) => {
+  requireUser(c);
+  return c.json(readPlaces());
+});
+
+app.post("/api/places", async (c) => {
+  requireUser(c);
+  savePlace(await json<PlaceInput>(c, 4096));
+  return c.json({ ok: true });
+});
+
+app.delete("/api/places/:id", (c) => {
+  requireUser(c);
+  deletePlace(Number(c.req.param("id")));
   return c.json({ ok: true });
 });
 

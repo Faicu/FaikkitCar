@@ -5,6 +5,7 @@ import type { LogEntry } from "../server/log.ts";
 import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live } from "../server/live.ts";
+import type { Place, PlaceInput } from "../server/places.ts";
 import type { MonthStats } from "../server/stats.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
 
@@ -48,6 +49,9 @@ export const api = {
   saveReminder: (r: ReminderInput) => call<{ ok: true }>("POST", "/api/reminders", r),
   deleteReminder: (id: number) => call<{ ok: true }>("DELETE", `/api/reminders/${id}`),
   reminderDone: (id: number) => call<{ ok: true }>("POST", `/api/reminders/${id}/done`),
+  places: () => call<Place[]>("GET", "/api/places"),
+  savePlace: (p: PlaceInput) => call<{ ok: true }>("POST", "/api/places", p),
+  deletePlace: (id: number) => call<{ ok: true }>("DELETE", `/api/places/${id}`),
   fuel: () => call<FuelSummary>("GET", "/api/fuel"),
   saveRefuel: (r: RefuelInput) => call<{ ok: true }>("POST", "/api/refuels", r),
   deleteRefuel: (id: number) => call<{ ok: true }>("DELETE", `/api/refuels/${id}`),
@@ -55,7 +59,7 @@ export const api = {
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 
-export type { FuelSummary, Live, LogEntry, MonthStats, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+export type { FuelSummary, Live, LogEntry, MonthStats, Place, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {
@@ -92,4 +96,10 @@ export function lei(n: number): string {
 
 export function num(n: number, digits = 1): string {
   return n.toLocaleString("ro-RO", { maximumFractionDigits: digits });
+}
+
+/** „Acasă → Serviciu”, sau "" dacă niciun capăt nu e un loc salvat. */
+export function route(t: { fromPlace: string | null; toPlace: string | null }): string {
+  if (!t.fromPlace && !t.toPlace) return "";
+  return `${t.fromPlace ?? "…"} → ${t.toPlace ?? "…"}`;
 }

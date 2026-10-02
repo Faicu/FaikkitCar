@@ -82,6 +82,16 @@ export function getDb(): DatabaseSync {
       created_at TEXT NOT NULL
     );
 
+    -- Locurile salvate (Acasă, Serviciu...): călătoriile și parcarea se denumesc după ele.
+    CREATE TABLE IF NOT EXISTS place (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      lat REAL NOT NULL,
+      lon REAL NOT NULL,
+      radius INTEGER NOT NULL DEFAULT 150,
+      created_at TEXT NOT NULL
+    );
+
     -- Alimentările: prețul dă costul drumurilor; plinurile sunt rezerva calibrării.
     CREATE TABLE IF NOT EXISTS refuel (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

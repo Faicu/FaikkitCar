@@ -21,7 +21,13 @@ export function CarPosition({ position }: { position: Position | null }) {
         <div className="flex items-center gap-2.5">
           <MapPin className="h-5 w-5 text-sky-400" />
           <div>
-            <p className="font-semibold">{moving ? "Mașina e în mers" : "Mașina e parcată aici"}</p>
+            <p className="font-semibold">
+              {moving
+                ? "Mașina e în mers"
+                : position.place
+                  ? `Mașina e parcată la ${position.place}`
+                  : "Mașina e parcată aici"}
+            </p>
             <p className="text-xs text-muted-foreground">
               ultima poziție: {time} ({relativeTime(position.t)})
             </p>

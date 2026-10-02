@@ -90,6 +90,18 @@ final class Api {
         call("DELETE", "/api/reminders/" + id, null, true);
     }
 
+    JSONArray places() throws Exception {
+        return new JSONArray(call("GET", "/api/places", null, true));
+    }
+
+    void savePlace(JSONObject p) throws Exception {
+        call("POST", "/api/places", p, true);
+    }
+
+    void deletePlace(int id) throws Exception {
+        call("DELETE", "/api/places/" + id, null, true);
+    }
+
     void joinTrips(String start, String end) throws Exception {
         call("POST", "/api/trips/join", new JSONObject().put("start", start).put("end", end), true);
     }

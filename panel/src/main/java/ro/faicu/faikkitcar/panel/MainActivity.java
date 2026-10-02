@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
     private final List<MapView> maps = new ArrayList<>();
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
-    private JSONArray trips, log, stats;
+    private JSONArray trips, log, stats, places;
     private JSONObject live, car, fuel, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
@@ -138,7 +138,7 @@ public class MainActivity extends Activity {
     private void logout() {
         stopLive();
         Store.setToken(this, "");
-        trips = log = points = stats = null;
+        trips = log = points = stats = places = null;
         live = car = fuel = newerApk = null;
         selected = null;
         shown = "";
@@ -257,10 +257,12 @@ public class MainActivity extends Activity {
                     });
                 } else {
                     JSONObject c = api.car();
+                    JSONArray pl = api.places();
                     JSONArray l = api.log(events);
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     ui.post(() -> {
                         car = c;
+                        places = pl;
                         log = l;
                         newerApk = apk;
                         render();
@@ -344,7 +346,7 @@ public class MainActivity extends Activity {
                 + (tab == NOW ? String.valueOf(live)
                         : tab == TRIPS ? trips + "|" + pointsFor
                         : tab == COSTS ? trips + "|" + stats + "|" + fuel
-                        : car + "|" + log);
+                        : car + "|" + places + "|" + log);
         if (state.equals(shown)) return;
         shown = state;
         int y = scroll.getScrollY();
@@ -474,7 +476,9 @@ public class MainActivity extends Activity {
             prow.setGravity(Gravity.CENTER_VERTICAL);
             LinearLayout pt = new LinearLayout(this);
             pt.setOrientation(LinearLayout.VERTICAL);
-            pt.addView(Ui.text(this, "driving".equals(state) ? "Mașina e aici" : "Mașina e parcată aici", 18, Ui.TEXT, true));
+            String parked = pos.isNull("place") ? "Mașina e parcată aici"
+                    : "Mașina e parcată la " + pos.optString("place");
+            pt.addView(Ui.text(this, "driving".equals(state) ? "Mașina e aici" : parked, 18, Ui.TEXT, true));
             pt.addView(Ui.text(this, "ultima poziție: " + Fmt.day(pos.optString("t")) + ", "
                     + Fmt.hm(pos.optString("t")) + " (" + Fmt.ago(pos.optString("t")) + ")", 13, Ui.MUTED, false));
             prow.addView(pt, new LinearLayout.LayoutParams(0, -2, 1));
@@ -586,6 +590,7 @@ public class MainActivity extends Activity {
         content.addView(back);
         LinearLayout card = Ui.card(this, content);
         Ui.title(this, card, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end));
+        if (!Fmt.route(t).isEmpty()) card.addView(Ui.text(this, Fmt.route(t), 15, Ui.ACCENT, false));
         List<View> cells = tripCells(t);
         cells.add(Ui.info(this, "Baterie min", t.isNull("minVolt") ? "—" : Fmt.num(t.optDouble("minVolt"), 2) + " V"));
         cells.add(Ui.info(this, "Temp. afară", t.isNull("tempC") ? "—" : Fmt.num(t.optDouble("tempC"), 1) + " °C"));
@@ -644,7 +649,8 @@ public class MainActivity extends Activity {
             for (int i = 0; i < stops.length(); i++) {
                 JSONObject s = stops.optJSONObject(i);
                 sc.addView(Ui.text(this, Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to"))
-                        + " · " + Fmt.duration(s.optDouble("minutes")), 15, Ui.TEXT, false));
+                        + " · " + Fmt.duration(s.optDouble("minutes"))
+                        + (s.isNull("place") ? "" : " · " + s.optString("place")), 15, Ui.TEXT, false));
             }
         }
         MapView map = MapBox.route(this, points, stops);
@@ -718,6 +724,7 @@ public class MainActivity extends Activity {
                     16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
             top.addView(Ui.text(this, Fmt.num(t.optDouble("distanceKm"), 1) + " km", 15, Ui.ACCENT, true));
             row.addView(top);
+            if (!Fmt.route(t).isEmpty()) row.addView(Ui.text(this, Fmt.route(t), 14, Ui.ACCENT, false));
             StringBuilder sub = new StringBuilder(t.optBoolean("idle") ? "pe loc · " : "");
             if (t.optInt("parts", 1) > 1) {
                 sub.append(t.optInt("parts")).append(" părți, oprire ")
@@ -836,6 +843,60 @@ public class MainActivity extends Activity {
         return row;
     }
 
+    // ---------------------------------------------------------------- locuri salvate
+
+    /** Acasa, Serviciu...: calatoriile si masina parcata se denumesc dupa ele (raza 150 m). */
+    private void renderPlaces() {
+        LinearLayout card = Ui.card(this, content);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(Ui.text(this, "Locuri salvate", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        JSONObject pos = car.optJSONObject("position");
+        if (pos != null) {
+            TextView add = Ui.text(this, "+ Unde e mașina", 15, Ui.ACCENT, true);
+            add.setOnClickListener(v -> placeDialog(pos));
+            head.addView(add);
+        }
+        card.addView(head);
+        Ui.hint(this, card, "Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu”.");
+        if (places == null || places.length() == 0) return;
+        for (int i = 0; i < places.length(); i++) {
+            JSONObject p = places.optJSONObject(i);
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setBackground(Ui.round(this, Ui.CARD2, 14));
+            int pad = dp(this, 12);
+            row.setPadding(pad, pad, pad, pad);
+            row.addView(Ui.text(this, p.optString("name"), 16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+            TextView map = Ui.text(this, "Hartă", 14, Ui.ACCENT, true);
+            map.setPadding(dp(this, 10), 0, dp(this, 10), 0);
+            map.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+                    "https://www.google.com/maps/search/?api=1&query=" + p.optDouble("lat") + "," + p.optDouble("lon")))));
+            row.addView(map);
+            TextView del = Ui.text(this, "Șterge", 14, Ui.BAD, true);
+            del.setOnClickListener(v -> confirm("Ștergi „" + p.optString("name") + "”?",
+                    () -> mutate(() -> api.deletePlace(p.optInt("id")), "Loc șters")));
+            row.addView(del);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.topMargin = dp(this, 8);
+            card.addView(row, lp);
+        }
+    }
+
+    private void placeDialog(JSONObject pos) {
+        LinearLayout form = dialogForm();
+        EditText name = Ui.labeled(this, form, "Nume (ex. Părinți)", "", InputType.TYPE_CLASS_TEXT);
+        Ui.hint(this, form, "Se salvează poziția mașinii de acum: " + Fmt.day(pos.optString("t")) + ", "
+                + Fmt.hm(pos.optString("t")) + ".");
+        showForm("Loc nou", form, () -> {
+            JSONObject o = new JSONObject();
+            o.put("name", text(name));
+            o.put("lat", pos.optDouble("lat"));
+            o.put("lon", pos.optDouble("lon"));
+            api.savePlace(o);
+        }, "Loc salvat");
+    }
+
     // ---------------------------------------------------------------- fila Mai mult
 
     private void renderMore() {
@@ -845,6 +906,7 @@ public class MainActivity extends Activity {
             return;
         }
         renderMaintenance();
+        renderPlaces();
         renderLog();
         LinearLayout acc = Ui.card(this, content);
         Ui.title(this, acc, "Aplicația");

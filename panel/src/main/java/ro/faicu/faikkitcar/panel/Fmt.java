@@ -38,6 +38,13 @@ final class Fmt {
         return pattern(iso, "dd MMM yyyy");
     }
 
+    /** „Acasă → Serviciu”, sau "" daca niciun capat nu e un loc salvat. */
+    static String route(org.json.JSONObject t) {
+        if (t.isNull("fromPlace") && t.isNull("toPlace")) return "";
+        return (t.isNull("fromPlace") ? "…" : t.optString("fromPlace")) + " → "
+                + (t.isNull("toPlace") ? "…" : t.optString("toPlace"));
+    }
+
     /** „Octombrie 2026” din „2026-10”. */
     static String month(String ym) {
         String s = java.time.YearMonth.parse(ym).format(DateTimeFormatter.ofPattern("LLLL yyyy", RO));

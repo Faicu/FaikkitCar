@@ -122,6 +122,7 @@ a crescut într-un proiect cu trei părți:
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
 | Costuri: 30 de zile și pe luni | 🧪 | Pe luni: km, timp, litri, L/100, cost estimat și ce s-a dat la pompă, cu bare |
 | Călătoria aleasă | ✅ | Pe ecranul ei: detalii, traseu (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor |
+| Locuri salvate (Acasă, Serviciu) | 🧪 | Călătoriile apar „Acasă → Serviciu”, mașina „parcată la Serviciu”; locuri noi din Mai mult („unde e mașina acum”) |
 | Combinarea călătoriilor consecutive | 🧪 | În detaliile călătoriei: „Combină cu precedenta / următoarea”, „Desparte”. Opririle dintre părți nu intră în viteza medie și apar pe hartă ca puncte galbene, cu ora și durata |
 | Ascunde pornirile pe loc | ✅ | Sub 0,5 km (prinde și manevrele din parcare); totalurile le includ în continuare |
 | Jurnalul navigației | ✅ | În „Mai mult”. Filtru „doar evenimente”. Nu se poate goli, ca să nu se piardă nimic |

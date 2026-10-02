@@ -105,7 +105,8 @@ final class MapBox {
             // Bula standard osmdroid, cu titlul: „Oprire 10 min · 23:32–23:42”.
             m.setInfoWindow(new org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
                     org.osmdroid.library.R.layout.bonuspack_bubble, map));
-            m.setTitle("Oprire " + Fmt.duration(s.optDouble("minutes")) + " · "
+            m.setTitle((s.isNull("place") ? "Oprire " : s.optString("place") + " ")
+                    + Fmt.duration(s.optDouble("minutes")) + " · "
                     + Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to")));
             map.getOverlays().add(m);
         }

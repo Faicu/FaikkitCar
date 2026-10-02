@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Info } from "../components/Cells";
 import { TripMap } from "../components/TripMap";
 import { TripChart } from "../components/TripChart";
-import { api, day, duration, hm, lei, liters, num, type Trip } from "../api";
+import { api, day, duration, hm, lei, liters, num, route, type Trip } from "../api";
 
 const LIVE = { refetchInterval: 15_000, staleTime: 10_000 };
 const HIDE_IDLE_KEY = "calatorii.hideIdle";
@@ -104,6 +104,7 @@ export function TripsPage() {
             </span>
             <span className="text-sm text-sky-400">{t.distanceKm} km</span>
           </div>
+          {route(t) && <p className="text-sm text-sky-300">{route(t)}</p>}
           <p className="mt-0.5 text-xs text-muted-foreground">
             {t.idle ? "pe loc · " : ""}
             {t.parts > 1 ? `${t.parts} părți, oprire ${duration(t.stopMin)} · ` : ""}
@@ -227,6 +228,7 @@ function TripDetail({
             {day(trip.start)} · {hm(trip.start)}–{hm(trip.end)}
           </span>
         </div>
+        {route(trip) && <p className="mt-1 text-sm text-sky-300">{route(trip)}</p>}
         <TripCells trip={trip} />
         <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
           <Info label="Baterie min" value={trip.minVolt !== null ? `${trip.minVolt} V` : "—"} />
@@ -262,6 +264,7 @@ function TripDetail({
           {trip.stops.map((s) => (
             <p key={s.from} className="mt-1 text-muted-foreground">
               {hm(s.from)}–{hm(s.to)} · {duration(s.minutes)}
+              {s.place ? ` · ${s.place}` : ""}
             </p>
           ))}
         </div>
