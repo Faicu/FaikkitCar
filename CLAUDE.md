@@ -225,6 +225,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   distanță. Opririle cu motorul pornit (< 1 km/h, rpm > 0), de la primul punct pe loc la
   primul în mers (±5 s): între două porțiuni de mers și ≤ 10 min = trafic (semafor, coloană;
   utilizatorul stă și 4–5 min la semafor), altfel (plecare, sosire, > 10 min) = staționare.
+  Timpul unui segment merge după punctul de la început (plecarea de pe loc e în oprire), deci
+  mers + trafic + staționare + opriri = durata (corectat 02.10: plecările se numărau de două
+  ori, 21 în loc de 26 km/h în mișcare).
   Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s), `trafficMaxMin`, `standMin`, `movingMin`,
   `avgSpeed` (fără opririle cu motorul oprit), `movingAvgSpeed`, `boardLPer100` (c1033
   integrat pe km în mers, dacă acoperă ≥ 80%). `trips.ts`: doar baza, gruparea (pauze > 5

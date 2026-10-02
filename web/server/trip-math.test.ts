@@ -38,6 +38,9 @@ describe("analyze", () => {
     expect(m.distanceKm).toBeCloseTo(0.2, 1);
     expect(m.standMin).toBeCloseTo(1.1, 1); // la plecare, până la primul punct în mers (65 s)
     expect(m.trafficStops).toBe(0);
+    // Mers + opriri = durata, fără să se numere nimic de două ori.
+    // (fiecare valoare e rotunjită la 0,1 min, deci suma poate diferi cu puțin)
+    expect(Math.abs(m.movingMin + m.standMin + m.trafficMin + m.stopMin - m.durationMin)).toBeLessThan(0.15);
   });
 
   it("fără GPS, distanța din viteză (CAN × scală)", () => {

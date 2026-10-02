@@ -185,7 +185,9 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
           d = Math.max(haversineKm(pa, p), speedKm);
         }
         km += d;
-        movingMs += dt;
+        // Timpul se împarte după punctul de la început: dacă mașina stătea (plecare de pe loc),
+        // segmentul e deja în oprirea care ține până la primul punct în mers.
+        if (va >= STILL_KMH) movingMs += dt;
         movingKm += d;
         if (a.cons !== null) {
           boardL += (a.cons / 1000) * d; // (cons / 10) L/100 km × d km / 100
