@@ -389,6 +389,7 @@ public class MainActivity extends Activity {
         switch (state) {
             case "driving": return "În mers";
             case "engine": return "Motor pornit, pe loc";
+            case "traffic": return "Oprit în trafic";
             case "contact": return "Doar contact";
             default: return "Oprită";
         }
@@ -398,6 +399,7 @@ public class MainActivity extends Activity {
         switch (state) {
             case "driving": return Ui.ACCENT;
             case "engine": return Ui.OK;
+            case "traffic": return 0xFFFB923C;
             case "contact": return Ui.WARN;
             default: return Ui.MUTED;
         }
@@ -421,9 +423,16 @@ public class MainActivity extends Activity {
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.addView(Ui.text(this, stateLabel(state), 22, Ui.TEXT, true));
-        String since = live.isNull("since") ? "nicio stare primită încă"
-                : "de " + Fmt.ago(live.optString("since")).replaceFirst("^acum ", "")
-                        + " (din " + Fmt.hm(live.optString("since")) + ")";
+        String since;
+        if (live.isNull("since")) {
+            since = "nicio stare primită încă";
+        } else {
+            String iso = live.optString("since");
+            double min = (System.currentTimeMillis() - Fmt.millis(iso)) / 60_000.0;
+            // Sub 10 minute (semafor), cu secunde.
+            since = "de " + (min < 10 ? Fmt.shortDuration(Math.max(0, min))
+                    : Fmt.ago(iso).replaceFirst("^acum ", "")) + " (din " + Fmt.hm(iso) + ")";
+        }
         texts.addView(Ui.text(this, since, 13, Ui.MUTED, false));
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
         card.addView(row);

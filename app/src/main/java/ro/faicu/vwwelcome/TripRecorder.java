@@ -41,6 +41,11 @@ final class TripRecorder implements LocationListener {
     private long lastKickAt;
     private static final long KICK_MS = 10_000;
     private boolean wasMoving;
+    // Pentru „Oprit in trafic” (titlul din Acasa): a mers in drumul asta, iar acum sta pe loc
+    // cu motorul pornit de la stoppedAt (0 = nu sta). Ca pe server: cel mult 10 min.
+    private boolean movedThisDrive;
+    private volatile long stoppedAt;
+    private static final long TRAFFIC_MAX_MS = 10 * 60_000;
     private boolean gpsOn;
     // GPS-ul n-a putut porni fiindca lipsea permisiunea; check() il porneste cand apare.
     private volatile boolean needsPermission;
@@ -158,6 +163,14 @@ final class TripRecorder implements LocationListener {
         // La oprire mai scriem un punct, ca sosirea sa fie exact unde a stat masina.
         boolean justStopped = wasMoving && !moving;
         wasMoving = moving;
+        if (moving) {
+            movedThisDrive = true;
+            stoppedAt = 0;
+        } else if (engine && movedThisDrive) {
+            if (stoppedAt == 0) stoppedAt = now;
+        } else {
+            stoppedAt = 0;
+        }
         if (!justStopped && (interval == Long.MAX_VALUE || now - lastPointAt < interval - 500)) return;
         lastPointAt = now;
         try {
@@ -227,7 +240,16 @@ final class TripRecorder implements LocationListener {
         if (v >= 0) o.put(key, v);
     }
 
+    /** De cat timp sta oprit in trafic (ms), sau -1 daca nu e cazul. */
+    static long trafficStopMs() {
+        TripRecorder r = instance;
+        if (r == null || r.stoppedAt == 0) return -1;
+        long ms = SystemClock.elapsedRealtime() - r.stoppedAt;
+        return ms <= TRAFFIC_MAX_MS ? ms : -1;
+    }
+
     private void resetDrive() {
+        movedThisDrive = false;
         movingMs = 0;
         greeted = false;
         doorAlerted = false;

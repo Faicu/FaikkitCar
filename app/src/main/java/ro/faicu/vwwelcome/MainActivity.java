@@ -225,11 +225,16 @@ public class MainActivity extends Activity {
         }
     };
 
-    /** „In mers · 34 km/h”, „Motor pornit”, „Contact pus” sau „Gata de drum”. */
+    /** „In mers · 34 km/h”, „Oprit in trafic · 45 s”, „Motor pornit”, „Contact pus”, „Gata de drum”. */
     private String carHeadline() {
         CanLink can = CanLink.get(this);
         double kmh = can.speed();
         if (!Double.isNaN(kmh) && kmh >= 1) return "In mers · " + Math.round(kmh) + " km/h";
+        long traffic = TripRecorder.trafficStopMs();
+        if (traffic >= 0) {
+            long s = traffic / 1000;
+            return "Oprit in trafic · " + (s < 60 ? s + " s" : s / 60 + " min " + s % 60 + " s");
+        }
         if (can.rpm() > 300) return "Motor pornit";
         if (can.dashFresh()) return "Contact pus";
         return "Gata de drum";

@@ -222,6 +222,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `trafficMaxMin`, `standMin`, `movingAvgSpeed`. `idleMin` rămâne pentru modelul de consum.
   02.10 dimineața, Splaiul Independenței (Grozăvești): coloană 07:46:30–07:52:20 cu trei
   opriri de ~75, ~80 și ~90 s; total drum: 4,3 min în trafic (5 opriri), 2,2 min staționare.
+  Live: starea „traffic” („Oprit în trafic”) e calculată în `readLive` din „engine” + drumul
+  curent are viteză ≥ 3 km/h + oprit de ≤ 10 min; durata sub 10 min se afișează cu secunde.
+  În mașină (1.1.38) titlul din Acasă: `TripRecorder.trafficStopMs()` (a mers în drumul ăsta,
+  `stoppedAt` la oprire cu motorul pornit).
 - Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază 150 m), `web/server/places.ts`;
   `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
   parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site

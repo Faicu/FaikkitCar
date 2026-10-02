@@ -3,7 +3,13 @@ import { AlertTriangle, Fuel, Navigation, Thermometer } from "lucide-react";
 
 import { CarPosition } from "../components/CarPosition";
 import { Info } from "../components/Cells";
-import { api, duration, num, relativeTime, Unauthorized, type Live } from "../api";
+import { api, duration, num, relativeTime, shortDuration, Unauthorized, type Live } from "../api";
+
+/** „1 min 20 s” sub 10 minute (semafor), altfel „2 h”, „ieri”. */
+function sinceText(iso: string): string {
+  const min = (Date.now() - new Date(iso).getTime()) / 60_000;
+  return min < 10 ? shortDuration(Math.max(0, min)) : relativeTime(iso).replace(/^acum /, "");
+}
 
 type LiveData = NonNullable<Live["data"]>;
 import { TripCells } from "./Trips";
@@ -12,6 +18,7 @@ const STATES: Record<Live["state"], { label: string; dot: string }> = {
   off: { label: "Oprită", dot: "bg-slate-500" },
   contact: { label: "Doar contact", dot: "bg-amber-400" },
   engine: { label: "Motor pornit, pe loc", dot: "bg-emerald-400" },
+  traffic: { label: "Oprit în trafic", dot: "bg-orange-400 animate-pulse" },
   driving: { label: "În mers", dot: "bg-sky-400 animate-pulse" },
 };
 
@@ -29,7 +36,7 @@ export function NowPage() {
           <div>
             <p className="text-lg font-semibold">{st.label}</p>
             <p className="text-xs text-muted-foreground">
-              {live.since ? `de ${relativeTime(live.since).replace(/^acum /, "")}` : "nicio stare primită încă"}
+              {live.since ? `de ${sinceText(live.since)}` : "nicio stare primită încă"}
               {live.state === "off" && live.at ? ` · ultimul semnal ${relativeTime(live.at)}` : ""}
             </p>
           </div>

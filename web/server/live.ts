@@ -10,7 +10,11 @@ import { getDb } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
 import { readTrips, TRIP_GAP_MS, type Trip } from "./trips.ts";
 
-export type CarState = "off" | "contact" | "engine" | "driving";
+// „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive).
+export type CarState = "off" | "contact" | "engine" | "traffic" | "driving";
+
+// Ca la călătorii (trips.ts): oprit cu motorul pornit după ce a mers, cel mult atât = trafic.
+const TRAFFIC_MAX_MS = 10 * 60_000;
 
 export interface IncomingState {
   t?: number;
@@ -220,6 +224,16 @@ export function readLive(): Live {
     last && state !== "off" && Date.now() - new Date(last.end).getTime() < TRIP_GAP_MS
       ? applyFuel([last])[0]
       : null;
+  // Oprit cu motorul pornit după ce a mers în drumul ăsta (semafor, coloană): „în trafic”.
+  if (
+    state === "engine" &&
+    trip &&
+    (trip.maxSpeed ?? 0) >= 3 &&
+    since &&
+    Date.now() - new Date(since).getTime() <= TRAFFIC_MAX_MS
+  ) {
+    state = "traffic";
+  }
 
   const fuel = readFuelSummary();
   const tank =
