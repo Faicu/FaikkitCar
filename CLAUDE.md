@@ -198,6 +198,16 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Verificat pe 01.10 seara: „Contact: luat” la 20:32:41Z, exact la oprirea motorului (ultimul
   punct 20:32), „pus” la pornire; cu cheia scoasă unitatea mai trimite „off” la 60 s până
   adoarme. Netestat: contact pus cu motorul oprit.
+- Detalii live (02.10, 1.1.36, nepublicat): `CanLink` mai citește c11 AC, c49 AUTO, c21
+  ventilator, c27/c28 temperatura setată, c1033, c101 centura, c103 frâna de mână, octetul de
+  stare 0x41/1 (`onRaw`, acceptă și prefixul 0xFF) și marșarierul (modulul 0, c68 = [1, 1]).
+  Le trimite brute în `x` la `/api/car/state`; `live.ts` (`details`) le traduce: temperatura
+  setată = 15,5 + v/2 (11 = 21 °C, ipoteză de confirmat cu afișajul), lumini = bitul 0x80
+  (probabil). c1033 = probabil consumul instantaneu al bordului ×10 (L/100 km): crește la
+  accelerare și viteză mică (până la 300 = 30 L/100), ~30 la rulare constantă, nu se schimbă
+  pe loc; integrat pe drumul din 30.09 dă 15,6 L/100 (0,7 km, oraș, rece). Se salvează și în
+  `trip_point.cons` (coloană adăugată prin migrare în `db.ts`), doar în mers, ca să fie
+  comparat cu rezervorul. Temperatura din habitaclu NU e transmisă de decodor.
 - Călătorii combinate (02.10, publicat: Panel 1.0.3): tabela `trip_join` (start, end); bucățile
   care încep în același interval devin una (`readTripsSince`), cu `parts` și `stopMin`
   (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end

@@ -94,5 +94,10 @@ export function getDb(): DatabaseSync {
       created_at TEXT NOT NULL
     );
   `);
+  // Migrări pentru coloanele adăugate după crearea tabelelor.
+  const cols = (table: string) =>
+    (db!.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+  // Probabil consumul instantaneu al bordului (c1033), L/100 km x10; doar în mers (1.1.36+).
+  if (!cols("trip_point").includes("cons")) db.exec(`ALTER TABLE trip_point ADD COLUMN cons REAL`);
   return db;
 }

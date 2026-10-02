@@ -174,6 +174,8 @@ final class TripRecorder implements LocationListener {
             if (!Double.isNaN(can.temp())) p.put("temp", can.temp());
             if (can.odo() > 0) p.put("odo", can.odo());
             if (can.fuel() > 0) p.put("fuel", can.fuel());
+            // Consumul instantaneu (c1033, de confirmat): doar in mers, pe loc nu are sens.
+            if (moving && can.instant() >= 0) p.put("ic", can.instant());
             PointQueue.add(c, p);
             if (now - lastKickAt >= KICK_MS) {
                 lastKickAt = now;
@@ -198,9 +200,27 @@ final class TripRecorder implements LocationListener {
             if (can.odo() > 0) s.put("odo", can.odo());
             if (can.fuel() > 0) s.put("fuel", can.fuel());
             if (loc != null) s.put("lat", loc.getLatitude()).put("lon", loc.getLongitude());
+            // Clima si restul, brute: serverul le traduce (formulele se pot corecta fara update).
+            JSONObject x = new JSONObject();
+            putIfKnown(x, "ac", can.ac());
+            putIfKnown(x, "auto", can.auto());
+            putIfKnown(x, "fan", can.fan());
+            putIfKnown(x, "tl", can.tempLeft());
+            putIfKnown(x, "tr", can.tempRight());
+            putIfKnown(x, "ic", can.instant());
+            putIfKnown(x, "belt", can.belt());
+            putIfKnown(x, "hb", can.handbrake());
+            putIfKnown(x, "s41", can.status41());
+            x.put("rev", can.reverse());
+            x.put("doors", new org.json.JSONArray(can.openDoors()));
+            s.put("x", x);
             LiveState.maybeSend(kind, s);
         } catch (JSONException ignored) {
         }
+    }
+
+    private static void putIfKnown(JSONObject o, String key, int v) throws JSONException {
+        if (v >= 0) o.put(key, v);
     }
 
     private void resetDrive() {

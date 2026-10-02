@@ -117,6 +117,7 @@ a crescut într-un proiect cu trei părți:
 | Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
 | Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server) |
+| Acum: climă și detalii | 🧪 | De la 1.1.36: AC, AUTO, ventilator, temperaturile setate (formula de confirmat), afară; uși deschise, centură, frâna de mână, marșarier, lumini (probabil), consumul instantaneu al bordului (c1033, presupus). Habitaclul nu e transmis de decodor |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost, cu întârziere de ~30 s |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
@@ -225,6 +226,7 @@ vs. GPS: +0,8 km/h în medie).
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
 | — | Pedala de frână, semnalizarea, avariile, ștergătoarele | nu sunt transmise de decodor |
+| m7 c1033 | Probabil consumul instantaneu al bordului ×10 (L/100 km), doar în mers | 300 la accelerare, ~30 la rulare |
 | m7 c107 | Neclar (a sărit pe 1 la eliberarea frânei de mână) | |
 
 ---

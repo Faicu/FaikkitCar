@@ -433,8 +433,16 @@ public class MainActivity extends Activity {
             cells.add(Ui.info(this, "Baterie", d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 2) + " V"));
             cells.add(Ui.info(this, "Temp. afară", d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1) + " °C"));
             cells.add(Ui.info(this, "Kilometraj", d.isNull("odo") ? "—" : Fmt.km(d.optLong("odo"))));
+            if (!d.isNull("instantL100")) {
+                cells.add(Ui.info(this, "Consum acum*", Fmt.num(d.optDouble("instantL100"), 1) + " L/100"));
+            }
             card.addView(Ui.grid(this, cells, 3));
+            renderCarDetails(card, d);
+            if (!d.isNull("instantL100")) {
+                Ui.hint(this, card, "* consumul instantaneu al bordului (presupus; compară cu afișajul din bord).");
+            }
         }
+        if (d != null && d.optJSONObject("climate") != null) renderClimate(d);
 
         JSONObject trip = live.optJSONObject("trip");
         if (trip != null) {
@@ -479,6 +487,48 @@ public class MainActivity extends Activity {
             pc.addView(prow);
             addMap(content, MapBox.position(this, lat, lon), 220);
         }
+    }
+
+    /** Usile, centura, frana de mana, marsarierul, luminile: doar ce e de semnalat. */
+    private void renderCarDetails(LinearLayout card, JSONObject d) {
+        List<String> warn = new ArrayList<>(), ok = new ArrayList<>();
+        JSONArray doors = d.optJSONArray("doorsOpen");
+        if (doors != null && doors.length() > 0) {
+            List<String> names = new ArrayList<>();
+            for (int i = 0; i < doors.length(); i++) names.add(doors.optString(i));
+            warn.add("Deschis: " + String.join(", ", names));
+        } else if (doors != null && !d.isNull("climate")) {
+            ok.add("uși închise");
+        }
+        if (!d.isNull("handbrake")) {
+            if (d.optBoolean("handbrake")) ok.add("frâna de mână trasă");
+            else if (d.optDouble("speed", 0) < 1) warn.add("Frâna de mână e eliberată");
+        }
+        if (!d.isNull("belt")) {
+            if (!d.optBoolean("belt") && d.optDouble("speed", 0) >= 5) warn.add("Centura șoferului nu e pusă");
+            else if (d.optBoolean("belt")) ok.add("centura pusă");
+        }
+        if (d.optBoolean("reverse")) warn.add("În marșarier");
+        if (!d.isNull("lights")) ok.add(d.optBoolean("lights") ? "lumini aprinse" : "lumini stinse");
+        for (String w : warn) card.addView(Ui.text(this, "⚠ " + w, 15, Ui.WARN, true));
+        if (!ok.isEmpty()) Ui.hint(this, card, String.join(" · ", ok));
+    }
+
+    private void renderClimate(JSONObject d) {
+        JSONObject cl = d.optJSONObject("climate");
+        LinearLayout card = Ui.card(this, content);
+        Ui.title(this, card, "Climatronic și temperaturi");
+        List<View> cells = new ArrayList<>();
+        cells.add(Ui.info(this, "Afară", d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1) + " °C"));
+        cells.add(Ui.info(this, "Setat stânga", cl.isNull("setLeft") ? "—" : Fmt.num(cl.optDouble("setLeft"), 1) + " °C"));
+        cells.add(Ui.info(this, "Setat dreapta", cl.isNull("setRight") ? "—" : Fmt.num(cl.optDouble("setRight"), 1) + " °C"));
+        cells.add(Ui.info(this, "AC", cl.isNull("ac") ? "—" : cl.optBoolean("ac") ? "pornit" : "oprit"));
+        cells.add(Ui.info(this, "Mod", cl.isNull("auto") ? "—" : cl.optBoolean("auto") ? "AUTO" : "manual"));
+        cells.add(Ui.info(this, "Ventilator", cl.isNull("fan") ? "—"
+                : cl.optInt("fan") == 0 ? "oprit" : "treapta " + cl.optInt("fan")));
+        card.addView(Ui.grid(this, cells, 3));
+        Ui.hint(this, card, "Temperatura din habitaclu nu e transmisă de decodorul CAN, deci nu apare. "
+                + "Temperaturile setate sunt calculate din codul decodorului; dacă diferă de afișaj, spune-mi.");
     }
 
     // ---------------------------------------------------------------- fila Calatorii

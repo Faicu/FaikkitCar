@@ -20,6 +20,7 @@ export interface IncomingPoint {
   temp?: number | null; // temperatura exterioară, °C
   odo?: number | null; // kilometraj, km
   fuel?: number | null; // litri în rezervor
+  ic?: number | null; // probabil consumul instantaneu al bordului (c1033), L/100 km x10
 }
 
 export interface TripPoint {
@@ -75,8 +76,8 @@ export function insertPoints(points: IncomingPoint[]): number {
   const now = new Date().toISOString();
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO trip_point
-       (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -99,6 +100,7 @@ export function insertPoints(points: IncomingPoint[]): number {
         num(p.temp),
         odo === null ? null : Math.round(odo),
         num(p.fuel),
+        num(p.ic),
       );
       added += Number(r.changes);
     }

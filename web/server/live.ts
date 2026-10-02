@@ -24,7 +24,32 @@ export interface IncomingState {
   odo?: number | null;
   lat?: number | null;
   lon?: number | null;
+  // Valori brute de la mașină (de la 1.1.36), traduse aici în LiveData.
+  x?: {
+    ac?: number;
+    auto?: number;
+    fan?: number;
+    tl?: number;
+    tr?: number;
+    ic?: number;
+    belt?: number;
+    hb?: number;
+    s41?: number;
+    rev?: boolean;
+    doors?: number[];
+  };
 }
+
+export interface Climate {
+  ac: boolean | null;
+  auto: boolean | null;
+  fan: number | null; // treapta ventilatorului, cum o trimite decodorul (0 = oprit)
+  setLeft: number | null; // °C setate; null = necunoscut
+  setRight: number | null;
+}
+
+// Ușile, în ordinea codurilor c1…c5.
+const DOORS = ["șofer", "pasager", "spate stânga", "spate dreapta", "portbagaj"];
 
 export interface LiveData {
   rpm: number | null;
@@ -33,6 +58,15 @@ export interface LiveData {
   fuel: number | null;
   temp: number | null;
   odo: number | null;
+  climate: Climate | null; // null = aplicația din mașină nu le trimite încă (< 1.1.36)
+  // Probabil consumul instantaneu al bordului (c1033 / 10), L/100 km; doar în mers.
+  instantL100: number | null;
+  doorsOpen: string[];
+  belt: boolean | null; // centura șoferului pusă
+  handbrake: boolean | null; // trasă
+  reverse: boolean | null;
+  lights: boolean | null; // probabil (bitul 0x80 din octetul de stare 0x41/1)
+  // Temperatura din habitaclu nu e trimisă de decodor (Raise), deci nu există aici.
 }
 
 export interface Live {
@@ -52,6 +86,47 @@ const STALE_MS = 90_000;
 
 function num(x: unknown): number | null {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
+}
+
+/**
+ * Temperatura setată din codul decodorului: pași de 0,5 °C, 11 = 21 °C (valoarea de fabrică
+ * VW). De confirmat cu afișajul climei; 0 și ≥ 31 ar fi LO / HI.
+ */
+function setTemp(v: number | undefined): number | null {
+  if (v === undefined || v <= 0 || v >= 31) return null;
+  return 15.5 + v / 2;
+}
+
+function details(p: IncomingState, state: CarState) {
+  const x = p.x;
+  if (!x) {
+    return {
+      climate: null,
+      instantL100: null,
+      doorsOpen: [],
+      belt: null,
+      handbrake: null,
+      reverse: null,
+      lights: null,
+    };
+  }
+  const bit = (b: number) => (x.s41 === undefined ? null : (x.s41 & b) !== 0);
+  const released = bit(0x20);
+  return {
+    climate: {
+      ac: x.ac === undefined ? null : x.ac === 1,
+      auto: x.auto === undefined ? null : x.auto === 1,
+      fan: x.fan ?? null,
+      setLeft: setTemp(x.tl),
+      setRight: setTemp(x.tr),
+    },
+    instantL100: state === "driving" && x.ic !== undefined ? x.ic / 10 : null,
+    doorsOpen: (x.doors ?? []).map((i) => DOORS[i]).filter((d): d is string => d !== undefined),
+    belt: x.belt === undefined ? null : x.belt === 0,
+    handbrake: x.hb !== undefined ? x.hb === 0 : released === null ? null : !released,
+    reverse: x.rev ?? null,
+    lights: bit(0x80),
+  };
 }
 
 function stateOf(p: IncomingState): CarState {
@@ -109,6 +184,7 @@ export function saveState(p: IncomingState): CarState {
     fuel: (num(p.fuel) ?? 0) > 0 ? num(p.fuel) : null,
     temp: num(p.temp),
     odo: (num(p.odo) ?? 0) > 0 ? num(p.odo) : null,
+    ...details(p, state),
   };
   getDb()
     .prepare(
