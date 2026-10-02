@@ -54,6 +54,8 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
+1. **Instalează actualizările:** FaikkitCar 1.1.35 (în mașină, „Actualizează acum”) și
+   Panel 1.0.3 (pe telefon, la fel).
 2. **De verificat în mașină:** „Doar contact” (cheia pusă, motorul oprit, ~1 min) apare
    pe fila Acum; în jurnal trebuie „Contact: pus” fără turație.
 3. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
