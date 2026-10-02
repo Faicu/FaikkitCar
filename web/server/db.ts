@@ -139,5 +139,7 @@ export function getDb(): DatabaseSync {
     (db!.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
   // Probabil consumul instantaneu al bordului (c1033), L/100 km x10; doar în mers (1.1.36+).
   if (!cols("trip_point").includes("cons")) db.exec(`ALTER TABLE trip_point ADD COLUMN cons REAL`);
+  // Tensiunea minimă la pornirea motorului (demarorul), măsurată în mașină (1.1.39+).
+  if (!cols("trip_point").includes("crank")) db.exec(`ALTER TABLE trip_point ADD COLUMN crank REAL`);
   return db;
 }

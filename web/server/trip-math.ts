@@ -23,6 +23,7 @@ export interface PointRow {
   odo: number | null;
   fuel: number | null;
   cons: number | null; // probabil consumul instantaneu al bordului (c1033), L/100 km ×10
+  crank: number | null; // tensiunea minimă la pornire, măsurată în mașină (1.1.39+)
 }
 
 /** O oprire cu motorul oprit în mijlocul călătoriei (ex. magazin, sau între părți combinate). */
@@ -56,7 +57,11 @@ export interface TripMetrics {
   fuelStart: number | null; // litri în rezervor (CAN), la plecare și la sosire
   fuelEnd: number | null;
   tempC: number | null;
-  minVolt: number | null; // include căderea de la demaror
+  // Bateria: căderea de la demaror (sub ~9,6 V = baterie slabă), din măsurarea mașinii sau, la
+  // drumurile vechi, din primele 30 s după pornire dacă s-a prins o cădere (< 12 V); și mediana
+  // cu motorul pornit de cel puțin un minut (încărcarea, 13,8–14,7 V).
+  crankVolt: number | null;
+  runVolt: number | null;
   startPos: [number, number] | null;
   endPos: [number, number] | null;
   modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
@@ -73,6 +78,8 @@ const STILL_KMH = 1;
 const GPS_SEGMENT_MS = 15_000;
 /** Un fix GPS mai imprecis de atât (m) nu e folosit. */
 const MAX_ACC_M = 60;
+/** Sub atât (V) în primele 30 s după pornire, punctul a prins căderea de la demaror. */
+const CRANK_SEEN_V = 12;
 /** Scala CAN implicită (distanța GPS / viteza CAN integrată), cât nu avem destule date. */
 export const DEFAULT_CAN_SCALE = 0.95;
 
@@ -94,6 +101,12 @@ export function haversineKm(a: [number, number], b: [number, number]): number {
 /** Viteza unui punct: a mașinii (CAN), altfel GPS. */
 export function speedOf(r: PointRow): number | null {
   return r.can_speed ?? r.gps_speed;
+}
+
+function medianOf(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
 function round(n: number, digits = 1): number {
@@ -230,14 +243,25 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
 
   let maxSpeed: number | null = null;
   let maxRpm: number | null = null;
-  let minVolt: number | null = null;
+  let crankVolt: number | null = null;
+  const runVolts: number[] = [];
+  let engineSince: number | null = null; // pornirea motorului (prima citire cu turație)
   let startPos: [number, number] | null = null;
   let endPos: [number, number] | null = null;
-  for (const r of rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
     const v = speedOf(r);
     if (v !== null) maxSpeed = Math.max(maxSpeed ?? 0, v);
     if (r.rpm !== null) maxRpm = Math.max(maxRpm ?? 0, r.rpm);
-    if (r.volt !== null && r.volt > 5) minVolt = Math.min(minVolt ?? 99, r.volt);
+    // O pauză fără puncte (motor oprit) sau turația 0 = următoarea citire cu turație e o pornire.
+    if (i > 0 && t[i] - t[i - 1] > POINT_GAP_MS) engineSince = null;
+    if ((r.rpm ?? 0) <= 0) engineSince = null;
+    else engineSince ??= t[i];
+    if (r.volt !== null && r.volt > 5 && engineSince !== null) {
+      const sinceStart = t[i] - engineSince;
+      if (sinceStart <= 30_000) crankVolt = Math.min(crankVolt ?? 99, r.volt);
+      else if (sinceStart >= 60_000) runVolts.push(r.volt);
+    }
     const p = pos(r);
     if (p) {
       startPos ??= p;
@@ -252,6 +276,10 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
   const fuel = estimateFuel(
     rows.map((r, i) => ({ t: t[i], speed: speedOf(r), rpm: r.rpm })),
   );
+  // Măsurarea din mașină are prioritate; altfel doar o cădere reală prinsă într-un punct.
+  const measured = rows.map((r) => r.crank).filter((c): c is number => c !== null && c > 5);
+  if (measured.length) crankVolt = Math.min(...measured);
+  else if (crankVolt !== null && crankVolt >= CRANK_SEEN_V) crankVolt = null;
   return {
     start: rows[0].device_at,
     end: rows[rows.length - 1].device_at,
@@ -274,7 +302,8 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
     fuelStart: tank.length ? tank[0] : null,
     fuelEnd: tank.length ? tank[tank.length - 1] : null,
     tempC: temps.length ? temps[temps.length - 1] : null,
-    minVolt: minVolt === null ? null : round(minVolt, 2),
+    crankVolt: crankVolt === null ? null : round(crankVolt, 2),
+    runVolt: runVolts.length ? round(medianOf(runVolts), 2) : null,
     startPos,
     endPos,
     modelLiters: fuel.liters,

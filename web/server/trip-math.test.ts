@@ -19,6 +19,7 @@ function p(s: number, speed: number, lonKm: number | null, extra: Partial<PointR
     odo: 245000,
     fuel: 37,
     cons: null,
+    crank: null,
     ...extra,
   };
 }
@@ -88,6 +89,31 @@ describe("analyze", () => {
     const rows: PointRow[] = [];
     for (let i = 0; i <= 12; i++) rows.push(p(i * 5, 36, i * 0.05, { cons: 60 }));
     expect(analyze(rows).boardLPer100).toBe(6); // 60 = 6,0 L/100 km, pe 0,6 km
+  });
+});
+
+describe("bateria", () => {
+  it("căderea de la pornire separat de încărcarea în mers", () => {
+    const rows = [
+      p(0, 0, 0, { volt: 10.45 }),
+      p(30, 0, 0, { volt: 14.4 }),
+      p(60, 0, 0, { volt: 14.5 }),
+      p(65, 30, 0.04, { volt: 14.3 }),
+      p(70, 30, 0.08, { volt: 14.4 }),
+    ];
+    const m = analyze(rows);
+    expect(m.crankVolt).toBe(10.45);
+    expect(m.runVolt).toBe(14.4);
+  });
+
+  it("fără cădere prinsă (alternatorul încărca deja), nu inventează o valoare la pornire", () => {
+    const rows = [p(0, 0, 0, { volt: 14 }), p(30, 0, 0, { volt: 14.4 }), p(35, 30, 0.04, { volt: 14.3 })];
+    expect(analyze(rows).crankVolt).toBeNull();
+  });
+
+  it("măsurarea din mașină are prioritate", () => {
+    const rows = [p(0, 0, 0, { volt: 14, crank: 9.8 }), p(35, 30, 0.04, { volt: 14.3 })];
+    expect(analyze(rows).crankVolt).toBe(9.8);
   });
 });
 

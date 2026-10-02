@@ -37,6 +37,8 @@ final class TripRecorder implements LocationListener {
     private volatile Location last;
     private volatile long lastAt;
     private long lastPointAt;
+    // Caderea de la demaror, pastrata pana la urmatorul punct scris (CanLink.takeCrankVolt).
+    private double pendingCrank = Double.NaN;
     // Ultima trimitere ceruta pentru puncte; in mers le trimitem la ~10 s, nu la ~30 s (tick).
     private long lastKickAt;
     private static final long KICK_MS = 10_000;
@@ -157,6 +159,8 @@ final class TripRecorder implements LocationListener {
         boolean moving = (!Double.isNaN(canKmh) && canKmh >= 1)
                 || (Double.isNaN(canKmh) && !Double.isNaN(gpsKmh) && gpsKmh >= 3);
         boolean engine = rpm > 300;
+        double crank = can.takeCrankVolt();
+        if (!Double.isNaN(crank)) pendingCrank = crank;
         monitor(now, moving, engine, rpm, canKmh);
         sendState(loc, gpsKmh, canKmh, rpm, moving, engine);
         long interval = moving ? SAMPLE_MS : engine ? IDLE_MS : Long.MAX_VALUE;
@@ -189,6 +193,10 @@ final class TripRecorder implements LocationListener {
             if (can.fuel() > 0) p.put("fuel", can.fuel());
             // Consumul instantaneu (c1033, de confirmat): doar in mers, pe loc nu are sens.
             if (moving && can.instant() >= 0) p.put("ic", can.instant());
+            if (!Double.isNaN(pendingCrank)) {
+                p.put("cv", Math.round(pendingCrank * 100) / 100.0);
+                pendingCrank = Double.NaN;
+            }
             PointQueue.add(c, p);
             if (now - lastKickAt >= KICK_MS) {
                 lastKickAt = now;

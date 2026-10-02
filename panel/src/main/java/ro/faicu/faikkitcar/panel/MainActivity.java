@@ -606,7 +606,12 @@ public class MainActivity extends Activity {
         cells.add(Ui.info(this, "Staționare, motor pornit", Fmt.shortDuration(t.optDouble("standMin"))));
         cells.add(Ui.info(this, "Viteză în mișcare", t.isNull("movingAvgSpeed") ? "—"
                 : t.optInt("movingAvgSpeed") + " km/h"));
-        cells.add(Ui.info(this, "Baterie min", t.isNull("minVolt") ? "—" : Fmt.num(t.optDouble("minVolt"), 2) + " V"));
+        // La pornire (demarorul) sub 9,6 V = baterie slaba; in mers (incarcarea) normal 13,5–14,9 V.
+        double crank = t.optDouble("crankVolt", Double.NaN), run = t.optDouble("runVolt", Double.NaN);
+        cells.add(Ui.info(this, "Baterie la pornire", Double.isNaN(crank) ? "—"
+                : Fmt.num(crank, 2) + " V" + (crank < 9.6 ? " ⚠" : "")));
+        cells.add(Ui.info(this, "Baterie în mers", Double.isNaN(run) ? "—"
+                : Fmt.num(run, 2) + " V" + (run < 13.5 || run > 14.9 ? " ⚠" : "")));
         cells.add(Ui.info(this, "Temp. afară", t.isNull("tempC") ? "—" : Fmt.num(t.optDouble("tempC"), 1) + " °C"));
         cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
         cells.add(Ui.info(this, "Rezervor", t.isNull("fuelStart") || t.isNull("fuelEnd") ? "—"

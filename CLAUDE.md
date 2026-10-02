@@ -228,6 +228,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Timpul unui segment merge după punctul de la început (plecarea de pe loc e în oprire), deci
   mers + trafic + staționare + opriri = durata (corectat 02.10: plecările se numărau de două
   ori, 21 în loc de 26 km/h în mișcare).
+  Bateria (02.10): `crankVolt` = căderea de la demaror (sub 9,6 V = slabă), din
+  `trip_point.crank` măsurat în mașină de la 1.1.39 (`CanLink.takeCrankVolt`: minimul tensiunii
+  10 s înainte / 3 s după ce turația trece de 300, trimis ca `cv` în punctul următor, plus
+  jurnal „Pornire motor: baterie minim …”), altfel minimul din primele 30 s doar dacă < 12 V
+  (punctul a prins căderea; 02.10: 10,45 V); `runVolt` = mediana cu motorul pornit ≥ 1 min
+  (încărcarea, normal 13,5–14,9 V; 14,35 V pe 02.10). Pe site și în Panel cu ⚠ în afara limitelor.
   Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s), `trafficMaxMin`, `standMin`, `movingMin`,
   `avgSpeed` (fără opririle cu motorul oprit), `movingAvgSpeed`, `boardLPer100` (c1033
   integrat pe km în mers, dacă acoperă ≥ 80%). `trips.ts`: doar baza, gruparea (pauze > 5

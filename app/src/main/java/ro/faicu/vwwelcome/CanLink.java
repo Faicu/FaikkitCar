@@ -47,6 +47,13 @@ final class CanLink {
     private volatile int ac = -1, auto = -1, fan = -1, tempL = -1, tempR = -1, instant = -1,
             belt = -1, handbrake = -1, status41 = -1;
     private volatile boolean reverse;
+    // Caderea de tensiune de la demaror: ultimele citiri ale tensiunii (timp, valoare) si
+    // momentul pornirii motorului (turatia trece de 300); crankVolt() o calculeaza o data.
+    private final long[] voltAt = new long[64];
+    private final double[] voltVal = new double[64];
+    private int voltN;
+    private volatile long engineStartAt;
+    private boolean crankTaken = true;
     private int fuelLogged = -1;
     // Momentul ultimei viteze din c109 (x100); c1031 (km/h intregi) o inlocuieste doar daca
     // c109 tace de 2 s, altfel viteza ar sari intre valoarea exacta si cea rotunjita.
@@ -117,12 +124,22 @@ final class CanLink {
                             if (handbrake >= 0 && v != handbrake) logHandbrake("c103 " + handbrake + " -> " + v);
                             handbrake = v;
                             break;
-                        case RPM: rpm = v; dashAt = SystemClock.elapsedRealtime(); break;
+                        case RPM:
+                            // Doar o pornire vazuta (turatia era cunoscuta si mica), nu prima
+                            // valoare primita cu motorul deja pornit.
+                            if (rpm >= 0 && rpm <= 300 && v > 300) onEngineStart();
+                            rpm = v;
+                            dashAt = SystemClock.elapsedRealtime();
+                            break;
                         case SPEED100: speed = v / 100.0; speed100At = SystemClock.elapsedRealtime(); break;
                         case SPEED:
                             if (SystemClock.elapsedRealtime() - speed100At > 2_000) speed = v;
                             break;
-                        case VOLT: volt = v / 100.0; dashAt = SystemClock.elapsedRealtime(); break;
+                        case VOLT:
+                            volt = v / 100.0;
+                            dashAt = SystemClock.elapsedRealtime();
+                            recordVolt(dashAt, volt);
+                            break;
                         case ODO: odo = v; break;
                         case TEMP: temp = v / 10.0; break;
                         case FUEL: onFuel(v); break;
@@ -167,6 +184,35 @@ final class CanLink {
             }
             status41 = v;
         }
+    }
+
+    private synchronized void recordVolt(long t, double v) {
+        voltAt[voltN % voltAt.length] = t;
+        voltVal[voltN % voltVal.length] = v;
+        voltN++;
+    }
+
+    private synchronized void onEngineStart() {
+        engineStartAt = SystemClock.elapsedRealtime();
+        crankTaken = false;
+    }
+
+    /**
+     * Tensiunea minima la pornirea motorului (10 s inainte, 3 s dupa: demarorul), o singura data
+     * pe pornire, la 3 s dupa ea; NaN pana atunci sau daca nu avem citiri. Sub ~9,6 V = baterie slaba.
+     */
+    synchronized double takeCrankVolt() {
+        if (crankTaken || SystemClock.elapsedRealtime() - engineStartAt < 3_000) return Double.NaN;
+        crankTaken = true;
+        double min = Double.NaN;
+        for (int i = 0; i < Math.min(voltN, voltAt.length); i++) {
+            long dt = voltAt[i] - engineStartAt;
+            if (dt >= -10_000 && dt <= 3_000 && voltVal[i] > 5 && !(voltVal[i] >= min)) min = voltVal[i];
+        }
+        if (!Double.isNaN(min)) {
+            Prefs.log(c, "Pornire motor: baterie minim " + String.format(java.util.Locale.US, "%.2f", min) + " V");
+        }
+        return min;
     }
 
     /** Pana confirmam care cod e frana de mana: fiecare schimbare ajunge in jurnal. */

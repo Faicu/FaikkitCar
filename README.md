@@ -247,7 +247,9 @@ segment:
 - **Opririle cu motorul pornit:** între două porțiuni de mers și sub 10 minute = **în
   trafic** (semafor, coloană); la plecare, la sosire sau mai lungi = **staționare**.
 - **Viteza medie** e pe tot drumul fără opririle cu motorul oprit; **viteza în mișcare**
-  doar pe timpul în care mașina se deplasează.
+  doar pe timpul în care mașina se deplasează. Mers + trafic + staționare + opriri = durata.
+- **Bateria:** „la pornire” = căderea de la demaror (sub ~9,6 V înseamnă baterie slabă),
+  măsurată în mașină de la 1.1.39; „în mers” = încărcarea (normal 13,5–14,9 V).
 - **Locurile:** plecarea e locul unde a parcat ultima dată, chiar dacă GPS-ul prinde semnal
   abia după câteva sute de metri.
 

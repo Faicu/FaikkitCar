@@ -119,6 +119,15 @@ export function TripsPage() {
   );
 }
 
+/**
+ * Tensiunea bateriei, cu ⚠ în afara limitelor: la pornire (demarorul) sub 9,6 V = baterie
+ * slabă; în mers (încărcarea) normal 13,5–14,9 V.
+ */
+function volts(v: number | null, warn: boolean): string {
+  if (v === null) return "—";
+  return `${v.toLocaleString("ro-RO", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} V${warn ? " ⚠" : ""}`;
+}
+
 /** Valorile unei călătorii (și ale celei în curs, pe fila Acum). */
 export function TripCells({ trip }: { trip: Trip }) {
   return (
@@ -243,7 +252,11 @@ function TripDetail({
             label="Viteză în mișcare"
             value={trip.movingAvgSpeed !== null ? `${trip.movingAvgSpeed} km/h` : "—"}
           />
-          <Info label="Baterie min" value={trip.minVolt !== null ? `${trip.minVolt} V` : "—"} />
+          <Info label="Baterie la pornire" value={volts(trip.crankVolt, trip.crankVolt !== null && trip.crankVolt < 9.6)} />
+          <Info
+            label="Baterie în mers"
+            value={volts(trip.runVolt, trip.runVolt !== null && (trip.runVolt < 13.5 || trip.runVolt > 14.9))}
+          />
           <Info label="Temp. exterioară" value={trip.tempC !== null ? `${trip.tempC} °C` : "—"} />
           <Info
             label="Kilometraj"
