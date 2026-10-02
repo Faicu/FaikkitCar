@@ -10,9 +10,10 @@ import type { Trip, TripPoint } from "../server/trips.ts";
 
 export class Unauthorized extends Error {}
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(path, {
     method,
+    signal,
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
@@ -27,7 +28,9 @@ export const api = {
   me: () => call<{ user: boolean }>("GET", "/api/me"),
   login: (user: string, pass: string) => call<{ ok: true }>("POST", "/api/login", { user, pass }),
   logout: () => call<{ ok: true }>("POST", "/api/logout"),
-  live: () => call<Live>("GET", "/api/live"),
+  // Cu `after`, serverul răspunde abia la o stare nouă de la mașină (cel mult 25 s).
+  live: (after?: string | null, signal?: AbortSignal) =>
+    call<Live>("GET", after ? `/api/live?after=${encodeURIComponent(after)}` : "/api/live", undefined, signal),
   stats: () => call<MonthStats[]>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
   joinTrips: (start: string, end: string) => call<{ ok: true }>("POST", "/api/trips/join", { start, end }),

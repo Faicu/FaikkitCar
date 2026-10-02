@@ -114,7 +114,8 @@ a crescut într-un proiect cu trei părți:
 |---|---|---|
 | Login | ✅ | Site: cookie de 180 de zile. Panel: token păstrat în aplicație |
 | Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
-| Acum: starea mașinii | 🧪 | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Cere FaikkitCar ≥ 1.1.34; contactul e dedus din datele de bord, de verificat |
+| Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
+| Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server); nepublicat |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost, cu întârziere de ~30 s |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |

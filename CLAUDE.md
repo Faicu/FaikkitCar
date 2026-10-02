@@ -185,7 +185,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   (`More.tsx`: mentenanța din tabela `reminder`, link Panel, jurnalul). `Trip.idle` (server,
   < 0,5 km, prinde și manevrele din parcare) = „Ascunde pornirile pe loc”; totalurile le includ.
 - Starea live (de la 1.1.34): `TripRecorder.sendState` → `LiveState` → `POST /api/car/state`
-  la 15 s (60 s fără contact, imediat la schimbare), fără coadă; tabela `car_state` (un rând,
+  (de la 1.1.35: la 5 s cu motorul pornit, 15 s doar cu contactul, 60 s fără, imediat la
+  schimbare, conexiune keep-alive), fără coadă; punctele de traseu pleacă la ~10 s în mers
+  (`TripRecorder` → `Uploader.kick`). Site-ul și Panel citesc prin long polling:
+  `GET /api/live?after=<at>` așteaptă (`waitForState`, max 25 s) o stare mai nouă, apoi
+  clientul întreabă imediat din nou (site `useLive` în `Now.tsx`, Panel `startLive`, fir
+  separat, oprit la ieșirea din filă / `onPause`). Primele două puncte netestate în mașină; tabela `car_state` (un rând,
   `web/server/live.ts`). Contactul e dedus în `CanLink.contact()`: cadre de bord Raise 0x41
   (c1019) sau turație/tensiune în ultimele 10 s; schimbările apar în jurnal („Contact: pus/luat”)
   — de verificat cu realitatea. Fără stare 90 s = oprită. Călătoria în curs = ultima, dacă s-a

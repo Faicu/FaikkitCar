@@ -37,6 +37,9 @@ final class TripRecorder implements LocationListener {
     private volatile Location last;
     private volatile long lastAt;
     private long lastPointAt;
+    // Ultima trimitere ceruta pentru puncte; in mers le trimitem la ~10 s, nu la ~30 s (tick).
+    private long lastKickAt;
+    private static final long KICK_MS = 10_000;
     private boolean wasMoving;
     private boolean gpsOn;
     // GPS-ul n-a putut porni fiindca lipsea permisiunea; check() il porneste cand apare.
@@ -172,6 +175,10 @@ final class TripRecorder implements LocationListener {
             if (can.odo() > 0) p.put("odo", can.odo());
             if (can.fuel() > 0) p.put("fuel", can.fuel());
             PointQueue.add(c, p);
+            if (now - lastKickAt >= KICK_MS) {
+                lastKickAt = now;
+                Uploader.kick(c);
+            }
         } catch (JSONException ignored) {
         }
     }

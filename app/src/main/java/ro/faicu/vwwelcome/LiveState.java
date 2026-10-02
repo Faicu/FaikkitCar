@@ -5,6 +5,7 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,13 +16,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Starea de acum (contact, turatie, viteza, rezervor...) pentru fila „Acum” din Panel si de pe
- * site: trimisa la car.faicu.ro la 15 s cu contactul pus, la 60 s fara, si imediat la o
- * schimbare (oprita / contact / motor / mers). Nu intra in coada: o stare veche nu mai
- * conteaza, deci la eroare se pierde si o inlocuieste urmatoarea.
+ * site: trimisa la car.faicu.ro la fiecare esantion (5 s) cu motorul pornit, la 15 s doar cu
+ * contactul, la 60 s fara, si imediat la o schimbare (oprita / contact / motor / mers).
+ * Conexiunea ramane deschisa intre trimiteri (keep-alive), deci fiecare costa putin. Nu intra
+ * in coada: o stare veche nu mai conteaza, deci la eroare se pierde si o inlocuieste urmatoarea.
  */
 final class LiveState {
     private static final String URL_STATE = "https://car.faicu.ro/api/car/state";
-    private static final long ACTIVE_MS = 15_000;
+    private static final long ENGINE_MS = 4_500; // practic la fiecare esantion de 5 s
+    private static final long CONTACT_MS = 15_000;
     private static final long IDLE_MS = 60_000;
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean busy = new AtomicBoolean();
@@ -35,7 +38,7 @@ final class LiveState {
     static void maybeSend(String kind, JSONObject state) {
         if (!Uploader.configured()) return;
         long now = SystemClock.elapsedRealtime();
-        long every = "off".equals(kind) ? IDLE_MS : ACTIVE_MS;
+        long every = "off".equals(kind) ? IDLE_MS : "contact".equals(kind) ? CONTACT_MS : ENGINE_MS;
         if (kind.equals(lastKind) && now - lastSentAt < every) return;
         if (!busy.compareAndSet(false, true)) return;
         lastKind = kind;
@@ -64,10 +67,17 @@ final class LiveState {
             try (OutputStream out = conn.getOutputStream()) {
                 out.write(body);
             }
+            // Raspunsul citit pana la capat si inchis (fara disconnect): conexiunea ramane in
+            // pool si urmatoarea trimitere nu mai reface TLS-ul.
             conn.getResponseCode();
+            try (InputStream in = conn.getInputStream()) {
+                byte[] buf = new byte[512];
+                while (in.read(buf) > 0) {
+                    // golim raspunsul
+                }
+            }
         } catch (Exception e) {
             Log.w("FaikkitCar", "Trimitere stare esuata", e);
-        } finally {
             if (conn != null) conn.disconnect();
         }
     }

@@ -33,7 +33,7 @@ import {
   type ReminderInput,
 } from "./car.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, saveRefuel, type RefuelInput } from "./fuel.ts";
-import { readLive, saveState, type IncomingState } from "./live.ts";
+import { readLive, saveState, waitForState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
 import {
   insertPoints,
@@ -234,8 +234,12 @@ app.get("/api/trips/points", (c) => {
   return c.json(readTripPoints(c.req.query("start") ?? "", c.req.query("end") ?? ""));
 });
 
-app.get("/api/live", (c) => {
+// Cu ?after=<at-ul primit ultima dată>, răspunsul vine abia la o stare nouă (cel mult 25 s):
+// clientul întreabă din nou imediat și vede fiecare stare la ~1 s după ce o trimite mașina.
+app.get("/api/live", async (c) => {
   requireUser(c);
+  const after = c.req.query("after");
+  if (after) await waitForState(after, 25_000);
   return c.json(readLive());
 });
 

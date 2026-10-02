@@ -44,8 +44,10 @@ final class Api {
         }
     }
 
-    JSONObject live() throws Exception {
-        return new JSONObject(call("GET", "/api/live", null, true));
+    /** Cu `after` (ultimul „at”), serverul raspunde abia la o stare noua (cel mult 25 s). */
+    JSONObject live(String after) throws Exception {
+        String path = after == null ? "/api/live" : "/api/live?after=" + enc(after);
+        return new JSONObject(call("GET", path, null, true, 40_000));
     }
 
     JSONArray stats() throws Exception {
@@ -118,10 +120,14 @@ final class Api {
     }
 
     private String call(String method, String path, JSONObject body, boolean auth) throws Exception {
+        return call(method, path, body, auth, 20_000);
+    }
+
+    private String call(String method, String path, JSONObject body, boolean auth, int readTimeout) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(BASE + path).openConnection();
         try {
             conn.setConnectTimeout(10_000);
-            conn.setReadTimeout(20_000);
+            conn.setReadTimeout(readTimeout);
             conn.setRequestMethod(method);
             if (auth) conn.setRequestProperty("Authorization", "Bearer " + Store.token(c));
             if (body != null) {

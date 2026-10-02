@@ -74,6 +74,27 @@ function readRow(): Row | undefined {
     .get() as Row | undefined;
 }
 
+// Cererile care așteaptă o stare nouă (GET /api/live?after=…): eliberate la fiecare POST.
+const waiters = new Set<() => void>();
+
+/**
+ * Așteaptă până vine de la mașină o stare mai nouă decât `after` (ISO), cel mult `ms`.
+ * Așa site-ul și Panel-ul primesc starea imediat, fără să întrebe des.
+ */
+export function waitForState(after: string, ms: number): Promise<void> {
+  const row = readRow();
+  if (!row || row.received_at > after) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      waiters.delete(done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    waiters.add(done);
+  });
+}
+
 export function saveState(p: IncomingState): CarState {
   const now = new Date().toISOString();
   const state = stateOf(p);
@@ -96,6 +117,7 @@ export function saveState(p: IncomingState): CarState {
          since = excluded.since, data = excluded.data`,
     )
     .run(now, state, since, JSON.stringify(data));
+  for (const w of [...waiters]) w();
   return state;
 }
 

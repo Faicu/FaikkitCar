@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         ui.removeCallbacks(tick);
+        stopLive();
         for (MapView m : maps) m.onPause();
     }
 
@@ -135,6 +136,7 @@ public class MainActivity extends Activity {
     }
 
     private void logout() {
+        stopLive();
         Store.setToken(this, "");
         trips = log = points = stats = null;
         live = car = fuel = newerApk = null;
@@ -223,18 +225,20 @@ public class MainActivity extends Activity {
     private void load(boolean force) {
         ui.removeCallbacks(tick);
         if (force) shown = "";
+        if (tab == NOW) startLive();
+        else stopLive();
         int forTab = tab;
         boolean events = eventsOnly;
         io.execute(() -> {
             try {
                 if (forTab == NOW) {
-                    JSONObject l = api.live();
+                    // Starea vine pe firul ei (startLive); aici doar actualizarea aplicatiei.
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     ui.post(() -> {
-                        live = l;
                         newerApk = apk;
                         render();
                     });
+                    return;
                 } else if (forTab == TRIPS) {
                     JSONArray t = api.trips();
                     ui.post(() -> {
@@ -268,9 +272,57 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 ui.post(() -> toast("Nu pot citi datele: " + e.getMessage()));
             }
-            // Fila Acum se reimprospateaza mai des: starea vine de la masina la 15 s.
-            ui.postDelayed(tick, forTab == NOW ? 10_000 : REFRESH_MS);
+            ui.postDelayed(tick, REFRESH_MS);
         });
+    }
+
+    // ---------------------------------------------------------------- starea live
+
+    // Generatia firului live: o generatie noua (sau -1) il opreste dupa cererea in curs.
+    private volatile int liveGen;
+    private boolean liveOn;
+
+    /**
+     * Fila Acum: cererea asteapta la server o stare noua de la masina (long polling), apoi se
+     * pune imediat urmatoarea. Starea apare pe telefon la ~1 s dupa ce o trimite masina.
+     */
+    private void startLive() {
+        if (liveOn) return;
+        liveOn = true;
+        int gen = ++liveGen;
+        String start = live == null || live.isNull("at") ? null : live.optString("at");
+        new Thread(() -> {
+            String after = start;
+            while (liveGen == gen) {
+                try {
+                    JSONObject l = api.live(after);
+                    if (liveGen != gen) return;
+                    ui.post(() -> {
+                        live = l;
+                        render();
+                    });
+                    after = l.isNull("at") ? null : l.optString("at");
+                    // Nicio stare primita vreodata: n-avem dupa ce astepta, deci intrebam rar.
+                    if (after == null) Thread.sleep(15_000);
+                } catch (Api.Unauthorized e) {
+                    ui.post(this::logout);
+                    return;
+                } catch (InterruptedException e) {
+                    return;
+                } catch (Exception e) {
+                    try {
+                        Thread.sleep(5_000); // fara retea: reincearca
+                    } catch (InterruptedException ie) {
+                        return;
+                    }
+                }
+            }
+        }, "live").start();
+    }
+
+    private void stopLive() {
+        liveOn = false;
+        liveGen++;
     }
 
     private void detachMaps() {

@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Fuel, Navigation } from "lucide-react";
 
 import { CarPosition } from "../components/CarPosition";
 import { Info } from "../components/Cells";
-import { api, duration, num, relativeTime, type Live } from "../api";
+import { api, duration, num, relativeTime, Unauthorized, type Live } from "../api";
 import { TripCells } from "./Trips";
 
 const STATES: Record<Live["state"], { label: string; dot: string }> = {
@@ -15,13 +15,8 @@ const STATES: Record<Live["state"], { label: string; dot: string }> = {
 
 /** Fila Acum: starea mașinii, călătoria în curs, poziția și rezervorul. */
 export function NowPage() {
-  const { data: live, isLoading } = useQuery({
-    queryKey: ["live"],
-    queryFn: api.live,
-    refetchInterval: 10_000,
-    staleTime: 5_000,
-  });
-  if (isLoading || !live) return <div className="h-40 skeleton-sweep rounded-2xl" />;
+  const live = useLive();
+  if (!live) return <div className="h-40 skeleton-sweep rounded-2xl" />;
   const st = STATES[live.state];
   const d = live.data;
   return (
@@ -89,4 +84,42 @@ export function NowPage() {
       <CarPosition position={live.position} />
     </>
   );
+}
+
+/**
+ * Starea live prin „long polling”: fiecare cerere așteaptă la server o stare nouă de la
+ * mașină, apoi se pune imediat următoarea. Cât fila e ascunsă, nu întreabă.
+ */
+function useLive(): Live | null {
+  const [live, setLive] = useState<Live | null>(null);
+  useEffect(() => {
+    const abort = new AbortController();
+    let after: string | null = null;
+    async function loop() {
+      while (!abort.signal.aborted) {
+        if (document.hidden) {
+          await new Promise((r) => setTimeout(r, 1000));
+          after = null; // la revenire, răspuns imediat
+          continue;
+        }
+        try {
+          const l: Live = await api.live(after, abort.signal);
+          setLive(l);
+          after = l.at;
+          // Nicio stare primită vreodată: n-avem după ce aștepta, deci întrebăm rar.
+          if (!after) await new Promise((r) => setTimeout(r, 15_000));
+        } catch (e) {
+          if (abort.signal.aborted) return;
+          if (e instanceof Unauthorized) {
+            location.reload();
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 5000)); // fără rețea: reîncearcă
+        }
+      }
+    }
+    void loop();
+    return () => abort.abort();
+  }, []);
+  return live;
 }
