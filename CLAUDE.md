@@ -148,6 +148,11 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   din 0x24 = frâna de mână (cu c103). NU sunt transmise: pedala de frână, semnalizarea,
   ștergătoarele. Marșarierul nu are cod curat (doar m0 c68 și radarul 0x22). c107 rămâne
   neclar (stă pe 1). Rezervorul a scăzut 22 → 21 L după drum, coerent cu c104.
+- Calibrare 1.1.34 (01.10, 23:50, parcat, motor pornit): frâna de mână trasă → raw 0x24
+  6 → 4 (bitul 0x02, confirmat din nou) și raw 0x41/1 160 → 128 (bitul 0x20 = eliberată; la
+  pornirea din 17:04 0 → 32 la eliberare). 0x41/1 = biți de stare, 0x80 probabil luminile
+  (apare seara). Marșarierul: m0 c68 = [1, 1] băgat, [9, 1] după ieșire, [0, 0] la pornire
+  (aceeași secvență de 4 ori, 30.09–01.10) → cod curat. Pedala de frână: nimic, iar.
 - Calibrare CAN de la 1.1.32: doar c107 (frâna de mână) și marșarierul, în Setări („avansat”);
   restul e confirmat. 1.1.31 (motor pornit, mașina parcată): AC / AUTO separat, pedala de
   frână, frâna de mână (pentru c107), marșarierul, faza scurtă, semnalizarea, temperatura de
@@ -185,6 +190,14 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   (c1019) sau turație/tensiune în ultimele 10 s; schimbările apar în jurnal („Contact: pus/luat”)
   — de verificat cu realitatea. Fără stare 90 s = oprită. Călătoria în curs = ultima, dacă s-a
   terminat acum < 5 min. Autonomia = litrii ÷ consumul real (sau estimat pe 60 de zile).
+  Verificat pe 01.10 seara: „Contact: luat” la 20:32:41Z, exact la oprirea motorului (ultimul
+  punct 20:32), „pus” la pornire; cu cheia scoasă unitatea mai trimite „off” la 60 s până
+  adoarme. Netestat: contact pus cu motorul oprit.
+- Călătorii combinate (02.10, nepublicat încă): tabela `trip_join` (start, end); bucățile
+  care încep în același interval devin una (`readTripsSince`), cu `parts` și `stopMin`
+  (opririle > 5 min, scăzute din viteza medie). `POST /api/trips/join` {start primei, end
+  ultimei} unește și intervalele suprapuse; `POST /api/trips/split` {start} le desface.
+  Butoanele sunt în detaliile călătoriei (site `Trips.tsx` și Panel `renderTrip`).
 - Iconița (02.10): imaginea „FaikkitCar” cu săgeată de navigație dată de utilizator, decupată
   cu colțuri rotunjite; în ambele aplicații (`ic_launcher_fg.png` 80/108 dp pe #1E4470 și
   `drawable-nodpi/logo.png` în antet) și pe site (`web/public`: favicon, apple-touch, manifest,
@@ -235,18 +248,16 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   alias `vwwelcome`). `app/build.gradle` citește `SIGNING_KEYSTORE` / `SIGNING_PASSWORD`;
   `versionCode` = `GITHUB_RUN_NUMBER`, `versionName` = `1.1.<N>`. Keystore-ul nu e în repo.
 
-## Stare (01.10.2026, seara)
+## Stare (02.10.2026)
 
 Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`; ține-l la zi.
 
-- Pe navigație: `com.mapgoo.diruite` **1.1.31** (încă „VW Welcome”, trimite la vechiul
-  `status.faicu.ro/api/vw-*`, acum 404; datele stau în coadă). Utilizatorul instalează
-  manual FaikkitCar 1.1.33 din GitHub Releases; apoi de verificat în `log` că a sosit coada
-  (linii cu `version` 1.1.31 și ore din trecut) și că punctele noi au `fuel`.
+- Pe navigație: `com.mapgoo.diruite` **FaikkitCar 1.1.34** (instalat 01.10, 20:28Z); coada
+  de la 1.1.31 a sosit (3.058 de linii). Două drumuri pe 01.10 seara (shaorma: 1,5 km,
+  oprire 10 min, 3,6 km), plus calibrarea de mai sus.
   Unitate: Android 10 (API 29), `sprd ums512_1h10_Natv`, fără selector de fișiere.
-- Pe telefon: FaikkitCar Panel 1.0.1 instalat, login și date ok (confirmat de utilizator).
-- Rămas de la utilizator: publicarea commit-ului FaikkitBox `2c986a0` din Tehnic.
-  `deploy/claude.service` e instalat (sesiunile tmux `faikkitbox` și `faikkitcar`), iar
+- Pe telefon: FaikkitCar Panel 1.0.2 (din aplicație). Commit-ul FaikkitBox `2c986a0` e
+  publicat. `deploy/claude.service` e instalat (sesiunile tmux `faikkitbox` și `faikkitcar`), iar
   clona veche `/opt/welcometovw` a fost ștearsă (01.10).
 - Login site/Panel: utilizatorul `faicu`, parola în `/opt/faikkitcar/.env` (`ADMIN_PASS`).
 - Pe mașină, Setări: pauza după hibernare 3 s (pusă de utilizator pe 01.10).

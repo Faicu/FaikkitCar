@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Car, MapPin } from "lucide-react";
+import { ArrowLeft, Car, Combine, MapPin, Split } from "lucide-react";
+import { toast } from "sonner";
 
 import { Info } from "../components/Cells";
 import { TripMap } from "../components/TripMap";
@@ -39,7 +40,8 @@ export function TripsPage() {
     }
   }
 
-  const open = all.find((t) => t.start === selected);
+  const index = all.findIndex((t) => t.start === selected);
+  const open = index >= 0 ? all[index] : undefined;
   if (open) {
     return (
       <>
@@ -53,7 +55,12 @@ export function TripsPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Toate călătoriile
         </button>
-        <TripDetail trip={open} />
+        <TripDetail
+          trip={open}
+          older={all[index + 1]}
+          newer={index > 0 ? all[index - 1] : undefined}
+          onChange={setSelected}
+        />
       </>
     );
   }
@@ -99,6 +106,7 @@ export function TripsPage() {
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {t.idle ? "pe loc · " : ""}
+            {t.parts > 1 ? `${t.parts} părți, oprire ${duration(t.stopMin)} · ` : ""}
             {duration(t.durationMin)}
             {t.avgSpeed !== null ? ` · medie ${t.avgSpeed} km/h` : ""}
             {t.maxSpeed !== null ? ` · max ${t.maxSpeed} km/h` : ""}
@@ -130,7 +138,81 @@ export function TripCells({ trip }: { trip: Trip }) {
   );
 }
 
-function TripDetail({ trip }: { trip: Trip }) {
+/** Combină cu vecina sau desparte; după combinare, călătoria aleasă începe la noua plecare. */
+function JoinActions({
+  trip,
+  older,
+  newer,
+  onChange,
+}: {
+  trip: Trip;
+  older?: Trip;
+  newer?: Trip;
+  onChange: (start: string) => void;
+}) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  async function run(action: () => Promise<unknown>, start: string, ok: string) {
+    setBusy(true);
+    try {
+      await action();
+      await qc.invalidateQueries();
+      onChange(start);
+      toast.success(ok);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const btn = "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-sky-400 hover:bg-sky-500/10 disabled:opacity-40";
+  return (
+    <div className="mt-3 flex flex-wrap gap-1 border-t border-border/30 pt-2">
+      {older && (
+        <button
+          type="button"
+          disabled={busy}
+          className={btn}
+          onClick={() => run(() => api.joinTrips(older.start, trip.end), older.start, "Călătorii combinate")}
+        >
+          <Combine className="h-4 w-4" /> Combină cu precedenta ({hm(older.start)})
+        </button>
+      )}
+      {newer && (
+        <button
+          type="button"
+          disabled={busy}
+          className={btn}
+          onClick={() => run(() => api.joinTrips(trip.start, newer.end), trip.start, "Călătorii combinate")}
+        >
+          <Combine className="h-4 w-4" /> Combină cu următoarea ({hm(newer.start)})
+        </button>
+      )}
+      {trip.parts > 1 && (
+        <button
+          type="button"
+          disabled={busy}
+          className={btn}
+          onClick={() => run(() => api.splitTrip(trip.start), trip.start, "Călătorie despărțită")}
+        >
+          <Split className="h-4 w-4" /> Desparte ({trip.parts} părți)
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TripDetail({
+  trip,
+  older,
+  newer,
+  onChange,
+}: {
+  trip: Trip;
+  older?: Trip;
+  newer?: Trip;
+  onChange: (start: string) => void;
+}) {
   const { data: points } = useQuery({
     queryKey: ["tripPoints", trip.start, trip.end],
     queryFn: () => api.tripPoints(trip.start, trip.end),
@@ -162,12 +244,16 @@ function TripDetail({ trip }: { trip: Trip }) {
             }
           />
           <Info label="Puncte" value={String(trip.points)} />
+          {trip.parts > 1 && (
+            <Info label="Opriri între părți" value={duration(trip.stopMin)} />
+          )}
         </div>
         {trip.startPos && (
           <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" /> verde = plecare, roșu = sosire
           </p>
         )}
+        <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />
       </div>
       {points && <TripMap points={points} />}
       {points && <TripChart points={points} />}

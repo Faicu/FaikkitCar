@@ -88,6 +88,14 @@ final class Api {
         call("DELETE", "/api/reminders/" + id, null, true);
     }
 
+    void joinTrips(String start, String end) throws Exception {
+        call("POST", "/api/trips/join", new JSONObject().put("start", start).put("end", end), true);
+    }
+
+    void splitTrip(String start) throws Exception {
+        call("POST", "/api/trips/split", new JSONObject().put("start", start), true);
+    }
+
     void reminderDone(int id) throws Exception {
         call("POST", "/api/reminders/" + id + "/done", null, true);
     }

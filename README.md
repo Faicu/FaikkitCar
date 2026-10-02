@@ -23,7 +23,7 @@ a crescut într-un proiect cu trei părți:
 
 ---
 
-## Pe scurt: unde suntem (01.10.2026)
+## Pe scurt: unde suntem (02.10.2026)
 
 - ✅ **Sunetul de bun venit** merge după opririle scurte (autostart Teyes) și după
   hibernare. Începutul se tăia după un somn lung; de la 1.1.28 se redă întâi 1,2 s de
@@ -36,30 +36,32 @@ a crescut într-un proiect cu trei părți:
 - ✅ **Salutul vorbit** merge, cu vocea Piper „Mihai” de pe server (vocile Google de pe
   navigație sună robotic).
 - ✅ **Actualizarea din aplicație** merge (1.1.24 → 1.1.27 → 1.1.30 → 1.1.31).
+- ✅ **În mașină rulează FaikkitCar 1.1.34**, pe telefon Panel 1.0.2. Coada păstrată de
+  1.1.31 a ajuns pe car.faicu.ro.
+- ✅ **Contactul dedus din datele de bord** se potrivește cu realitatea pe drumurile din
+  01.10 seara: „luat” exact la oprirea motorului, „pus” la pornire. Netestat încă: contact
+  pus cu motorul oprit („Doar contact”).
+- ✅ **Marșarierul are cod**: m0 c68 = [1, 1] cât e băgat (verificat de 4 ori).
 - ✅ **Proiectul e separat de FaikkitBox**: are server, site, domeniu, serviciu și repo
   proprii. Datele au fost mutate și verificate rând cu rând.
 - ✅ **FaikkitCar Panel** e instalat pe telefon, iar login-ul și datele merg.
 - 🧪 **Consumul pe călătorie** se estimează din viteză și turație și se corectează automat
   din nivelul rezervorului, după ~8 L consumați.
-- ⏳ **În mașină rulează încă 1.1.31.** Trimite la vechiul server (acum 404) și păstrează
-  datele în coadă până la instalarea manuală a 1.1.33 (vezi [Ce urmează](#ce-urmează)).
+- 🧪 **Combinarea călătoriilor** (ex. dus-întors cu o oprire scurtă), pe site și în Panel:
+  gata în cod, nepublicată încă.
 
 ---
 
 ## Ce urmează
 
-1. **În mașină:** instalează manual FaikkitCar 1.1.33. În browserul navigației deschizi
-   [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk)
-   și instalezi peste aplicația existentă; datele, setările și autostart-ul rămân.
-   1.1.31 nu mai vede actualizările, pentru că le caută pe vechiul server. După
-   instalare, coada se descarcă singură pe car.faicu.ro; de verificat în fila Jurnal.
-2. **FaikkitBox:** publică din pagina Tehnic commit-ul local `2c986a0` (scoaterea
-   aplicației mașinii).
+1. **Publicarea** combinării călătoriilor (server + Panel), când terminăm modificările.
+2. **De verificat în mașină:** „Doar contact” (cheia pusă, motorul oprit, ~1 min) apare
+   pe fila Acum; în jurnal trebuie „Contact: pus” fără turație.
 3. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
    să iasă costul pe drum. Plinul nu mai e necesar.
-5. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
+4. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
    primii ~8 L.
-6. **Idei:** alertă pe telefon la pornirea mașinii (prin Panel), alimentări detectate
+5. **Idei:** alertă pe telefon la pornirea mașinii (prin Panel), alimentări detectate
    automat din salturile rezervorului, ore de liniște, sunet după ora zilei, adaptor OBD2
    pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
 
@@ -118,6 +120,7 @@ a crescut într-un proiect cu trei părți:
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
 | Costuri: 30 de zile și pe luni | 🧪 | Pe luni: km, timp, litri, L/100, cost estimat și ce s-a dat la pompă, cu bare |
 | Călătoria aleasă | ✅ | Pe ecranul ei: detalii, traseu (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor |
+| Combinarea călătoriilor consecutive | 🧪 | În detaliile călătoriei: „Combină cu precedenta / următoarea”, „Desparte”. Opririle dintre părți nu intră în viteza medie |
 | Ascunde pornirile pe loc | ✅ | Sub 0,5 km (prinde și manevrele din parcare); totalurile le includ în continuare |
 | Jurnalul navigației | ✅ | În „Mai mult”. Filtru „doar evenimente”. Nu se poate goli, ca să nu se piardă nimic |
 | Panel: actualizare din aplicație | 🧪 | CI-ul publică pe car.faicu.ro; Panel-ul arată „Actualizează acum” |
@@ -211,13 +214,15 @@ vs. GPS: +0,8 km/h în medie).
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
 | m7 c103 | Frâna de mână | 1 = eliberată |
+| m7 raw 0x24, bitul 0x02 | Frâna de mână (confirmat din nou pe 01.10) | 6 = eliberată, 4 = trasă |
+| m7 raw 0x41/1 | Biți de stare: 0x20 = frâna de mână eliberată (confirmat), 0x80 = probabil luminile | 0 / 32 / 128 / 160 |
+| m0 c68 | Marșarierul | [1, 1] = băgat; [9, 1] după ce iese; [0, 0] la pornire |
 | m7 c21, c27/c28, c11, c49 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC, AUTO | 3, 11, 1, 1 |
 | m7 raw 0x14 | Luminile aprinse (iluminarea bordului) | 0 / 84 |
 | m7 raw 0x41/2 | Cadrul de bord: turație (2 B), viteză (2 B), tensiune (2 B), temperatură (2 B), kilometraj (3 B), litri (1 B) | |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
 | — | Pedala de frână, semnalizarea, avariile, ștergătoarele | nu sunt transmise de decodor |
-| — | Marșarierul | fără cod curat; se vede doar prin radar/cameră |
 | m7 c107 | Neclar (a sărit pe 1 la eliberarea frânei de mână) | |
 
 ---
@@ -261,7 +266,7 @@ Rulează pe același server cu FaikkitBox, dar complet separat:
 | `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → aplicația din mașină) |
 | `POST /api/panel/apk`, `GET /api/panel/apk[/download]` | APK-ul Panel (CI → telefon, cu login) |
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
-| `/api/live`, `/api/stats`, `/api/trips`, `/api/trips/points`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/log` | Datele pentru site și Panel (cu login) |
+| `/api/live`, `/api/stats`, `/api/trips`, `/api/trips/points`, `POST /api/trips/join|split`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/log` | Datele pentru site și Panel (cu login) |
 
 Rutele `/api/car/*` și `POST /api/*/apk` cer cheia mașinii (`CAR_TOKEN`); restul, login-ul.
 

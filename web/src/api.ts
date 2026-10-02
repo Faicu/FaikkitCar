@@ -30,6 +30,8 @@ export const api = {
   live: () => call<Live>("GET", "/api/live"),
   stats: () => call<MonthStats[]>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
+  joinTrips: (start: string, end: string) => call<{ ok: true }>("POST", "/api/trips/join", { start, end }),
+  splitTrip: (start: string) => call<{ ok: true }>("POST", "/api/trips/split", { start }),
   tripPoints: (start: string, end: string) =>
     call<TripPoint[]>(
       "GET",

@@ -35,9 +35,11 @@ export interface Trip {
   end: string;
   points: number;
   distanceKm: number;
-  durationMin: number;
+  durationMin: number; // de la plecare la sosire, cu tot cu opririle dintre părți
+  parts: number; // călătorii combinate de utilizator (1 = una singură)
+  stopMin: number; // opririle dintre părți (motor oprit), scăzute din viteza medie
   maxSpeed: number | null;
-  avgSpeed: number | null; // km/h, pe durata totală
+  avgSpeed: number | null; // km/h, pe durata fără opririle dintre părți
   maxRpm: number | null;
   odoStart: number | null;
   odoEnd: number | null;
@@ -141,7 +143,7 @@ function pos(r: Row): [number, number] | null {
   return [r.lat, r.lon];
 }
 
-function summarize(rows: Row[]): Trip {
+function summarize(rows: Row[], parts = 1): Trip {
   let gpsKm = 0;
   let last: [number, number] | null = null;
   let maxSpeed: number | null = null;
@@ -175,6 +177,12 @@ function summarize(rows: Row[]): Trip {
   const start = rows[0].device_at;
   const end = rows[rows.length - 1].device_at;
   const durationMin = (new Date(end).getTime() - new Date(start).getTime()) / 60_000;
+  let stopMs = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const gap = new Date(rows[i].device_at).getTime() - new Date(rows[i - 1].device_at).getTime();
+    if (gap > TRIP_GAP_MS) stopMs += gap;
+  }
+  const movingMin = durationMin - stopMs / 60_000;
   const tank = rows.map((r) => r.fuel).filter((f): f is number => f !== null && f > 0);
   const temps = rows.map((r) => r.temp).filter((t): t is number => t !== null);
   const fuel = estimateFuel(
@@ -190,8 +198,10 @@ function summarize(rows: Row[]): Trip {
     points: rows.length,
     distanceKm: Math.round(distanceKm * 10) / 10,
     durationMin: Math.round(durationMin * 10) / 10,
+    parts,
+    stopMin: Math.round((stopMs / 60_000) * 10) / 10,
     maxSpeed: maxSpeed === null ? null : Math.round(maxSpeed),
-    avgSpeed: durationMin > 0 ? Math.round((distanceKm / durationMin) * 60) : null,
+    avgSpeed: movingMin > 0 ? Math.round((distanceKm / movingMin) * 60) : null,
     maxRpm,
     odoStart,
     odoEnd,
@@ -203,7 +213,7 @@ function summarize(rows: Row[]): Trip {
     endPos,
     modelLiters: fuel.liters,
     idleMin: Math.round(fuel.idleMin * 10) / 10,
-    idle: distanceKm < IDLE_KM,
+    idle: parts === 1 && distanceKm < IDLE_KM,
     fuelL: null,
     lPer100: null,
     cost: null,
@@ -223,7 +233,9 @@ export function readTripsSince(since: string): Trip[] {
        FROM trip_point WHERE device_at >= ? ORDER BY device_at`,
     )
     .all(since) as unknown as Row[];
-  const trips: Trip[] = [];
+  // Întâi bucățile despărțite de pauze; trei-patru puncte izolate (ex. o repornire pe loc)
+  // nu sunt o călătorie.
+  const groups: Row[][] = [];
   let cur: Row[] = [];
   for (const r of rows) {
     const prev = cur[cur.length - 1];
@@ -231,14 +243,75 @@ export function readTripsSince(since: string): Trip[] {
       prev &&
       new Date(r.device_at).getTime() - new Date(prev.device_at).getTime() > TRIP_GAP_MS
     ) {
-      trips.push(summarize(cur));
+      groups.push(cur);
       cur = [];
     }
     cur.push(r);
   }
-  if (cur.length) trips.push(summarize(cur));
-  // Trei-patru puncte izolate (ex. o repornire pe loc) nu sunt o călătorie.
-  return trips.filter((t) => t.points >= 5).reverse();
+  if (cur.length) groups.push(cur);
+  // Apoi cele combinate de utilizator (tabela trip_join): bucățile consecutive care încep
+  // în același interval devin o singură călătorie.
+  const joins = readJoins();
+  const joinOf = (g: Row[]) =>
+    joins.findIndex((j) => g[0].device_at >= j.start && g[0].device_at <= j.end);
+  const trips: Trip[] = [];
+  let merged: Row[] = [];
+  let parts = 0;
+  let mergedJoin = -1;
+  for (const g of groups.filter((g) => g.length >= 5)) {
+    const j = joinOf(g);
+    if (parts > 0 && (j < 0 || j !== mergedJoin)) {
+      trips.push(summarize(merged, parts));
+      merged = [];
+      parts = 0;
+    }
+    merged = merged.concat(g);
+    parts++;
+    mergedJoin = j;
+  }
+  if (parts > 0) trips.push(summarize(merged, parts));
+  return trips.reverse();
+}
+
+interface Join {
+  start: string;
+  end: string;
+}
+
+function readJoins(): Join[] {
+  return getDb().prepare(`SELECT start, end FROM trip_join ORDER BY start`).all() as unknown as Join[];
+}
+
+/**
+ * Combină călătoriile dintre `start` (plecarea primei) și `end` (sosirea ultimei) într-una
+ * singură, ex. dus-întors cu o oprire scurtă. Intervalele care se suprapun se unesc.
+ */
+export function joinTrips(start: string, end: string): void {
+  if (!(start < end)) throw new Error("Interval invalid");
+  const db = getDb();
+  const overlapping = db
+    .prepare(`SELECT id, start, end FROM trip_join WHERE start <= ? AND end >= ?`)
+    .all(end, start) as Array<{ id: number; start: string; end: string }>;
+  const from = [start, ...overlapping.map((j) => j.start)].sort()[0];
+  const to = [end, ...overlapping.map((j) => j.end)].sort().reverse()[0];
+  db.exec("BEGIN");
+  try {
+    for (const j of overlapping) db.prepare(`DELETE FROM trip_join WHERE id = ?`).run(j.id);
+    db.prepare(`INSERT INTO trip_join (start, end, created_at) VALUES (?, ?, ?)`).run(
+      from,
+      to,
+      new Date().toISOString(),
+    );
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
+}
+
+/** Desparte la loc călătoria combinată care începe la `start`. */
+export function splitTrip(start: string): void {
+  getDb().prepare(`DELETE FROM trip_join WHERE start <= ? AND end >= ?`).run(start, start);
 }
 
 /** Punctele unei călătorii (între `start` și `end`, inclusiv), pentru hartă și grafic. */

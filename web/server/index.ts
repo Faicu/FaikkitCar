@@ -35,7 +35,15 @@ import {
 import { applyFuel, deleteRefuel, readFuelSummary, saveRefuel, type RefuelInput } from "./fuel.ts";
 import { readLive, saveState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
-import { insertPoints, MAX_POINTS_PER_REQUEST, readTripPoints, readTrips, type IncomingPoint } from "./trips.ts";
+import {
+  insertPoints,
+  joinTrips,
+  MAX_POINTS_PER_REQUEST,
+  readTripPoints,
+  readTrips,
+  splitTrip,
+  type IncomingPoint,
+} from "./trips.ts";
 import { readMonthlyStats } from "./stats.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
 
@@ -200,6 +208,25 @@ app.get("/api/me", (c) => c.json({ user: isUser(c) }));
 app.get("/api/trips", (c) => {
   requireUser(c);
   return c.json(applyFuel(readTrips()));
+});
+
+// Combinarea călătoriilor consecutive (start = plecarea primei, end = sosirea ultimei).
+app.post("/api/trips/join", async (c) => {
+  requireUser(c);
+  const { start, end } = await json<{ start?: unknown; end?: unknown }>(c, 1024);
+  if (typeof start !== "string" || typeof end !== "string") {
+    throw new HTTPException(400, { message: "Lipsește intervalul" });
+  }
+  joinTrips(start, end);
+  return c.json({ ok: true });
+});
+
+app.post("/api/trips/split", async (c) => {
+  requireUser(c);
+  const { start } = await json<{ start?: unknown }>(c, 1024);
+  if (typeof start !== "string") throw new HTTPException(400, { message: "Lipsește plecarea" });
+  splitTrip(start);
+  return c.json({ ok: true });
 });
 
 app.get("/api/trips/points", (c) => {

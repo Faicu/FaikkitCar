@@ -447,13 +447,15 @@ public class MainActivity extends Activity {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
-        JSONObject open = null;
+        // Lista e de la cea mai noua: vecina mai veche e la i + 1, cea mai noua la i - 1.
         for (int i = 0; i < trips.length(); i++) {
             JSONObject t = trips.optJSONObject(i);
-            if (t.optString("start").equals(selected)) open = t;
+            if (t.optString("start").equals(selected)) {
+                renderTrip(t, trips.optJSONObject(i + 1), i > 0 ? trips.optJSONObject(i - 1) : null);
+                return;
+            }
         }
-        if (open != null) renderTrip(open);
-        else renderTripList(visibleTrips());
+        renderTripList(visibleTrips());
     }
 
     /** Valorile principale ale unei calatorii (si ale celei in curs, pe fila Acum). */
@@ -471,7 +473,7 @@ public class MainActivity extends Activity {
         return cells;
     }
 
-    private void renderTrip(JSONObject t) {
+    private void renderTrip(JSONObject t, JSONObject older, JSONObject newer) {
         String start = t.optString("start"), end = t.optString("end");
         TextView back = Ui.text(this, "‹ Toate călătoriile", 16, Ui.ACCENT, true);
         back.setPadding(0, dp(this, 4), 0, dp(this, 12));
@@ -488,7 +490,34 @@ public class MainActivity extends Activity {
         cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
         cells.add(Ui.info(this, "Rezervor", t.isNull("fuelStart") || t.isNull("fuelEnd") ? "—"
                 : Fmt.num(t.optDouble("fuelStart"), 0) + " → " + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));
+        int parts = t.optInt("parts", 1);
+        if (parts > 1) cells.add(Ui.info(this, "Opriri între părți", Fmt.duration(t.optDouble("stopMin"))));
         card.addView(Ui.grid(this, cells, 3));
+
+        // Combinarea cu vecinele (ex. dus-intors cu o oprire scurta) si despartirea.
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        if (older != null) {
+            String from = older.optString("start");
+            labels.add("Combină cu precedenta (" + Fmt.hm(from) + ")");
+            actions.add(() -> joinAndShow(() -> api.joinTrips(from, end), from, "Călătorii combinate"));
+        }
+        if (newer != null) {
+            String to = newer.optString("end");
+            labels.add("Combină cu următoarea (" + Fmt.hm(newer.optString("start")) + ")");
+            actions.add(() -> joinAndShow(() -> api.joinTrips(start, to), start, "Călătorii combinate"));
+        }
+        if (parts > 1) {
+            labels.add("Desparte (" + parts + " părți)");
+            actions.add(() -> joinAndShow(() -> api.splitTrip(start), start, "Călătorie despărțită"));
+        }
+        for (int i = 0; i < labels.size(); i++) {
+            Runnable action = actions.get(i);
+            TextView b = Ui.text(this, labels.get(i), 15, Ui.ACCENT, true);
+            b.setPadding(0, dp(this, 10), 0, dp(this, 4));
+            b.setOnClickListener(v -> action.run());
+            card.addView(b);
+        }
 
         String key = start + "|" + end;
         if (!key.equals(pointsFor)) {
@@ -520,6 +549,27 @@ public class MainActivity extends Activity {
             clp.topMargin = dp(this, 8);
             chart.addView(cv, clp);
         }
+    }
+
+    /** Combina / desparte, apoi arata calatoria care incepe la `start`. */
+    private void joinAndShow(Call call, String start, String ok) {
+        io.execute(() -> {
+            try {
+                call.run();
+                JSONArray t = api.trips();
+                ui.post(() -> {
+                    trips = t;
+                    selected = start;
+                    pointsFor = null;
+                    toast(ok);
+                    render();
+                });
+            } catch (Api.Unauthorized e) {
+                ui.post(this::logout);
+            } catch (Exception e) {
+                ui.post(() -> toast(e.getMessage()));
+            }
+        });
     }
 
     private void renderTripList(List<JSONObject> list) {
@@ -557,6 +607,10 @@ public class MainActivity extends Activity {
             top.addView(Ui.text(this, Fmt.num(t.optDouble("distanceKm"), 1) + " km", 15, Ui.ACCENT, true));
             row.addView(top);
             StringBuilder sub = new StringBuilder(t.optBoolean("idle") ? "pe loc · " : "");
+            if (t.optInt("parts", 1) > 1) {
+                sub.append(t.optInt("parts")).append(" părți, oprire ")
+                        .append(Fmt.duration(t.optDouble("stopMin"))).append(" · ");
+            }
             sub.append(Fmt.duration(t.optDouble("durationMin")));
             if (!t.isNull("avgSpeed")) sub.append(" · medie ").append(t.optInt("avgSpeed")).append(" km/h");
             if (!t.isNull("maxSpeed")) sub.append(" · max ").append(t.optInt("maxSpeed")).append(" km/h");

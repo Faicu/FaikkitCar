@@ -73,6 +73,15 @@ export function getDb(): DatabaseSync {
       data TEXT NOT NULL
     );
 
+    -- Călătorii combinate de utilizator (ex. dus-întors cu o oprire): bucățile care încep
+    -- între start și end se arată ca una singură. Punctele rămân neschimbate.
+    CREATE TABLE IF NOT EXISTS trip_join (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      start TEXT NOT NULL,
+      end TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     -- Alimentările: prețul dă costul drumurilor; plinurile sunt rezerva calibrării.
     CREATE TABLE IF NOT EXISTS refuel (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
