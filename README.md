@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.36 (`build-36`) · FaikkitCar Panel 1.0.4 (`panel-4`) |
+| **Versiuni** | FaikkitCar 1.1.37 (`build-37`) · FaikkitCar Panel 1.0.4 (`panel-4`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -54,7 +54,7 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează actualizările:** FaikkitCar 1.1.36 (în mașină, „Actualizează acum”) și
+1. **Instalează actualizările:** FaikkitCar 1.1.37 (în mașină, „Actualizează acum”) și
    Panel 1.0.4 (pe telefon, la fel). Apoi de comparat cu bordul: temperaturile setate ale
    climei și consumul instantaneu („Consum acum”).
 2. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca

@@ -211,7 +211,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Confirmat de utilizator pe 02.10 (drumul de dimineață): bitul 0x80 din 0x41/1 = faza
   scurtă (pornită automat de la bloc) ✓, centura (c101) ✓, clima AUTO/AC/treapta 2/21 °C
   trimisă. Frâna de mână trasă chiar înainte de contact a apărut „eliberată” (c103 = 1),
-  deci de la 1.1.37 serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea
+  deci de la 1.1.37 (publicat) serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea
   pleacă imediat la orice schimbare de detaliu (`LiveState.maybeSend(kind, details, …)`), iar
   fiecare schimbare a frânei ajunge în jurnal („Frana de mana: …”) ca să vedem codul corect.
 - Călătorii combinate (02.10, publicat: Panel 1.0.3): tabela `trip_join` (start, end); bucățile
