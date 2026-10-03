@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.40 (`build-40`) · FaikkitCar Panel 1.0.9 (`panel-9`) |
+| **Versiuni** | FaikkitCar 1.1.41 (`build-41`) · FaikkitCar Panel 1.0.10 (`panel-10`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -54,8 +54,8 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează actualizările:** FaikkitCar 1.1.40 (în mașină, „Actualizează acum”) și
-   Panel 1.0.9 (pe telefon, la fel). Apoi de comparat cu bordul: temperaturile setate ale
+1. **Instalează actualizările:** FaikkitCar 1.1.41 (în mașină, „Actualizează acum”) și
+   Panel 1.0.10 (pe telefon, la fel). Apoi de comparat cu bordul: temperaturile setate ale
    climei și consumul instantaneu („Consum acum”).
 2. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
    să iasă costul pe drum. Plinul nu mai e necesar.
@@ -91,7 +91,7 @@ a crescut într-un proiect cu trei părți:
 | Jurnal trimis live la server | ✅ | Coadă locală (2.000 de linii); la orice eroare a serverului datele rămân în coadă |
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează |
-| Acasă ca tablou de bord | 🧪 | Starea mașinii, viteza, turația, bateria, afară, clima, rezervorul cu autonomia, călătoria în curs și ziua de azi; sunetul de bun venit rămâne, compact (de la 1.1.42) |
+| Acasă ca tablou de bord | 🧪 | Starea mașinii, viteza, turația, bateria, afară, clima, rezervorul cu autonomia, călătoria în curs și ziua de azi; sunetul de bun venit rămâne, compact (de la 1.1.41) |
 | Sonda CAN | ✅ | Calibrarea ghidată nu mai e necesară (toate codurile folosite sunt confirmate); în Setări („avansat”) rămâne sonda: 10 minute, marcaje cu text, schimbările live |
 | Scos | — | Diagnosticul Teyes, sonda CAN separată, pasul „rezervor” (codul e confirmat) |
 

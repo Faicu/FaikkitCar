@@ -166,7 +166,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   pornirea din 17:04 0 → 32 la eliberare). 0x41/1 = biți de stare, 0x80 probabil luminile
   (apare seara). Marșarierul: m0 c68 = [1, 1] băgat, [9, 1] după ieșire, [0, 0] la pornire
   (aceeași secvență de 4 ori, 30.09–01.10) → cod curat. Pedala de frână: nimic, iar.
-- De la 1.1.42 calibrarea ghidată e scoasă (toate codurile folosite sunt confirmate); în Setări
+- De la 1.1.41 calibrarea ghidată e scoasă (toate codurile folosite sunt confirmate); în Setări
   rămâne „Sonda CAN (avansat)”: pornire 10 min, câmp text + „Marchează” (CAN MARK <text> |
   schimbările de la marcajul anterior, fără `KNOWN`), schimbările live și „Oprește”.
 - (Istoric) Calibrare CAN de la 1.1.32: doar c107 (frâna de mână) și marșarierul, în Setări („avansat”);
