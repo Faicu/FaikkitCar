@@ -44,6 +44,12 @@ mașină nu mai trebuie să rămână acolo.
   cu traseu și `ChartView`; „înapoi” revine la listă), Costuri (30 de zile, pe luni din
   `/api/stats` cu bare, alimentări) și Mai mult (mentenanță, jurnal, ieșire din cont).
   Reîmprospătare la 10 s pe Acum, 30 s în rest, redesenare doar la date schimbate.
+  Din 03.10: Acum = starea (cifre mari: viteză, turație, baterie, afară; clima într-un rând
+  „❄ Climatronic AUTO · AC oprit · 21 °C · ventilator 2”; avertizările), călătoria în curs
+  (`tripSummary`), rezervorul într-un rând, poziția. Detaliile călătoriei: `tripSummary`
+  (traseu, cifre mari distanță / durată / cost, bara timpului `Ui.stackedBar` mers / trafic /
+  staționare / motor oprit), harta, opririle, `tripSections` (Viteză, Consum, Mașina; `Ui.section`),
+  graficul și combinarea. Același aspect pe site (`components/TripView.tsx`).
   Actualizare din aplicație (`Updater`): `GET /api/panel/apk` + `/api/panel/apk/download` (login);
   CI-ul separat `.github/workflows/panel.yml` publică la `POST /api/panel/apk` (CAR_TOKEN),
   release `panel-<N>`, `versionName` = `1.0.<N>`. Site-ul are link „Descarcă APK” pe fila Mașina.
@@ -87,6 +93,12 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   (secret GitHub `VW_LOG_TOKEN` = `CAR_TOKEN` din `/opt/faikkitcar/.env`). Declanșat la fiecare
   `Prefs.log`, la `onAvailable` al rețelei și la ~30 s din tick. În `Uploader` nu se
   folosește `Prefs.log` (ar reintra în coadă). Serviciul scrie la pornire o linie `Info:`.
+- Acasă (din 03.10, tablou de bord): titlul cu starea mașinii („In mers · 34 km/h”, „Oprit in
+  trafic · 45 s”, „Parcat, motor pornit”, „Contact pus”, „Gata de drum”) și rândul de valori
+  (viteză, turație, baterie, afară, clima) la 2 s din `CanLink`; rezervor + autonomie,
+  călătoria în curs (sau ultima) și „Azi” la 15 s din `GET /api/car/summary` (cheia mașinii,
+  `live.ts` `readCarSummary`, `VwStatus.summary`); apoi actualizare, mentenanță, avertizări,
+  sunetul de bun venit compact (▶ Redă) și un rând cu starea serverului / călătoriilor.
 - `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
   și file Acasă / Sunete / Setări / Jurnal; pornește serviciul în `onCreate`. Iconița: vezi „Iconița (02.10)” mai jos.
 - `CanProbe`: pornită doar de calibrare (10 min, `can_probe_until`, verificată din tick).
@@ -153,7 +165,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   pornirea din 17:04 0 → 32 la eliberare). 0x41/1 = biți de stare, 0x80 probabil luminile
   (apare seara). Marșarierul: m0 c68 = [1, 1] băgat, [9, 1] după ieșire, [0, 0] la pornire
   (aceeași secvență de 4 ori, 30.09–01.10) → cod curat. Pedala de frână: nimic, iar.
-- Calibrare CAN de la 1.1.32: doar c107 (frâna de mână) și marșarierul, în Setări („avansat”);
+- De la 1.1.42 calibrarea ghidată e scoasă (toate codurile folosite sunt confirmate); în Setări
+  rămâne „Sonda CAN (avansat)”: pornire 10 min, câmp text + „Marchează” (CAN MARK <text> |
+  schimbările de la marcajul anterior, fără `KNOWN`), schimbările live și „Oprește”.
+- (Istoric) Calibrare CAN de la 1.1.32: doar c107 (frâna de mână) și marșarierul, în Setări („avansat”);
   restul e confirmat. 1.1.31 (motor pornit, mașina parcată): AC / AUTO separat, pedala de
   frână, frâna de mână (pentru c107), marșarierul, faza scurtă, semnalizarea, temperatura de
   pe bord (număr introdus → `findValue`, confirmă c139) și rezervorul (opțional + captură).

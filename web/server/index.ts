@@ -33,7 +33,7 @@ import {
   type ReminderInput,
 } from "./car.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, saveRefuel, type RefuelInput } from "./fuel.ts";
-import { readLive, saveState, waitForState, type IncomingState } from "./live.ts";
+import { readCarSummary, readLive, saveState, waitForState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
 import {
   insertPoints,
@@ -111,6 +111,12 @@ app.get("/api/car/status", (c) => {
     apk: apk ? { versionCode: apk.versionCode, versionName: apk.versionName, size: apk.size } : null,
     places: readPlaces().map((p) => ({ name: p.name, lat: p.lat, lon: p.lon, radius: p.radius })),
   });
+});
+
+// Rezumatul pentru ecranul Acasă din mașină: călătoria în curs (sau ultima), azi, rezervorul.
+app.get("/api/car/summary", (c) => {
+  requireCarToken(c);
+  return c.json(readCarSummary());
 });
 
 app.post("/api/car/tts", async (c) => {

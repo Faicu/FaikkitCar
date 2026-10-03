@@ -403,6 +403,10 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Fila Acum, in ordinea importantei: starea (cu valorile de acum, clima intr-un rand si
+     * avertizarile), calatoria in curs, rezervorul cu autonomia si unde e masina.
+     */
     private void renderNow() {
         renderUpdate();
         if (live == null) {
@@ -436,44 +440,39 @@ public class MainActivity extends Activity {
         card.addView(row);
         JSONObject d = live.optJSONObject("data");
         if (d != null) {
-            List<View> cells = new ArrayList<>();
-            cells.add(Ui.info(this, "Viteză", d.isNull("speed") ? "—" : Math.round(d.optDouble("speed")) + " km/h"));
-            cells.add(Ui.info(this, "Turație", d.isNull("rpm") ? "—" : d.optInt("rpm") + " rpm"));
-            cells.add(Ui.info(this, "Baterie", d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 2) + " V"));
-            cells.add(Ui.info(this, "Temp. afară", d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1) + " °C"));
-            cells.add(Ui.info(this, "Kilometraj", d.isNull("odo") ? "—" : Fmt.km(d.optLong("odo"))));
-            if (!d.isNull("instantL100")) {
-                cells.add(Ui.info(this, "Consum acum*", Fmt.num(d.optDouble("instantL100"), 1) + " L/100"));
+            LinearLayout kpis = Ui.kpiRow(this,
+                    Ui.kpi(this, d.isNull("speed") ? "—" : String.valueOf(Math.round(d.optDouble("speed"))), "km/h", "viteză"),
+                    Ui.kpi(this, d.isNull("rpm") ? "—" : String.valueOf(d.optInt("rpm")), "rpm", "turație"),
+                    Ui.kpi(this, d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 1), "V", "baterie"),
+                    Ui.kpi(this, d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1), "°C", "afară"));
+            LinearLayout.LayoutParams klp = new LinearLayout.LayoutParams(-1, -2);
+            klp.topMargin = dp(this, 12);
+            card.addView(kpis, klp);
+            JSONObject cl = d.optJSONObject("climate");
+            if (cl != null) {
+                TextView line = Ui.text(this, "❄ Climatronic  " + climateLine(cl), 14, Ui.TEXT, false);
+                line.setPadding(0, dp(this, 10), 0, 0);
+                card.addView(line);
             }
-            card.addView(Ui.grid(this, cells, 3));
+            if (!d.isNull("instantL100") && d.has("instantL100")) {
+                Ui.hint(this, card, "Consum acum*: " + Fmt.num(d.optDouble("instantL100"), 1)
+                        + " L/100 km (bordul; presupus, compară cu afișajul)");
+            }
             renderCarDetails(card, d);
-            if (!d.isNull("instantL100")) {
-                Ui.hint(this, card, "* consumul instantaneu al bordului (presupus; compară cu afișajul din bord).");
-            }
         }
-        if (d != null && d.optJSONObject("climate") != null) renderClimate(d);
 
         JSONObject trip = live.optJSONObject("trip");
-        if (trip != null) {
-            LinearLayout tc = Ui.card(this, content);
-            Ui.title(this, tc, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
-            tc.addView(Ui.grid(this, tripCells(trip), 3));
-        }
+        if (trip != null) tripSummary(trip, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
 
         JSONObject tank = live.optJSONObject("tank");
         if (tank != null) {
             JSONObject range = live.optJSONObject("range");
-            boolean real = range != null && range.optBoolean("real");
             LinearLayout fc = Ui.card(this, content);
-            Ui.title(this, fc, "Rezervor");
-            List<View> cells = new ArrayList<>();
-            cells.add(Ui.info(this, "În rezervor", Fmt.num(tank.optDouble("liters"), 0) + " L"));
-            cells.add(Ui.info(this, "Autonomie", range == null ? "—" : "≈ " + range.optInt("km") + " km"));
-            cells.add(Ui.info(this, real ? "Consum real" : "Consum (est.)",
-                    range == null ? "—" : Fmt.num(range.optDouble("lPer100"), 1) + " L/100"));
-            fc.addView(Ui.grid(this, cells, 3));
-            Ui.hint(this, fc, "Până la gol, la consumul mediu" + (real ? " din nivelul rezervorului"
-                    : " estimat din drumuri") + "; citit " + Fmt.ago(tank.optString("at")) + ".");
+            fc.addView(Ui.text(this, "⛽ " + Fmt.num(tank.optDouble("liters"), 0) + " L"
+                    + (range == null ? "" : " · ≈ " + range.optInt("km") + " km autonomie"), 17, Ui.TEXT, true));
+            Ui.hint(this, fc, (range == null ? "" : "la " + Fmt.num(range.optDouble("lPer100"), 1) + " L/100 "
+                    + (range.optBoolean("real") ? "(real, din rezervor)" : "(estimat din drumuri)") + ", până la gol · ")
+                    + "citit " + Fmt.ago(tank.optString("at")));
         }
 
         JSONObject pos = live.optJSONObject("position");
@@ -485,7 +484,7 @@ public class MainActivity extends Activity {
             pt.setOrientation(LinearLayout.VERTICAL);
             String parked = pos.isNull("place") ? "Mașina e parcată aici"
                     : "Mașina e parcată la " + pos.optString("place");
-            pt.addView(Ui.text(this, "driving".equals(state) ? "Mașina e aici" : parked, 18, Ui.TEXT, true));
+            pt.addView(Ui.text(this, "driving".equals(state) ? "Mașina e aici" : parked, 17, Ui.TEXT, true));
             pt.addView(Ui.text(this, "ultima poziție: " + Fmt.day(pos.optString("t")) + ", "
                     + Fmt.hm(pos.optString("t")) + " (" + Fmt.ago(pos.optString("t")) + ")", 13, Ui.MUTED, false));
             prow.addView(pt, new LinearLayout.LayoutParams(0, -2, 1));
@@ -498,6 +497,20 @@ public class MainActivity extends Activity {
             pc.addView(prow);
             addMap(content, MapBox.position(this, lat, lon), 220);
         }
+    }
+
+    /** Clima intr-un rand: „AUTO · AC oprit · 21 °C · ventilator 2”. */
+    private static String climateLine(JSONObject cl) {
+        List<String> parts = new ArrayList<>();
+        if (!cl.isNull("auto")) parts.add(cl.optBoolean("auto") ? "AUTO" : "manual");
+        if (!cl.isNull("ac")) parts.add(cl.optBoolean("ac") ? "AC pornit" : "AC oprit");
+        boolean hasL = !cl.isNull("setLeft"), hasR = !cl.isNull("setRight");
+        if (hasL || hasR) {
+            double l = cl.optDouble("setLeft", cl.optDouble("setRight")), r = cl.optDouble("setRight", l);
+            parts.add(l == r ? Fmt.num(l, 1) + " °C" : Fmt.num(l, 1) + " / " + Fmt.num(r, 1) + " °C");
+        }
+        if (!cl.isNull("fan")) parts.add(cl.optInt("fan") == 0 ? "ventilator oprit" : "ventilator " + cl.optInt("fan"));
+        return String.join(" · ", parts);
     }
 
     /** Usile, centura, frana de mana, marsarierul, luminile: doar ce e de semnalat. */
@@ -520,26 +533,13 @@ public class MainActivity extends Activity {
             else if (d.optBoolean("belt")) ok.add("centura pusă");
         }
         if (d.optBoolean("reverse")) warn.add("În marșarier");
-        if (!d.isNull("lights")) ok.add(d.optBoolean("lights") ? "lumini aprinse" : "lumini stinse");
-        for (String w : warn) card.addView(Ui.text(this, "⚠ " + w, 15, Ui.WARN, true));
+        if (!d.isNull("lights") && d.has("lights")) ok.add(d.optBoolean("lights") ? "faza scurtă aprinsă" : "lumini stinse");
+        for (String w : warn) {
+            TextView t = Ui.text(this, "⚠ " + w, 15, Ui.WARN, true);
+            t.setPadding(0, dp(this, 8), 0, 0);
+            card.addView(t);
+        }
         if (!ok.isEmpty()) Ui.hint(this, card, String.join(" · ", ok));
-    }
-
-    private void renderClimate(JSONObject d) {
-        JSONObject cl = d.optJSONObject("climate");
-        LinearLayout card = Ui.card(this, content);
-        Ui.title(this, card, "Climatronic și temperaturi");
-        List<View> cells = new ArrayList<>();
-        cells.add(Ui.info(this, "Afară", d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1) + " °C"));
-        cells.add(Ui.info(this, "Setat stânga", cl.isNull("setLeft") ? "—" : Fmt.num(cl.optDouble("setLeft"), 1) + " °C"));
-        cells.add(Ui.info(this, "Setat dreapta", cl.isNull("setRight") ? "—" : Fmt.num(cl.optDouble("setRight"), 1) + " °C"));
-        cells.add(Ui.info(this, "AC", cl.isNull("ac") ? "—" : cl.optBoolean("ac") ? "pornit" : "oprit"));
-        cells.add(Ui.info(this, "Mod", cl.isNull("auto") ? "—" : cl.optBoolean("auto") ? "AUTO" : "manual"));
-        cells.add(Ui.info(this, "Ventilator", cl.isNull("fan") ? "—"
-                : cl.optInt("fan") == 0 ? "oprit" : "treapta " + cl.optInt("fan")));
-        card.addView(Ui.grid(this, cells, 3));
-        Ui.hint(this, card, "Temperatura din habitaclu nu e transmisă de decodorul CAN, deci nu apare. "
-                + "Temperaturile setate sunt calculate din codul decodorului; dacă diferă de afișaj, spune-mi.");
     }
 
     // ---------------------------------------------------------------- fila Calatorii
@@ -571,21 +571,94 @@ public class MainActivity extends Activity {
         renderTripList(visibleTrips());
     }
 
-    /** Valorile principale ale unei calatorii (si ale celei in curs, pe fila Acum). */
-    private List<View> tripCells(JSONObject t) {
-        List<View> cells = new ArrayList<>();
-        cells.add(Ui.info(this, "Distanță", Fmt.num(t.optDouble("distanceKm"), 1) + " km"));
-        cells.add(Ui.info(this, "Durată", Fmt.duration(t.optDouble("durationMin"))));
-        cells.add(Ui.info(this, "Viteză medie", t.isNull("avgSpeed") ? "—" : t.optInt("avgSpeed") + " km/h"));
-        cells.add(Ui.info(this, "Combustibil (est.)", t.isNull("fuelL") ? "—" : "≈ " + Fmt.liters(t.optDouble("fuelL"))));
-        cells.add(Ui.info(this, "Consum (est.)", t.isNull("lPer100") ? "—" : Fmt.num(t.optDouble("lPer100"), 1) + " L/100"));
-        cells.add(Ui.info(this, "Cost (est.)", t.isNull("cost") ? "—" : Fmt.lei(t.optDouble("cost"))));
-        cells.add(Ui.info(this, "Viteză max", t.isNull("maxSpeed") ? "—" : t.optInt("maxSpeed") + " km/h"));
-        cells.add(Ui.info(this, "Turație max", t.isNull("maxRpm") ? "—" : t.optInt("maxRpm") + " rpm"));
+    // Culorile timpului unei calatorii, ca pe site: mers, trafic, stationare, motor oprit.
+    private static final int[] TIME_COLORS = {Ui.ACCENT, 0xFFFB923C, 0xFF94A3B8, 0xFFFCD34D};
+
+    /**
+     * Antetul unei calatorii (si al celei in curs, pe fila Acum): titlul, traseul, cifrele mari
+     * (distanta, durata, costul) si bara timpului cu legenda.
+     */
+    private LinearLayout tripSummary(JSONObject t, String title) {
+        LinearLayout card = Ui.card(this, content);
+        card.addView(Ui.text(this, title, 13, Ui.MUTED, false));
+        if (!Fmt.route(t).isEmpty()) card.addView(Ui.text(this, Fmt.route(t), 19, Ui.TEXT, true));
+        View third = t.isNull("cost")
+                ? Ui.kpi(this, t.isNull("fuelL") ? "—" : Fmt.liters(t.optDouble("fuelL")), "", "combustibil")
+                : Ui.kpi(this, Fmt.lei(t.optDouble("cost")).replace(" lei", ""), "lei",
+                        "≈ " + Fmt.liters(t.optDouble("fuelL", 0)));
+        LinearLayout kpis = Ui.kpiRow(this,
+                Ui.kpi(this, Fmt.num(t.optDouble("distanceKm"), 1), "km", "distanță"),
+                Ui.kpi(this, Fmt.duration(t.optDouble("durationMin")), "", "durată"),
+                third);
+        LinearLayout.LayoutParams klp = new LinearLayout.LayoutParams(-1, -2);
+        klp.topMargin = dp(this, 10);
+        card.addView(kpis, klp);
+        double[] v = {t.optDouble("movingMin", 0), t.optDouble("trafficMin", 0), t.optDouble("standMin", 0),
+                t.optDouble("stopMin", 0)};
         int stops = t.optInt("trafficStops");
-        cells.add(Ui.info(this, "Opriri în trafic", stops > 0
-                ? Fmt.shortDuration(t.optDouble("trafficMin")) + " (" + stops + ")" : "—"));
-        return cells;
+        String[] legend = {"În mers " + Fmt.shortDuration(v[0]),
+                "Trafic " + Fmt.shortDuration(v[1]) + (stops > 0 ? " · " + stops + " opriri" : ""),
+                "Staționare " + Fmt.shortDuration(v[2]), "Motor oprit " + Fmt.shortDuration(v[3])};
+        LinearLayout bar = Ui.stackedBar(this, v, TIME_COLORS, legend);
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+        blp.topMargin = dp(this, 12);
+        card.addView(bar, blp);
+        return card;
+    }
+
+    private static String kmh(JSONObject t, String key) {
+        return t.isNull(key) || !t.has(key) ? "—" : t.optInt(key) + " km/h";
+    }
+
+    /** Detaliile pe teme: viteza, consumul, masina. Doar ce avem (drumurile vechi au mai putine). */
+    private void tripSections(JSONObject t) {
+        LinearLayout speed = Ui.section(this, content, "Viteză");
+        List<View> sc = new ArrayList<>();
+        sc.add(Ui.info(this, "Medie", kmh(t, "avgSpeed")));
+        sc.add(Ui.info(this, "În mișcare", kmh(t, "movingAvgSpeed")));
+        sc.add(Ui.info(this, "Maximă", kmh(t, "maxSpeed")));
+        sc.add(Ui.info(this, "Turație max", t.isNull("maxRpm") ? "—" : t.optInt("maxRpm") + " rpm"));
+        if (t.optInt("trafficStops") > 0) {
+            sc.add(Ui.info(this, "Cea mai lungă în trafic", Fmt.shortDuration(t.optDouble("trafficMaxMin"))));
+        }
+        speed.addView(Ui.grid(this, sc, 3));
+
+        LinearLayout fuelCard = Ui.section(this, content, "Consum");
+        List<View> fc = new ArrayList<>();
+        fc.add(Ui.info(this, "Combustibil (est.)", t.isNull("fuelL") ? "—" : "≈ " + Fmt.liters(t.optDouble("fuelL"))));
+        fc.add(Ui.info(this, "Consum (est.)", t.isNull("lPer100") ? "—" : Fmt.num(t.optDouble("lPer100"), 1) + " L/100"));
+        fc.add(Ui.info(this, "Cost (est.)", t.isNull("cost") ? "—" : Fmt.lei(t.optDouble("cost"))));
+        boolean board = t.has("boardLPer100") && !t.isNull("boardLPer100");
+        if (board) fc.add(Ui.info(this, "Bordul, în mers*", Fmt.num(t.optDouble("boardLPer100"), 1) + " L/100"));
+        if (!t.isNull("fuelStart") && !t.isNull("fuelEnd")) {
+            fc.add(Ui.info(this, "Rezervor", Fmt.num(t.optDouble("fuelStart"), 0) + " → "
+                    + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));
+        }
+        fuelCard.addView(Ui.grid(this, fc, 3));
+        if (board) Ui.hint(this, fuelCard, "* din consumul instantaneu al bordului (c1033), de confirmat cu afișajul.");
+
+        LinearLayout car = Ui.section(this, content, "Mașina");
+        List<View> cc = new ArrayList<>();
+        // Afara la plecare → la sosire, daca s-a schimbat.
+        String temp = t.isNull("tempC") ? "—" : (!t.isNull("tempStartC") && t.optDouble("tempStartC") != t.optDouble("tempC")
+                ? Fmt.num(t.optDouble("tempStartC"), 1) + " → " : "") + Fmt.num(t.optDouble("tempC"), 1) + " °C";
+        cc.add(Ui.info(this, "Afară", temp));
+        if (t.has("acMin") && !t.isNull("acMin")) {
+            double ac = t.optDouble("acMin");
+            double drive = Math.max(t.optDouble("durationMin") - t.optDouble("stopMin"), 0.1);
+            cc.add(Ui.info(this, "AC", ac > 0 ? Fmt.shortDuration(ac) + " (" + Math.round(ac / drive * 100) + "%)" : "oprit"));
+        }
+        if (t.has("noBeltMin") && !t.isNull("noBeltMin") && t.optDouble("noBeltMin") > 0) {
+            cc.add(Ui.info(this, "Fără centură", Fmt.shortDuration(t.optDouble("noBeltMin")) + " ⚠"));
+        }
+        // La pornire (demarorul) sub 9,6 V = baterie slaba; in mers (incarcarea) normal 13,5–14,9 V.
+        double crank = t.optDouble("crankVolt", Double.NaN), run = t.optDouble("runVolt", Double.NaN);
+        cc.add(Ui.info(this, "Baterie la pornire", Double.isNaN(crank) ? "—"
+                : Fmt.num(crank, 2) + " V" + (crank < 9.6 ? " ⚠" : "")));
+        cc.add(Ui.info(this, "Baterie în mers", Double.isNaN(run) ? "—"
+                : Fmt.num(run, 2) + " V" + (run < 13.5 || run > 14.9 ? " ⚠" : "")));
+        cc.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
+        car.addView(Ui.grid(this, cc, 3));
     }
 
     private void renderTrip(JSONObject t, JSONObject older, JSONObject newer) {
@@ -597,71 +670,9 @@ public class MainActivity extends Activity {
             render();
         });
         content.addView(back);
-        LinearLayout card = Ui.card(this, content);
-        Ui.title(this, card, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end));
-        if (!Fmt.route(t).isEmpty()) card.addView(Ui.text(this, Fmt.route(t), 15, Ui.ACCENT, false));
-        List<View> cells = tripCells(t);
-        cells.add(Ui.info(this, "Cea mai lungă în trafic", t.optInt("trafficStops") > 0
-                ? Fmt.shortDuration(t.optDouble("trafficMaxMin")) : "—"));
-        cells.add(Ui.info(this, "Staționare, motor pornit", Fmt.shortDuration(t.optDouble("standMin"))));
-        cells.add(Ui.info(this, "Viteză în mișcare", t.isNull("movingAvgSpeed") ? "—"
-                : t.optInt("movingAvgSpeed") + " km/h"));
-        // La pornire (demarorul) sub 9,6 V = baterie slaba; in mers (incarcarea) normal 13,5–14,9 V.
-        double crank = t.optDouble("crankVolt", Double.NaN), run = t.optDouble("runVolt", Double.NaN);
-        cells.add(Ui.info(this, "Baterie la pornire", Double.isNaN(crank) ? "—"
-                : Fmt.num(crank, 2) + " V" + (crank < 9.6 ? " ⚠" : "")));
-        cells.add(Ui.info(this, "Baterie în mers", Double.isNaN(run) ? "—"
-                : Fmt.num(run, 2) + " V" + (run < 13.5 || run > 14.9 ? " ⚠" : "")));
-        // Afara la plecare → la sosire, daca s-a schimbat.
-        String temp = t.isNull("tempC") ? "—" : (!t.isNull("tempStartC") && t.optDouble("tempStartC") != t.optDouble("tempC")
-                ? Fmt.num(t.optDouble("tempStartC"), 1) + " → " : "") + Fmt.num(t.optDouble("tempC"), 1) + " °C";
-        cells.add(Ui.info(this, "Temp. afară", temp));
-        // Clima si centura: doar la drumurile inregistrate cu 1.1.40+ (altfel null).
-        if (t.has("acMin") && !t.isNull("acMin")) {
-            double ac = t.optDouble("acMin");
-            double drive = Math.max(t.optDouble("durationMin") - t.optDouble("stopMin"), 0.1);
-            cells.add(Ui.info(this, "AC pornit", ac > 0
-                    ? Fmt.shortDuration(ac) + " (" + Math.round(ac / drive * 100) + "%)" : "nu"));
-        }
-        if (t.has("noBeltMin") && !t.isNull("noBeltMin") && t.optDouble("noBeltMin") > 0) {
-            cells.add(Ui.info(this, "Fără centură în mers", Fmt.shortDuration(t.optDouble("noBeltMin")) + " ⚠"));
-        }
-        cells.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
-        cells.add(Ui.info(this, "Rezervor", t.isNull("fuelStart") || t.isNull("fuelEnd") ? "—"
-                : Fmt.num(t.optDouble("fuelStart"), 0) + " → " + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));
         int parts = t.optInt("parts", 1);
-        if (t.optDouble("stopMin") > 0) {
-            cells.add(Ui.info(this, "Opriri cu motorul oprit", Fmt.shortDuration(t.optDouble("stopMin"))));
-        }
-        boolean board = !t.isNull("boardLPer100") && t.has("boardLPer100");
-        if (board) cells.add(Ui.info(this, "Consum bord* (în mers)", Fmt.num(t.optDouble("boardLPer100"), 1) + " L/100"));
-        card.addView(Ui.grid(this, cells, 3));
-        if (board) Ui.hint(this, card, "* din consumul instantaneu al bordului (c1033), de confirmat cu afișajul din bord.");
-
-        // Combinarea cu vecinele (ex. dus-intors cu o oprire scurta) si despartirea.
-        List<String> labels = new ArrayList<>();
-        List<Runnable> actions = new ArrayList<>();
-        if (older != null) {
-            String from = older.optString("start");
-            labels.add("Combină cu precedenta (" + Fmt.hm(from) + ")");
-            actions.add(() -> joinAndShow(() -> api.joinTrips(from, end), from, "Călătorii combinate"));
-        }
-        if (newer != null) {
-            String to = newer.optString("end");
-            labels.add("Combină cu următoarea (" + Fmt.hm(newer.optString("start")) + ")");
-            actions.add(() -> joinAndShow(() -> api.joinTrips(start, to), start, "Călătorii combinate"));
-        }
-        if (parts > 1) {
-            labels.add("Desparte (" + parts + " părți)");
-            actions.add(() -> joinAndShow(() -> api.splitTrip(start), start, "Călătorie despărțită"));
-        }
-        for (int i = 0; i < labels.size(); i++) {
-            Runnable action = actions.get(i);
-            TextView b = Ui.text(this, labels.get(i), 15, Ui.ACCENT, true);
-            b.setPadding(0, dp(this, 10), 0, dp(this, 4));
-            b.setOnClickListener(v -> action.run());
-            card.addView(b);
-        }
+        tripSummary(t, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end)
+                + (parts > 1 ? " · " + parts + " părți" : ""));
 
         String key = start + "|" + end;
         if (!key.equals(pointsFor)) {
@@ -680,22 +691,25 @@ public class MainActivity extends Activity {
             return;
         }
         JSONArray stops = t.optJSONArray("stops");
+        MapView map = MapBox.route(this, points, stops);
+        if (map != null) addMap(content, map, 260);
         if (stops != null && stops.length() > 0) {
-            LinearLayout sc = Ui.card(this, content);
-            Ui.title(this, sc, "Opriri cu motorul oprit (galben pe hartă)");
+            LinearLayout sc = Ui.section(this, content, "Opriri cu motorul oprit (galben pe hartă)");
             for (int i = 0; i < stops.length(); i++) {
                 JSONObject s = stops.optJSONObject(i);
-                sc.addView(Ui.text(this, Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to"))
+                TextView st = Ui.text(this, Fmt.hm(s.optString("from")) + "–" + Fmt.hm(s.optString("to"))
                         + " · " + Fmt.duration(s.optDouble("minutes"))
-                        + (s.isNull("place") ? "" : " · " + s.optString("place")), 15, Ui.TEXT, false));
+                        + (s.isNull("place") ? "" : " · " + s.optString("place")), 15, Ui.TEXT, false);
+                st.setPadding(0, dp(this, 6), 0, 0);
+                sc.addView(st);
             }
         }
-        MapView map = MapBox.route(this, points, stops);
-        if (map != null) addMap(content, map, 280);
+        tripSections(t);
         if (points.length() >= 2) {
-            LinearLayout chart = Ui.card(this, content);
+            LinearLayout chart = Ui.section(this, content, "Viteză și turație");
             ChartView cv = new ChartView(this, points);
             LinearLayout legend = new LinearLayout(this);
+            legend.setPadding(0, dp(this, 6), 0, 0);
             legend.addView(Ui.text(this, "viteză (max " + Math.round(cv.maxSpeed()) + " km/h)", 12, Ui.ACCENT, false),
                     new LinearLayout.LayoutParams(0, -2, 1));
             legend.addView(Ui.text(this, "turație (max " + Math.round(cv.maxRpm()) + " rpm)", 12, 0xFFFB923C, false));
@@ -703,6 +717,34 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, dp(this, 150));
             clp.topMargin = dp(this, 8);
             chart.addView(cv, clp);
+        }
+
+        // Combinarea cu vecinele (ex. dus-intors cu o oprire scurta) si despartirea.
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        if (older != null) {
+            String from = older.optString("start");
+            labels.add("Combină cu precedenta (" + Fmt.hm(from) + ")");
+            actions.add(() -> joinAndShow(() -> api.joinTrips(from, end), from, "Călătorii combinate"));
+        }
+        if (newer != null) {
+            String to = newer.optString("end");
+            labels.add("Combină cu următoarea (" + Fmt.hm(newer.optString("start")) + ")");
+            actions.add(() -> joinAndShow(() -> api.joinTrips(start, to), start, "Călătorii combinate"));
+        }
+        if (parts > 1) {
+            labels.add("Desparte (" + parts + " părți)");
+            actions.add(() -> joinAndShow(() -> api.splitTrip(start), start, "Călătorie despărțită"));
+        }
+        if (!labels.isEmpty()) {
+            LinearLayout ac = Ui.card(this, content);
+            for (int i = 0; i < labels.size(); i++) {
+                Runnable action = actions.get(i);
+                TextView b = Ui.text(this, labels.get(i), 15, Ui.ACCENT, true);
+                b.setPadding(0, dp(this, 6), 0, dp(this, 6));
+                b.setOnClickListener(v -> action.run());
+                ac.addView(b);
+            }
         }
     }
 

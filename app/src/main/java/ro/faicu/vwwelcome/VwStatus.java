@@ -51,6 +51,27 @@ final class VwStatus {
         }
     }
 
+    /**
+     * Rezumatul pentru ecranul Acasa (/api/car/summary): calatoria in curs sau ultima, azi,
+     * rezervorul si autonomia. Null fara internet; se cere pe un fir de fundal.
+     */
+    static JSONObject summary() {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/car/summary").openConnection();
+            conn.setConnectTimeout(8_000);
+            conn.setReadTimeout(10_000);
+            conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
+            try {
+                if (conn.getResponseCode() != 200) return null;
+                return new JSONObject(read(conn.getInputStream()));
+            } finally {
+                conn.disconnect();
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     static String read(InputStream in) throws java.io.IOException {
         try (InputStream is = in) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

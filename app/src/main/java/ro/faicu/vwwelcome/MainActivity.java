@@ -49,29 +49,7 @@ public class MainActivity extends Activity {
     private static final int PICK_SOUND = 1;
     private static final int PERM_AUDIO = 3;
     private static final int PERM_LOCATION = 4;
-    /** Un pas al calibrarii: ce faci si o precizare. */
-    private static final class Step {
-        final String title, hint;
-
-        Step(String title, String hint) {
-            this.title = title;
-            this.hint = hint;
-        }
-    }
-
-    // Doar ce a ramas nesigur (vezi CLAUDE.md): c107, care a sarit la eliberarea franei de mana
-    // si n-a mai revenit, si marsarierul, care nu are un cod curat. Restul e confirmat.
-    private static final Step[] STEPS = {
-            new Step("Pregatire", "Masina parcata, motorul PORNIT, frana de mana trasa, schimbatorul "
-                    + "in punctul mort (neutru). Apasa Gata."),
-            new Step("Apasa pedala de frana si elibereaza frana de mana",
-                    "Tine piciorul pe frana tot timpul; masina sta in neutru."),
-            new Step("Trage frana de mana la loc", "Apoi poti lua piciorul de pe frana."),
-            new Step("Baga marsarierul", "Ambreiajul apasat, piciorul pe frana, frana de mana trasa. "
-                    + "Asteapta sa porneasca camera/radarul, apoi Gata."),
-            new Step("Scoate marsarierul (neutru)", "Asteapta 2-3 secunde, apoi Gata."),
-    };
-    // Coduri deja stabilite sau care se schimba singure; nu le aratam in timpul calibrarii.
+    // Coduri deja stabilite sau care se schimba singure; sonda nu le arata.
     private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
             "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
             "m7 c139", "m7 c104", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
@@ -79,9 +57,6 @@ public class MainActivity extends Activity {
             "m7 c10", "m7 c11", "m7 c13", "m7 c49", "m7 raw 0x21", "m7 raw 0x14",
             "m1 c*", "m4 c*", "m8 c*",
             "m0 c41", "m0 c114", "m0 c115", "m0 c146", "m0 c179", "m0 c101", "m0 c40", "m0 c77"));
-    private int calibStep = -1;
-    private long stepStart;
-    private final List<String> calibResults = new ArrayList<>();
     private TextView liveChanges;
     private static final String[] TABS = {"Acasa", "Sunete", "Setari", "Jurnal"};
 
@@ -214,18 +189,25 @@ public class MainActivity extends Activity {
 
     // ---------------------------------------------------------------- Acasa
 
-    // Titlul din Acasa urmeaza starea masinii (ca fila „Acum” din Panel), la 2 s.
-    private TextView homeHeadline;
+    // Tabloul de bord: titlul cu starea si valorile de acum se actualizeaza la 2 s (din CanLink),
+    // calatoria si autonomia la 15 s (de pe car.faicu.ro).
+    private TextView homeHeadline, homeSub;
+    private TextView[] homeTiles;
+    private LinearLayout homeTrip;
+    private org.json.JSONObject summary;
+    private long summaryAt;
+    private boolean summaryLoading;
     private final Runnable homeTick = new Runnable() {
         @Override
         public void run() {
             if (tab != 0 || homeHeadline == null) return;
-            homeHeadline.setText(carHeadline());
+            updateHomeLive();
+            if (System.currentTimeMillis() - summaryAt > 15_000) loadSummary();
             ui.postDelayed(this, 2_000);
         }
     };
 
-    /** „In mers · 34 km/h”, „Oprit in trafic · 45 s”, „Motor pornit”, „Contact pus”, „Gata de drum”. */
+    /** „In mers · 34 km/h”, „Oprit in trafic · 45 s”, „Parcat, motor pornit”, „Contact pus”... */
     private String carHeadline() {
         CanLink can = CanLink.get(this);
         double kmh = can.speed();
@@ -242,54 +224,41 @@ public class MainActivity extends Activity {
     }
 
     private void buildHome(LinearLayout col) {
-        LinearLayout hero = Ui.card(this, col);
         boolean running = serviceRunning();
         File[] sounds = Prefs.sounds(this);
-        String headline = !running ? "Serviciul e oprit"
-                : sounds.length == 0 ? "Alege un sunet" : carHeadline();
-        homeHeadline = Ui.text(this, headline, 28, Ui.TEXT, true);
+
+        // 1. Starea masinii si valorile de acum.
+        LinearLayout hero = Ui.card(this, col);
+        homeHeadline = Ui.text(this, running ? carHeadline() : "Serviciul e oprit", 30, Ui.TEXT, true);
         hero.addView(homeHeadline);
-        ui.removeCallbacks(homeTick);
-        if (running && sounds.length > 0) ui.postDelayed(homeTick, 2_000);
-        String last = firstLine(Prefs.history(this));
-        Ui.hint(this, hero, last == null ? "Nicio trezire inregistrata inca."
-                : "Ultima trezire: " + last);
-
-        LinearLayout stats = new LinearLayout(this);
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
-        slp.topMargin = dp(this, 18);
-        hero.addView(stats, slp);
-        stat(stats, "Sunete", String.valueOf(sounds.length), sounds.length > 0 ? Ui.TEXT : Ui.WARN);
-        stat(stats, "Pauza", fmtSec(Prefs.delayMs(this)) + " +" + fmtSec(Prefs.sleepExtraMs(this)), Ui.TEXT);
-        int pending = Prefs.outboxSize(this);
-        stat(stats, "Server", !Uploader.configured() || !Prefs.uploadEnabled(this) ? "oprit"
-                : pending == 0 ? "la zi" : pending + " in coada", pending > 50 ? Ui.WARN : Ui.TEXT);
-
-        LinearLayout actions = new LinearLayout(this);
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-1, -2);
-        alp.topMargin = dp(this, 18);
-        hero.addView(actions, alp);
-        Button play = Ui.button(this, "▶  Reda acum", Ui.PRIMARY, v -> {
-            File f = Player.test(this);
-            toast(f == null ? "Niciun sunet ales" : "Redau: " + Prefs.soundName(f));
-        });
-        actions.addView(play, new LinearLayout.LayoutParams(0, -2, 1));
+        homeSub = Ui.hint(this, hero, "");
+        LinearLayout tiles = new LinearLayout(this);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-1, -2);
+        tlp.topMargin = dp(this, 16);
+        hero.addView(tiles, tlp);
+        String[] labels = {"Viteza", "Turatie", "Baterie", "Afara", "Clima"};
+        homeTiles = new TextView[labels.length];
+        for (int i = 0; i < labels.length; i++) homeTiles[i] = tile(tiles, labels[i]);
         if (!running) {
-            Button start = Ui.button(this, "Porneste serviciul", Ui.SECONDARY, v -> {
+            Ui.addButton(this, hero, "Porneste serviciul", Ui.PRIMARY, v -> {
                 WelcomeService.start(this);
                 ui.postDelayed(this::refresh, 800);
             });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-            lp.leftMargin = dp(this, 12);
-            actions.addView(start, lp);
         }
 
+        // 2. Calatoria in curs (sau ultima) si ziua de azi, de pe server.
+        homeTrip = new LinearLayout(this);
+        homeTrip.setOrientation(LinearLayout.VERTICAL);
+        col.addView(homeTrip);
+        renderHomeTrip();
+
+        // 3. Actualizare, mentenanta scadenta, avertizari.
         org.json.JSONObject apk = VwStatus.newerApk(this);
         if (apk != null) {
             LinearLayout up = Ui.card(this, col);
             up.addView(Ui.text(this, "Versiune noua: " + apk.optString("versionName"), 19, Ui.ACCENT, true));
             Ui.hint(this, up, "Se descarca de pe car.faicu.ro si se instaleaza peste aceasta; "
-                    + "Android iti cere o confirmare.");
+                    + "Android iti cere o confirmare. Fa-o cu masina oprita.");
             Ui.addButton(this, up, "Actualizeaza acum", Ui.PRIMARY, v -> {
                 toast("Descarc actualizarea...");
                 Updater.start(this, error -> {
@@ -298,7 +267,6 @@ public class MainActivity extends Activity {
                 });
             });
         }
-
         java.util.List<VwStatus.Reminder> due = new java.util.ArrayList<>();
         for (VwStatus.Reminder r : VwStatus.reminders(this)) if (r.soon || r.overdue) due.add(r);
         if (!due.isEmpty()) {
@@ -313,102 +281,240 @@ public class MainActivity extends Activity {
                 rlp.topMargin = dp(this, 10);
                 mt.addView(row, rlp);
             }
-            Ui.hint(this, mt, "Se editeaza pe car.faicu.ro.");
         }
-
         if (!batteryOk()) {
             LinearLayout warn = Ui.card(this, col);
             warn.addView(Ui.text(this, "Optimizarea bateriei e activa", 18, Ui.WARN, true));
             Ui.hint(this, warn, "Android poate opri serviciul. Dezactiveaz-o pentru FaikkitCar.");
             Ui.addButton(this, warn, "Dezactiveaza optimizarea", Ui.SECONDARY, v -> askBattery());
         }
+        boolean gps = TripRecorder.hasPermission(this);
+        if (Prefs.tripsEnabled(this) && !gps) {
+            LinearLayout warn = Ui.card(this, col);
+            warn.addView(Ui.text(this, "Calatoriile nu au GPS", 18, Ui.WARN, true));
+            Ui.addButton(this, warn, "Permite localizarea", Ui.PRIMARY, v -> askLocation());
+        }
 
-        buildTrips(col);
+        // 4. Sunetul de bun venit, compact.
+        LinearLayout welcome = Ui.card(this, col);
+        LinearLayout wrow = new LinearLayout(this);
+        wrow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout wtexts = new LinearLayout(this);
+        wtexts.setOrientation(LinearLayout.VERTICAL);
+        wtexts.addView(Ui.text(this, "Sunet de bun venit", 18, Ui.TEXT, true));
+        String last = firstLine(Prefs.history(this));
+        wtexts.addView(Ui.text(this, (sounds.length == 0 ? "niciun sunet ales" : sounds.length == 1
+                ? Prefs.soundName(sounds[0]) : sounds.length + " sunete")
+                + " · pauza " + fmtSec(Prefs.delayMs(this)) + " +" + fmtSec(Prefs.sleepExtraMs(this))
+                + (last == null ? "" : "\nUltima trezire: " + last), 13, Ui.MUTED, false));
+        wrow.addView(wtexts, new LinearLayout.LayoutParams(0, -2, 1));
+        wrow.addView(Ui.button(this, "▶  Reda", Ui.SECONDARY, v -> {
+            File f = Player.test(this);
+            toast(f == null ? "Niciun sunet ales" : "Redau: " + Prefs.soundName(f));
+        }));
+        welcome.addView(wrow);
+
+        // 5. Sistemul, intr-un rand.
+        int pending = Prefs.outboxSize(this) + PointQueue.size(this);
+        Ui.hint(this, col, "Server: " + (!Uploader.configured() || !Prefs.uploadEnabled(this) ? "oprit"
+                : pending == 0 ? "la zi" : pending + " in asteptare")
+                + " · Calatorii: " + (!Prefs.tripsEnabled(this) ? "oprite" : gps ? "se inregistreaza" : "fara GPS")
+                + " · car.faicu.ro");
+
+        updateHomeLive();
+        ui.removeCallbacks(homeTick);
+        if (running) ui.postDelayed(homeTick, 2_000);
+        if (System.currentTimeMillis() - summaryAt > 15_000) loadSummary();
     }
 
-    private void buildCalibration(LinearLayout col) {
+    /** O casuta din randul de valori; intoarce textul valorii, actualizat de updateHomeLive. */
+    private TextView tile(LinearLayout parent, String label) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(Ui.round(this, Ui.CARD2, 14));
+        int p = dp(this, 12);
+        box.setPadding(p, p, p, p);
+        TextView value = Ui.text(this, "—", 22, Ui.TEXT, true);
+        box.addView(value);
+        box.addView(Ui.text(this, label, 13, Ui.MUTED, false));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+        if (parent.getChildCount() > 0) lp.leftMargin = dp(this, 10);
+        parent.addView(box, lp);
+        return value;
+    }
+
+    /** Titlul, valorile de acum si randul cu rezervorul, din CanLink si din ultimul rezumat. */
+    private void updateHomeLive() {
+        if (homeHeadline == null) return;
+        CanLink can = CanLink.get(this);
+        if (serviceRunning()) homeHeadline.setText(carHeadline());
+        double kmh = can.speed(), volt = can.volt(), temp = can.temp();
+        homeTiles[0].setText(Double.isNaN(kmh) ? "—" : Math.round(kmh) + " km/h");
+        homeTiles[1].setText(can.rpm() < 0 ? "—" : can.rpm() + " rpm");
+        homeTiles[2].setText(Double.isNaN(volt) ? "—" : String.format(Locale.US, "%.1f V", volt));
+        homeTiles[3].setText(Double.isNaN(temp) ? "—" : String.format(Locale.US, "%.0f °C", temp));
+        String clima = "—";
+        if (can.auto() >= 0 || can.ac() >= 0) {
+            clima = (can.auto() == 1 ? "AUTO" : "manual") + (can.ac() == 1 ? " · AC" : "");
+            int tl = can.tempLeft();
+            if (tl > 0 && tl < 31) clima += String.format(Locale.US, " · %.1f°", 15.5 + tl / 2.0);
+        }
+        homeTiles[4].setText(clima);
+        StringBuilder sub = new StringBuilder();
+        org.json.JSONObject tank = summary == null ? null : summary.optJSONObject("tank");
+        org.json.JSONObject range = summary == null ? null : summary.optJSONObject("range");
+        int liters = can.fuel() > 0 ? can.fuel() : tank != null ? (int) Math.round(tank.optDouble("liters")) : -1;
+        if (liters > 0) sub.append("Rezervor ").append(liters).append(" L");
+        if (range != null) sub.append(" · ≈ ").append(range.optInt("km")).append(" km autonomie");
+        if (can.odo() > 0) sub.append(sub.length() > 0 ? " · " : "").append(String.format(Locale.US, "%,d km", can.odo()).replace(',', '.'));
+        homeSub.setText(sub.length() == 0 ? "Datele masinii apar cu contactul pus." : sub.toString());
+    }
+
+    private void loadSummary() {
+        if (summaryLoading || !Uploader.configured()) return;
+        summaryLoading = true;
+        new Thread(() -> {
+            org.json.JSONObject s = VwStatus.summary();
+            runOnUiThread(() -> {
+                summaryLoading = false;
+                summaryAt = System.currentTimeMillis();
+                if (s == null) return;
+                summary = s;
+                renderHomeTrip();
+                updateHomeLive();
+            });
+        }).start();
+    }
+
+    /** Calatoria in curs (sau ultima) si ziua de azi, din rezumatul de pe server. */
+    private void renderHomeTrip() {
+        if (homeTrip == null) return;
+        homeTrip.removeAllViews();
+        if (summary == null) return;
+        org.json.JSONObject trip = summary.optJSONObject("trip");
+        boolean current = trip != null;
+        if (trip == null) trip = summary.optJSONObject("last");
+        if (trip != null) {
+            LinearLayout card = Ui.card(this, homeTrip);
+            String route = route(trip);
+            card.addView(Ui.text(this, (current ? "Calatoria in curs" : "Ultima calatorie · "
+                    + hm(trip.optString("start")) + "–" + hm(trip.optString("end")))
+                    + (route.isEmpty() ? "" : " · " + route), 15, current ? Ui.ACCENT : Ui.MUTED, true));
+            LinearLayout row = new LinearLayout(this);
+            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+            rlp.topMargin = dp(this, 12);
+            card.addView(row, rlp);
+            stat(row, "Distanta", String.format(Locale.US, "%.1f km", trip.optDouble("distanceKm")), Ui.TEXT);
+            stat(row, "Durata", minutes(trip.optDouble("durationMin")), Ui.TEXT);
+            stat(row, "In trafic", minutes(trip.optDouble("trafficMin")), Ui.TEXT);
+            stat(row, "Consum", trip.isNull("lPer100") ? "—"
+                    : String.format(Locale.US, "%.1f L/100", trip.optDouble("lPer100")), Ui.TEXT);
+            stat(row, "Cost", trip.isNull("cost") ? "—"
+                    : String.format(Locale.US, "%.2f lei", trip.optDouble("cost")), Ui.TEXT);
+        }
+        org.json.JSONObject today = summary.optJSONObject("today");
+        if (today != null && today.optInt("trips") > 0) {
+            Ui.hint(this, homeTrip, String.format(Locale.US, "Azi: %d %s · %.1f km · %s la volan%s",
+                    today.optInt("trips"), today.optInt("trips") == 1 ? "calatorie" : "calatorii",
+                    today.optDouble("km"), minutes(today.optDouble("minutes")),
+                    today.isNull("cost") ? "" : String.format(Locale.US, " · %.2f lei", today.optDouble("cost"))));
+        }
+    }
+
+    private static String minutes(double min) {
+        if (min < 1) return Math.round(min * 60) + " s";
+        if (min < 60) return Math.round(min) + " min";
+        return (int) (min / 60) + " h " + Math.round(min % 60) + " min";
+    }
+
+    private static String hm(String iso) {
+        try {
+            return new SimpleDateFormat("HH:mm", Locale.US).format(new Date(java.time.Instant.parse(iso).toEpochMilli()));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static String route(org.json.JSONObject t) {
+        if (t.isNull("fromPlace") && t.isNull("toPlace")) return "";
+        return (t.isNull("fromPlace") ? "…" : t.optString("fromPlace")) + " → "
+                + (t.isNull("toPlace") ? "…" : t.optString("toPlace"));
+    }
+
+    // ---------------------------------------------------------------- sonda CAN (avansat)
+
+    // Calibrarea ghidata nu mai e necesara (toate codurile folosite sunt confirmate); sonda
+    // ramane pentru cand mai cautam ceva: 10 minute, marcaje cu text si schimbarile live.
+    private long markAt;
+
+    private void buildProbe(LinearLayout col) {
         LinearLayout card = Ui.card(this, col);
-        Ui.title(this, card, "Calibrare CAN (avansat)");
-        if (calibStep < 0) {
-            Ui.hint(this, card, "Doar ce a ramas nesigur: un cod legat de frana de mana (c107) si "
-                    + "marsarierul. Tot restul e confirmat; nu e nevoie s-o faci. Masina parcata, "
-                    + "motorul pornit; ~1 minut.");
-            if (!calibResults.isEmpty()) {
-                TextView res = Ui.mono(this, String.join("\n", calibResults), 13);
-                LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
-                rlp.topMargin = dp(this, 12);
-                card.addView(res, rlp);
-            }
-            Ui.addButton(this, card, calibResults.isEmpty() ? "Incepe calibrarea" : "Reia calibrarea",
-                    Ui.SECONDARY, v -> startCalibration(0, "start calibrare (doar necunoscutele)"));
+        Ui.title(this, card, "Sonda CAN (avansat)");
+        boolean on = CanProbe.isRunning();
+        Ui.hint(this, card, "Pentru cand cautam un cod nou: porneste sonda (10 minute), fa actiunea "
+                + "in masina si apasa Marcheaza. Schimbarile de dupa ultimul marcaj ajung pe server.");
+        if (!on) {
+            Ui.addButton(this, card, "Porneste sonda (10 minute)", Ui.SECONDARY, v -> {
+                Prefs.setCanProbeUntil(this, System.currentTimeMillis() + 10 * 60_000L);
+                CanProbe.check(getApplicationContext());
+                markAt = System.currentTimeMillis();
+                ui.postDelayed(() -> CanProbe.mark("start sonda"), 1500);
+                refresh();
+            });
             return;
         }
-        Step step = STEPS[calibStep];
-        Ui.hint(this, card, "Pasul " + (calibStep + 1) + " din " + STEPS.length);
-        TextView title = Ui.text(this, step.title, 22, Ui.TEXT, true);
-        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-1, -2);
-        tlp.topMargin = dp(this, 8);
-        card.addView(title, tlp);
-        if (!step.hint.isEmpty()) Ui.hint(this, card, step.hint);
-
-        {
-            // Ce s-a schimbat de cand a aparut pasul, actualizat live de liveTick.
-            LinearLayout box = new LinearLayout(this);
-            box.setOrientation(LinearLayout.VERTICAL);
-            box.setBackground(Ui.round(this, Ui.CARD2, 12));
-            int p = dp(this, 12);
-            box.setPadding(p, p, p, p);
-            box.addView(Ui.text(this, "Schimbari vazute la acest pas", 13, Ui.MUTED, false));
-            liveChanges = Ui.mono(this, "", 14);
-            box.addView(liveChanges);
-            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
-            blp.topMargin = dp(this, 12);
-            card.addView(box, blp);
-            updateLive();
-        }
-
-        LinearLayout btns = new LinearLayout(this);
-        btns.addView(Ui.button(this, "Gata", Ui.PRIMARY, v -> calibNext(true)),
-                new LinearLayout.LayoutParams(0, -2, 2));
-        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1);
-        rp.leftMargin = dp(this, 10);
-        btns.addView(Ui.button(this, "Repeta", Ui.SECONDARY, v -> {
-            stepStart = System.currentTimeMillis();
-            CanProbe.mark((calibStep + 1) + " REIA: " + step.title);
-            updateLive();
-        }), rp);
-        LinearLayout.LayoutParams sk = new LinearLayout.LayoutParams(0, -2, 1);
-        sk.leftMargin = dp(this, 10);
-        btns.addView(Ui.button(this, "Sari", Ui.SECONDARY, v -> calibNext(false)), sk);
-        LinearLayout.LayoutParams st = new LinearLayout.LayoutParams(0, -2, 1);
-        st.leftMargin = dp(this, 10);
-        btns.addView(Ui.button(this, "Opreste", Ui.DANGER, v -> {
-            CanProbe.mark("calibrare oprita la pasul " + (calibStep + 1));
-            calibStep = -1;
-            refresh();
-        }), st);
+        EditText label = new EditText(this);
+        label.setHint("Ce ai facut (ex. am aprins farurile)");
+        label.setHintTextColor(Ui.MUTED);
+        label.setTextColor(Ui.TEXT);
+        label.setSingleLine(true);
+        label.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        label.setBackground(Ui.round(this, Ui.CARD2, 12));
+        int lp0 = dp(this, 14);
+        label.setPadding(lp0, lp0, lp0, lp0);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, -2);
+        llp.topMargin = dp(this, 12);
+        card.addView(label, llp);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(Ui.round(this, Ui.CARD2, 12));
+        int p = dp(this, 12);
+        box.setPadding(p, p, p, p);
+        box.addView(Ui.text(this, "Schimbari de la ultimul marcaj", 13, Ui.MUTED, false));
+        liveChanges = Ui.mono(this, "", 14);
+        box.addView(liveChanges);
         LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
-        blp.topMargin = dp(this, 16);
-        card.addView(btns, blp);
+        blp.topMargin = dp(this, 12);
+        card.addView(box, blp);
+        updateLive();
+        LinearLayout btns = new LinearLayout(this);
+        btns.addView(Ui.button(this, "Marcheaza", Ui.PRIMARY, v -> {
+            String what = label.getText().toString().trim();
+            String found = probeChanges().replace("\n", "; ");
+            CanProbe.mark((what.isEmpty() ? "marcaj" : what) + " | " + (found.isEmpty() ? "nicio schimbare" : found));
+            markAt = System.currentTimeMillis();
+            label.setText("");
+            toast("Marcat");
+            updateLive();
+        }), new LinearLayout.LayoutParams(0, -2, 2));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, -2, 1);
+        sp.leftMargin = dp(this, 10);
+        btns.addView(Ui.button(this, "Opreste", Ui.DANGER, v -> {
+            Prefs.setCanProbeUntil(this, 0);
+            CanProbe.check(getApplicationContext());
+            liveChanges = null;
+            refresh();
+        }), sp);
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+        rlp.topMargin = dp(this, 14);
+        card.addView(btns, rlp);
     }
 
-    private void startCalibration(int step, String mark) {
-        Prefs.setCanProbeUntil(this, System.currentTimeMillis() + 10 * 60_000L);
-        CanProbe.check(getApplicationContext());
-        calibResults.clear();
-        calibStep = step;
-        stepStart = System.currentTimeMillis();
-        // Sonda are nevoie de o clipa sa se lege la MainServer inainte de marcaj.
-        ui.postDelayed(() -> CanProbe.mark(mark), 1500);
-        refresh();
-    }
-
-    /** Schimbarile pasului curent, cate una pe cod (ultima valoare), fara codurile stiute. */
-    private String stepChanges() {
+    /** Schimbarile de la ultimul marcaj, cate una pe cod (prima si ultima valoare), fara cele stiute. */
+    private String probeChanges() {
         java.util.LinkedHashMap<String, CanProbe.Change> byKey = new java.util.LinkedHashMap<>();
-        for (CanProbe.Change ch : CanProbe.changesSince(stepStart, KNOWN)) {
+        for (CanProbe.Change ch : CanProbe.changesSince(markAt, KNOWN)) {
             CanProbe.Change first = byKey.get(ch.key);
-            // Pastram valoarea de dinainte de primul salt si pe cea de acum.
             byKey.put(ch.key, first == null ? ch : new CanProbe.Change(ch.t, ch.key, first.from, ch.to));
         }
         List<String> out = new ArrayList<>();
@@ -420,45 +526,11 @@ public class MainActivity extends Activity {
 
     private void updateLive() {
         ui.removeCallbacks(liveTick);
-        if (calibStep < 0 || liveChanges == null) return;
-        String changes = stepChanges();
+        if (liveChanges == null) return;
+        String changes = probeChanges();
         liveChanges.setText(!CanProbe.isRunning() ? "sonda porneste..."
                 : changes.isEmpty() ? "inca nimic — fa actiunea" : changes);
         ui.postDelayed(liveTick, 700);
-    }
-
-    private void calibNext(boolean done) {
-        Step step = STEPS[calibStep];
-        String found = done ? stepChanges().replace("\n", "; ") : "sarit";
-        if (found.isEmpty()) found = "nicio schimbare";
-        CanProbe.mark((calibStep + 1) + " " + (done ? "GATA" : "SARIT") + ": " + step.title + " | " + found);
-        if (calibStep > 0) calibResults.add((calibStep + 1) + ". " + step.title + ": " + found);
-        calibStep++;
-        stepStart = System.currentTimeMillis();
-        if (calibStep >= STEPS.length) {
-            CanProbe.mark("calibrare terminata");
-            calibStep = -1;
-            liveChanges = null;
-            toast("Calibrare terminata, multumesc!");
-        }
-        refresh();
-    }
-
-    private void buildTrips(LinearLayout col) {
-        LinearLayout card = Ui.card(this, col);
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Calatorii", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
-        boolean on = Prefs.tripsEnabled(this);
-        boolean gps = TripRecorder.hasPermission(this);
-        head.addView(Ui.pill(this, !on ? "oprite" : gps ? "se inregistreaza" : "fara GPS",
-                !on ? Ui.MUTED : gps ? Ui.OK : Ui.WARN));
-        card.addView(head);
-        Ui.hint(this, card, "Traseul, viteza, turatia si kilometrajul fiecarui drum, pe "
-                + "car.faicu.ro. Puncte in asteptare: " + PointQueue.size(this));
-        if (on && !gps) {
-            Ui.addButton(this, card, "Permite localizarea", Ui.PRIMARY, v -> askLocation());
-        }
     }
 
     private void askLocation() {
@@ -676,7 +748,7 @@ public class MainActivity extends Activity {
             ui.postDelayed(this::refresh, 800);
         });
 
-        buildCalibration(col);
+        buildProbe(col);
     }
 
     /** Rand cu titlu, explicatie si comutator. */

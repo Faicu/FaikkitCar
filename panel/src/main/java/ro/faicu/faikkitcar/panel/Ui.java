@@ -218,4 +218,92 @@ final class Ui {
         }
         return g;
     }
+
+    /** O cifra mare cu unitatea si eticheta dedesubt (antetul calatoriei, starea de acum). */
+    static LinearLayout kpi(Context c, String value, String unit, String label) {
+        LinearLayout box = new LinearLayout(c);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(round(c, 0x0AFFFFFF, 12));
+        int p = dp(c, 10);
+        box.setPadding(p, dp(c, 8), p, dp(c, 8));
+        LinearLayout row = new LinearLayout(c);
+        row.setGravity(Gravity.BOTTOM);
+        row.addView(text(c, value, 20, TEXT, true));
+        if (unit != null && !unit.isEmpty()) {
+            TextView u = text(c, " " + unit, 12, MUTED, false);
+            u.setPadding(0, 0, 0, dp(c, 2));
+            row.addView(u);
+        }
+        box.addView(row);
+        box.addView(text(c, label, 11, MUTED, false));
+        return box;
+    }
+
+    /** Randul de cifre mari, cu spatiu intre ele. */
+    static LinearLayout kpiRow(Context c, View... boxes) {
+        LinearLayout row = new LinearLayout(c);
+        for (int i = 0; i < boxes.length; i++) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
+            if (i > 0) lp.leftMargin = dp(c, 8);
+            row.addView(boxes[i], lp);
+        }
+        return row;
+    }
+
+    /**
+     * Bara orizontala impartita pe categorii (ex. timpul unei calatorii), cu legenda dedesubt.
+     * `values` in aceeasi unitate; categoriile cu 0 nu apar.
+     */
+    static LinearLayout stackedBar(Context c, double[] values, int[] colors, String[] legend) {
+        LinearLayout box = new LinearLayout(c);
+        box.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout bar = new LinearLayout(c);
+        bar.setBackground(round(c, CARD2, 5));
+        double total = 0;
+        for (double v : values) total += Math.max(0, v);
+        bar.setWeightSum((float) Math.max(total, 0.001));
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] <= 0) continue;
+            View seg = new View(c);
+            seg.setBackgroundColor(colors[i]);
+            bar.addView(seg, new LinearLayout.LayoutParams(0, dp(c, 10), (float) values[i]));
+        }
+        bar.setClipToOutline(true);
+        box.addView(bar, new LinearLayout.LayoutParams(-1, dp(c, 10)));
+        LinearLayout wrap = new LinearLayout(c);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout line = null;
+        int n = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] <= 0) continue;
+            // Doua elemente de legenda pe rand: pe telefon nu incap toate pe unul.
+            if (n % 2 == 0) {
+                line = new LinearLayout(c);
+                LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, -2);
+                llp.topMargin = dp(c, 6);
+                wrap.addView(line, llp);
+            }
+            LinearLayout item = new LinearLayout(c);
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            View dot = new View(c);
+            dot.setBackground(round(c, colors[i], 4));
+            item.addView(dot, new LinearLayout.LayoutParams(dp(c, 8), dp(c, 8)));
+            TextView t = text(c, legend[i], 12, TEXT, false);
+            t.setPadding(dp(c, 6), 0, 0, 0);
+            item.addView(t);
+            line.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
+            n++;
+        }
+        box.addView(wrap);
+        return box;
+    }
+
+    /** Un card cu titlu mic, cu majuscule (sectiunile din detaliile calatoriei). */
+    static LinearLayout section(Context c, LinearLayout parent, String title) {
+        LinearLayout card = card(c, parent);
+        TextView t = text(c, title.toUpperCase(new java.util.Locale("ro", "RO")), 12, MUTED, true);
+        t.setLetterSpacing(0.08f);
+        card.addView(t);
+        return card;
+    }
 }

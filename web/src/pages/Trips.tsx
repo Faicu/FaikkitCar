@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Car, Combine, MapPin, Split } from "lucide-react";
+import { ArrowLeft, Combine, MapPin, Split } from "lucide-react";
 import { toast } from "sonner";
 
-import { Info } from "../components/Cells";
+import { TripSummary, TripSections } from "../components/TripView";
 import { TripMap } from "../components/TripMap";
 import { TripChart } from "../components/TripChart";
 import { api, day, duration, hm, lei, liters, num, route, shortDuration, type Trip } from "../api";
@@ -119,44 +119,6 @@ export function TripsPage() {
   );
 }
 
-/**
- * Tensiunea bateriei, cu ⚠ în afara limitelor: la pornire (demarorul) sub 9,6 V = baterie
- * slabă; în mers (încărcarea) normal 13,5–14,9 V.
- */
-function volts(v: number | null, warn: boolean): string {
-  if (v === null) return "—";
-  return `${v.toLocaleString("ro-RO", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} V${warn ? " ⚠" : ""}`;
-}
-
-/** „13 °C” sau „13 → 16 °C” dacă s-a schimbat pe drum. */
-function tempRange(from: number | null, to: number | null): string {
-  if (to === null) return "—";
-  return from !== null && from !== to ? `${num(from)} → ${num(to)} °C` : `${num(to)} °C`;
-}
-
-/** Valorile unei călătorii (și ale celei în curs, pe fila Acum). */
-export function TripCells({ trip }: { trip: Trip }) {
-  return (
-    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-      <Info label="Distanță" value={`${trip.distanceKm} km`} />
-      <Info label="Durată" value={duration(trip.durationMin)} />
-      <Info label="Viteză medie" value={trip.avgSpeed !== null ? `${trip.avgSpeed} km/h` : "—"} />
-      <Info label="Combustibil (est.)" value={trip.fuelL !== null ? `≈ ${liters(trip.fuelL)}` : "—"} />
-      <Info
-        label="Consum (est.)"
-        value={trip.lPer100 !== null ? `${num(trip.lPer100)} L/100 km` : "—"}
-      />
-      <Info label="Cost (est.)" value={trip.cost !== null ? lei(trip.cost) : "—"} />
-      <Info label="Viteză max" value={trip.maxSpeed !== null ? `${trip.maxSpeed} km/h` : "—"} />
-      <Info label="Turație max" value={trip.maxRpm !== null ? `${trip.maxRpm} rpm` : "—"} />
-      <Info
-        label="Opriri în trafic"
-        value={trip.trafficStops > 0 ? `${shortDuration(trip.trafficMin)} (${trip.trafficStops})` : "—"}
-      />
-    </div>
-  );
-}
-
 /** Combină cu vecina sau desparte; după combinare, călătoria aleasă începe la noua plecare. */
 function JoinActions({
   trip,
@@ -186,7 +148,7 @@ function JoinActions({
   }
   const btn = "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-sky-400 hover:bg-sky-500/10 disabled:opacity-40";
   return (
-    <div className="mt-3 flex flex-wrap gap-1 border-t border-border/30 pt-2">
+    <div className="flex flex-wrap gap-1">
       {older && (
         <button
           type="button"
@@ -238,91 +200,41 @@ function TripDetail({
     staleTime: 30_000,
   });
   return (
-    <div className="space-y-2">
-      <div className="rounded-2xl glass-card p-4">
-        <div className="flex items-center gap-2">
-          <Car className="h-5 w-5 text-sky-400" />
-          <span className="font-semibold">
+    <div className="space-y-3">
+      <TripSummary
+        trip={trip}
+        title={
+          <>
             {day(trip.start)} · {hm(trip.start)}–{hm(trip.end)}
-          </span>
-        </div>
-        {route(trip) && <p className="mt-1 text-sm text-sky-300">{route(trip)}</p>}
-        <TripCells trip={trip} />
-        <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <Info
-            label="Cea mai lungă în trafic"
-            value={trip.trafficStops > 0 ? shortDuration(trip.trafficMaxMin) : "—"}
-          />
-          <Info label="Staționare, motor pornit" value={shortDuration(trip.standMin)} />
-          <Info
-            label="Viteză în mișcare"
-            value={trip.movingAvgSpeed !== null ? `${trip.movingAvgSpeed} km/h` : "—"}
-          />
-          <Info label="Baterie la pornire" value={volts(trip.crankVolt, trip.crankVolt !== null && trip.crankVolt < 9.6)} />
-          <Info
-            label="Baterie în mers"
-            value={volts(trip.runVolt, trip.runVolt !== null && (trip.runVolt < 13.5 || trip.runVolt > 14.9))}
-          />
-          <Info label="Temp. afară" value={tempRange(trip.tempStartC, trip.tempC)} />
-          {trip.acMin !== null && (
-            <Info
-              label="AC pornit"
-              value={
-                trip.acMin > 0
-                  ? `${shortDuration(trip.acMin)} (${Math.round((trip.acMin / Math.max(trip.durationMin - trip.stopMin, 0.1)) * 100)}%)`
-                  : "nu"
-              }
-            />
-          )}
-          {trip.noBeltMin !== null && trip.noBeltMin > 0 && (
-            <Info label="Fără centură în mers" value={`${shortDuration(trip.noBeltMin)} ⚠`} />
-          )}
-          <Info
-            label="Kilometraj"
-            value={trip.odoEnd !== null ? `${trip.odoEnd.toLocaleString("ro-RO")} km` : "—"}
-          />
-          <Info
-            label="Rezervor (CAN)"
-            value={
-              trip.fuelStart !== null && trip.fuelEnd !== null
-                ? `${trip.fuelStart} → ${trip.fuelEnd} L`
-                : "—"
-            }
-          />
-          <Info label="Puncte" value={String(trip.points)} />
-          {trip.stopMin > 0 && (
-            <Info label="Opriri cu motorul oprit" value={shortDuration(trip.stopMin)} />
-          )}
-          {trip.boardLPer100 !== null && (
-            <Info label="Consum bord* (în mers)" value={`${num(trip.boardLPer100)} L/100 km`} />
-          )}
-        </div>
-        {trip.startPos && (
-          <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3" /> verde = plecare, roșu = sosire
-            {trip.stops.length > 0 ? ", galben = oprire" : ""}
-          </p>
-        )}
-        {trip.boardLPer100 !== null && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            * din consumul instantaneu al bordului (c1033), de confirmat cu afișajul din bord.
-          </p>
-        )}
-        <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />
-      </div>
+            {trip.parts > 1 ? ` · ${trip.parts} părți` : ""}
+          </>
+        }
+      />
+      {points && <TripMap points={points} stops={trip.stops} />}
+      {trip.startPos && (
+        <p className="-mt-1 flex items-center gap-1 px-1 text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3" /> verde = plecare, roșu = sosire
+          {trip.stops.length > 0 ? ", galben = oprire cu motorul oprit" : ""}
+        </p>
+      )}
       {trip.stops.length > 0 && (
         <div className="rounded-2xl glass-card p-4 text-sm">
-          <p className="font-semibold">Opriri cu motorul oprit</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Opriri cu motorul oprit
+          </p>
           {trip.stops.map((s) => (
-            <p key={s.from} className="mt-1 text-muted-foreground">
-              {hm(s.from)}–{hm(s.to)} · {duration(s.minutes)}
-              {s.place ? ` · ${s.place}` : ""}
+            <p key={s.from} className="mt-1">
+              {hm(s.from)}–{hm(s.to)} <span className="text-muted-foreground">· {duration(s.minutes)}</span>
+              {s.place ? <span className="text-muted-foreground"> · {s.place}</span> : ""}
             </p>
           ))}
         </div>
       )}
-      {points && <TripMap points={points} stops={trip.stops} />}
+      <TripSections trip={trip} />
       {points && <TripChart points={points} />}
+      <div className="rounded-2xl glass-card px-2 py-1">
+        <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />
+      </div>
     </div>
   );
 }

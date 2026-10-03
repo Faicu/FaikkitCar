@@ -275,3 +275,34 @@ const estimatedLPer100 = memo((): number | null => {
   const liters = trips.reduce((s, t) => s + (t.fuelL ?? 0), 0);
   return km >= 5 ? (liters / km) * 100 : null;
 }, hourKey);
+
+export interface CarSummary {
+  trip: Trip | null; // în curs
+  last: Trip | null; // ultima încheiată (dacă nu e una în curs)
+  today: { trips: number; km: number; minutes: number; cost: number | null };
+  tank: Live["tank"];
+  range: Live["range"];
+}
+
+const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bucharest" });
+
+/** Pentru ecranul Acasă din mașină (cheia mașinii): fără poziție și fără date personale în plus. */
+export function readCarSummary(): CarSummary {
+  const live = readLive();
+  const trips = applyFuel(readTrips(2));
+  const today = dayFmt.format(new Date());
+  const ofToday = trips.filter((t) => dayFmt.format(new Date(t.start)) === today);
+  const priced = ofToday.filter((t) => t.cost !== null);
+  return {
+    trip: live.trip,
+    last: live.trip ? null : (trips.find((t) => !t.idle) ?? null),
+    today: {
+      trips: ofToday.filter((t) => !t.idle).length,
+      km: Math.round(ofToday.reduce((s, t) => s + t.distanceKm, 0) * 10) / 10,
+      minutes: Math.round(ofToday.reduce((s, t) => s + t.durationMin - t.stopMin, 0)),
+      cost: priced.length ? Math.round(priced.reduce((s, t) => s + (t.cost ?? 0), 0) * 100) / 100 : null,
+    },
+    tank: live.tank,
+    range: live.range,
+  };
+}
