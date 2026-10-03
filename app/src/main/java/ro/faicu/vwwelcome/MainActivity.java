@@ -755,7 +755,7 @@ public class MainActivity extends Activity {
 
         LinearLayout voice = Ui.card(this, col);
         Ui.title(this, voice, "In mers");
-        toggle(voice, "Salut vorbit dupa 3 minute", "Ora zilei, temperatura de afara, mentenanta scadenta",
+        toggle(voice, "Salut vorbit dupa 30 s de mers", "Ora zilei, temperatura de afara, mentenanta scadenta",
                 Prefs.greetEnabled(this), on -> Prefs.setGreetEnabled(this, on));
         Ui.divider(this, voice);
         toggle(voice, "Avertizare usa deschisa", "Cand masina porneste din loc cu o usa sau portbagajul deschis",

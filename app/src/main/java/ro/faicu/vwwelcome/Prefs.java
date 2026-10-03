@@ -139,7 +139,7 @@ final class Prefs {
         sp(c).edit().putString("status_json", json).putLong("status_at", System.currentTimeMillis()).apply();
     }
 
-    /** Salutul vorbit dupa 3 minute de mers. */
+    /** Salutul vorbit dupa 30 s de mers. */
     static boolean greetEnabled(Context c) {
         return sp(c).getBoolean("greet", true);
     }

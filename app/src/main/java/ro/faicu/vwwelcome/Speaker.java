@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Mesaje vorbite (salutul de dupa 3 minute, avertizarea de usa deschisa) prin TextToSpeech,
+ * Mesaje vorbite (salutul de dupa 30 s de mers, avertizarea de usa deschisa) prin TextToSpeech,
  * ca ghidare de navigatie: muzica doar isi coboara volumul. Daca pe navigatie nu exista un
  * motor TTS (sau nu stie romana), avertizarile se reduc la un semnal sonor. Alegem cea mai
  * buna voce romana: cea online (mai naturala) cand avem internet, altfel cea locala. Vocea

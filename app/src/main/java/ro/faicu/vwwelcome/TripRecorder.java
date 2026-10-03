@@ -23,8 +23,8 @@ final class TripRecorder implements LocationListener {
     private static final long SAMPLE_MS = 5_000;
     private static final long IDLE_MS = 30_000;
     private static final long LOCATION_FRESH_MS = 10_000;
-    // Salutul vorbit vine dupa atatea minute de mers efectiv de la pornire.
-    private static final long GREET_AFTER_MS = 3 * 60_000;
+    // Salutul vorbit (cu temperatura de afara) vine dupa atat timp de mers efectiv.
+    private static final long GREET_AFTER_MS = 30_000;
     // Cu motorul oprit atat timp, oprim GPS-ul (navigatia sta treaza ~10 min dupa ACC OFF).
     private static final long GPS_OFF_AFTER_MS = 60_000;
     private static final double DOOR_ALERT_KMH = 5;
@@ -291,7 +291,7 @@ final class TripRecorder implements LocationListener {
         doorAlerted = false;
     }
 
-    /** Salutul dupa 3 minute de mers, avertizarea de usa deschisa si GPS-ul pornit doar cand trebuie. */
+    /** Salutul dupa 30 s de mers, avertizarea de usa deschisa si GPS-ul pornit doar cand trebuie. */
     private void monitor(long now, boolean moving, boolean engine, int rpm, double canKmh) {
         if (rpm == 0) {
             if (engineOffSince == 0) engineOffSince = now;

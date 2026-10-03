@@ -7,7 +7,7 @@ import java.util.Calendar;
 import java.util.List;
 
 /**
- * Textele rostite in mers: salutul de dupa 3 minute (ora zilei, temperatura de afara,
+ * Textele rostite in mers: salutul de dupa 30 s de mers (ora zilei, temperatura de afara,
  * mentenanta scadenta) si avertizarea de usa deschisa. Cu diacritice, pentru TextToSpeech.
  */
 final class Greeting {
