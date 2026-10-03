@@ -91,7 +91,8 @@ a crescut într-un proiect cu trei părți:
 | Jurnal trimis live la server | ✅ | Coadă locală (2.000 de linii); la orice eroare a serverului datele rămân în coadă |
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează |
-| Calibrare CAN | 🧪 | Doar ce a rămas nesigur (c107 și marșarierul), în Setări („avansat”). Nu e necesară |
+| Acasă ca tablou de bord | 🧪 | Starea mașinii, viteza, turația, bateria, afară, clima, rezervorul cu autonomia, călătoria în curs și ziua de azi; sunetul de bun venit rămâne, compact (de la 1.1.42) |
+| Sonda CAN | ✅ | Calibrarea ghidată nu mai e necesară (toate codurile folosite sunt confirmate); în Setări („avansat”) rămâne sonda: 10 minute, marcaje cu text, schimbările live |
 | Scos | — | Diagnosticul Teyes, sonda CAN separată, pasul „rezervor” (codul e confirmat) |
 
 ### Datele mașinii, călătoriile și consumul
@@ -124,6 +125,7 @@ a crescut într-un proiect cu trei părți:
 | Călătoria aleasă | ✅ | Pe ecranul ei: detalii, traseu (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor |
 | Opriri în trafic vs. staționare | 🧪 | Oprirea cu motorul pornit între două porțiuni de mers (≤ 5 min), fără semne de parcare = trafic; altfel staționare. Plus cea mai lungă oprire și viteza doar în mișcare. Live: „Oprit în trafic · 1 min 20 s” pe site, în Panel și în mașină |
 | Locuri salvate (Acasă, Serviciu) | 🧪 | Călătoriile apar „Acasă → Serviciu”, mașina „parcată la Serviciu”; locuri noi din Mai mult („unde e mașina acum”) |
+| Detaliile călătoriei, aspect nou | 🧪 | Traseul, cifrele mari (distanță, durată, cost), bara timpului (mers / trafic / staționare / motor oprit), harta, apoi Viteză, Consum, Mașina |
 | Combinarea călătoriilor consecutive | 🧪 | În detaliile călătoriei: „Combină cu precedenta / următoarea”, „Desparte”. Opririle dintre părți nu intră în viteza medie și apar pe hartă ca puncte galbene, cu ora și durata |
 | Ascunde pornirile pe loc | ✅ | Sub 0,5 km (prinde și manevrele din parcare); totalurile le includ în continuare |
 | Jurnalul navigației | ✅ | În „Mai mult”. Filtru „doar evenimente”. Nu se poate goli, ca să nu se piardă nimic |
