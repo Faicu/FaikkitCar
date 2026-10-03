@@ -238,6 +238,15 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `acMin` (AC pornit cu motorul pornit), `noBeltMin` (în mers fără centura șoferului), null la
   drumurile mai vechi; `tempStartC` / `tempC` (afară la plecare / sosire). Modelul de consum
   adaugă AC-ul: `acLitersPerHour` 0,4 L/h cu motorul pornit (calibrarea corectează restul).
+  Trafic vs staționare (03.10, după ce la sosirea acasă live arăta „Oprit în trafic”): o
+  oprire cu motorul pornit e staționare dacă are semne de parcare: frâna de mână trasă, o ușă
+  deschisă, marșarierul în oprire sau cu ≤ 60 s înainte, sau e într-un loc salvat; altfel
+  trafic (între două porțiuni de mers, ≤ 10 min). Centura nu e semnal (utilizatorul nu o
+  poartă mereu). OpenStreetMap (Overpass) încercat: răspunsuri nesigure, iar la serviciu
+  parcarea e pe stradă, deci nefolosit. Puncte cu `hb`, `door`, `rev` (1.1.41+, coloane noi),
+  locurile vin și la mașină în `/api/car/status` (`VwStatus.placeAt`). În mașină
+  `TripRecorder.parked` (titlul „Parcat, motor pornit”) și `x.parked` în stare; serverul
+  (`readLive`) mai verifică frâna, ușile, marșarierul și locul poziției.
   Câmpuri: `trafficMin`, `trafficStops` (≥ 5 s), `trafficMaxMin`, `standMin`, `movingMin`,
   `avgSpeed` (fără opririle cu motorul oprit), `movingAvgSpeed`, `boardLPer100` (c1033
   integrat pe km în mers, dacă acoperă ≥ 80%). `trips.ts`: doar baza, gruparea (pauze > 5

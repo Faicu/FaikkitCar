@@ -47,6 +47,10 @@ final class TripRecorder implements LocationListener {
     // cu motorul pornit de la stoppedAt (0 = nu sta). Ca pe server: cel mult 10 min.
     private boolean movedThisDrive;
     private volatile long stoppedAt;
+    // Semnale de parcare in oprirea curenta (frana de mana, usa, marsarier, loc salvat): atunci
+    // nu e trafic, ci stationare. Raman pana la plecare.
+    private volatile boolean parked;
+    private static final long REVERSE_BEFORE_MS = 60_000;
     private static final long TRAFFIC_MAX_MS = 10 * 60_000;
     private boolean gpsOn;
     // GPS-ul n-a putut porni fiindca lipsea permisiunea; check() il porneste cand apare.
@@ -170,10 +174,13 @@ final class TripRecorder implements LocationListener {
         if (moving) {
             movedThisDrive = true;
             stoppedAt = 0;
+            parked = false;
         } else if (engine && movedThisDrive) {
             if (stoppedAt == 0) stoppedAt = now;
+            if (parkingSignal(loc)) parked = true;
         } else {
             stoppedAt = 0;
+            parked = false;
         }
         if (!justStopped && (interval == Long.MAX_VALUE || now - lastPointAt < interval - 500)) return;
         lastPointAt = now;
@@ -197,6 +204,10 @@ final class TripRecorder implements LocationListener {
             if (can.ac() >= 0) p.put("ac", can.ac());
             if (can.fan() >= 0) p.put("fan", can.fan());
             if (can.belt() >= 0) p.put("belt", can.belt() == 0 ? 1 : 0);
+            // Semnalele de parcare, ca serverul sa desparta traficul de stationare si pe drumuri vechi.
+            p.put("hb", can.handbrakePulled() ? 1 : 0);
+            p.put("door", can.openDoors().isEmpty() ? 0 : 1);
+            p.put("rev", can.reverse() ? 1 : 0);
             if (!Double.isNaN(pendingCrank)) {
                 p.put("cv", Math.round(pendingCrank * 100) / 100.0);
                 pendingCrank = Double.NaN;
@@ -238,6 +249,7 @@ final class TripRecorder implements LocationListener {
             putIfKnown(x, "s41", can.status41());
             x.put("rev", can.reverse());
             x.put("doors", new org.json.JSONArray(can.openDoors()));
+            x.put("parked", parked && stoppedAt != 0);
             s.put("x", x);
             // Fara consumul instantaneu (se schimba mereu); restul declanseaza trimiterea.
             Object ic = x.remove("ic");
@@ -252,10 +264,22 @@ final class TripRecorder implements LocationListener {
         if (v >= 0) o.put(key, v);
     }
 
+    /** Frana de mana trasa, o usa deschisa, marsarierul (manevra) sau un loc salvat. */
+    private boolean parkingSignal(Location loc) {
+        if (can.handbrakePulled() || !can.openDoors().isEmpty() || can.reversedWithin(REVERSE_BEFORE_MS)) return true;
+        return loc != null && VwStatus.placeAt(c, loc.getLatitude(), loc.getLongitude()) != null;
+    }
+
+    /** Oprit cu motorul pornit dupa ce a mers, cu semnale de parcare. */
+    static boolean parkedWithEngine() {
+        TripRecorder r = instance;
+        return r != null && r.stoppedAt != 0 && r.parked;
+    }
+
     /** De cat timp sta oprit in trafic (ms), sau -1 daca nu e cazul. */
     static long trafficStopMs() {
         TripRecorder r = instance;
-        if (r == null || r.stoppedAt == 0) return -1;
+        if (r == null || r.stoppedAt == 0 || r.parked) return -1;
         long ms = SystemClock.elapsedRealtime() - r.stoppedAt;
         return ms <= TRAFFIC_MAX_MS ? ms : -1;
     }

@@ -22,6 +22,9 @@ function p(s: number, speed: number, lonKm: number | null, extra: Partial<PointR
     crank: null,
     ac: null,
     belt: null,
+    hb: null,
+    door: null,
+    rev: null,
     ...extra,
   };
 }
@@ -116,6 +119,22 @@ describe("bateria", () => {
   it("măsurarea din mașină are prioritate", () => {
     const rows = [p(0, 0, 0, { volt: 14, crank: 9.8 }), p(35, 30, 0.04, { volt: 14.3 })];
     expect(analyze(rows).crankVolt).toBe(9.8);
+  });
+});
+
+describe("trafic sau staționare", () => {
+  const stop = (extra: Partial<PointRow>, place = false) => {
+    const rows = [p(0, 30, 0), p(5, 30, 0.04), p(10, 0, 0.06, extra), p(40, 0, 0.06, extra), p(45, 30, 0.1)];
+    return analyze(rows, 0.95, () => place);
+  };
+  it("fără semne de parcare: trafic", () => {
+    expect(stop({}).trafficStops).toBe(1);
+  });
+  it("frâna de mână, o ușă, marșarierul sau un loc salvat: staționare", () => {
+    for (const m of [stop({ hb: 1 }), stop({ door: 1 }), stop({ rev: 1 }), stop({}, true)]) {
+      expect(m.trafficStops).toBe(0);
+      expect(m.standMin).toBeCloseTo(0.6, 1);
+    }
   });
 });
 

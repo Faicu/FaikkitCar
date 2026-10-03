@@ -40,6 +40,7 @@ export interface IncomingState {
     s41?: number;
     rev?: boolean;
     doors?: number[];
+    parked?: boolean; // semnale de parcare în oprirea curentă (1.1.41+)
   };
 }
 
@@ -68,7 +69,8 @@ export interface LiveData {
   belt: boolean | null; // centura șoferului pusă
   handbrake: boolean | null; // trasă
   reverse: boolean | null;
-  lights: boolean | null; // probabil (bitul 0x80 din octetul de stare 0x41/1)
+  lights: boolean | null; // faza scurtă (bitul 0x80 din octetul de stare 0x41/1)
+  parked: boolean; // mașina a dat semne de parcare în oprirea curentă
   // Temperatura din habitaclu nu e trimisă de decodor (Raise), deci nu există aici.
 }
 
@@ -111,6 +113,7 @@ function details(p: IncomingState, state: CarState) {
       handbrake: null,
       reverse: null,
       lights: null,
+      parked: false,
     };
   }
   const bit = (b: number) => (x.s41 === undefined ? null : (x.s41 & b) !== 0);
@@ -131,6 +134,7 @@ function details(p: IncomingState, state: CarState) {
     handbrake: released !== null ? !released : x.hb !== undefined ? x.hb === 0 : null,
     reverse: x.rev ?? null,
     lights: bit(0x80),
+    parked: x.parked === true,
   };
 }
 
@@ -223,13 +227,23 @@ export function readLive(): Live {
     last && state !== "off" && Date.now() - new Date(last.end).getTime() < TRIP_GAP_MS
       ? applyFuel([last])[0]
       : null;
-  // Oprit cu motorul pornit după ce a mers în drumul ăsta (semafor, coloană): „în trafic”.
+  // Oprit cu motorul pornit după ce a mers în drumul ăsta (semafor, coloană): „în trafic”, dacă
+  // nu sunt semne de parcare (frâna de mână, o ușă, marșarierul, un loc salvat) și nu stă de
+  // peste 10 minute. Altfel rămâne „Motor pornit, pe loc” (staționare).
+  const position = readLastPosition();
+  const parkedSigns =
+    data?.parked === true ||
+    data?.handbrake === true ||
+    (data?.doorsOpen?.length ?? 0) > 0 ||
+    data?.reverse === true ||
+    position?.place != null;
   if (
     state === "engine" &&
     trip &&
     (trip.maxSpeed ?? 0) >= 3 &&
     since &&
-    Date.now() - new Date(since).getTime() <= TRAFFIC_MAX_MS
+    Date.now() - new Date(since).getTime() <= TRAFFIC_MAX_MS &&
+    !parkedSigns
   ) {
     state = "traffic";
   }
@@ -246,7 +260,7 @@ export function readLive(): Live {
   if (tank && lPer100 !== null && lPer100 > 0) {
     range = { km: Math.round((tank.liters / lPer100) * 100), lPer100: Math.round(lPer100 * 10) / 10, real };
   }
-  return { state, since, at: row?.received_at ?? null, data, trip, position: readLastPosition(), tank, range };
+  return { state, since, at: row?.received_at ?? null, data, trip, position, tank, range };
 }
 
 /** Consumul estimat pe ultimele 60 de zile, cât nu există încă unul real din rezervor. */

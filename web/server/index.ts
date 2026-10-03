@@ -94,7 +94,8 @@ app.post("/api/car/state", async (c) => {
   return c.json({ ok: true, state: saveState(p) });
 });
 
-// Kilometrajul, mentenanța (salutul vorbit) și ultimul APK (actualizarea din aplicație).
+// Kilometrajul, mentenanța (salutul vorbit), ultimul APK (actualizarea din aplicație) și
+// locurile salvate (staționare, nu trafic, cu motorul pornit acolo).
 app.get("/api/car/status", (c) => {
   requireCarToken(c);
   const apk = readApkInfo();
@@ -108,6 +109,7 @@ app.get("/api/car/status", (c) => {
       overdue: r.overdue,
     })),
     apk: apk ? { versionCode: apk.versionCode, versionName: apk.versionName, size: apk.size } : null,
+    places: readPlaces().map((p) => ({ name: p.name, lat: p.lat, lon: p.lon, radius: p.radius })),
   });
 });
 

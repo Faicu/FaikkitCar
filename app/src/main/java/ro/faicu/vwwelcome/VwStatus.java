@@ -14,7 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Starea de pe car.faicu.ro (/api/car/status): kilometrajul, mentenanta si ultimul APK.
+ * Starea de pe car.faicu.ro (/api/car/status): kilometrajul, mentenanta, ultimul APK si
+ * locurile salvate.
  * Citita de Uploader cel mult o data la 30 de minute (si la cerere din aplicatie) si pastrata
  * in Prefs, ca ecranul si salutul vorbit sa o aiba si fara internet.
  */
@@ -95,6 +96,32 @@ final class VwStatus {
             if (daysLeft != null) parts.add(daysLeft <= 0 ? "expirat" : daysLeft + " zile");
             return String.join(" · ", parts);
         }
+    }
+
+    // Locurile salvate (Acasa, Serviciu...), din aceeasi stare; refacute doar cand se schimba.
+    private static String placesFrom;
+    private static JSONArray places = new JSONArray();
+
+    /** Locul salvat in a carui raza e pozitia, sau null. */
+    static synchronized String placeAt(Context c, double lat, double lon) {
+        String status = Prefs.status(c);
+        if (!status.equals(placesFrom)) {
+            placesFrom = status;
+            JSONArray p = json(c).optJSONArray("places");
+            places = p == null ? new JSONArray() : p;
+        }
+        float[] d = new float[1];
+        String best = null;
+        float bestD = Float.MAX_VALUE;
+        for (int i = 0; i < places.length(); i++) {
+            JSONObject p = places.optJSONObject(i);
+            android.location.Location.distanceBetween(lat, lon, p.optDouble("lat"), p.optDouble("lon"), d);
+            if (d[0] <= p.optDouble("radius", 150) && d[0] < bestD) {
+                best = p.optString("name");
+                bestD = d[0];
+            }
+        }
+        return best;
     }
 
     static List<Reminder> reminders(Context c) {

@@ -146,6 +146,10 @@ export function getDb(): DatabaseSync {
     ["ac", "INTEGER"],
     ["fan", "INTEGER"],
     ["belt", "INTEGER"],
+    // Semnalele de parcare (1.1.41+): frâna de mână trasă, o ușă deschisă, marșarierul, 1/0.
+    ["hb", "INTEGER"],
+    ["door", "INTEGER"],
+    ["rev", "INTEGER"],
   ]) {
     if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
   }

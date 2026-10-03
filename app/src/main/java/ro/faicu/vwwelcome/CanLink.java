@@ -47,6 +47,7 @@ final class CanLink {
     private volatile int ac = -1, auto = -1, fan = -1, tempL = -1, tempR = -1, instant = -1,
             belt = -1, handbrake = -1, status41 = -1;
     private volatile boolean reverse;
+    private volatile long reverseOffAt; // cand a iesit ultima data din marsarier
     // Caderea de tensiune de la demaror: ultimele citiri ale tensiunii (timp, valoare) si
     // momentul pornirii motorului (turatia trece de 300); crankVolt() o calculeaza o data.
     private final long[] voltAt = new long[64];
@@ -159,7 +160,10 @@ final class CanLink {
                 Syu.register(main, new Syu.Callback() {
                     @Override
                     void onUpdate(int code, int[] ints, float[] flts, String[] strs) {
-                        if (code == REVERSE_MAIN && ints != null && ints.length > 0) reverse = ints[0] == 1;
+                        if (code != REVERSE_MAIN || ints == null || ints.length == 0) return;
+                        boolean on = ints[0] == 1;
+                        if (reverse && !on) reverseOffAt = SystemClock.elapsedRealtime();
+                        reverse = on;
                     }
                 }, REVERSE_MAIN);
             }
@@ -290,6 +294,20 @@ final class CanLink {
     int handbrake() { return handbrake; }
     int status41() { return status41; }
     boolean reverse() { return reverse; }
+
+    /** In marsarier acum sau scos din el in ultimele `ms` (manevra de parcare). */
+    boolean reversedWithin(long ms) {
+        return reverse || (reverseOffAt > 0 && SystemClock.elapsedRealtime() - reverseOffAt <= ms);
+    }
+
+    /**
+     * Frana de mana trasa: bitul 0x20 din 0x41/1 (0 = trasa, confirmat la calibrare), altfel
+     * c103 (0 = trasa); false daca nu stim.
+     */
+    boolean handbrakePulled() {
+        if (status41 >= 0) return (status41 & 0x20) == 0;
+        return handbrake == 0;
+    }
 
     /** Indicii (in DOORS) usilor deschise acum. */
     java.util.List<Integer> openDoors() {

@@ -36,6 +36,9 @@ export interface IncomingPoint {
   ac?: number | null; // AC pornit 1/0
   fan?: number | null; // treapta ventilatorului
   belt?: number | null; // centura șoferului pusă 1/0
+  hb?: number | null; // frâna de mână trasă 1/0
+  door?: number | null; // o ușă deschisă 1/0
+  rev?: number | null; // marșarier 1/0
 }
 
 export interface TripPoint {
@@ -83,8 +86,8 @@ export function insertPoints(points: IncomingPoint[]): number {
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO trip_point
        (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
-        ac, fan, belt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ac, fan, belt, hb, door, rev)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -112,6 +115,9 @@ export function insertPoints(points: IncomingPoint[]): number {
         num(p.ac),
         num(p.fan),
         num(p.belt),
+        num(p.hb),
+        num(p.door),
+        num(p.rev),
       );
       added += Number(r.changes);
     }
@@ -130,13 +136,19 @@ export function insertPoints(points: IncomingPoint[]): number {
 // Rezumatele bucăților deja calculate: în mers vin puncte noi la ~10 s, dar se schimbă doar
 // ultima călătorie, deci celelalte nu se mai recalculează.
 const summaries = new Map<string, TripMetrics>();
+let placesKey = "";
 
-function analyzeCached(rows: PointRow[], scale: number): TripMetrics {
-  const key = `${rows[0].device_at}|${rows[rows.length - 1].device_at}|${rows.length}|${scale}`;
+function analyzeCached(
+  rows: PointRow[],
+  scale: number,
+  isPlace: (pos: [number, number]) => boolean,
+): TripMetrics {
+  // Locurile schimbă clasificarea opririlor, deci versiunea lor intră în cheie.
+  const key = `${rows[0].device_at}|${rows[rows.length - 1].device_at}|${rows.length}|${scale}|${placesKey}`;
   let m = summaries.get(key);
   if (!m) {
     if (summaries.size > 5_000) summaries.clear();
-    m = analyze(rows, scale);
+    m = analyze(rows, scale, isPlace);
     summaries.set(key, m);
   }
   return m;
@@ -148,7 +160,7 @@ const allTrips = memo((): Trip[] => {
   const rows = getDb()
     .prepare(
       `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
-              ac, belt
+              ac, belt, hb, door, rev
        FROM trip_point WHERE device_at >= ? ORDER BY device_at`,
     )
     .all(since) as unknown as PointRow[];
@@ -185,9 +197,11 @@ const allTrips = memo((): Trip[] => {
     mergedJoin = j;
   }
   const places = readPlaces();
+  placesKey = JSON.stringify(places);
+  const isPlace = (p: [number, number]) => placeAt(p, places) !== null;
   let parkedAt: [number, number] | null = null;
   return merged.map(({ rows: r, parts }) => {
-    const m = analyzeCached(r, scale);
+    const m = analyzeCached(r, scale, isPlace);
     // Unde a plecat: unde a parcat ultima dată, dacă primul fix e aproape (fix întârziat).
     const from =
       parkedAt && m.startPos && haversineKm(parkedAt, m.startPos) <= PARKED_MATCH_KM

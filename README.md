@@ -245,7 +245,9 @@ segment:
   durată; nu intră în viteza medie. Peste 5 minute despart două călătorii (dacă nu le
   combini).
 - **Opririle cu motorul pornit:** între două porțiuni de mers și sub 10 minute = **în
-  trafic** (semafor, coloană); la plecare, la sosire sau mai lungi = **staționare**.
+  trafic** (semafor, coloană); la plecare, la sosire, mai lungi sau cu semne de parcare
+  (frâna de mână trasă, o ușă deschisă, marșarierul, un loc salvat ca Acasă) =
+  **staționare**. Live apare „Motor pornit, pe loc” sau, în mașină, „Parcat, motor pornit”.
 - **Viteza medie** e pe tot drumul fără opririle cu motorul oprit; **viteza în mișcare**
   doar pe timpul în care mașina se deplasează. Mers + trafic + staționare + opriri = durata.
 - **Clima și centura** (de la 1.1.40): cât a mers AC-ul (minute și % din drum; intră și în

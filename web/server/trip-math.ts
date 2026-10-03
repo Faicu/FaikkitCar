@@ -26,6 +26,10 @@ export interface PointRow {
   crank: number | null; // tensiunea minimă la pornire, măsurată în mașină (1.1.39+)
   ac: number | null; // AC pornit 1/0 (1.1.40+)
   belt: number | null; // centura șoferului pusă 1/0 (1.1.40+)
+  // Semnale de parcare (1.1.41+): frâna de mână trasă, o ușă deschisă, marșarierul, 1/0.
+  hb: number | null;
+  door: number | null;
+  rev: number | null;
 }
 
 /** O oprire cu motorul oprit în mijlocul călătoriei (ex. magazin, sau între părți combinate). */
@@ -79,6 +83,8 @@ export interface TripMetrics {
 export const POINT_GAP_MS = 60_000;
 /** O oprire cu motorul pornit la mijlocul drumului, mai lungă de atât, nu mai e trafic. */
 export const TRAFFIC_MAX_MS = 10 * 60_000;
+/** Marșarierul cu atât înainte de oprire = manevră de parcare. */
+const REVERSE_BEFORE_MS = 60_000;
 /** Pe loc: sub atât (km/h). */
 const STILL_KMH = 1;
 /** GPS-ul între două puncte se folosește doar dacă sunt la cel mult atâtea ms. */
@@ -148,7 +154,15 @@ export function canScale(rows: PointRow[]): number {
 }
 
 /** Toate valorile unei călătorii; `rows` crescător după timp, cel puțin un punct. */
-export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetrics {
+/**
+ * Toate valorile unei călătorii; `rows` crescător după timp, cel puțin un punct. `isPlace`
+ * spune dacă o poziție e într-un loc salvat (o oprire acolo e staționare, nu trafic).
+ */
+export function analyze(
+  rows: PointRow[],
+  scale = DEFAULT_CAN_SCALE,
+  isPlace: (pos: [number, number]) => boolean = () => false,
+): TripMetrics {
   const t = rows.map((r) => Date.parse(r.device_at));
   let km = 0;
   let movingMs = 0;
@@ -164,10 +178,12 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
   let movingKm = 0;
 
   // Opririle cu motorul pornit (episoade de puncte pe loc), clasificate la sfârșit.
-  type Ep = { from: number; to: number; movedBefore: boolean; movedAfter: boolean };
+  // `parked`: semne de parcare în oprire (frâna de mână, o ușă, marșarierul, un loc salvat).
+  type Ep = { from: number; to: number; movedBefore: boolean; movedAfter: boolean; parked: boolean };
   const eps: Ep[] = [];
   let ep: Ep | null = null;
   let moved = false;
+  let lastReverseAt = -Infinity;
 
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -228,9 +244,19 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
     }
     // Episoadele pe loc cu motorul pornit (de la primul punct pe loc la primul în mers).
     const engine = (r.rpm ?? 0) > 0;
+    if (r.rev === 1) lastReverseAt = t[i];
     if (v < STILL_KMH && engine) {
-      if (!ep) ep = { from: t[i], to: t[i], movedBefore: moved, movedAfter: false };
+      if (!ep) {
+        ep = {
+          from: t[i],
+          to: t[i],
+          movedBefore: moved,
+          movedAfter: false,
+          parked: t[i] - lastReverseAt <= REVERSE_BEFORE_MS,
+        };
+      }
       ep.to = t[i];
+      if (r.hb === 1 || r.door === 1 || r.rev === 1 || (p !== null && isPlace(p))) ep.parked = true;
     } else if (v >= STILL_KMH) {
       if (ep) {
         ep.to = t[i];
@@ -250,7 +276,7 @@ export function analyze(rows: PointRow[], scale = DEFAULT_CAN_SCALE): TripMetric
   let trafficStops = 0;
   for (const e of eps) {
     const ms = e.to - e.from;
-    if (e.movedBefore && e.movedAfter && ms <= TRAFFIC_MAX_MS) {
+    if (e.movedBefore && e.movedAfter && ms <= TRAFFIC_MAX_MS && !e.parked) {
       trafficMs += ms;
       trafficMaxMs = Math.max(trafficMaxMs, ms);
       if (ms >= 5_000) trafficStops++;

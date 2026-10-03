@@ -235,6 +235,7 @@ public class MainActivity extends Activity {
             long s = traffic / 1000;
             return "Oprit in trafic · " + (s < 60 ? s + " s" : s / 60 + " min " + s % 60 + " s");
         }
+        if (TripRecorder.parkedWithEngine()) return "Parcat, motor pornit";
         if (can.rpm() > 300) return "Motor pornit";
         if (can.dashFresh()) return "Contact pus";
         return "Gata de drum";
