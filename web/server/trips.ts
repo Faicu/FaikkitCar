@@ -60,6 +60,8 @@ export interface Trip extends TripMetrics {
   fuelL: number | null;
   lPer100: number | null;
   cost: number | null;
+  standFuelL: number | null; // partea arsă în staționare (încălzire, așteptat)
+  standCost: number | null;
 }
 
 export const MAX_POINTS_PER_REQUEST = 500;
@@ -218,6 +220,8 @@ const allTrips = memo((): Trip[] => {
       fuelL: null,
       lPer100: null,
       cost: null,
+      standFuelL: null,
+      standCost: null,
     };
   });
 });

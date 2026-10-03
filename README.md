@@ -124,6 +124,9 @@ a crescut într-un proiect cu trei părți:
 | Costuri: 30 de zile și pe luni | 🧪 | Pe luni: km, timp, litri, L/100, cost estimat și ce s-a dat la pompă, cu bare |
 | Călătoria aleasă | ✅ | Pe ecranul ei: detalii, traseu (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor |
 | Opriri în trafic vs. staționare | 🧪 | Oprirea cu motorul pornit între două porțiuni de mers (≤ 5 min), fără semne de parcare = trafic; altfel staționare. Plus cea mai lungă oprire și viteza doar în mișcare. Live: „Oprit în trafic · 1 min 20 s” pe site, în Panel și în mașină |
+| Drumurile tale | 🧪 | În Costuri: pentru drumurile dese (ex. Acasă → Serviciu) costul și durata medie, timpul în trafic, costul lunii și, cu destule date, ora cea mai bună de plecare |
+| Staționarea cu motorul pornit | 🧪 | În raportul lunii: cât timp, litri și lei s-au dus pe încălzire și așteptat |
+| Jurnal de service | 🧪 | În Mai mult: lucrările (ulei, piese, ITP...) cu data, kilometrajul, costul și pozele bonurilor; costul intră în raportul lunii |
 | Propuneri | 🧪 | Sus pe Acum: „Ai alimentat pe … ~16 L?” (salt în rezervor, fără alimentare în jurnal) și „Parchezi des aici: Strada X” (de cel puțin 2 ori în 60 de zile); „Da” completează, „Nu” ascunde |
 | Raportul lunii | 🧪 | În Costuri: luna curentă față de cea trecută (km, călătorii, timp, trafic, litri, consum, cost), cea mai lungă călătorie, locurile cele mai dese |
 | Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”, mașina „parcată la Serviciu”. Loc nou din Mai mult: după adresă (stradă, număr), cu pinul mutat pe hartă și raza; sau din detaliile unei călătorii, „Salvează sosirea ca loc” |

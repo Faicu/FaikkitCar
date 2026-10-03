@@ -134,6 +134,26 @@ export function getDb(): DatabaseSync {
       UNIQUE (kind, key)
     );
 
+    -- Jurnalul de service: lucrări (ulei, piese, ITP...) cu data, kilometrajul și costul,
+    -- plus fișierele atașate (bonuri, facturi, poze) în data/service/.
+    CREATE TABLE IF NOT EXISTS service (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      odo INTEGER,
+      title TEXT NOT NULL,
+      cost REAL,
+      notes TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS service_file (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     -- Alimentările: prețul dă costul drumurilor; plinurile sunt rezerva calibrării.
     CREATE TABLE IF NOT EXISTS refuel (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

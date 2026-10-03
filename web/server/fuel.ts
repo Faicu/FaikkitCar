@@ -91,12 +91,15 @@ export function applyFuel(trips: Trip[]): Trip[] {
   const { refuels, cal } = fuelState();
   return trips.map((t) => {
     const fuelL = t.modelLiters * cal.factor;
+    const standL = t.standModelLiters * cal.factor;
     const price = priceAt(refuels, t.start);
     return {
       ...t,
       fuelL: Math.round(fuelL * 100) / 100,
       lPer100: t.distanceKm >= 1 ? Math.round((fuelL / t.distanceKm) * 1000) / 10 : null,
       cost: price !== null ? Math.round(fuelL * price * 100) / 100 : null,
+      standFuelL: Math.round(standL * 100) / 100,
+      standCost: price !== null ? Math.round(standL * price * 100) / 100 : null,
     };
   });
 }

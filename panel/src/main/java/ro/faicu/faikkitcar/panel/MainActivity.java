@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
     private final List<MapView> maps = new ArrayList<>();
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
-    private JSONArray trips, log, places, suggestions;
+    private JSONArray trips, log, places, suggestions, service;
     private JSONObject live, car, fuel, stats, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
@@ -260,11 +260,13 @@ public class MainActivity extends Activity {
                 } else {
                     JSONObject c = api.car();
                     JSONArray pl = api.places();
+                    JSONArray sv = api.service();
                     JSONArray l = api.log(events);
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     ui.post(() -> {
                         car = c;
                         places = pl;
+                        service = sv;
                         log = l;
                         newerApk = apk;
                         render();
@@ -360,7 +362,7 @@ public class MainActivity extends Activity {
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == TRIPS ? trips + "|" + pointsFor
                         : tab == COSTS ? stats + "|" + fuel
-                        : car + "|" + places + "|" + log);
+                        : car + "|" + places + "|" + service + "|" + log);
         if (state.equals(shown)) return;
         shown = state;
         int y = scroll.getScrollY();
@@ -891,6 +893,7 @@ public class MainActivity extends Activity {
             return;
         }
         renderMonthReport(stats.optJSONArray("months"));
+        renderRoutes(stats.optJSONArray("routes"));
         renderStats(stats.optJSONObject("last30"));
         renderMonthly(stats.optJSONArray("months"));
         renderFuel();
@@ -918,6 +921,11 @@ public class MainActivity extends Activity {
         cells.add(reportCell("Consum", cur.isNull("lPer100") ? "—" : Fmt.num(cur.optDouble("lPer100"), 1) + " L/100",
                 cur, prev, "lPer100", true));
         cells.add(reportCell("Cost", cur.isNull("cost") ? "—" : Fmt.lei(cur.optDouble("cost")), cur, prev, "cost", true));
+        cells.add(reportCell("Staționare (motor pornit)", Fmt.duration(cur.optDouble("standMin"))
+                + (cur.isNull("standCost") ? "" : " · " + Fmt.lei(cur.optDouble("standCost"))), cur, prev, "standMin", true));
+        if (!cur.isNull("serviceLei") && cur.has("serviceLei")) {
+            cells.add(Ui.info(this, "Service", Fmt.lei(cur.optDouble("serviceLei"))));
+        }
         card.addView(Ui.grid(this, cells, 2));
         JSONObject longest = cur.optJSONObject("longest");
         if (longest != null) {
@@ -935,6 +943,56 @@ public class MainActivity extends Activity {
                 names.add(p.optString("name") + " (" + p.optInt("visits") + ")");
             }
             Ui.hint(this, card, "Cel mai des: " + String.join(", ", names));
+        }
+    }
+
+    private static String hourLabel(int h) {
+        return String.format(java.util.Locale.US, "%02d:00–%02d:00", h, (h + 1) % 24);
+    }
+
+    /**
+     * Drumurile pe care le faci des (intre doua locuri salvate): costul si durata medie, timpul
+     * in trafic si, cu destule date, ora cea mai buna / cea mai grea de plecare.
+     */
+    private void renderRoutes(JSONArray routes) {
+        if (routes == null || routes.length() == 0) return;
+        LinearLayout card = Ui.section(this, content, "Drumurile tale (90 de zile)");
+        for (int i = 0; i < routes.length(); i++) {
+            JSONObject r = routes.optJSONObject(i);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setBackground(Ui.round(this, Ui.CARD2, 14));
+            int p = dp(this, 12);
+            row.setPadding(p, p, p, p);
+            LinearLayout top = new LinearLayout(this);
+            top.addView(Ui.text(this, r.optString("from") + " → " + r.optString("to"), 16, Ui.TEXT, true),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            top.addView(Ui.text(this, r.optInt("trips") + " drumuri", 13, Ui.MUTED, false));
+            row.addView(top);
+            StringBuilder sb = new StringBuilder("~" + Fmt.num(r.optDouble("km"), 1) + " km · " + Fmt.duration(r.optDouble("minutes")));
+            if (r.optDouble("trafficMin") > 0) sb.append(" (").append(Fmt.duration(r.optDouble("trafficMin"))).append(" în trafic)");
+            if (!r.isNull("cost")) sb.append(" · ").append(Fmt.lei(r.optDouble("cost"))).append(" pe drum");
+            row.addView(Ui.text(this, sb.toString(), 14, Ui.TEXT, false));
+            if (!r.isNull("monthCost")) row.addView(Ui.text(this, "Luna aceasta: " + Fmt.lei(r.optDouble("monthCost")), 13, Ui.MUTED, false));
+            JSONObject best = null, worst = null;
+            JSONArray hours = r.optJSONArray("byHour");
+            for (int k = 0; hours != null && k < hours.length(); k++) {
+                JSONObject h = hours.optJSONObject(k);
+                if (!r.isNull("bestHour") && h.optInt("hour") == r.optInt("bestHour")) best = h;
+                if (!r.isNull("worstHour") && h.optInt("hour") == r.optInt("worstHour")) worst = h;
+            }
+            if (best != null && worst != null) {
+                row.addView(Ui.text(this, "Cel mai bine pleci " + hourLabel(best.optInt("hour")) + " (~"
+                        + Fmt.duration(best.optDouble("minutes")) + ")", 13, Ui.OK, false));
+                row.addView(Ui.text(this, "Cel mai greu " + hourLabel(worst.optInt("hour")) + " (~"
+                        + Fmt.duration(worst.optDouble("minutes")) + ")", 13, Ui.WARN, false));
+            } else {
+                row.addView(Ui.text(this, "Ora cea mai bună de plecare apare după câteva drumuri la ore diferite.",
+                        12, Ui.MUTED, false));
+            }
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.topMargin = dp(this, 8);
+            card.addView(row, lp);
         }
     }
 
@@ -1018,6 +1076,177 @@ public class MainActivity extends Activity {
         t.setGravity(Gravity.END);
         row.addView(t, new LinearLayout.LayoutParams(dp(this, 120), -2));
         return row;
+    }
+
+    // ---------------------------------------------------------------- jurnal de service
+
+    private static final int PICK_SERVICE_FILE = 7;
+    // Fisierele alese in dialogul deschis (se trimit dupa ce se salveaza lucrarea).
+    private final List<Uri> pendingFiles = new ArrayList<>();
+    private TextView pendingLabel;
+
+    /** Lucrarile facute la masina (ulei, piese, ITP...), cu bonurile atasate. */
+    private void renderService() {
+        LinearLayout card = Ui.card(this, content);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(Ui.text(this, "🔧 Jurnal de service", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView add = Ui.text(this, "+ Adaugă", 15, Ui.ACCENT, true);
+        add.setOnClickListener(v -> serviceDialog(null));
+        head.addView(add);
+        card.addView(head);
+        if (service == null || service.length() == 0) {
+            Ui.hint(this, card, "Nicio lucrare încă. Trece aici schimbul de ulei, piesele, ITP-ul, cu poza bonului.");
+            return;
+        }
+        for (int i = 0; i < service.length(); i++) {
+            JSONObject e = service.optJSONObject(i);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setBackground(Ui.round(this, Ui.CARD2, 14));
+            int p = dp(this, 12);
+            row.setPadding(p, p, p, p);
+            row.addView(Ui.text(this, e.optString("title"), 16, Ui.TEXT, true));
+            List<String> parts = new ArrayList<>();
+            parts.add(Fmt.date(e.optString("date") + "T12:00:00Z"));
+            if (!e.isNull("odo")) parts.add(Fmt.km(e.optLong("odo")));
+            if (!e.isNull("cost")) parts.add(Fmt.lei(e.optDouble("cost")));
+            row.addView(Ui.text(this, String.join(" · ", parts), 13, Ui.MUTED, false));
+            if (!e.isNull("notes")) row.addView(Ui.text(this, e.optString("notes"), 14, Ui.TEXT, false));
+            JSONArray files = e.optJSONArray("files");
+            for (int k = 0; files != null && k < files.length(); k++) {
+                JSONObject f = files.optJSONObject(k);
+                TextView ft = Ui.text(this, "📎 " + f.optString("name"), 14, Ui.ACCENT, false);
+                ft.setPadding(0, dp(this, 6), 0, 0);
+                ft.setOnClickListener(v -> showServiceFile(f));
+                row.addView(ft);
+            }
+            row.addView(actions(new String[] {"Modifică", "Șterge"}, new int[] {Ui.ACCENT, Ui.BAD},
+                    new Runnable[] {() -> serviceDialog(e), () -> confirm("Ștergi „" + e.optString("title")
+                            + "” cu tot cu fișiere?", () -> mutate(() -> api.deleteService(e.optInt("id")), "Șters"))}));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.topMargin = dp(this, 8);
+            card.addView(row, lp);
+        }
+    }
+
+    private void serviceDialog(JSONObject e) {
+        pendingFiles.clear();
+        LinearLayout form = dialogForm();
+        EditText title = Ui.labeled(this, form, "Ce s-a făcut (ex. Schimb ulei și filtre)",
+                e == null ? "" : e.optString("title"), InputType.TYPE_CLASS_TEXT);
+        EditText date = Ui.labeled(this, form, "Data (AAAA-LL-ZZ)", e == null ? LocalDate.now().toString()
+                : e.optString("date"), InputType.TYPE_CLASS_TEXT);
+        EditText odo = Ui.labeled(this, form, "Kilometraj (gol = cel de acum)", e == null ? "" : num(e, "odo"),
+                InputType.TYPE_CLASS_NUMBER);
+        EditText cost = Ui.labeled(this, form, "Cost (lei)", e == null ? "" : num(e, "cost"),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        EditText notes = Ui.labeled(this, form, "Note (service, piese, garanție...)", e == null ? "" : e.optString("notes", ""),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        JSONArray files = e == null ? null : e.optJSONArray("files");
+        for (int k = 0; files != null && k < files.length(); k++) {
+            JSONObject f = files.optJSONObject(k);
+            TextView ft = Ui.text(this, "📎 " + f.optString("name") + "   ✕ șterge", 14, Ui.BAD, false);
+            ft.setPadding(0, dp(this, 6), 0, 0);
+            ft.setOnClickListener(v -> confirm("Ștergi fișierul?", () -> {
+                ft.setVisibility(View.GONE);
+                mutate(() -> api.deleteServiceFile(f.optInt("id")), "Fișier șters");
+            }));
+            form.addView(ft);
+        }
+        TextView attach = Ui.text(this, "📎 Atașează bon / poză", 15, Ui.ACCENT, true);
+        attach.setPadding(0, dp(this, 12), 0, dp(this, 4));
+        attach.setOnClickListener(v -> {
+            Intent i = new Intent(Intent.ACTION_GET_CONTENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE)
+                    .putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/*", "application/pdf"})
+                    .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            startActivityForResult(Intent.createChooser(i, "Alege bonul"), PICK_SERVICE_FILE);
+        });
+        form.addView(attach);
+        pendingLabel = Ui.text(this, "", 13, Ui.MUTED, false);
+        form.addView(pendingLabel);
+        showForm(e == null ? "Lucrare nouă" : "Modifică lucrarea", form, () -> {
+            JSONObject o = new JSONObject();
+            if (e != null) o.put("id", e.optInt("id"));
+            o.put("title", text(title));
+            o.put("date", text(date));
+            o.put("odo", text(odo).isEmpty() ? JSONObject.NULL : parse(odo));
+            o.put("cost", text(cost).isEmpty() ? JSONObject.NULL : parse(cost));
+            o.put("notes", text(notes).isEmpty() ? JSONObject.NULL : text(notes));
+            int id = api.saveService(o);
+            for (Uri u : new ArrayList<>(pendingFiles)) {
+                String mime = getContentResolver().getType(u);
+                try (java.io.InputStream in = getContentResolver().openInputStream(u)) {
+                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[16384];
+                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+                    api.uploadServiceFile(id, fileName(u), mime == null ? "image/jpeg" : mime, out.toByteArray());
+                }
+            }
+            pendingFiles.clear();
+        }, "Lucrare salvată");
+    }
+
+    @Override
+    protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request != PICK_SERVICE_FILE || result != RESULT_OK || data == null) return;
+        if (data.getClipData() != null) {
+            for (int i = 0; i < data.getClipData().getItemCount(); i++) pendingFiles.add(data.getClipData().getItemAt(i).getUri());
+        } else if (data.getData() != null) {
+            pendingFiles.add(data.getData());
+        }
+        if (pendingLabel != null) {
+            List<String> names = new ArrayList<>();
+            for (Uri u : pendingFiles) names.add(fileName(u));
+            pendingLabel.setText("De trimis: " + String.join(", ", names));
+        }
+    }
+
+    /** Numele fisierului ales (pentru server), din ContentResolver. */
+    private String fileName(Uri u) {
+        try (android.database.Cursor cur = getContentResolver().query(u,
+                new String[] {android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cur != null && cur.moveToFirst()) return cur.getString(0);
+        } catch (Exception ignored) {
+        }
+        return "bon.jpg";
+    }
+
+    /** O poza atasata, pe ecran; un PDF se deschide pe site. */
+    private void showServiceFile(JSONObject f) {
+        if (!f.optString("mime").startsWith("image/")) {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Api.BASE + "/api/service/files/" + f.optInt("id"))));
+            return;
+        }
+        toast("Se încarcă...");
+        io.execute(() -> {
+            try {
+                byte[] data = api.serviceFile(f.optInt("id"));
+                android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+                o.inJustDecodeBounds = true;
+                android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, o);
+                // Micsorata cat sa incapa pe ecran (pozele de telefon au ~4000 px).
+                int scale = 1;
+                while (o.outWidth / scale > 2000 || o.outHeight / scale > 2000) scale *= 2;
+                o = new android.graphics.BitmapFactory.Options();
+                o.inSampleSize = scale;
+                android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, o);
+                ui.post(() -> {
+                    if (bmp == null) {
+                        toast("Nu pot afișa fișierul");
+                        return;
+                    }
+                    android.widget.ImageView iv = new android.widget.ImageView(this);
+                    iv.setImageBitmap(bmp);
+                    iv.setAdjustViewBounds(true);
+                    new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                            .setTitle(f.optString("name")).setView(iv).setPositiveButton("Închide", null).show();
+                });
+            } catch (Exception e) {
+                ui.post(() -> toast(e.getMessage()));
+            }
+        });
     }
 
     // ---------------------------------------------------------------- locuri salvate
@@ -1229,6 +1458,7 @@ public class MainActivity extends Activity {
             return;
         }
         renderMaintenance();
+        renderService();
         renderPlaces();
         renderLog();
         LinearLayout acc = Ui.card(this, content);

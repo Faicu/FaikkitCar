@@ -8,7 +8,7 @@
 // Kilometrajul are rezoluție de 1 km, deci rămâne doar informativ.
 // ---------------------------------------------------------------------------
 
-import { estimateFuel } from "./fuel-model.ts";
+import { estimateFuel, FUEL_MODEL } from "./fuel-model.ts";
 
 export interface PointRow {
   device_at: string;
@@ -76,6 +76,7 @@ export interface TripMetrics {
   startPos: [number, number] | null;
   endPos: [number, number] | null;
   modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
+  standModelLiters: number; // din ea, partea arsă în staționare (încălzire, așteptat), brută
   boardLPer100: number | null; // consumul bordului (c1033) în mers, dacă acoperă ≥ 80% din km
 }
 
@@ -169,6 +170,7 @@ export function analyze(
   let stopMs = 0;
   const stops: TripStop[] = [];
   let lastPos: [number, number] | null = null;
+  let stillRevs = 0; // rotațiile motorului cât mașina stă (trafic + staționare)
   let acMs = 0;
   let noBeltMs = 0;
   let climateKnown = false;
@@ -194,6 +196,7 @@ export function analyze(
       const dt = t[i] - t[i - 1];
       const va = speedOf(a) ?? 0;
       const still = va < STILL_KMH && v < STILL_KMH;
+      if (dt <= POINT_GAP_MS && va < STILL_KMH && (a.rpm ?? 0) > 0) stillRevs += ((a.rpm ?? 0) / 60) * (dt / 1000);
       // Starea de la începutul segmentului ține tot segmentul (punctele vin la 5–30 s).
       if (dt <= POINT_GAP_MS) {
         if (a.ac !== null) climateKnown = true;
@@ -354,6 +357,9 @@ export function analyze(
     startPos,
     endPos,
     modelLiters: fuel.liters,
+    // Rotațiile pe loc, împărțite între trafic și staționare după timp.
+    standModelLiters:
+      trafficMs + standMs > 0 ? stillRevs * FUEL_MODEL.litersPerRev * (standMs / (trafficMs + standMs)) : 0,
     boardLPer100:
       movingKm >= 0.5 && boardKm >= movingKm * 0.8 ? round((boardL / boardKm) * 100) : null,
   };

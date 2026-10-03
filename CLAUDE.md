@@ -286,6 +286,16 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   curent are viteză ≥ 3 km/h + oprit de ≤ 5 min; durata sub 10 min se afișează cu secunde.
   În mașină (1.1.38) titlul din Acasă: `TripRecorder.trafficStopMs()` (a mers în drumul ăsta,
   `stoppedAt` la oprire cu motorul pornit).
+- Costuri (03.10): „Drumurile tale” (`stats.ts` `routes`: drumuri între două locuri salvate
+  diferite, ≥ 2 în 90 de zile; medii km / minute / trafic / lei / L/100, costul lunii, `byHour`
+  după ora plecării în ora României, `bestHour` / `worstHour` din orele cu ≥ 2 drumuri, deci
+  apar abia cu date); staționarea pe lună (`standMin`, `standLiters`, `standCost`: rotațiile pe
+  loc din `trip-math.ts` `standModelLiters`, împărțite trafic / staționare după timp, × factorul
+  de calibrare și prețul). Jurnal de service (`service.ts`, tabelele `service` și
+  `service_file`, fișierele în `data/service/<id>/<fileId>`, ≤ 15 MB, poze sau PDF; rute
+  `/api/service`, `POST /api/service/:id/files` cu octeții în corp, `GET /api/service/files/:id`):
+  pe site `components/ServiceLog.tsx`, în Panel `renderService` / `serviceDialog` (atașare prin
+  ACTION_GET_CONTENT, poza afișată în aplicație); costurile în raportul lunii (`serviceLei`).
 - Propuneri (03.10, `web/server/suggestions.ts`, `GET /api/suggestions`, respingere în tabela
   `dismissed` prin `POST /api/suggestions/dismiss`): (1) alimentare = salt ≥ 3 L în nivel
   (`fuel-model.ts` `levelRefills`, mediane pe 10 min) fără alimentare în jurnal la ±3 h, cu

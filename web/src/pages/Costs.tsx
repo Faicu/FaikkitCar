@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Stat } from "../components/Cells";
 import { FuelLog } from "../components/FuelLog";
-import { api, day, duration, lei, liters, num, type MonthStats, type PeriodStats } from "../api";
+import { api, day, duration, lei, liters, num, type MonthStats, type PeriodStats, type RouteStats } from "../api";
 
 const LIVE = { refetchInterval: 30_000, staleTime: 15_000 };
 
@@ -18,6 +18,7 @@ export function CostsPage() {
   return (
     <>
       {stats && stats.months.length > 0 && <MonthReport months={stats.months} />}
+      {stats && stats.routes.length > 0 && <Routes routes={stats.routes} />}
       {stats && <Last30 s={stats.last30} />}
       {stats && stats.months.length > 0 && <Monthly months={stats.months} />}
       {fuel && <FuelLog fuel={fuel} />}
@@ -70,7 +71,16 @@ function MonthReport({ months }: { months: MonthStats[] }) {
       delta: change(cur.cost, prev?.cost),
       lowerIsBetter: true,
     },
+    {
+      label: "Staționare (motor pornit)",
+      value: `${duration(cur.standMin)}${cur.standCost !== null ? ` · ${lei(cur.standCost)}` : ""}`,
+      delta: change(cur.standMin, prev?.standMin),
+      lowerIsBetter: true,
+    },
   ];
+  if (cur.serviceLei !== null) {
+    rows.push({ label: "Service", value: lei(cur.serviceLei), delta: null });
+  }
   return (
     <div className="space-y-3 rounded-2xl glass-card p-4">
       <div>
@@ -114,6 +124,52 @@ function MonthReport({ months }: { months: MonthStats[] }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00–${String((h + 1) % 24).padStart(2, "0")}:00`;
+
+/**
+ * Drumurile pe care le faci des (între două locuri salvate): cât costă unul în medie, cât
+ * durează, cât stai în trafic și, cu destule date, la ce oră e mai bine să pleci.
+ */
+function Routes({ routes }: { routes: RouteStats[] }) {
+  return (
+    <div className="space-y-2 rounded-2xl glass-card p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Drumurile tale (90 de zile)</p>
+      {routes.map((r) => {
+        const best = r.byHour.find((h) => h.hour === r.bestHour);
+        const worst = r.byHour.find((h) => h.hour === r.worstHour);
+        return (
+          <div key={`${r.from}→${r.to}`} className="rounded-xl bg-white/5 p-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="font-semibold">
+                {r.from} → {r.to}
+              </p>
+              <p className="text-xs text-muted-foreground">{r.trips} drumuri</p>
+            </div>
+            <p className="mt-1 text-sm">
+              ~{num(r.km)} km · {duration(r.minutes)}
+              {r.trafficMin > 0 ? ` (${duration(r.trafficMin)} în trafic)` : ""}
+              {r.cost !== null ? ` · ${lei(r.cost)} pe drum` : ""}
+            </p>
+            {r.monthCost !== null && (
+              <p className="text-xs text-muted-foreground">Luna aceasta: {lei(r.monthCost)}</p>
+            )}
+            {best && worst ? (
+              <p className="mt-1 text-xs">
+                <span className="text-emerald-400">Cel mai bine pleci {hourLabel(best.hour)}</span> (~{duration(best.minutes)}),{" "}
+                <span className="text-amber-400">cel mai greu {hourLabel(worst.hour)}</span> (~{duration(worst.minutes)})
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ora cea mai bună de plecare apare după câteva drumuri la ore diferite.
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

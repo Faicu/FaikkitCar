@@ -45,6 +45,15 @@ import {
   type IncomingPoint,
 } from "./trips.ts";
 import { deletePlace, geocode, readPlaces, savePlace, type PlaceInput } from "./places.ts";
+import {
+  addServiceFile,
+  deleteService,
+  deleteServiceFile,
+  readService,
+  readServiceFile,
+  saveService,
+  type ServiceInput,
+} from "./service.ts";
 import { readStats } from "./stats.ts";
 import { dismissSuggestion, readSuggestions } from "./suggestions.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
@@ -325,6 +334,48 @@ app.post("/api/places", async (c) => {
 app.delete("/api/places/:id", (c) => {
   requireUser(c);
   deletePlace(Number(c.req.param("id")));
+  return c.json({ ok: true });
+});
+
+// Jurnalul de service: lucrările și fișierele atașate (bonuri, facturi, poze).
+app.get("/api/service", (c) => {
+  requireUser(c);
+  return c.json(readService());
+});
+
+app.post("/api/service", async (c) => {
+  requireUser(c);
+  return c.json({ ok: true, id: saveService(await json<ServiceInput>(c, 8192)) });
+});
+
+app.delete("/api/service/:id", (c) => {
+  requireUser(c);
+  deleteService(Number(c.req.param("id")));
+  return c.json({ ok: true });
+});
+
+// Un fișier: octeții în corp, numele în ?name=, tipul în Content-Type.
+app.post("/api/service/:id/files", async (c) => {
+  requireUser(c);
+  const data = Buffer.from(await c.req.arrayBuffer());
+  const mime = (c.req.header("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  return c.json(addServiceFile(Number(c.req.param("id")), c.req.query("name") ?? "bon", mime, data));
+});
+
+app.get("/api/service/files/:id", (c) => {
+  requireUser(c);
+  const f = readServiceFile(Number(c.req.param("id")));
+  if (!f) throw new HTTPException(404, { message: "Fișierul nu există" });
+  return c.body(new Uint8Array(f.data), 200, {
+    "Content-Type": f.file.mime,
+    "Content-Disposition": `inline; filename="${encodeURIComponent(f.file.name)}"`,
+    "Cache-Control": "private, max-age=86400",
+  });
+});
+
+app.delete("/api/service/files/:id", (c) => {
+  requireUser(c);
+  deleteServiceFile(Number(c.req.param("id")));
   return c.json({ ok: true });
 });
 

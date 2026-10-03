@@ -96,6 +96,76 @@ final class Api {
         return new JSONArray(call("GET", "/api/geocode?q=" + enc(q), null, true, 20_000));
     }
 
+    // ---------------------------------------------------------------- jurnal de service
+
+    JSONArray service() throws Exception {
+        return new JSONArray(call("GET", "/api/service", null, true));
+    }
+
+    /** Salveaza o lucrare; intoarce id-ul ei (pentru fisierele atasate). */
+    int saveService(JSONObject s) throws Exception {
+        return new JSONObject(call("POST", "/api/service", s, true)).optInt("id");
+    }
+
+    void deleteService(int id) throws Exception {
+        call("DELETE", "/api/service/" + id, null, true);
+    }
+
+    /** Ataseaza un bon / o poza (octetii, cu tipul lor) la lucrarea `id`. */
+    void uploadServiceFile(int id, String name, String mime, byte[] data) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/service/" + id + "/files?name=" + enc(name)).openConnection();
+        try {
+            conn.setConnectTimeout(10_000);
+            conn.setReadTimeout(60_000);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Authorization", "Bearer " + Store.token(c));
+            conn.setRequestProperty("Content-Type", mime);
+            conn.setDoOutput(true);
+            conn.setFixedLengthStreamingMode(data.length);
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(data);
+            }
+            int code = conn.getResponseCode();
+            if (code == 401) throw new Unauthorized();
+            if (code >= 400) {
+                String text = read(conn.getErrorStream());
+                String msg = "Eroare " + code;
+                try {
+                    msg = new JSONObject(text).optString("error", msg);
+                } catch (Exception ignored) {
+                }
+                throw new Exception(msg);
+            }
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /** Octetii unui fisier atasat (pentru a-l arata in aplicatie). */
+    byte[] serviceFile(int fileId) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/service/files/" + fileId).openConnection();
+        try {
+            conn.setConnectTimeout(10_000);
+            conn.setReadTimeout(60_000);
+            conn.setRequestProperty("Authorization", "Bearer " + Store.token(c));
+            if (conn.getResponseCode() == 401) throw new Unauthorized();
+            if (conn.getResponseCode() >= 400) throw new Exception("Eroare " + conn.getResponseCode());
+            try (InputStream in = conn.getInputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buf = new byte[16384];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                return out.toByteArray();
+            }
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    void deleteServiceFile(int fileId) throws Exception {
+        call("DELETE", "/api/service/files/" + fileId, null, true);
+    }
+
     /** Propunerile: [{kind: "refuel" | "place", key, ...}]. */
     JSONArray suggestions() throws Exception {
         return new JSONArray(call("GET", "/api/suggestions", null, true, 30_000));

@@ -6,7 +6,8 @@ import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live } from "../server/live.ts";
 import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
-import type { MonthStats, PeriodStats, Stats } from "../server/stats.ts";
+import type { ServiceEntry, ServiceInput } from "../server/service.ts";
+import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
 import type { Suggestion } from "../server/suggestions.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
 
@@ -50,6 +51,20 @@ export const api = {
   saveReminder: (r: ReminderInput) => call<{ ok: true }>("POST", "/api/reminders", r),
   deleteReminder: (id: number) => call<{ ok: true }>("DELETE", `/api/reminders/${id}`),
   reminderDone: (id: number) => call<{ ok: true }>("POST", `/api/reminders/${id}/done`),
+  service: () => call<ServiceEntry[]>("GET", "/api/service"),
+  saveService: (s: ServiceInput) => call<{ ok: true; id: number }>("POST", "/api/service", s),
+  deleteService: (id: number) => call<{ ok: true }>("DELETE", `/api/service/${id}`),
+  deleteServiceFile: (id: number) => call<{ ok: true }>("DELETE", `/api/service/files/${id}`),
+  uploadServiceFile: async (serviceId: number, file: File) => {
+    const res = await fetch(`/api/service/${serviceId}/files?name=${encodeURIComponent(file.name)}`, {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+      credentials: "same-origin",
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) throw new Error(data.error ?? `Eroare ${res.status}`);
+  },
   suggestions: () => call<Suggestion[]>("GET", "/api/suggestions"),
   dismissSuggestion: (s: Suggestion) =>
     call<{ ok: true }>("POST", "/api/suggestions/dismiss", {
@@ -68,7 +83,17 @@ export const api = {
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 
-export type { FuelSummary, GeocodeResult, Live, LogEntry, MonthStats, PeriodStats, Place, Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+export type {
+  FuelSummary,
+  GeocodeResult,
+  Live,
+  LogEntry,
+  MonthStats,
+  PeriodStats,
+  Place,
+  RouteStats,
+  ServiceEntry,
+  Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {
