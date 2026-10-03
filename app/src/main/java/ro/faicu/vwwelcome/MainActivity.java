@@ -194,6 +194,9 @@ public class MainActivity extends Activity {
     private TextView homeHeadline, homeSub;
     private TextView[] homeTiles;
     private LinearLayout homeTrip;
+    // Calatoria in curs: de cand merge (ceasul navigatiei), actualizat la 2 s.
+    private TextView homeTripSince;
+    private long homeTripStart;
     private org.json.JSONObject summary;
     private long summaryAt;
     private boolean summaryLoading;
@@ -202,6 +205,7 @@ public class MainActivity extends Activity {
         public void run() {
             if (tab != 0 || homeHeadline == null) return;
             updateHomeLive();
+            updateTripSince();
             if (System.currentTimeMillis() - summaryAt > 15_000) loadSummary();
             ui.postDelayed(this, 2_000);
         }
@@ -394,23 +398,35 @@ public class MainActivity extends Activity {
         org.json.JSONObject trip = summary.optJSONObject("trip");
         boolean current = trip != null;
         if (trip == null) trip = summary.optJSONObject("last");
+        homeTripSince = null;
         if (trip != null) {
             LinearLayout card = Ui.card(this, homeTrip);
             String route = route(trip);
-            card.addView(Ui.text(this, (current ? "Calatoria in curs" : "Ultima calatorie · "
-                    + hm(trip.optString("start")) + "–" + hm(trip.optString("end")))
+            String start = trip.optString("start");
+            card.addView(Ui.text(this, (current ? "Calatoria in curs · de la " + hm(start)
+                    : "Ultima calatorie · " + hm(start) + "–" + hm(trip.optString("end")))
                     + (route.isEmpty() ? "" : " · " + route), 15, current ? Ui.ACCENT : Ui.MUTED, true));
             LinearLayout row = new LinearLayout(this);
             LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
             rlp.topMargin = dp(this, 12);
             card.addView(row, rlp);
             stat(row, "Distanta", String.format(Locale.US, "%.1f km", trip.optDouble("distanceKm")), Ui.TEXT);
-            stat(row, "Durata", minutes(trip.optDouble("durationMin")), Ui.TEXT);
-            stat(row, "In trafic", minutes(trip.optDouble("trafficMin")), Ui.TEXT);
+            TextView dur = stat(row, current ? "De cand merg" : "Durata", minutes(trip.optDouble("durationMin")), Ui.TEXT);
+            stat(row, "Consumat", trip.isNull("fuelL") ? "—"
+                    : String.format(Locale.US, "≈ %.2f L", trip.optDouble("fuelL")), Ui.TEXT);
             stat(row, "Consum", trip.isNull("lPer100") ? "—"
                     : String.format(Locale.US, "%.1f L/100", trip.optDouble("lPer100")), Ui.TEXT);
             stat(row, "Cost", trip.isNull("cost") ? "—"
                     : String.format(Locale.US, "%.2f lei", trip.optDouble("cost")), Ui.TEXT);
+            if (trip.optDouble("trafficMin") > 0) {
+                Ui.hint(this, card, "Din care oprit in trafic " + minutes(trip.optDouble("trafficMin"))
+                        + (trip.optInt("trafficStops") > 0 ? " (" + trip.optInt("trafficStops") + " opriri)" : ""));
+            }
+            if (current) {
+                homeTripSince = dur;
+                homeTripStart = parseIso(start);
+                updateTripSince();
+            }
         }
         org.json.JSONObject today = summary.optJSONObject("today");
         if (today != null && today.optInt("trips") > 0) {
@@ -418,6 +434,20 @@ public class MainActivity extends Activity {
                     today.optInt("trips"), today.optInt("trips") == 1 ? "calatorie" : "calatorii",
                     today.optDouble("km"), minutes(today.optDouble("minutes")),
                     today.isNull("cost") ? "" : String.format(Locale.US, " · %.2f lei", today.optDouble("cost"))));
+        }
+    }
+
+    /** „De cand merg”: de la plecare pana acum, nu doar pana la ultimul punct primit de server. */
+    private void updateTripSince() {
+        if (homeTripSince == null || homeTripStart <= 0) return;
+        homeTripSince.setText(minutes(Math.max(0, System.currentTimeMillis() - homeTripStart) / 60_000.0));
+    }
+
+    private static long parseIso(String iso) {
+        try {
+            return java.time.Instant.parse(iso).toEpochMilli();
+        } catch (Exception e) {
+            return 0;
         }
     }
 
@@ -538,17 +568,20 @@ public class MainActivity extends Activity {
                 android.Manifest.permission.ACCESS_COARSE_LOCATION}, PERM_LOCATION);
     }
 
-    private void stat(LinearLayout parent, String label, String value, int color) {
+    /** O casuta cu eticheta si valoare; intoarce valoarea, ca sa poata fi actualizata. */
+    private TextView stat(LinearLayout parent, String label, String value, int color) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackground(Ui.round(this, Ui.CARD2, 14));
         int p = dp(this, 14);
         box.setPadding(p, p, p, p);
         box.addView(Ui.text(this, label, 13, Ui.MUTED, false));
-        box.addView(Ui.text(this, value, 20, color, true));
+        TextView v = Ui.text(this, value, 20, color, true);
+        box.addView(v);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
         if (parent.getChildCount() > 0) lp.leftMargin = dp(this, 10);
         parent.addView(box, lp);
+        return v;
     }
 
     // ---------------------------------------------------------------- Sunete

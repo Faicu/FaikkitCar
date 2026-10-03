@@ -705,20 +705,6 @@ public class MainActivity extends Activity {
             }
         }
         tripSections(t);
-        if (points.length() >= 2) {
-            LinearLayout chart = Ui.section(this, content, "Viteză și turație");
-            ChartView cv = new ChartView(this, points);
-            LinearLayout legend = new LinearLayout(this);
-            legend.setPadding(0, dp(this, 6), 0, 0);
-            legend.addView(Ui.text(this, "viteză (max " + Math.round(cv.maxSpeed()) + " km/h)", 12, Ui.ACCENT, false),
-                    new LinearLayout.LayoutParams(0, -2, 1));
-            legend.addView(Ui.text(this, "turație (max " + Math.round(cv.maxRpm()) + " rpm)", 12, 0xFFFB923C, false));
-            chart.addView(legend);
-            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, dp(this, 150));
-            clp.topMargin = dp(this, 8);
-            chart.addView(cv, clp);
-        }
-
         // Combinarea cu vecinele (ex. dus-intors cu o oprire scurta) si despartirea.
         List<String> labels = new ArrayList<>();
         List<Runnable> actions = new ArrayList<>();

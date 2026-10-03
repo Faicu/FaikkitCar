@@ -5,7 +5,6 @@ import { toast } from "sonner";
 
 import { TripSummary, TripSections } from "../components/TripView";
 import { TripMap } from "../components/TripMap";
-import { TripChart } from "../components/TripChart";
 import { api, day, duration, hm, lei, liters, num, route, shortDuration, type Trip } from "../api";
 
 const LIVE = { refetchInterval: 15_000, staleTime: 10_000 };
@@ -231,7 +230,6 @@ function TripDetail({
         </div>
       )}
       <TripSections trip={trip} />
-      {points && <TripChart points={points} />}
       <div className="rounded-2xl glass-card px-2 py-1">
         <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />
       </div>

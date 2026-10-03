@@ -48,8 +48,8 @@ mașină nu mai trebuie să rămână acolo.
   „❄ Climatronic AUTO · AC oprit · 21 °C · ventilator 2”; avertizările), călătoria în curs
   (`tripSummary`), rezervorul într-un rând, poziția. Detaliile călătoriei: `tripSummary`
   (traseu, cifre mari distanță / durată / cost, bara timpului `Ui.stackedBar` mers / trafic /
-  staționare / motor oprit), harta, opririle, `tripSections` (Viteză, Consum, Mașina; `Ui.section`),
-  graficul și combinarea. Același aspect pe site (`components/TripView.tsx`).
+  staționare / motor oprit), harta, opririle, `tripSections` (Viteză, Consum, Mașina; `Ui.section`)
+  și combinarea. Graficul viteză / turație a fost scos la cererea utilizatorului (03.10). Același aspect pe site (`components/TripView.tsx`).
   Actualizare din aplicație (`Updater`): `GET /api/panel/apk` + `/api/panel/apk/download` (login);
   CI-ul separat `.github/workflows/panel.yml` publică la `POST /api/panel/apk` (CAR_TOKEN),
   release `panel-<N>`, `versionName` = `1.0.<N>`. Site-ul are link „Descarcă APK” pe fila Mașina.
@@ -96,7 +96,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
 - Acasă (din 03.10, tablou de bord): titlul cu starea mașinii („In mers · 34 km/h”, „Oprit in
   trafic · 45 s”, „Parcat, motor pornit”, „Contact pus”, „Gata de drum”) și rândul de valori
   (viteză, turație, baterie, afară, clima) la 2 s din `CanLink`; rezervor + autonomie,
-  călătoria în curs (sau ultima) și „Azi” la 15 s din `GET /api/car/summary` (cheia mașinii,
+  călătoria în curs (sau ultima: „de la 07:40”, distanță, „De când merg” live de la plecare,
+  consumat ≈ L, L/100, cost, oprit în trafic) și „Azi” la 15 s din `GET /api/car/summary` (cheia mașinii,
   `live.ts` `readCarSummary`, `VwStatus.summary`); apoi actualizare, mentenanță, avertizări,
   sunetul de bun venit compact (▶ Redă) și un rând cu starea serverului / călătoriilor.
 - `MainActivity` + `Ui`: UI construit din cod (fără XML), temă întunecată, antet cu stare
