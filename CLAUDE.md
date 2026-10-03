@@ -223,8 +223,9 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   vitezometrul arată ~6% în plus). Verificat 30.09–02.10: 16,2 km față de 16 km pe
   kilometraj (CAN integrat ar da 16,9). Kilometrajul (1 km rezoluție) nu mai e folosit la
   distanță. Opririle cu motorul pornit (< 1 km/h, rpm > 0), de la primul punct pe loc la
-  primul în mers (±5 s): între două porțiuni de mers și ≤ 10 min = trafic (semafor, coloană;
-  utilizatorul stă și 4–5 min la semafor), altfel (plecare, sosire, > 10 min) = staționare.
+  primul în mers (±5 s): între două porțiuni de mers și ≤ 5 min = trafic (semafor, coloană;
+  limita aleasă de utilizator pe 03.10, înainte 10 min), altfel (plecare, sosire, > 5 min) =
+  staționare.
   Timpul unui segment merge după punctul de la început (plecarea de pe loc e în oprire), deci
   mers + trafic + staționare + opriri = durata (corectat 02.10: plecările se numărau de două
   ori, 21 în loc de 26 km/h în mișcare).
@@ -241,7 +242,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   Trafic vs staționare (03.10, după ce la sosirea acasă live arăta „Oprit în trafic”): o
   oprire cu motorul pornit e staționare dacă are semne de parcare: frâna de mână trasă, o ușă
   deschisă, marșarierul în oprire sau cu ≤ 60 s înainte, sau e într-un loc salvat; altfel
-  trafic (între două porțiuni de mers, ≤ 10 min). Centura nu e semnal (utilizatorul nu o
+  trafic (între două porțiuni de mers, ≤ 5 min). Centura nu e semnal (utilizatorul nu o
   poartă mereu). OpenStreetMap (Overpass) încercat: răspunsuri nesigure, iar la serviciu
   parcarea e pe stradă, deci nefolosit. Puncte cu `hb`, `door`, `rev` (1.1.41+, coloane noi),
   locurile vin și la mașină în `/api/car/status` (`VwStatus.placeAt`). În mașină
@@ -256,10 +257,10 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   02.10 dimineața, Splaiul Independenței (Grozăvești): coloană 07:46:30–07:52:20 cu trei
   opriri de ~75, ~80 și ~90 s; total drum: 4,3 min în trafic (5 opriri), 2,2 min staționare.
   Live: starea „traffic” („Oprit în trafic”) e calculată în `readLive` din „engine” + drumul
-  curent are viteză ≥ 3 km/h + oprit de ≤ 10 min; durata sub 10 min se afișează cu secunde.
+  curent are viteză ≥ 3 km/h + oprit de ≤ 5 min; durata sub 10 min se afișează cu secunde.
   În mașină (1.1.38) titlul din Acasă: `TripRecorder.trafficStopMs()` (a mers în drumul ăsta,
   `stoppedAt` la oprire cu motorul pornit).
-- Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază 150 m), `web/server/places.ts`;
+- Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază implicit 100 m; Acasă și Serviciu 100 m de pe 03.10), `web/server/places.ts`;
   `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
   parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site
   `components/Places.tsx` (Mai mult), în Panel `renderPlaces` (Mai mult, „+ Unde e mașina”).

@@ -118,7 +118,7 @@ export function getDb(): DatabaseSync {
       name TEXT NOT NULL,
       lat REAL NOT NULL,
       lon REAL NOT NULL,
-      radius INTEGER NOT NULL DEFAULT 150,
+      radius INTEGER NOT NULL DEFAULT 100,
       created_at TEXT NOT NULL
     );
 

@@ -32,7 +32,7 @@ export function Places() {
     <div className="space-y-2 rounded-2xl glass-card p-4">
       <h2 className="font-semibold">Locuri salvate</h2>
       <p className="text-xs text-muted-foreground">
-        Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu” (rază 150 m).
+        Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu” (rază 100 m).
       </p>
       {(places ?? []).map((p: Place) => (
         <div key={p.id} className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2">

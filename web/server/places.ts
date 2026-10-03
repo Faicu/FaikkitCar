@@ -21,7 +21,7 @@ export interface PlaceInput {
   radius?: number;
 }
 
-const DEFAULT_RADIUS = 150;
+const DEFAULT_RADIUS = 100;
 
 export function readPlaces(): Place[] {
   return getDb()

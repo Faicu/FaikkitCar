@@ -50,10 +50,10 @@ export interface TripMetrics {
   stopMin: number; // opririle cu motorul oprit
   stops: TripStop[];
   movingMin: number; // doar în mișcare
-  trafficMin: number; // oprit cu motorul pornit între două porțiuni de mers (≤ 10 min)
+  trafficMin: number; // oprit cu motorul pornit între două porțiuni de mers (≤ 5 min)
   trafficStops: number; // cele de cel puțin 5 s
   trafficMaxMin: number;
-  standMin: number; // oprit cu motorul pornit la plecare / sosire sau > 10 min
+  standMin: number; // oprit cu motorul pornit la plecare / sosire, cu semne de parcare sau > 5 min
   maxSpeed: number | null;
   avgSpeed: number | null; // km/h, pe durata fără opririle cu motorul oprit
   movingAvgSpeed: number | null; // km/h, doar pe timpul în mișcare
@@ -82,7 +82,7 @@ export interface TripMetrics {
 /** Peste atâtea ms fără puncte, motorul a fost oprit. */
 export const POINT_GAP_MS = 60_000;
 /** O oprire cu motorul pornit la mijlocul drumului, mai lungă de atât, nu mai e trafic. */
-export const TRAFFIC_MAX_MS = 10 * 60_000;
+export const TRAFFIC_MAX_MS = 5 * 60_000;
 /** Marșarierul cu atât înainte de oprire = manevră de parcare. */
 const REVERSE_BEFORE_MS = 60_000;
 /** Pe loc: sub atât (km/h). */

@@ -138,9 +138,14 @@ function details(p: IncomingState, state: CarState) {
   };
 }
 
+/**
+ * Starea trimisă de mașină. „În mers” ca în aplicație și la călătorii: viteza mașinii (CAN) de
+ * la 1 km/h; doar cu GPS, de la 3 km/h (GPS-ul are zgomot pe loc).
+ */
 function stateOf(p: IncomingState): CarState {
-  const speed = num(p.cs) ?? num(p.gs);
-  if (speed !== null && speed >= 3) return "driving";
+  const cs = num(p.cs);
+  const gs = num(p.gs);
+  if (cs !== null ? cs >= 1 : gs !== null && gs >= 3) return "driving";
   if ((num(p.rpm) ?? 0) > 300) return "engine";
   return p.contact ? "contact" : "off";
 }
@@ -229,7 +234,7 @@ export function readLive(): Live {
       : null;
   // Oprit cu motorul pornit după ce a mers în drumul ăsta (semafor, coloană): „în trafic”, dacă
   // nu sunt semne de parcare (frâna de mână, o ușă, marșarierul, un loc salvat) și nu stă de
-  // peste 10 minute. Altfel rămâne „Motor pornit, pe loc” (staționare).
+  // peste 5 minute. Altfel rămâne „Motor pornit, pe loc” (staționare).
   const position = readLastPosition();
   const parkedSigns =
     data?.parked === true ||

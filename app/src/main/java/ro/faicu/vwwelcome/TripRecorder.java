@@ -44,14 +44,14 @@ final class TripRecorder implements LocationListener {
     private static final long KICK_MS = 10_000;
     private boolean wasMoving;
     // Pentru „Oprit in trafic” (titlul din Acasa): a mers in drumul asta, iar acum sta pe loc
-    // cu motorul pornit de la stoppedAt (0 = nu sta). Ca pe server: cel mult 10 min.
+    // cu motorul pornit de la stoppedAt (0 = nu sta). Ca pe server: cel mult 5 min.
     private boolean movedThisDrive;
     private volatile long stoppedAt;
     // Semnale de parcare in oprirea curenta (frana de mana, usa, marsarier, loc salvat): atunci
     // nu e trafic, ci stationare. Raman pana la plecare.
     private volatile boolean parked;
     private static final long REVERSE_BEFORE_MS = 60_000;
-    private static final long TRAFFIC_MAX_MS = 10 * 60_000;
+    private static final long TRAFFIC_MAX_MS = 5 * 60_000;
     private boolean gpsOn;
     // GPS-ul n-a putut porni fiindca lipsea permisiunea; check() il porneste cand apare.
     private volatile boolean needsPermission;

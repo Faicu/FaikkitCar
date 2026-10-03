@@ -870,7 +870,7 @@ public class MainActivity extends Activity {
 
     // ---------------------------------------------------------------- locuri salvate
 
-    /** Acasa, Serviciu...: calatoriile si masina parcata se denumesc dupa ele (raza 150 m). */
+    /** Acasa, Serviciu...: calatoriile si masina parcata se denumesc dupa ele (raza 100 m). */
     private void renderPlaces() {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
