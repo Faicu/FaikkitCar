@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Stat } from "../components/Cells";
 import { FuelLog } from "../components/FuelLog";
-import { api, duration, lei, liters, num, type MonthStats, type PeriodStats } from "../api";
+import { api, day, duration, lei, liters, num, type MonthStats, type PeriodStats } from "../api";
 
 const LIVE = { refetchInterval: 30_000, staleTime: 15_000 };
 
@@ -17,6 +17,7 @@ export function CostsPage() {
   const { data: fuel } = useQuery({ queryKey: ["fuel"], queryFn: api.fuel, ...LIVE });
   return (
     <>
+      {stats && stats.months.length > 0 && <MonthReport months={stats.months} />}
       {stats && <Last30 s={stats.last30} />}
       {stats && stats.months.length > 0 && <Monthly months={stats.months} />}
       {fuel && <FuelLog fuel={fuel} />}
@@ -43,6 +44,84 @@ function Last30({ s }: { s: PeriodStats }) {
       )}
     </div>
   );
+}
+
+/**
+ * Raportul lunii: luna curentă față de cea trecută (întreagă), cu diferențele, cea mai lungă
+ * călătorie și locurile unde ai ajuns cel mai des.
+ */
+function MonthReport({ months }: { months: MonthStats[] }) {
+  const [cur, prev] = months;
+  const rows: Array<{ label: string; value: string; delta: number | null; lowerIsBetter?: boolean }> = [
+    { label: "Distanță", value: `${num(cur.km)} km`, delta: change(cur.km, prev?.km) },
+    { label: "Călătorii", value: String(cur.trips), delta: change(cur.trips, prev?.trips) },
+    { label: "Timp la volan", value: duration(cur.minutes), delta: change(cur.minutes, prev?.minutes) },
+    { label: "Oprit în trafic", value: duration(cur.trafficMin), delta: change(cur.trafficMin, prev?.trafficMin), lowerIsBetter: true },
+    { label: "Combustibil (est.)", value: `≈ ${liters(cur.liters)}`, delta: change(cur.liters, prev?.liters), lowerIsBetter: true },
+    {
+      label: "Consum (est.)",
+      value: cur.lPer100 !== null ? `${num(cur.lPer100)} L/100` : "—",
+      delta: change(cur.lPer100, prev?.lPer100),
+      lowerIsBetter: true,
+    },
+    {
+      label: "Cost (est.)",
+      value: cur.cost !== null ? lei(cur.cost) : "—",
+      delta: change(cur.cost, prev?.cost),
+      lowerIsBetter: true,
+    },
+  ];
+  return (
+    <div className="space-y-3 rounded-2xl glass-card p-4">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Raportul lunii</p>
+        <p className="text-lg font-semibold">{monthName(cur.month)}</p>
+        {prev && <p className="text-xs text-muted-foreground">față de {monthName(prev.month).toLowerCase()} (întreagă)</p>}
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <p className="text-xs text-muted-foreground">{r.label}</p>
+            <p className="font-medium">
+              {r.value}
+              {r.delta !== null && (
+                <span
+                  className={`ml-1.5 text-xs ${
+                    r.delta === 0 ? "text-muted-foreground" : (r.delta < 0) === !!r.lowerIsBetter ? "text-emerald-400" : "text-amber-400"
+                  }`}
+                >
+                  {r.delta > 0 ? "▲" : r.delta < 0 ? "▼" : "="} {Math.abs(r.delta)}%
+                </span>
+              )}
+            </p>
+          </div>
+        ))}
+      </div>
+      {(cur.longest || cur.topPlaces.length > 0) && (
+        <div className="space-y-1 border-t border-border/30 pt-2 text-sm">
+          {cur.longest && (
+            <p>
+              <span className="text-muted-foreground">Cea mai lungă: </span>
+              {num(cur.longest.km)} km, {day(cur.longest.start)}
+              {cur.longest.from || cur.longest.to ? ` · ${cur.longest.from ?? "…"} → ${cur.longest.to ?? "…"}` : ""}
+            </p>
+          )}
+          {cur.topPlaces.length > 0 && (
+            <p>
+              <span className="text-muted-foreground">Cel mai des: </span>
+              {cur.topPlaces.map((p) => `${p.name} (${p.visits})`).join(", ")}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Diferența procentuală față de luna trecută; null fără termen de comparație. */
+function change(cur: number | null, prev: number | null | undefined): number | null {
+  if (cur === null || prev == null || prev === 0) return null;
+  return Math.round(((cur - prev) / prev) * 100);
 }
 
 /** Lunile, cu bare pentru km și lei (scara = luna cea mai mare). */

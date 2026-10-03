@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
     private final List<MapView> maps = new ArrayList<>();
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
-    private JSONArray trips, log, places;
+    private JSONArray trips, log, places, suggestions;
     private JSONObject live, car, fuel, stats, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
@@ -233,12 +233,15 @@ public class MainActivity extends Activity {
         io.execute(() -> {
             try {
                 if (forTab == NOW) {
-                    // Starea vine pe firul ei (startLive); aici doar actualizarea aplicatiei.
+                    // Starea vine pe firul ei (startLive); aici actualizarea si propunerile.
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
+                    JSONArray sg = api.suggestions();
                     ui.post(() -> {
                         newerApk = apk;
+                        suggestions = sg;
                         render();
                     });
+                    ui.postDelayed(tick, 60_000);
                     return;
                 } else if (forTab == TRIPS) {
                     JSONArray t = api.trips();
@@ -354,7 +357,7 @@ public class MainActivity extends Activity {
         }
         String state = tab + "|" + selected + "|" + eventsOnly + "|" + Store.hideIdle(this) + "|"
                 + (newerApk != null) + "|"
-                + (tab == NOW ? String.valueOf(live)
+                + (tab == NOW ? live + "|" + suggestions
                         : tab == TRIPS ? trips + "|" + pointsFor
                         : tab == COSTS ? stats + "|" + fuel
                         : car + "|" + places + "|" + log);
@@ -426,6 +429,7 @@ public class MainActivity extends Activity {
      */
     private void renderNow() {
         renderUpdate();
+        renderSuggestions();
         if (live == null) {
             Ui.hint(this, content, "Se încarcă...");
             return;
@@ -514,6 +518,37 @@ public class MainActivity extends Activity {
             prow.addView(gm);
             pc.addView(prow);
             addMap(content, MapBox.position(this, lat, lon), 220);
+        }
+    }
+
+    /**
+     * Propunerile: o alimentare vazuta in rezervor, dar nescrisa in jurnal, si locurile unde
+     * parchezi des. „Da” deschide formularul precompletat, „Nu” o ascunde de tot.
+     */
+    private void renderSuggestions() {
+        if (suggestions == null || suggestions.length() == 0) return;
+        LinearLayout card = Ui.section(this, content, "Propuneri");
+        card.setBackground(Ui.round(this, 0x1438BDF8, 18));
+        for (int i = 0; i < suggestions.length(); i++) {
+            JSONObject s = suggestions.optJSONObject(i);
+            boolean refuel = "refuel".equals(s.optString("kind"));
+            String text = refuel
+                    ? "⛽ Ai alimentat pe " + Fmt.day(s.optString("at")) + ", " + Fmt.hm(s.optString("at"))
+                            + "? Rezervorul a crescut cu ~" + Fmt.num(s.optDouble("liters"), 0) + " L."
+                    : "📍 Parchezi des aici" + (s.isNull("label") ? "" : ": " + s.optString("label"))
+                            + " (" + s.optInt("visits") + " ori). Îl salvezi ca loc?";
+            TextView t = Ui.text(this, text, 15, Ui.TEXT, false);
+            t.setPadding(0, dp(this, 10), 0, 0);
+            card.addView(t);
+            Runnable yes = refuel ? () -> {
+                try {
+                    refuelDialog(new JSONObject().put("at", s.optString("at")).put("liters", s.optDouble("liters")));
+                } catch (Exception ignored) {
+                }
+            } : () -> openPlaceEditor(null, "", s.optDouble("lat"), s.optDouble("lon"), 100);
+            card.addView(actions(new String[] {refuel ? "Da, completez bonul" : "Salvează ca loc", "Nu"},
+                    new int[] {Ui.ACCENT, Ui.MUTED},
+                    new Runnable[] {yes, () -> mutate(() -> api.dismissSuggestion(s), "Ascuns")}));
         }
     }
 
@@ -855,9 +890,62 @@ public class MainActivity extends Activity {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
+        renderMonthReport(stats.optJSONArray("months"));
         renderStats(stats.optJSONObject("last30"));
         renderMonthly(stats.optJSONArray("months"));
         renderFuel();
+    }
+
+    /**
+     * Raportul lunii: luna curenta fata de cea trecuta (intreaga), cu diferentele in procente,
+     * cea mai lunga calatorie si locurile unde ai ajuns cel mai des.
+     */
+    private void renderMonthReport(JSONArray months) {
+        if (months == null || months.length() == 0) return;
+        JSONObject cur = months.optJSONObject(0), prev = months.optJSONObject(1);
+        LinearLayout card = Ui.section(this, content, "Raportul lunii");
+        card.addView(Ui.text(this, Fmt.month(cur.optString("month")), 19, Ui.TEXT, true));
+        if (prev != null) {
+            card.addView(Ui.text(this, "față de " + Fmt.month(prev.optString("month")).toLowerCase(new java.util.Locale("ro", "RO"))
+                    + " (întreagă)", 12, Ui.MUTED, false));
+        }
+        List<View> cells = new ArrayList<>();
+        cells.add(reportCell("Distanță", Fmt.num(cur.optDouble("km"), 1) + " km", cur, prev, "km", false));
+        cells.add(reportCell("Călătorii", String.valueOf(cur.optInt("trips")), cur, prev, "trips", false));
+        cells.add(reportCell("Timp la volan", Fmt.duration(cur.optDouble("minutes")), cur, prev, "minutes", false));
+        cells.add(reportCell("Oprit în trafic", Fmt.duration(cur.optDouble("trafficMin")), cur, prev, "trafficMin", true));
+        cells.add(reportCell("Combustibil", "≈ " + Fmt.liters(cur.optDouble("liters")), cur, prev, "liters", true));
+        cells.add(reportCell("Consum", cur.isNull("lPer100") ? "—" : Fmt.num(cur.optDouble("lPer100"), 1) + " L/100",
+                cur, prev, "lPer100", true));
+        cells.add(reportCell("Cost", cur.isNull("cost") ? "—" : Fmt.lei(cur.optDouble("cost")), cur, prev, "cost", true));
+        card.addView(Ui.grid(this, cells, 2));
+        JSONObject longest = cur.optJSONObject("longest");
+        if (longest != null) {
+            String route = longest.isNull("from") && longest.isNull("to") ? "" : " · "
+                    + (longest.isNull("from") ? "…" : longest.optString("from")) + " → "
+                    + (longest.isNull("to") ? "…" : longest.optString("to"));
+            Ui.hint(this, card, "Cea mai lungă: " + Fmt.num(longest.optDouble("km"), 1) + " km, "
+                    + Fmt.day(longest.optString("start")) + route);
+        }
+        JSONArray top = cur.optJSONArray("topPlaces");
+        if (top != null && top.length() > 0) {
+            List<String> names = new ArrayList<>();
+            for (int i = 0; i < top.length(); i++) {
+                JSONObject p = top.optJSONObject(i);
+                names.add(p.optString("name") + " (" + p.optInt("visits") + ")");
+            }
+            Ui.hint(this, card, "Cel mai des: " + String.join(", ", names));
+        }
+    }
+
+    /** O valoare din raport, cu diferenta fata de luna trecuta (verde = mai bine). */
+    private View reportCell(String label, String value, JSONObject cur, JSONObject prev, String key, boolean lowerIsBetter) {
+        LinearLayout box = Ui.info(this, label, value);
+        if (prev == null || cur.isNull(key) || prev.isNull(key) || prev.optDouble(key) == 0) return box;
+        long pct = Math.round((cur.optDouble(key) - prev.optDouble(key)) / prev.optDouble(key) * 100);
+        int color = pct == 0 ? Ui.MUTED : (pct < 0) == lowerIsBetter ? Ui.OK : Ui.WARN;
+        box.addView(Ui.text(this, (pct > 0 ? "▲ " : pct < 0 ? "▼ " : "= ") + Math.abs(pct) + "%", 12, color, true));
+        return box;
     }
 
     /** Ultimele 30 de zile, calculate pe server (aceleasi cifre ca pe site). */
@@ -1218,15 +1306,20 @@ public class MainActivity extends Activity {
 
     private static final DateTimeFormatter LOCAL = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * Alimentare noua (r = null), modificata (r cu id) sau propusa din rezervor (r fara id, cu
+     * ora si litrii estimati).
+     */
     private void refuelDialog(JSONObject r) {
+        boolean editing = r != null && r.has("id");
         LinearLayout form = dialogForm();
         String at = r == null ? LocalDateTime.now().format(LOCAL)
                 : LocalDateTime.ofInstant(java.time.Instant.parse(r.optString("at")), ZoneId.systemDefault()).format(LOCAL);
         EditText when = Ui.labeled(this, form, "Data și ora (AAAA-LL-ZZ OO:MM)", at, InputType.TYPE_CLASS_TEXT);
         int dec = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
         EditText liters = Ui.labeled(this, form, "Litri", r == null ? "" : num(r, "liters"), dec);
-        String price = r != null ? num(r, "price")
-                : fuel.isNull("lastPrice") ? "" : String.valueOf(fuel.optDouble("lastPrice"));
+        String price = r != null && r.has("price") ? num(r, "price")
+                : fuel == null || fuel.isNull("lastPrice") ? "" : String.valueOf(fuel.optDouble("lastPrice"));
         EditText priceField = Ui.labeled(this, form, "Preț (lei/L)", price, dec);
         EditText odo = Ui.labeled(this, form, "Kilometraj (gol = automat)", r == null ? "" : num(r, "odo"),
                 InputType.TYPE_CLASS_NUMBER);
@@ -1235,12 +1328,12 @@ public class MainActivity extends Activity {
         CheckBox full = new CheckBox(this);
         full.setText("Plin (până la oprirea pistolului)");
         full.setTextColor(Ui.TEXT);
-        full.setChecked(r == null || r.optBoolean("full"));
+        full.setChecked(editing ? r.optBoolean("full") : r == null);
         form.addView(full);
         Ui.hint(this, form, "Consumul real vine din nivelul rezervorului citit de la mașină; „Plin” ajută doar ca rezervă.");
-        showForm(r == null ? "Alimentare nouă" : "Editează alimentarea", form, () -> {
+        showForm(editing ? "Editează alimentarea" : "Alimentare nouă", form, () -> {
             JSONObject o = new JSONObject();
-            if (r != null) o.put("id", r.optInt("id"));
+            if (editing) o.put("id", r.optInt("id"));
             o.put("at", LocalDateTime.parse(when.getText().toString().trim(), LOCAL)
                     .atZone(ZoneId.systemDefault()).toInstant().toString());
             o.put("liters", parse(liters));

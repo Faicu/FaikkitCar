@@ -7,6 +7,7 @@ import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live } from "../server/live.ts";
 import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
 import type { MonthStats, PeriodStats, Stats } from "../server/stats.ts";
+import type { Suggestion } from "../server/suggestions.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
 
 export class Unauthorized extends Error {}
@@ -49,6 +50,13 @@ export const api = {
   saveReminder: (r: ReminderInput) => call<{ ok: true }>("POST", "/api/reminders", r),
   deleteReminder: (id: number) => call<{ ok: true }>("DELETE", `/api/reminders/${id}`),
   reminderDone: (id: number) => call<{ ok: true }>("POST", `/api/reminders/${id}/done`),
+  suggestions: () => call<Suggestion[]>("GET", "/api/suggestions"),
+  dismissSuggestion: (s: Suggestion) =>
+    call<{ ok: true }>("POST", "/api/suggestions/dismiss", {
+      kind: s.kind,
+      key: s.key,
+      ...(s.kind === "place" ? { lat: s.lat, lon: s.lon } : {}),
+    }),
   places: () => call<Place[]>("GET", "/api/places"),
   geocode: (q: string) => call<GeocodeResult[]>("GET", `/api/geocode?q=${encodeURIComponent(q)}`),
   savePlace: (p: PlaceInput) => call<{ ok: true }>("POST", "/api/places", p),
@@ -60,7 +68,7 @@ export const api = {
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 
-export type { FuelSummary, GeocodeResult, Live, LogEntry, MonthStats, PeriodStats, Place, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+export type { FuelSummary, GeocodeResult, Live, LogEntry, MonthStats, PeriodStats, Place, Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {

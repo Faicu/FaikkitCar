@@ -46,6 +46,7 @@ import {
 } from "./trips.ts";
 import { deletePlace, geocode, readPlaces, savePlace, type PlaceInput } from "./places.ts";
 import { readStats } from "./stats.ts";
+import { dismissSuggestion, readSuggestions } from "./suggestions.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
 
 const app = new Hono();
@@ -280,6 +281,27 @@ app.delete("/api/reminders/:id", (c) => {
 app.post("/api/reminders/:id/done", (c) => {
   requireUser(c);
   markReminderDone(Number(c.req.param("id")));
+  return c.json({ ok: true });
+});
+
+// Propunerile (alimentări văzute în rezervor, locuri unde parchează des) și respingerea lor.
+app.get("/api/suggestions", async (c) => {
+  requireUser(c);
+  return c.json(await readSuggestions());
+});
+
+app.post("/api/suggestions/dismiss", async (c) => {
+  requireUser(c);
+  const p = await json<{ kind?: unknown; key?: unknown; lat?: unknown; lon?: unknown }>(c, 1024);
+  if (typeof p.kind !== "string" || typeof p.key !== "string") {
+    throw new HTTPException(400, { message: "Lipsește propunerea" });
+  }
+  dismissSuggestion(
+    p.kind,
+    p.key,
+    typeof p.lat === "number" ? p.lat : undefined,
+    typeof p.lon === "number" ? p.lon : undefined,
+  );
   return c.json({ ok: true });
 });
 

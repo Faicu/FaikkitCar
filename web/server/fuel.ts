@@ -76,7 +76,7 @@ function readLevels(): LevelReading[] {
  * Alimentările, nivelurile și calibrarea, calculate o dată per versiune a datelor. Intră
  * călătoriile de la primul plin sau de la prima citire de nivel.
  */
-const fuelState = memo(() => {
+export const fuelState = memo(() => {
   const refuels = readRefuels();
   const levels = readLevels();
   const starts = [refuels.find((r) => r.full)?.at, levels[0]?.t].filter(

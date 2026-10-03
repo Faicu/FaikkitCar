@@ -192,6 +192,38 @@ export function levelConsumption(
   };
 }
 
+/** O alimentare văzută în nivelul rezervorului (un salt ≥ 3 L). */
+export interface LevelRefill {
+  at: string; // prima citire după salt
+  before: number; // nivelul de dinainte (mediană pe 10 minute)
+  after: number; // nivelul de după
+  liters: number; // ≈ after − before (nivelul are pași de 1 L)
+  odo: number | null;
+}
+
+/**
+ * Alimentările din nivelul rezervorului: salturi ≥ 3 L între citiri consecutive, cu nivelurile
+ * din jur ca mediane pe 10 minute (citirile oscilează cu 1 L). `readings` crescător, fuel > 0.
+ */
+export function levelRefills(readings: LevelReading[]): LevelRefill[] {
+  const jumps: number[] = [];
+  for (let i = 1; i < readings.length; i++) {
+    if (readings[i].fuel - readings[i - 1].fuel >= REFILL_JUMP) jumps.push(i);
+  }
+  return jumps
+    .map((i, n) => {
+      const before = levelAround(readings, i - 1, -1, n > 0 ? jumps[n - 1] : 0);
+      const after = levelAround(
+        readings,
+        i,
+        1,
+        n + 1 < jumps.length ? jumps[n + 1] - 1 : readings.length - 1,
+      );
+      return { at: readings[i].t, before, after, liters: after - before, odo: readings[i].odo };
+    })
+    .filter((r) => r.liters >= REFILL_JUMP);
+}
+
 /** Câte intervale plin → plin recente intră în factor (consumul se schimbă cu anotimpul). */
 const CALIBRATION_INTERVALS = 5;
 const FACTOR_MIN = 0.4;

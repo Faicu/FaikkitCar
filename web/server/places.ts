@@ -29,7 +29,7 @@ export function readPlaces(): Place[] {
     .all() as unknown as Place[];
 }
 
-function meters(a: [number, number], b: [number, number]): number {
+export function meters(a: [number, number], b: [number, number]): number {
   const rad = Math.PI / 180;
   const dLat = (b[0] - a[0]) * rad;
   const dLon = (b[1] - a[1]) * rad;
@@ -97,24 +97,47 @@ export interface GeocodeResult {
 const geocodeCache = new Map<string, GeocodeResult[]>();
 let lastGeocode = 0;
 
+async function nominatim(path: string): Promise<unknown> {
+  const wait = lastGeocode + 1_100 - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastGeocode = Date.now();
+  const res = await fetch(`https://nominatim.openstreetmap.org/${path}`, {
+    headers: { "User-Agent": "FaikkitCar/1.0 (car.faicu.ro)" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`OpenStreetMap a răspuns ${res.status}`);
+  return res.json();
+}
+
+const reverseCache = new Map<string, string | null>();
+
+/** Strada și numărul (sau locul) de la o poziție, ex. „Bulevardul Timișoara 48”; null dacă nu știm. */
+export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+  if (reverseCache.has(key)) return reverseCache.get(key) ?? null;
+  try {
+    const r = (await nominatim(
+      `reverse?format=jsonv2&zoom=18&accept-language=ro&lat=${lat}&lon=${lon}`,
+    )) as { name?: string; address?: Record<string, string> };
+    const a = r.address ?? {};
+    const street = a.road ?? a.pedestrian ?? a.neighbourhood ?? null;
+    const label = r.name || (street ? `${street}${a.house_number ? ` ${a.house_number}` : ""}` : null);
+    reverseCache.set(key, label);
+    return label;
+  } catch {
+    return null; // fără nume, propunerea apare doar cu poziția
+  }
+}
+
 /** Adresele găsite pentru `q` (ex. „Bulevardul Timișoara 48”), în România, cel mult 5. */
 export async function geocode(q: string): Promise<GeocodeResult[]> {
   const query = q.trim().slice(0, 120);
   if (query.length < 3) return [];
   const cached = geocodeCache.get(query.toLowerCase());
   if (cached) return cached;
-  const wait = lastGeocode + 1_100 - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastGeocode = Date.now();
-  const url =
-    `https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=ro&limit=5` +
-    `&accept-language=ro&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "FaikkitCar/1.0 (car.faicu.ro)" },
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!res.ok) throw new Error(`Căutarea adresei a eșuat (${res.status})`);
-  const rows = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
+  const rows = (await nominatim(
+    `search?format=jsonv2&countrycodes=ro&limit=5&accept-language=ro&q=${encodeURIComponent(query)}`,
+  )) as Array<{ display_name: string; lat: string; lon: string }>;
   const results = rows.map((r) => ({
     // Fără „România” și codul poștal la coadă: „48, Bulevardul Timișoara, Sector 6, București”.
     label: r.display_name.replace(/, \d{6}/, "").replace(/, România$/, ""),

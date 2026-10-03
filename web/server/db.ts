@@ -122,6 +122,18 @@ export function getDb(): DatabaseSync {
       created_at TEXT NOT NULL
     );
 
+    -- Propunerile respinse (alimentări văzute în rezervor, locuri unde parchează des), ca să
+    -- nu mai apară: cheia e ora alimentării sau poziția locului (lat, lon).
+    CREATE TABLE IF NOT EXISTS dismissed (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,
+      key TEXT NOT NULL,
+      lat REAL,
+      lon REAL,
+      created_at TEXT NOT NULL,
+      UNIQUE (kind, key)
+    );
+
     -- Alimentările: prețul dă costul drumurilor; plinurile sunt rezerva calibrării.
     CREATE TABLE IF NOT EXISTS refuel (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

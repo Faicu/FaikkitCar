@@ -286,6 +286,16 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   curent are viteză ≥ 3 km/h + oprit de ≤ 5 min; durata sub 10 min se afișează cu secunde.
   În mașină (1.1.38) titlul din Acasă: `TripRecorder.trafficStopMs()` (a mers în drumul ăsta,
   `stoppedAt` la oprire cu motorul pornit).
+- Propuneri (03.10, `web/server/suggestions.ts`, `GET /api/suggestions`, respingere în tabela
+  `dismissed` prin `POST /api/suggestions/dismiss`): (1) alimentare = salt ≥ 3 L în nivel
+  (`fuel-model.ts` `levelRefills`, mediane pe 10 min) fără alimentare în jurnal la ±3 h, cu
+  litrii estimați (01.10: ~16 L, cât pe bon); (2) loc = parcări (sosiri în afara locurilor +
+  opriri cu motorul oprit ≥ 3 min) grupate pe 100 m, ≥ 2 în 60 de zile, cu strada din
+  OpenStreetMap (`reverseGeocode`). Afișate sus pe Acum (site `components/Suggestions.tsx`,
+  Panel `renderSuggestions`): „Da” deschide formularul precompletat (alimentarea / editorul de
+  loc), „Nu” o ascunde. Raportul lunii (Costuri): luna curentă vs. cea trecută întreagă, cu
+  % (verde = mai bine), cea mai lungă călătorie și locurile cele mai dese (`PeriodStats.longest`,
+  `topPlaces`).
 - Locuri noi (03.10): după adresă (`GET /api/geocode?q=` → Nominatim, `places.ts` `geocode`,
   ≤ 1 cerere/s, cache, User-Agent propriu), cu pinul pe hartă (site `PlaceEditor` în
   `components/Places.tsx`, Leaflet cu marker tras + clic pe hartă + cercul razei; Panel

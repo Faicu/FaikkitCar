@@ -17,6 +17,9 @@ export interface PeriodStats {
   liters: number; // estimarea calibrată
   lPer100: number | null;
   cost: number | null;
+  // Pentru raportul lunar: cea mai lungă călătorie și locurile unde a ajuns cel mai des.
+  longest: { km: number; start: string; from: string | null; to: string | null } | null;
+  topPlaces: Array<{ name: string; visits: number }>;
 }
 
 export interface MonthStats extends PeriodStats {
@@ -52,7 +55,11 @@ function sum(trips: Trip[]): PeriodStats {
   let trafficMin = 0;
   let liters = 0;
   let cost: number | null = null;
+  let longest: Trip | null = null;
+  const visits = new Map<string, number>();
   for (const t of trips) {
+    if (!longest || t.distanceKm > longest.distanceKm) longest = t;
+    if (t.toPlace && !t.idle) visits.set(t.toPlace, (visits.get(t.toPlace) ?? 0) + 1);
     km += t.distanceKm;
     minutes += t.durationMin - t.stopMin;
     trafficMin += t.trafficMin;
@@ -67,6 +74,14 @@ function sum(trips: Trip[]): PeriodStats {
     liters: round(liters, 2),
     lPer100: km >= 1 ? round((liters / km) * 100, 1) : null,
     cost: cost === null ? null : round(cost, 2),
+    longest:
+      longest && longest.distanceKm > 0
+        ? { km: longest.distanceKm, start: longest.start, from: longest.fromPlace, to: longest.toPlace }
+        : null,
+    topPlaces: [...visits.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, n]) => ({ name, visits: n })),
   };
 }
 

@@ -96,6 +96,17 @@ final class Api {
         return new JSONArray(call("GET", "/api/geocode?q=" + enc(q), null, true, 20_000));
     }
 
+    /** Propunerile: [{kind: "refuel" | "place", key, ...}]. */
+    JSONArray suggestions() throws Exception {
+        return new JSONArray(call("GET", "/api/suggestions", null, true, 30_000));
+    }
+
+    void dismissSuggestion(JSONObject s) throws Exception {
+        JSONObject o = new JSONObject().put("kind", s.optString("kind")).put("key", s.optString("key"));
+        if (s.has("lat")) o.put("lat", s.optDouble("lat")).put("lon", s.optDouble("lon"));
+        call("POST", "/api/suggestions/dismiss", o, true);
+    }
+
     JSONArray places() throws Exception {
         return new JSONArray(call("GET", "/api/places", null, true));
     }

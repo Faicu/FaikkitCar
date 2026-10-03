@@ -4,6 +4,7 @@ import {
   calibrate,
   estimateFuel,
   levelConsumption,
+  levelRefills,
   priceAt,
   type FuelRefuel,
   type FuelSample,
@@ -168,5 +169,24 @@ describe("calibrate cu nivelul rezervorului", () => {
       ],
     );
     expect(c).toMatchObject({ calibrated: false, source: null, factor: 1 });
+  });
+});
+
+describe("levelRefills", () => {
+  it("alimentarea din 01.10: 21 → 37,5 L", () => {
+    const r = levelRefills([
+      { t: "2026-10-01T17:01:00Z", fuel: 22, odo: 245070 },
+      { t: "2026-10-01T17:12:00Z", fuel: 21, odo: 245071 },
+      { t: "2026-10-01T17:32:00Z", fuel: 38, odo: 245073 },
+      { t: "2026-10-01T17:35:00Z", fuel: 37, odo: 245074 },
+    ]);
+    expect(r).toEqual([
+      { at: "2026-10-01T17:32:00Z", before: 21, after: 37.5, liters: 16.5, odo: 245073 },
+    ]);
+  });
+
+  it("oscilațiile de 1 L nu sunt alimentări", () => {
+    const xs = [37, 38, 37, 38, 37].map((fuel, i) => ({ t: `2026-10-02T10:0${i}:00Z`, fuel, odo: null }));
+    expect(levelRefills(xs)).toEqual([]);
   });
 });

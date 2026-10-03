@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Fuel, Navigation, Wind } from "lucide-react";
 
 import { CarPosition } from "../components/CarPosition";
+import { Suggestions } from "../components/Suggestions";
 import { TripSummary } from "../components/TripView";
 import { api, duration, num, relativeTime, shortDuration, Unauthorized, type Live } from "../api";
 
@@ -32,6 +33,7 @@ export function NowPage() {
   const d = live.data;
   return (
     <>
+      <Suggestions />
       <div className="space-y-3 rounded-2xl glass-card p-4">
         <div className="flex items-center gap-3">
           <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${st.dot}`} />
