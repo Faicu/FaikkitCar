@@ -358,7 +358,10 @@ public class MainActivity extends Activity {
         homeTiles[2].setText(Double.isNaN(volt) ? "—" : String.format(Locale.US, "%.1f V", volt));
         homeTiles[3].setText(Double.isNaN(temp) ? "—" : String.format(Locale.US, "%.0f °C", temp));
         String clima = "—";
-        if (can.auto() >= 0 || can.ac() >= 0) {
+        // Climatronicul oprit: ventilatorul pe 0 (indicatorul AUTO ramane aprins si atunci).
+        if (can.fan() == 0) {
+            clima = "oprit";
+        } else if (can.auto() >= 0 || can.ac() >= 0) {
             clima = (can.auto() == 1 ? "AUTO" : "manual") + (can.ac() == 1 ? " · AC" : "");
             int tl = can.tempLeft();
             if (tl > 0 && tl < 31) clima += String.format(Locale.US, " · %.1f°", 15.5 + tl / 2.0);

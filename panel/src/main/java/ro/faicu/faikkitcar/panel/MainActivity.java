@@ -501,6 +501,8 @@ public class MainActivity extends Activity {
 
     /** Clima intr-un rand: „AUTO · AC oprit · 21 °C · ventilator 2”. */
     private static String climateLine(JSONObject cl) {
+        // Ventilatorul pe 0 = climatronicul oprit (indicatorul AUTO ramane pe 1 si atunci).
+        if (cl.has("on") && !cl.isNull("on") && !cl.optBoolean("on")) return "oprit";
         List<String> parts = new ArrayList<>();
         if (!cl.isNull("auto")) parts.add(cl.optBoolean("auto") ? "AUTO" : "manual");
         if (!cl.isNull("ac")) parts.add(cl.optBoolean("ac") ? "AC pornit" : "AC oprit");
@@ -533,7 +535,7 @@ public class MainActivity extends Activity {
             else if (d.optBoolean("belt")) ok.add("centura pusă");
         }
         if (d.optBoolean("reverse")) warn.add("În marșarier");
-        if (!d.isNull("lights") && d.has("lights")) ok.add(d.optBoolean("lights") ? "faza scurtă aprinsă" : "lumini stinse");
+        if (!d.isNull("lights") && d.has("lights")) ok.add(d.optBoolean("lights") ? "luminile aprinse" : "luminile stinse");
         for (String w : warn) {
             TextView t = Ui.text(this, "⚠ " + w, 15, Ui.WARN, true);
             t.setPadding(0, dp(this, 8), 0, 0);

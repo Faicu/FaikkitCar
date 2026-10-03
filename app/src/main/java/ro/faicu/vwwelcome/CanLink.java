@@ -45,7 +45,7 @@ final class CanLink {
     private volatile int rpm = -1, odo = -1, fuel = -1;
     // Valorile brute pentru starea live (serverul le traduce); -1 = necunoscut.
     private volatile int ac = -1, auto = -1, fan = -1, tempL = -1, tempR = -1, instant = -1,
-            belt = -1, handbrake = -1, status41 = -1;
+            belt = -1, handbrake = -1, status41 = -1, lights14 = -1;
     private volatile boolean reverse;
     private volatile long reverseOffAt; // cand a iesit ultima data din marsarier
     // Caderea de tensiune de la demaror: ultimele citiri ale tensiunii (timp, valoare) si
@@ -174,17 +174,23 @@ final class CanLink {
 
     /**
      * Cadru brut Raise (0x2E, comanda, lungime, date..., uneori precedat de 0xFF): 0x41 vine de
-     * la bord doar cu contactul pus; 0x41/1 are octetul de stare (0x20 frana de mana eliberata,
-     * 0x80 probabil luminile).
+     * la bord doar cu contactul pus; 0x41/1 are octetul de stare (0x20 = frana de mana TRASA:
+     * 161 parcat, 128 in mers pe 03.10; 0x80 sta pus si ziua, deci nu e faza scurta). 0x14 =
+     * iluminarea bordului (0 ziua, 84 cu farurile aprinse): luminile.
      */
     private void onRaw(int[] ints) {
         int o = ints[0] == 0x2E ? 0 : ints.length > 1 && ints[0] == 0xFF && ints[1] == 0x2E ? 1 : -1;
-        if (o < 0 || ints.length < o + 2 || ints[o + 1] != 0x41) return;
+        if (o < 0 || ints.length < o + 2) return;
+        if (ints[o + 1] == 0x14) {
+            if (ints.length > o + 3) lights14 = ints[o + 3];
+            return;
+        }
+        if (ints[o + 1] != 0x41) return;
         dashAt = SystemClock.elapsedRealtime();
         if (ints.length > o + 4 && ints[o + 3] == 1) {
             int v = ints[o + 4];
             if (status41 >= 0 && ((v ^ status41) & 0x20) != 0) {
-                logHandbrake("0x41/1 bitul 0x20 " + ((v & 0x20) != 0 ? "1 (eliberata)" : "0 (trasa)"));
+                logHandbrake("0x41/1 bitul 0x20 " + ((v & 0x20) != 0 ? "1 (trasa)" : "0 (eliberata)"));
             }
             status41 = v;
         }
@@ -301,13 +307,17 @@ final class CanLink {
     }
 
     /**
-     * Frana de mana trasa: bitul 0x20 din 0x41/1 (0 = trasa, confirmat la calibrare), altfel
-     * c103 (0 = trasa); false daca nu stim.
+     * Frana de mana trasa: c103 (0 = trasa, 1 = eliberata; confirmat pe drumurile din 02–03.10),
+     * altfel bitul 0x20 din 0x41/1 (pus = trasa); false daca nu stim.
      */
     boolean handbrakePulled() {
-        if (status41 >= 0) return (status41 & 0x20) == 0;
-        return handbrake == 0;
+        if (handbrake >= 0) return handbrake == 0;
+        if (status41 >= 0) return (status41 & 0x20) != 0;
+        return false;
     }
+
+    /** Iluminarea bordului din cadrul 0x14 (0 = luminile stinse); -1 daca nu stim. */
+    int lights() { return lights14; }
 
     /** Indicii (in DOORS) usilor deschise acum. */
     java.util.List<Integer> openDoors() {

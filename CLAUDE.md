@@ -224,7 +224,17 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   pe loc; integrat pe drumul din 30.09 dă 15,6 L/100 (0,7 km, oraș, rece). Se salvează și în
   `trip_point.cons` (coloană adăugată prin migrare în `db.ts`), doar în mers, ca să fie
   comparat cu rezervorul. Temperatura din habitaclu NU e transmisă de decodor.
-  Confirmat de utilizator pe 02.10 (drumul de dimineață): bitul 0x80 din 0x41/1 = faza
+  CORECTAT 03.10 (drumul de la 12:51, utilizatorul: „lumini pe AUTO, ziua, faza scurtă
+  stinsă; climatronicul oprit”): bitul 0x20 din 0x41/1 = frâna de mână TRASĂ (161 parcat cu
+  frâna trasă, 128 tot drumul în mers), deci la calibrarea din 01.10 schimbarea 160 → 128 a fost
+  la eliberare (și 0x24 6 → 4 tot la eliberare: bitul 0x02 = trasă). c103 a fost corect mereu
+  (0 = trasă, 1 = eliberată; 0 → 1 la 12:56:37, cu 4 s înainte de plecare) și e sursa
+  principală de la 1.1.42 (`CanLink.handbrakePulled`, `live.ts`). 1.1.41 le citea invers: la
+  `/api/car/trip` și în `x.parked` datele de la 1.1.41 sunt ignorate (hb = null în puncte).
+  Bitul 0x80 stă pus și ziua cu luminile pe AUTO → nu e faza scurtă; luminile = cadrul 0x14
+  (iluminarea bordului, 0 / 84), `x.l14` de la 1.1.42. Climatronicul oprit = ventilatorul 0
+  (c49 AUTO rămâne 1): `climate.on`, afișat „Climatronic oprit”.
+  (Istoric, greșit) Confirmat de utilizator pe 02.10 (drumul de dimineață): bitul 0x80 din 0x41/1 = faza
   scurtă (pornită automat de la bloc) ✓, centura (c101) ✓, clima AUTO/AC/treapta 2/21 °C
   trimisă. Frâna de mână trasă chiar înainte de contact a apărut „eliberată” (c103 = 1),
   deci de la 1.1.37 (publicat) serverul folosește bitul 0x20 din 0x41/1 (c103 doar rezervă), starea

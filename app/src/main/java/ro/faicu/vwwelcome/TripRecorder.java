@@ -247,6 +247,7 @@ final class TripRecorder implements LocationListener {
             putIfKnown(x, "belt", can.belt());
             putIfKnown(x, "hb", can.handbrake());
             putIfKnown(x, "s41", can.status41());
+            putIfKnown(x, "l14", can.lights());
             x.put("rev", can.reverse());
             x.put("doors", new org.json.JSONArray(can.openDoors()));
             x.put("parked", parked && stoppedAt != 0);

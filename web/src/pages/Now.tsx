@@ -112,8 +112,16 @@ function Tile({ label, value, unit }: { label: string; value: string; unit: stri
   );
 }
 
-/** Clima într-un singur rând: „AUTO · AC oprit · 21 °C · ventilator 2”. */
+/** Clima într-un singur rând: „AUTO · AC oprit · 21 °C · ventilator 2”, sau „oprit”. */
 function ClimateLine({ climate }: { climate: NonNullable<LiveData["climate"]> }) {
+  if (climate.on === false) {
+    return (
+      <p className="flex items-center gap-1.5 text-sm">
+        <Wind className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="text-muted-foreground">Climatronic</span> oprit
+      </p>
+    );
+  }
   const parts: string[] = [];
   if (climate.auto !== null) parts.push(climate.auto ? "AUTO" : "manual");
   if (climate.ac !== null) parts.push(climate.ac ? "AC pornit" : "AC oprit");
@@ -180,7 +188,7 @@ function CarDetails({ d }: { d: LiveData }) {
   if (d.belt === false && speed >= 5) warn.push("Centura șoferului nu e pusă");
   else if (d.belt === true) ok.push("centura pusă");
   if (d.reverse) warn.push("În marșarier");
-  if (d.lights != null) ok.push(d.lights ? "lumini aprinse" : "lumini stinse");
+  if (d.lights != null) ok.push(d.lights ? "luminile aprinse" : "luminile stinse");
   if (warn.length === 0 && ok.length === 0) return null;
   return (
     <div className="space-y-1 text-sm">

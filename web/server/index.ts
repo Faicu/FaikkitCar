@@ -80,11 +80,14 @@ app.post("/api/car/log", async (c) => {
 
 app.post("/api/car/trip", async (c) => {
   requireCarToken(c);
-  const p = await json<{ points?: unknown }>(c, 512 * 1024);
+  const p = await json<{ version?: unknown; points?: unknown }>(c, 512 * 1024);
   if (!Array.isArray(p.points) || p.points.length > MAX_POINTS_PER_REQUEST) {
     throw new HTTPException(400, { message: "Invalid points" });
   }
-  return c.json({ ok: true, added: insertPoints(p.points as IncomingPoint[]) });
+  const points = p.points as IncomingPoint[];
+  // 1.1.41 trimitea frâna de mână inversată: fără ea, opririle nu par toate parcări.
+  if (p.version === "1.1.41") for (const pt of points) pt.hb = null;
+  return c.json({ ok: true, added: insertPoints(points) });
 });
 
 // Starea de acum (contact, turație, viteză...), la ~15 s cât unitatea e trează.

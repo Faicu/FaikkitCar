@@ -16,6 +16,7 @@ import { readTrips, TRIP_GAP_MS, type Trip } from "./trips.ts";
 export type CarState = "off" | "contact" | "engine" | "traffic" | "driving";
 
 export interface IncomingState {
+  version?: string; // versiunea aplicației din mașină
   t?: number;
   contact?: boolean;
   rpm?: number | null;
@@ -38,6 +39,7 @@ export interface IncomingState {
     belt?: number;
     hb?: number;
     s41?: number;
+    l14?: number; // iluminarea bordului din cadrul 0x14 (0 = luminile stinse), 1.1.42+
     rev?: boolean;
     doors?: number[];
     parked?: boolean; // semnale de parcare în oprirea curentă (1.1.41+)
@@ -46,6 +48,7 @@ export interface IncomingState {
 
 export interface Climate {
   ac: boolean | null;
+  on: boolean | null; // climatronicul pornit (ventilatorul > 0); AUTO rămâne 1 și cu el oprit
   auto: boolean | null;
   fan: number | null; // treapta ventilatorului, cum o trimite decodorul (0 = oprit)
   setLeft: number | null; // °C setate; null = necunoscut
@@ -116,10 +119,12 @@ function details(p: IncomingState, state: CarState) {
       parked: false,
     };
   }
-  const bit = (b: number) => (x.s41 === undefined ? null : (x.s41 & b) !== 0);
-  const released = bit(0x20);
+  // 1.1.41 citea frâna de mână invers (bitul 0x20 = trasă, nu eliberată), deci semnul lui
+  // de parcare nu e de încredere.
+  const oldHandbrake = p.version === "1.1.41";
   return {
     climate: {
+      on: x.fan === undefined ? null : x.fan > 0,
       ac: x.ac === undefined ? null : x.ac === 1,
       auto: x.auto === undefined ? null : x.auto === 1,
       fan: x.fan ?? null,
@@ -129,12 +134,15 @@ function details(p: IncomingState, state: CarState) {
     instantL100: state === "driving" && x.ic !== undefined ? x.ic / 10 : null,
     doorsOpen: (x.doors ?? []).map((i) => DOORS[i]).filter((d): d is string => d !== undefined),
     belt: x.belt === undefined ? null : x.belt === 0,
-    // Bitul 0x20 din 0x41/1 s-a schimbat sigur la tragere (calibrarea din 01.10); c103 nu a
-    // reacționat la tragerea din 02.10, deci rămâne doar rezervă.
-    handbrake: released !== null ? !released : x.hb !== undefined ? x.hb === 0 : null,
+    // c103: 0 = trasă, 1 = eliberată (confirmat pe drumurile din 02–03.10); altfel bitul 0x20
+    // din 0x41/1, pus = trasă (161 parcat, 128 în mers pe 03.10).
+    handbrake:
+      x.hb !== undefined ? x.hb === 0 : x.s41 !== undefined ? (x.s41 & 0x20) !== 0 : null,
     reverse: x.rev ?? null,
-    lights: bit(0x80),
-    parked: x.parked === true,
+    // Iluminarea bordului (0x14): 0 ziua, 84 cu farurile aprinse. Bitul 0x80 din 0x41/1 stă
+    // pus și ziua, cu luminile pe AUTO, deci nu e folosit.
+    lights: x.l14 === undefined ? null : x.l14 > 0,
+    parked: x.parked === true && !oldHandbrake,
   };
 }
 

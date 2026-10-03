@@ -219,12 +219,12 @@ vs. GPS: +0,8 km/h în medie).
 | m7 c104 | Litrii din rezervor; 0 cu motorul oprit | 21 → 38 la alimentarea de 16 L |
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
-| m7 c103 | Frâna de mână | 1 = eliberată |
-| m7 raw 0x24, bitul 0x02 | Frâna de mână (confirmat din nou pe 01.10) | 6 = eliberată, 4 = trasă |
-| m7 raw 0x41/1 | Biți de stare: 0x20 = frâna de mână eliberată (confirmat), 0x80 = faza scurtă (confirmat 02.10) | 0 / 32 / 128 / 160 |
+| m7 c103 | Frâna de mână (sursa principală, confirmat pe drumurile din 02–03.10) | 1 = eliberată, 0 = trasă |
+| m7 raw 0x24, bitul 0x02 | Frâna de mână (polaritatea corectată pe 03.10) | 6 = trasă, 4 = eliberată |
+| m7 raw 0x41/1 | Biți de stare: 0x20 = frâna de mână **trasă** (161 parcat, 128 în mers, 03.10); 0x80 stă pus și ziua cu luminile pe AUTO, deci **nu** e faza scurtă | 0 / 32 / 128 / 160 / 161 |
 | m0 c68 | Marșarierul | [1, 1] = băgat; [9, 1] după ce iese; [0, 0] la pornire |
-| m7 c21, c27/c28, c11, c49 | Clima: treapta ventilatorului, temperatura stânga/dreapta (pași de 0,5 °C), AC, AUTO | 3, 11, 1, 1 |
-| m7 raw 0x14 | Luminile aprinse (iluminarea bordului) | 0 / 84 |
+| m7 c21, c27/c28, c11, c49 | Clima: treapta ventilatorului (0 = climatronic oprit), temperatura stânga/dreapta (pași de 0,5 °C), AC, AUTO (rămâne 1 și cu climatronicul oprit) | 3, 11, 1, 1 |
+| m7 raw 0x14 | Luminile aprinse (iluminarea bordului; folosit de la 1.1.42) | 0 ziua / 84 cu farurile |
 | m7 raw 0x41/2 | Cadrul de bord: turație (2 B), viteză (2 B), tensiune (2 B), temperatură (2 B), kilometraj (3 B), litri (1 B) | |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |

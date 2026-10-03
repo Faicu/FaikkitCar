@@ -219,22 +219,28 @@ final class Ui {
         return g;
     }
 
-    /** O cifra mare cu unitatea si eticheta dedesubt (antetul calatoriei, starea de acum). */
+    /**
+     * O cifra mare cu unitatea si eticheta dedesubt (antetul calatoriei, starea de acum). Pe un
+     * singur rand, micsorat automat cat sa incapa (ex. „812 rpm” intr-o casuta ingusta).
+     */
     static LinearLayout kpi(Context c, String value, String unit, String label) {
         LinearLayout box = new LinearLayout(c);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackground(round(c, 0x0AFFFFFF, 12));
         int p = dp(c, 10);
         box.setPadding(p, dp(c, 8), p, dp(c, 8));
-        LinearLayout row = new LinearLayout(c);
-        row.setGravity(Gravity.BOTTOM);
-        row.addView(text(c, value, 20, TEXT, true));
+        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(value);
         if (unit != null && !unit.isEmpty()) {
-            TextView u = text(c, " " + unit, 12, MUTED, false);
-            u.setPadding(0, 0, 0, dp(c, 2));
-            row.addView(u);
+            int from = sb.length();
+            sb.append(" ").append(unit);
+            sb.setSpan(new android.text.style.RelativeSizeSpan(0.6f), from, sb.length(), 0);
+            sb.setSpan(new android.text.style.ForegroundColorSpan(MUTED), from, sb.length(), 0);
         }
-        box.addView(row);
+        TextView v = text(c, "", 20, TEXT, true);
+        v.setText(sb);
+        v.setSingleLine(true);
+        v.setAutoSizeTextTypeUniformWithConfiguration(11, 20, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+        box.addView(v, new LinearLayout.LayoutParams(-1, dp(c, 28)));
         box.addView(text(c, label, 11, MUTED, false));
         return box;
     }
