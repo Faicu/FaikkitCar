@@ -5,7 +5,7 @@ import type { LogEntry } from "../server/log.ts";
 import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live } from "../server/live.ts";
-import type { Place, PlaceInput } from "../server/places.ts";
+import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
 import type { MonthStats, PeriodStats, Stats } from "../server/stats.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
 
@@ -50,6 +50,7 @@ export const api = {
   deleteReminder: (id: number) => call<{ ok: true }>("DELETE", `/api/reminders/${id}`),
   reminderDone: (id: number) => call<{ ok: true }>("POST", `/api/reminders/${id}/done`),
   places: () => call<Place[]>("GET", "/api/places"),
+  geocode: (q: string) => call<GeocodeResult[]>("GET", `/api/geocode?q=${encodeURIComponent(q)}`),
   savePlace: (p: PlaceInput) => call<{ ok: true }>("POST", "/api/places", p),
   deletePlace: (id: number) => call<{ ok: true }>("DELETE", `/api/places/${id}`),
   fuel: () => call<FuelSummary>("GET", "/api/fuel"),
@@ -59,7 +60,7 @@ export const api = {
   log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
 };
 
-export type { FuelSummary, Live, LogEntry, MonthStats, PeriodStats, Place, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+export type { FuelSummary, GeocodeResult, Live, LogEntry, MonthStats, PeriodStats, Place, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {

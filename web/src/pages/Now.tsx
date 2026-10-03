@@ -103,7 +103,7 @@ export function NowPage() {
 function Tile({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
     <div className="rounded-xl bg-white/[0.04] px-2.5 py-2">
-      <p className="text-lg font-semibold leading-tight">
+      <p className="whitespace-nowrap text-lg font-semibold leading-tight">
         {value}
         <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
       </p>
@@ -181,7 +181,6 @@ function CarDetails({ d }: { d: LiveData }) {
   const ok: string[] = [];
   const doors = d.doorsOpen ?? [];
   if (doors.length > 0) warn.push(`Deschis: ${doors.join(", ")}`);
-  else if (d.climate) ok.push("uși închise");
   const speed = d.speed ?? 0;
   if (d.handbrake === true) ok.push("frâna de mână trasă");
   else if (d.handbrake === false && speed < 1) warn.push("Frâna de mână e eliberată");

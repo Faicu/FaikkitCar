@@ -286,6 +286,13 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   curent are viteză ≥ 3 km/h + oprit de ≤ 5 min; durata sub 10 min se afișează cu secunde.
   În mașină (1.1.38) titlul din Acasă: `TripRecorder.trafficStopMs()` (a mers în drumul ăsta,
   `stoppedAt` la oprire cu motorul pornit).
+- Locuri noi (03.10): după adresă (`GET /api/geocode?q=` → Nominatim, `places.ts` `geocode`,
+  ≤ 1 cerere/s, cache, User-Agent propriu), cu pinul pe hartă (site `PlaceEditor` în
+  `components/Places.tsx`, Leaflet cu marker tras + clic pe hartă + cercul razei; Panel
+  `renderPlaceEditor` + `MapBox.Picker`, osmdroid cu marker tras + atingere) și raza 50–250 m;
+  „Salvează sosirea / plecarea ca loc” în detaliile călătoriei. Exemplu: Bulevardul Timișoara
+  48 → 44.42697, 26.02269. Pe Acum nu mai apare „uși închise” (doar ușile deschise).
+  Luminile: 1.1.43 scrie în jurnal „Lumini: aprinse/stinse (0x14=…)”, de confirmat la un pasaj.
 - Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază implicit 100 m; Acasă și Serviciu 100 m de pe 03.10), `web/server/places.ts`;
   `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
   parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site

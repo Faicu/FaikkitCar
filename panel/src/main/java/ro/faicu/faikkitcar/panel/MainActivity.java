@@ -183,6 +183,7 @@ public class MainActivity extends Activity {
             t.setGravity(Gravity.CENTER);
             t.setPadding(0, dp(this, 10), 0, dp(this, 10));
             t.setOnClickListener(v -> {
+                placeDraft = null; // o fila inchide editorul de loc
                 if (tab == index && index == TRIPS) selected = null; // a doua atingere: inapoi la lista
                 tab = index;
                 shown = "";
@@ -339,6 +340,18 @@ public class MainActivity extends Activity {
 
     private void render() {
         if (content == null) return;
+        if (placeDraft != null) {
+            // Editorul de loc se construieste o singura data (nu la fiecare reimprospatare),
+            // ca textul scris si pinul sa nu se piarda.
+            String state = "place|" + placeEditorGen;
+            if (state.equals(shown)) return;
+            shown = state;
+            detachMaps();
+            content.removeAllViews();
+            renderPlaceEditor();
+            scroll.post(() -> scroll.scrollTo(0, 0));
+            return;
+        }
         String state = tab + "|" + selected + "|" + eventsOnly + "|" + Store.hideIdle(this) + "|"
                 + (newerApk != null) + "|"
                 + (tab == NOW ? String.valueOf(live)
@@ -361,6 +374,10 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (placeDraft != null) {
+            closePlaceEditor();
+            return;
+        }
         // Din detaliile unei calatorii, „inapoi” duce la lista, nu iese din aplicatie.
         if (content != null && tab == TRIPS && selected != null) {
             selected = null;
@@ -440,11 +457,12 @@ public class MainActivity extends Activity {
         card.addView(row);
         JSONObject d = live.optJSONObject("data");
         if (d != null) {
+            // Unitatile in eticheta: patru casute inguste, iar „1846 rpm” nu incapea pe un rand.
             LinearLayout kpis = Ui.kpiRow(this,
-                    Ui.kpi(this, d.isNull("speed") ? "—" : String.valueOf(Math.round(d.optDouble("speed"))), "km/h", "viteză"),
-                    Ui.kpi(this, d.isNull("rpm") ? "—" : String.valueOf(d.optInt("rpm")), "rpm", "turație"),
-                    Ui.kpi(this, d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 1), "V", "baterie"),
-                    Ui.kpi(this, d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1), "°C", "afară"));
+                    Ui.kpi(this, d.isNull("speed") ? "—" : String.valueOf(Math.round(d.optDouble("speed"))), "", "viteză, km/h"),
+                    Ui.kpi(this, d.isNull("rpm") ? "—" : String.valueOf(d.optInt("rpm")), "", "turație, rpm"),
+                    Ui.kpi(this, d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 1), "", "baterie, V"),
+                    Ui.kpi(this, d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1), "", "afară, °C"));
             LinearLayout.LayoutParams klp = new LinearLayout.LayoutParams(-1, -2);
             klp.topMargin = dp(this, 12);
             card.addView(kpis, klp);
@@ -523,8 +541,6 @@ public class MainActivity extends Activity {
             List<String> names = new ArrayList<>();
             for (int i = 0; i < doors.length(); i++) names.add(doors.optString(i));
             warn.add("Deschis: " + String.join(", ", names));
-        } else if (doors != null && !d.isNull("climate")) {
-            ok.add("uși închise");
         }
         if (!d.isNull("handbrake")) {
             if (d.optBoolean("handbrake")) ok.add("frâna de mână trasă");
@@ -675,6 +691,24 @@ public class MainActivity extends Activity {
         int parts = t.optInt("parts", 1);
         tripSummary(t, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(end)
                 + (parts > 1 ? " · " + parts + " părți" : ""));
+        // Plecarea sau sosirea intr-un loc nesalvat: se salveaza direct de aici (ex. „Frizerie”).
+        JSONArray endPos = t.optJSONArray("endPos"), startPos = t.optJSONArray("startPos");
+        boolean saveEnd = t.isNull("toPlace") && endPos != null, saveStart = t.isNull("fromPlace") && startPos != null;
+        if (saveEnd || saveStart) {
+            LinearLayout sp = Ui.card(this, content);
+            if (saveEnd) {
+                TextView b = Ui.text(this, "📍 Salvează sosirea ca loc", 15, Ui.ACCENT, true);
+                b.setPadding(0, dp(this, 6), 0, dp(this, 6));
+                b.setOnClickListener(v -> openPlaceEditor(null, "", endPos.optDouble(0), endPos.optDouble(1), 100));
+                sp.addView(b);
+            }
+            if (saveStart) {
+                TextView b = Ui.text(this, "📍 Salvează plecarea ca loc", 15, Ui.ACCENT, true);
+                b.setPadding(0, dp(this, 6), 0, dp(this, 6));
+                b.setOnClickListener(v -> openPlaceEditor(null, "", startPos.optDouble(0), startPos.optDouble(1), 100));
+                sp.addView(b);
+            }
+        }
 
         String key = start + "|" + end;
         if (!key.equals(pointsFor)) {
@@ -900,20 +934,20 @@ public class MainActivity extends Activity {
 
     // ---------------------------------------------------------------- locuri salvate
 
-    /** Acasa, Serviciu...: calatoriile si masina parcata se denumesc dupa ele (raza 100 m). */
+    /** Acasa, Serviciu, Frizerie...: calatoriile, opririle si masina parcata se denumesc dupa ele. */
     private void renderPlaces() {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(Ui.text(this, "Locuri salvate", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView add = Ui.text(this, "+ Adaugă", 15, Ui.ACCENT, true);
         JSONObject pos = car.optJSONObject("position");
-        if (pos != null) {
-            TextView add = Ui.text(this, "+ Unde e mașina", 15, Ui.ACCENT, true);
-            add.setOnClickListener(v -> placeDialog(pos));
-            head.addView(add);
-        }
+        add.setOnClickListener(v -> openPlaceEditor(null, "",
+                pos == null ? null : pos.optDouble("lat"), pos == null ? null : pos.optDouble("lon"), 100));
+        head.addView(add);
         card.addView(head);
-        Ui.hint(this, card, "Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu”.");
+        Ui.hint(this, card, "Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu”. "
+                + "Un loc nou: după adresă, cu pinul mutat pe hartă.");
         if (places == null || places.length() == 0) return;
         for (int i = 0; i < places.length(); i++) {
             JSONObject p = places.optJSONObject(i);
@@ -922,12 +956,16 @@ public class MainActivity extends Activity {
             row.setBackground(Ui.round(this, Ui.CARD2, 14));
             int pad = dp(this, 12);
             row.setPadding(pad, pad, pad, pad);
-            row.addView(Ui.text(this, p.optString("name"), 16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
-            TextView map = Ui.text(this, "Hartă", 14, Ui.ACCENT, true);
-            map.setPadding(dp(this, 10), 0, dp(this, 10), 0);
-            map.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-                    "https://www.google.com/maps/search/?api=1&query=" + p.optDouble("lat") + "," + p.optDouble("lon")))));
-            row.addView(map);
+            LinearLayout texts = new LinearLayout(this);
+            texts.setOrientation(LinearLayout.VERTICAL);
+            texts.addView(Ui.text(this, p.optString("name"), 16, Ui.TEXT, true));
+            texts.addView(Ui.text(this, "rază " + p.optInt("radius") + " m", 12, Ui.MUTED, false));
+            row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView edit = Ui.text(this, "Modifică", 14, Ui.ACCENT, true);
+            edit.setPadding(dp(this, 10), 0, dp(this, 10), 0);
+            edit.setOnClickListener(v -> openPlaceEditor(p.optInt("id"), p.optString("name"),
+                    p.optDouble("lat"), p.optDouble("lon"), p.optInt("radius", 100)));
+            row.addView(edit);
             TextView del = Ui.text(this, "Șterge", 14, Ui.BAD, true);
             del.setOnClickListener(v -> confirm("Ștergi „" + p.optString("name") + "”?",
                     () -> mutate(() -> api.deletePlace(p.optInt("id")), "Loc șters")));
@@ -938,18 +976,160 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void placeDialog(JSONObject pos) {
-        LinearLayout form = dialogForm();
-        EditText name = Ui.labeled(this, form, "Nume (ex. Părinți)", "", InputType.TYPE_CLASS_TEXT);
-        Ui.hint(this, form, "Se salvează poziția mașinii de acum: " + Fmt.day(pos.optString("t")) + ", "
-                + Fmt.hm(pos.optString("t")) + ".");
-        showForm("Loc nou", form, () -> {
-            JSONObject o = new JSONObject();
-            o.put("name", text(name));
-            o.put("lat", pos.optDouble("lat"));
-            o.put("lon", pos.optDouble("lon"));
-            api.savePlace(o);
-        }, "Loc salvat");
+    // Locul in lucru: {id?, name, lat?, lon?, radius}; null = editorul e inchis.
+    private JSONObject placeDraft;
+    private int placeEditorGen;
+    private static final int[] RADII = {50, 100, 150, 250};
+
+    private void openPlaceEditor(Integer id, String name, Double lat, Double lon, int radius) {
+        try {
+            placeDraft = new JSONObject().put("name", name).put("radius", radius);
+            if (id != null) placeDraft.put("id", id);
+            if (lat != null && lon != null && !lat.isNaN()) placeDraft.put("lat", lat).put("lon", lon);
+        } catch (Exception ignored) {
+        }
+        placeEditorGen++;
+        render();
+    }
+
+    private void closePlaceEditor() {
+        placeDraft = null;
+        shown = "";
+        render();
+    }
+
+    /**
+     * Ecranul de loc: numele, cautarea adresei (OpenStreetMap), harta cu pinul (atingi harta sau
+     * tragi pinul), raza si Salveaza. Totul se actualizeaza pe loc, fara reconstruire.
+     */
+    private void renderPlaceEditor() {
+        JSONObject d = placeDraft;
+        TextView back = Ui.text(this, "‹ Înapoi", 16, Ui.ACCENT, true);
+        back.setPadding(0, dp(this, 4), 0, dp(this, 12));
+        back.setOnClickListener(v -> closePlaceEditor());
+        content.addView(back);
+        LinearLayout card = Ui.card(this, content);
+        card.addView(Ui.text(this, d.has("id") ? "Modifică locul" : "Loc nou", 19, Ui.TEXT, true));
+        EditText name = Ui.labeled(this, card, "Nume (ex. Frizerie)", d.optString("name"), InputType.TYPE_CLASS_TEXT);
+        EditText address = Ui.labeled(this, card, "Adresa (ex. Bulevardul Timișoara 48)", "", InputType.TYPE_CLASS_TEXT);
+        LinearLayout results = new LinearLayout(this);
+        results.setOrientation(LinearLayout.VERTICAL);
+        MapBox.Picker[] picker = new MapBox.Picker[1];
+        Ui.addButton(this, card, "Caută adresa", Ui.SECONDARY, v -> {
+            String q = text(address);
+            if (q.length() < 3) return;
+            v.setEnabled(false);
+            io.execute(() -> {
+                try {
+                    JSONArray r = api.geocode(q);
+                    ui.post(() -> {
+                        v.setEnabled(true);
+                        results.removeAllViews();
+                        if (r.length() == 0) Ui.hint(this, results, "Nicio adresă găsită; atinge harta ca să pui pinul.");
+                        for (int i = 0; i < r.length(); i++) {
+                            JSONObject a = r.optJSONObject(i);
+                            TextView t = Ui.text(this, a.optString("label"), 14, Ui.TEXT, false);
+                            t.setBackground(Ui.round(this, Ui.CARD2, 10));
+                            int p = dp(this, 10);
+                            t.setPadding(p, p, p, p);
+                            t.setOnClickListener(x -> {
+                                setPin(a.optDouble("lat"), a.optDouble("lon"));
+                                picker[0].set(a.optDouble("lat"), a.optDouble("lon"), true);
+                            });
+                            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+                            lp.topMargin = dp(this, 6);
+                            results.addView(t, lp);
+                        }
+                        // O singura adresa: pinul merge direct acolo.
+                        if (r.length() == 1) results.getChildAt(0).performClick();
+                    });
+                } catch (Exception e) {
+                    ui.post(() -> {
+                        v.setEnabled(true);
+                        toast(e.getMessage());
+                    });
+                }
+            });
+        });
+        card.addView(results);
+
+        picker[0] = new MapBox.Picker(this, d.has("lat") ? d.optDouble("lat") : null,
+                d.has("lon") ? d.optDouble("lon") : null, d.optInt("radius", 100), this::setPin);
+        maps.add(picker[0].map);
+        LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-1, dp(this, 280));
+        mlp.topMargin = dp(this, 12);
+        card.addView(picker[0].map, mlp);
+        Ui.hint(this, card, "Atinge harta sau trage pinul ca să-l muți.");
+
+        LinearLayout radii = new LinearLayout(this);
+        radii.setGravity(Gravity.CENTER_VERTICAL);
+        radii.addView(Ui.text(this, "Rază ", 14, Ui.MUTED, false));
+        TextView[] chips = new TextView[RADII.length];
+        for (int i = 0; i < RADII.length; i++) {
+            int r = RADII[i];
+            TextView chip = Ui.text(this, r + " m", 14, Ui.TEXT, true);
+            chip.setPadding(dp(this, 10), dp(this, 6), dp(this, 10), dp(this, 6));
+            chips[i] = chip;
+            chip.setOnClickListener(v -> {
+                try {
+                    placeDraft.put("radius", r);
+                } catch (Exception ignored) {
+                }
+                picker[0].setRadius(r);
+                styleChips(chips, r);
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+            lp.leftMargin = dp(this, 6);
+            radii.addView(chip, lp);
+        }
+        styleChips(chips, d.optInt("radius", 100));
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+        rlp.topMargin = dp(this, 10);
+        card.addView(radii, rlp);
+
+        Ui.addButton(this, card, "Salvează", Ui.PRIMARY, v -> {
+            if (!placeDraft.has("lat")) {
+                toast("Pune pinul pe hartă");
+                return;
+            }
+            if (text(name).isEmpty()) {
+                toast("Scrie un nume");
+                return;
+            }
+            JSONObject o = placeDraft;
+            io.execute(() -> {
+                try {
+                    o.put("name", text(name));
+                    api.savePlace(o);
+                    JSONArray pl = api.places();
+                    ui.post(() -> {
+                        places = pl;
+                        toast("Loc salvat");
+                        closePlaceEditor();
+                        load(true);
+                    });
+                } catch (Api.Unauthorized e) {
+                    ui.post(this::logout);
+                } catch (Exception e) {
+                    ui.post(() -> toast(e.getMessage()));
+                }
+            });
+        });
+    }
+
+    private void setPin(double lat, double lon) {
+        try {
+            placeDraft.put("lat", lat).put("lon", lon);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void styleChips(TextView[] chips, int radius) {
+        for (int i = 0; i < chips.length; i++) {
+            boolean on = RADII[i] == radius;
+            chips[i].setTextColor(on ? Ui.ACCENT : Ui.TEXT);
+            chips[i].setBackground(Ui.round(this, on ? 0x2638BDF8 : Ui.CARD2, 10));
+        }
     }
 
     // ---------------------------------------------------------------- fila Mai mult

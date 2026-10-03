@@ -91,6 +91,11 @@ final class Api {
         call("DELETE", "/api/reminders/" + id, null, true);
     }
 
+    /** Adrese gasite pentru `q` (OpenStreetMap, prin server): [{label, lat, lon}]. */
+    JSONArray geocode(String q) throws Exception {
+        return new JSONArray(call("GET", "/api/geocode?q=" + enc(q), null, true, 20_000));
+    }
+
     JSONArray places() throws Exception {
         return new JSONArray(call("GET", "/api/places", null, true));
     }

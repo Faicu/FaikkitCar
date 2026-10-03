@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Combine, MapPin, Split } from "lucide-react";
 import { toast } from "sonner";
 
+import { PlaceEditor, type PlaceDraft } from "../components/Places";
 import { TripSummary, TripSections } from "../components/TripView";
 import { TripMap } from "../components/TripMap";
 import { api, day, duration, hm, lei, liters, num, route, shortDuration, type Trip } from "../api";
@@ -118,6 +119,36 @@ export function TripsPage() {
   );
 }
 
+/** Plecarea sau sosirea într-un loc nesalvat: se poate salva direct de aici (ex. „Frizerie”). */
+function SavePlaces({ trip }: { trip: Trip }) {
+  const [draft, setDraft] = useState<PlaceDraft | null>(null);
+  const options = [
+    { label: "Salvează sosirea ca loc", pos: trip.toPlace ? null : trip.endPos },
+    { label: "Salvează plecarea ca loc", pos: trip.fromPlace ? null : trip.startPos },
+  ].filter((o): o is { label: string; pos: [number, number] } => o.pos !== null);
+  if (options.length === 0) return null;
+  return (
+    <div className="space-y-2 rounded-2xl glass-card p-3">
+      {draft ? (
+        <PlaceEditor draft={draft} onClose={() => setDraft(null)} />
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {options.map((o) => (
+            <button
+              key={o.label}
+              type="button"
+              onClick={() => setDraft({ name: "", lat: o.pos[0], lon: o.pos[1], radius: 100 })}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-sky-400 hover:bg-sky-500/10"
+            >
+              <MapPin className="h-4 w-4" /> {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Combină cu vecina sau desparte; după combinare, călătoria aleasă începe la noua plecare. */
 function JoinActions({
   trip,
@@ -229,6 +260,7 @@ function TripDetail({
           ))}
         </div>
       )}
+      <SavePlaces trip={trip} />
       <TripSections trip={trip} />
       <div className="rounded-2xl glass-card px-2 py-1">
         <JoinActions trip={trip} older={older} newer={newer} onChange={onChange} />

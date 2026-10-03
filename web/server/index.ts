@@ -44,7 +44,7 @@ import {
   splitTrip,
   type IncomingPoint,
 } from "./trips.ts";
-import { deletePlace, readPlaces, savePlace, type PlaceInput } from "./places.ts";
+import { deletePlace, geocode, readPlaces, savePlace, type PlaceInput } from "./places.ts";
 import { readStats } from "./stats.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
 
@@ -286,6 +286,12 @@ app.post("/api/reminders/:id/done", (c) => {
 app.get("/api/places", (c) => {
   requireUser(c);
   return c.json(readPlaces());
+});
+
+// Adresă → poziție, pentru adăugarea unui loc salvat (OpenStreetMap, prin server).
+app.get("/api/geocode", async (c) => {
+  requireUser(c);
+  return c.json(await geocode(c.req.query("q") ?? ""));
 });
 
 app.post("/api/places", async (c) => {

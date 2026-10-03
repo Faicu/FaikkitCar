@@ -182,7 +182,12 @@ final class CanLink {
         int o = ints[0] == 0x2E ? 0 : ints.length > 1 && ints[0] == 0xFF && ints[1] == 0x2E ? 1 : -1;
         if (o < 0 || ints.length < o + 2) return;
         if (ints[o + 1] == 0x14) {
-            if (ints.length > o + 3) lights14 = ints[o + 3];
+            if (ints.length <= o + 3) return;
+            int v = ints[o + 3];
+            // Pana confirmam pe drum (ex. intr-un pasaj, cu blocul pe AUTO): fiecare aprindere /
+            // stingere ajunge in jurnal.
+            if ((v > 0) != (lights14 > 0)) Prefs.log(c, "Lumini: " + (v > 0 ? "aprinse" : "stinse") + " (0x14=" + v + ")");
+            lights14 = v;
             return;
         }
         if (ints[o + 1] != 0x41) return;

@@ -124,4 +124,91 @@ final class MapBox {
         map.getController().setZoom(14.0);
         return map;
     }
+
+    /**
+     * Harta pentru alegerea unui loc: pinul se muta atingand harta sau tragandu-l; cercul arata
+     * raza. `onPin` primeste fiecare pozitie noua.
+     */
+    static final class Picker {
+        final MapView map;
+        private final Context c;
+        private final java.util.function.BiConsumer<Double, Double> onPin;
+        private Marker marker;
+        private org.osmdroid.views.overlay.Polygon circle;
+        private int radius;
+
+        Picker(Context c, Double lat, Double lon, int radius, java.util.function.BiConsumer<Double, Double> onPin) {
+            this.c = c;
+            this.onPin = onPin;
+            this.radius = radius;
+            map = base(c);
+            map.getOverlays().add(new org.osmdroid.views.overlay.MapEventsOverlay(
+                    new org.osmdroid.events.MapEventsReceiver() {
+                        @Override
+                        public boolean singleTapConfirmedHelper(GeoPoint p) {
+                            set(p.getLatitude(), p.getLongitude(), false);
+                            onPin.accept(p.getLatitude(), p.getLongitude());
+                            return true;
+                        }
+
+                        @Override
+                        public boolean longPressHelper(GeoPoint p) {
+                            return false;
+                        }
+                    }));
+            if (lat != null && lon != null) {
+                set(lat, lon, true);
+            } else {
+                // Bucuresti, cat nu avem alta pozitie.
+                map.getController().setZoom(12.0);
+                map.getController().setCenter(new GeoPoint(44.4268, 26.1025));
+            }
+        }
+
+        /** Muta pinul (si centreaza harta, daca `center`). */
+        void set(double lat, double lon, boolean center) {
+            GeoPoint p = new GeoPoint(lat, lon);
+            if (marker == null) {
+                marker = dot(c, map, p, Ui.ACCENT, 20);
+                marker.setDraggable(true);
+                marker.setOnMarkerDragListener(new Marker.OnMarkerDragListener() {
+                    @Override
+                    public void onMarkerDrag(Marker m) {}
+
+                    @Override
+                    public void onMarkerDragStart(Marker m) {}
+
+                    @Override
+                    public void onMarkerDragEnd(Marker m) {
+                        GeoPoint q = m.getPosition();
+                        drawCircle(q);
+                        onPin.accept(q.getLatitude(), q.getLongitude());
+                    }
+                });
+                circle = new org.osmdroid.views.overlay.Polygon(map);
+                circle.getFillPaint().setColor(0x2238BDF8);
+                circle.getOutlinePaint().setColor(Ui.ACCENT);
+                circle.getOutlinePaint().setStrokeWidth(Ui.dp(c, 1));
+                map.getOverlays().add(circle);
+                map.getOverlays().add(marker);
+            }
+            marker.setPosition(p);
+            drawCircle(p);
+            if (center) {
+                map.getController().setZoom(17.0);
+                map.getController().setCenter(p);
+            }
+            map.invalidate();
+        }
+
+        void setRadius(int r) {
+            radius = r;
+            if (marker != null) drawCircle(marker.getPosition());
+            map.invalidate();
+        }
+
+        private void drawCircle(GeoPoint p) {
+            circle.setPoints(org.osmdroid.views.overlay.Polygon.pointsAsCircle(p, radius));
+        }
+    }
 }
