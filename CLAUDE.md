@@ -426,7 +426,14 @@ Rezumatul pentru utilizator (funcții, ✅/🧪, ce urmează) e în `README.md`;
   dacă e în jurnal la ≤ 3 h, altfel diferența medianelor din jurul saltului (01.10: 16 L de
   pe bon în loc de 18 din salt). De la 8 L consumați calibrează estimarea pe drum (altfel
   plinurile, altfel factor 1). Calibrarea e în `fuelState` (memo). Rezervorul afișat =
-  mediana ultimelor 10 minute. `/api/stats` = {last30, months} din `stats.ts` (un singur
+  mediana ultimelor 10 minute.
+  Verificare 12.10 (01.10 17:01 → 11.10, 180 km pe kilometraj): 37 → 21 L + 16 L = 17 L,
+  deci 9,4 L/100 real. Călătoriile acopereau doar 158 km (aplicația a stat oprită pe 07.10
+  08:57–18:29, 17 km neînregistrați, plus drumul început înainte de prima citire), deci
+  factorul ieșea 1,08 (10–11 L/100 pe drumuri). De acum estimarea din `calibrate` e extinsă
+  la km de pe kilometraj (factor 0,94, 9,6 L/100 pe drumuri). c1033 integrat dă 17,5 L/100
+  în mers și abia variază cu viteza → NU e consumul bordului; `boardLPer100` e ascuns
+  (`BOARD_CONFIRMED = false` în `trip-math.ts`). `/api/stats` = {last30, months} din `stats.ts` (un singur
   agregator, aceleași cifre pe site și în Panel).
 - (Istoric) În lucru: nivelul combustibilului. „Car Info” afișa litrii, dar din 01.10 nu mai arată
   nimic. Sonda extinsă (CANBUS 0–1999, modulele 1–17) nu a rulat încă. Plan: „Doar

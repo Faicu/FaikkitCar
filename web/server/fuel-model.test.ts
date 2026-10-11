@@ -87,6 +87,17 @@ describe("calibrate", () => {
     expect(c.factor).toBeCloseTo(1.5);
   });
 
+  it("nivel: km neînregistrați (kilometraj > călătorii) intră în estimare", () => {
+    const levels = [
+      { t: "2026-10-01T10:00:00Z", fuel: 40, odo: 1000 },
+      { t: "2026-10-09T10:00:00Z", fuel: 30, odo: 1100 },
+    ];
+    const trips = [{ start: "2026-10-02T10:00:00Z", modelLiters: 8, distanceKm: 80 }];
+    const c = calibrate([], trips, levels);
+    expect(c.source).toBe("level");
+    expect(c.factor).toBeCloseTo(1); // 10 L reali / (8 L × 100 / 80 km)
+  });
+
   it("factorul e limitat când datele lipsesc", () => {
     const c = calibrate(
       [refuel(1, "2026-10-01", 40, true), refuel(2, "2026-10-10", 40, true)],

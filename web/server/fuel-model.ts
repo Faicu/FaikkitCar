@@ -236,7 +236,7 @@ const FACTOR_MAX = 2.5;
  */
 export function calibrate(
   refuels: FuelRefuel[],
-  trips: Array<{ start: string; modelLiters: number }>,
+  trips: Array<{ start: string; modelLiters: number; distanceKm?: number }>,
   readings: LevelReading[] = [],
 ): FuelCalibration {
   const intervals: FuelInterval[] = [];
@@ -271,9 +271,13 @@ export function calibrate(
   // Nivelul din rezervor are prioritate: nu cere plinuri și acoperă toate drumurile.
   const level = levelConsumption(readings, refuels);
   if (level && level.liters >= MIN_LEVEL_LITERS) {
-    const levelModel = trips
-      .filter((t) => t.start >= level.from && t.start <= level.to)
-      .reduce((s, t) => s + t.modelLiters, 0);
+    const inside = trips.filter((t) => t.start >= level.from && t.start <= level.to);
+    let levelModel = inside.reduce((s, t) => s + t.modelLiters, 0);
+    // Drumurile neînregistrate (aplicația oprită, 07.10: 17 km) și cel început înainte de
+    // prima citire consumă din rezervor fără estimare: estimarea se extinde la km de pe
+    // kilometraj, cu același consum pe km.
+    const tripKm = inside.reduce((s, t) => s + (t.distanceKm ?? 0), 0);
+    if (level.km !== null && tripKm > 0 && level.km > tripKm) levelModel *= level.km / tripKm;
     if (levelModel > 0) {
       return {
         factor: clamp(level.liters / levelModel),

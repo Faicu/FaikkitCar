@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, canScale, type PointRow } from "./trip-math.ts";
+import { analyze, BOARD_CONFIRMED, canScale, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -93,7 +93,7 @@ describe("analyze", () => {
   it("consumul bordului (c1033) pe porțiunile în mers", () => {
     const rows: PointRow[] = [];
     for (let i = 0; i <= 12; i++) rows.push(p(i * 5, 36, i * 0.05, { cons: 60 }));
-    expect(analyze(rows).boardLPer100).toBe(6); // 60 = 6,0 L/100 km, pe 0,6 km
+    expect(analyze(rows).boardLPer100).toBe(BOARD_CONFIRMED ? 6 : null); // 60 = 6,0 L/100 km, pe 0,6 km
   });
 });
 

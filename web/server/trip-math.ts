@@ -96,6 +96,8 @@ const MAX_ACC_M = 60;
 const CRANK_SEEN_V = 12;
 /** Scala CAN implicită (distanța GPS / viteza CAN integrată), cât nu avem destule date. */
 export const DEFAULT_CAN_SCALE = 0.95;
+/** c1033 ca L/100 km ×10 nu se potrivește cu rezervorul (vezi boardLPer100). */
+export const BOARD_CONFIRMED = false;
 
 export function pos(r: PointRow): [number, number] | null {
   if (r.lat === null || r.lon === null) return null;
@@ -360,7 +362,11 @@ export function analyze(
     // Rotațiile pe loc, împărțite între trafic și staționare după timp.
     standModelLiters:
       trafficMs + standMs > 0 ? stillRevs * FUEL_MODEL.litersPerRev * (standMs / (trafficMs + standMs)) : 0,
+    // c1033 nu e consumul bordului: integrat pe 01.10–11.10 dă 17,5 L/100 în mers, față de
+    // 9,4 L/100 din rezervor (cu relantiul), și abia variază cu viteza. Ascuns până se confirmă.
     boardLPer100:
-      movingKm >= 0.5 && boardKm >= movingKm * 0.8 ? round((boardL / boardKm) * 100) : null,
+      BOARD_CONFIRMED && movingKm >= 0.5 && boardKm >= movingKm * 0.8
+        ? round((boardL / boardKm) * 100)
+        : null,
   };
 }
