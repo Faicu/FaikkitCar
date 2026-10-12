@@ -314,7 +314,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   48 → 44.42697, 26.02269. Pe Acum nu mai apare „uși închise” (doar ușile deschise).
   Luminile: 1.1.43 scrie în jurnal „Lumini: aprinse/stinse (0x14=…)”; CONFIRMAT 12.10 (pe AUTO,
   aprinse de la 15:07 local, 0x14=81), la fel centura nepusă (c101).
-- Harta călătoriei în curs (12.10, pe toate trei): `live.ts` `readLiveRoute(after)` = traseul
+- Harta călătoriei în curs (12.10, pe toate trei; publicat: FaikkitCar 1.1.46, Panel 1.0.13): `live.ts` `readLiveRoute(after)` = traseul
   călătoriei din `readLive().trip` ca [ora, lat, lon] (doar GPS bun, cu `after` doar punctele noi)
   + `stops`; rute `GET /api/live/route` (login) și `GET /api/car/route` (CAR_TOKEN). Site
   `components/LiveTripMap.tsx` pe Acum (harta Leaflet creată o dată, cere punctele noi la
