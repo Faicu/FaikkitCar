@@ -85,6 +85,7 @@ public class WelcomeService extends Service {
                 + " s), ultima activitate "
                 + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
         Prefs.log(this, "Info: " + Prefs.deviceInfo(this).replace("\n", " | "));
+        Prefs.log(this, UnitSensors.describe(this));
         if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
             onWake("boot nou");
         } else if (alive > 0 && now - alive > thresholdMs()) {

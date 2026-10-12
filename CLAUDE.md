@@ -86,6 +86,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   limitelor, costul / litrii / traficul călătoriei în curs (sau ultima pe scurt), „Azi”, apoi
   actualizarea, mentenanța scadentă și setările lipsă. Turația, temperatura, clima, rezervorul,
   autonomia, kilometrajul, distanța și durata nu mai apar acolo (le arată bordul).
+  În `onStop` harta se eliberează (`onDetach`, fără descărcări sau memorie în fundal) și se reface la
+  revenire; în fundal rămâne doar serviciul (CAN, GPS cu motorul pornit, trimiterea la server).
+- `UnitSensors` (1.1.48): la pornirea serviciului, o linie „Temperaturi unitate: …” (senzor de aer
+  Android, temperatura „bateriei”, zonele termice) — căutăm temperatura din habitaclu fără OBD2.
 
 ## Somnul Teyes (confirmat din jurnal)
 
@@ -167,6 +171,8 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 ## Stare (12.10.2026)
 
 - În mașină FaikkitCar 1.1.45+ (actualizat din aplicație), pe telefon Panel (din aplicație).
+- Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
+  din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Netestat încă în mașină: avertizarea de ușă, contact pus cu motorul oprit, harta live pe drum.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
   adaptor OBD2 pentru consum instantaneu.

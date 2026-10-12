@@ -385,7 +385,8 @@ public class MainActivity extends Activity {
                 summaryAt = System.currentTimeMillis();
                 if (s == null) return;
                 summary = s;
-                if (route != null) routeMap().update(route);
+                // Doar cu Acasa pe ecran: in fundal (onStop) harta nu se reface.
+                if (route != null && homeHeadline != null) routeMap().update(route);
                 renderHomeTrip();
                 updateMapOverlay();
             });
@@ -893,6 +894,22 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(liveTick);
         ui.removeCallbacks(homeTick);
         if (routeMap != null) routeMap.map.onPause();
+    }
+
+    /**
+     * Cat aplicatia nu e in prim-plan, harta nu tine memorie si nu descarca nimic: o eliberam si
+     * o refacem la revenire. In fundal raman doar serviciul (datele masinii, drumurile, serverul).
+     */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (routeMap != null) {
+            if (routeMap.map.getParent() != null) ((android.view.ViewGroup) routeMap.map.getParent()).removeView(routeMap.map);
+            routeMap.map.onDetach();
+            routeMap = null;
+        }
+        homeHeadline = null;
+        summaryAt = 0; // la revenire, rezumatul si traseul se cer imediat
     }
 
     @Override

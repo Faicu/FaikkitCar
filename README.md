@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.47 (`build-47`) · FaikkitCar Panel 1.0.14 (`panel-14`) |
+| **Versiuni** | FaikkitCar 1.1.48 (`build-48`) · FaikkitCar Panel 1.0.14 (`panel-14`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -440,6 +440,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 45 | 12.10 | Sonda CAN arată și codurile climei (căutarea SYNC-ului) |
 | 46 | 12.10 | Harta călătoriei în curs pe Acasă |
 | 47 | 12.10 | Ecran nou: harta mare, doar ce nu arată bordul, meniul compact jos |
+| 48 | 12.10 | Harta nu mai ține memorie cât aplicația e în fundal; verificarea senzorilor de temperatură ai navigației (în jurnal) |
 
 ### FaikkitCar Panel (telefonul)
 
