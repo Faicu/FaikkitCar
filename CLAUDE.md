@@ -218,7 +218,7 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   ventilator, c27/c28 temperatura setată, c1033, c101 centura, c103 frâna de mână, octetul de
   stare 0x41/1 (`onRaw`, acceptă și prefixul 0xFF) și marșarierul (modulul 0, c68 = [1, 1]).
   Le trimite brute în `x` la `/api/car/state`; `live.ts` (`details`) le traduce: temperatura
-  setată = 17,5 + v/2 (11 = 23 °C, confirmat de utilizator pe 12.10; până atunci 15,5 + v/2, greșit), lumini = bitul 0x80
+  setată = 17,5 + v/2 (stânga 11 = 23 °C, dreapta 7 = 21 °C, Sync oprit, confirmat de utilizator pe 12.10; până atunci 15,5 + v/2, greșit), lumini = bitul 0x80
   (probabil). c1033 = probabil consumul instantaneu al bordului ×10 (L/100 km): crește la
   accelerare și viteză mică (până la 300 = 30 L/100), ~30 la rulare constantă, nu se schimbă
   pe loc; integrat pe drumul din 30.09 dă 15,6 L/100 (0,7 km, oraș, rece). Se salvează și în
