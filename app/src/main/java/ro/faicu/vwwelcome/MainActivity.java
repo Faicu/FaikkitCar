@@ -53,8 +53,9 @@ public class MainActivity extends Activity {
     private static final java.util.Set<String> KNOWN = new java.util.HashSet<>(java.util.Arrays.asList(
             "m7 c110", "m7 c1032", "m7 c109", "m7 c1031", "m7 c1033", "m7 c105", "m7 c1049", "m7 c106",
             "m7 c139", "m7 c104", "m7 c1", "m7 c2", "m7 c3", "m7 c4", "m7 c5", "m7 raw 0x7d", "m7 raw 0x41/2",
-            "m7 c101", "m7 c103", "m7 c21", "m7 c27", "m7 c28", "m7 c1019",
-            "m7 c10", "m7 c11", "m7 c13", "m7 c49", "m7 raw 0x21", "m7 raw 0x14",
+            "m7 c101", "m7 c103", "m7 c21", "m7 c1019",
+            // c10, c13, c27, c28 si cadrul 0x21 raman vizibile: SYNC-ul climei inca n-are cod (12.10).
+            "m7 c11", "m7 c49", "m7 raw 0x14",
             "m1 c*", "m4 c*", "m8 c*",
             "m0 c41", "m0 c114", "m0 c115", "m0 c146", "m0 c179", "m0 c101", "m0 c40", "m0 c77"));
     private TextView liveChanges;
