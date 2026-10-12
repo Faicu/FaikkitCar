@@ -312,7 +312,8 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   `renderPlaceEditor` + `MapBox.Picker`, osmdroid cu marker tras + atingere) și raza 50–250 m;
   „Salvează sosirea / plecarea ca loc” în detaliile călătoriei. Exemplu: Bulevardul Timișoara
   48 → 44.42697, 26.02269. Pe Acum nu mai apare „uși închise” (doar ușile deschise).
-  Luminile: 1.1.43 scrie în jurnal „Lumini: aprinse/stinse (0x14=…)”, de confirmat la un pasaj.
+  Luminile: 1.1.43 scrie în jurnal „Lumini: aprinse/stinse (0x14=…)”; CONFIRMAT 12.10 (pe AUTO,
+  aprinse de la 15:07 local, 0x14=81), la fel centura nepusă (c101).
 - Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază implicit 100 m; Acasă și Serviciu 100 m de pe 03.10), `web/server/places.ts`;
   `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
   parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site
