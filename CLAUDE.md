@@ -14,8 +14,12 @@ FaikkitBox s-a încheiat pe 01.10.2026 (`web/scripts/import-faikkitbox.ts`; copi
 tmux `faikkitbox` și `faikkitcar`.
 
 - `app/`: **FaikkitCar**, aplicația din mașină (+ „FaikkitCar Start” pentru autostart).
-  `applicationId` = `com.mapgoo.diruite` (lista albă Teyes, vezi mai jos), pachetul Java
-  `ro.faicu.vwwelcome` (lista de autostart Teyes reține componenta exactă). Nu le schimba.
+  `applicationId` = `com.mapgoo.diruite` (lista albă Teyes, vezi mai jos; nu-l schimba). Pachetul
+  Java e `ro.faicu.faikkitcar` (din 12.10, 1.1.49; înainte `ro.faicu.vwwelcome`). Launcher-ul și
+  lista de autostart Teyes rețin componentele vechi, deci iconițele sunt `activity-alias` cu numele
+  vechi (`ro.faicu.vwwelcome.MainActivity`, `ro.faicu.vwwelcome.StartActivity`) către activitățile
+  noi; nu redenumi alias-urile (testat în emulator: actualizare peste versiunea veche, apoi
+  `am start -n com.mapgoo.diruite/ro.faicu.vwwelcome.StartActivity` → „Pornit din autostart”).
 - `panel/`: **FaikkitCar Panel**, aplicația de pe telefon (`ro.faicu.faikkitcar.panel`).
 - `web/`: serverul **car.faicu.ro** + site-ul.
 

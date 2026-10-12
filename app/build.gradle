@@ -7,7 +7,7 @@ def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
 def keystore = System.getenv('SIGNING_KEYSTORE')
 
 android {
-    namespace 'ro.faicu.vwwelcome'
+    namespace 'ro.faicu.faikkitcar'
     compileSdk 34
 
     defaultConfig {

@@ -1,4 +1,4 @@
-package ro.faicu.vwwelcome;
+package ro.faicu.faikkitcar;
 
 import android.app.Notification;
 import android.app.NotificationChannel;

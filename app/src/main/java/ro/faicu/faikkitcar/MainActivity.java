@@ -1,4 +1,4 @@
-package ro.faicu.vwwelcome;
+package ro.faicu.faikkitcar;
 
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -42,7 +42,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import static ro.faicu.vwwelcome.Ui.dp;
+import static ro.faicu.faikkitcar.Ui.dp;
 
 /** Ecranul aplicatiei: antet cu starea, apoi file Acasa / Sunete / Setari / Jurnal. */
 public class MainActivity extends Activity {

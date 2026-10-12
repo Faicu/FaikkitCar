@@ -1,4 +1,4 @@
-package ro.faicu.vwwelcome;
+package ro.faicu.faikkitcar;
 
 import android.os.SystemClock;
 import android.util.Log;

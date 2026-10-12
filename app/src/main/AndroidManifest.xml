@@ -24,30 +24,46 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="FaikkitCar">
 
+        <!--
+            Pachetul Java e ro.faicu.faikkitcar (din 12.10), dar launcher-ul si lista de autostart
+            Teyes retin componentele vechi (com.mapgoo.diruite/ro.faicu.vwwelcome.StartActivity):
+            iconitele sunt alias-uri cu numele vechi, catre activitatile noi. Nu le redenumi.
+        -->
         <activity
             android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <activity-alias
+            android:name="ro.faicu.vwwelcome.MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <!-- A doua iconita, de pus in lista de autostart Teyes: nu afiseaza nimic. -->
         <activity
             android:name=".StartActivity"
-            android:exported="true"
+            android:exported="false"
             android:label="FaikkitCar Start"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity=""
             android:excludeFromRecents="true"
-            android:noHistory="true">
+            android:noHistory="true" />
+
+        <activity-alias
+            android:name="ro.faicu.vwwelcome.StartActivity"
+            android:exported="true"
+            android:label="FaikkitCar Start"
+            android:targetActivity=".StartActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <service
             android:name=".WelcomeService"

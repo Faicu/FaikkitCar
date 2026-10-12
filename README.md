@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.48 (`build-48`) · FaikkitCar Panel 1.0.14 (`panel-14`) |
+| **Versiuni** | FaikkitCar 1.1.49 (`build-49`) · FaikkitCar Panel 1.0.14 (`panel-14`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -379,14 +379,14 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Folder | Conținut |
 |---|---|
-| `app/` | FaikkitCar, Java fără AndroidX, UI din cod (`ro.faicu.vwwelcome`) |
+| `app/` | FaikkitCar, Java fără AndroidX, UI din cod (`ro.faicu.faikkitcar`; iconițele păstrează numele vechi `ro.faicu.vwwelcome.*`, pentru autostart-ul Teyes) |
 | `panel/` | FaikkitCar Panel, Java fără AndroidX, UI din cod, hartă osmdroid (`ro.faicu.faikkitcar.panel`) |
 | `web/server/` | API-ul: `index.ts` (rute), `auth.ts`, `db.ts`, `log.ts`, `trips.ts`, `car.ts`, `fuel.ts`, `fuel-model.ts` (+ teste), `apk.ts`, `tts.ts` |
 | `web/src/` | Site-ul: `App.tsx` (login, file), `pages/Trips.tsx`, `pages/Log.tsx`, `components/` |
 | `web/scripts/` | `import-faikkitbox.ts` (migrarea) |
 | `deploy/` | `faikkitcar.service`, `claude.service` + `claude-rc` (Remote Control) |
 
-Aplicația din mașină (`app/src/main/java/ro/faicu/vwwelcome/`):
+Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 
 | Fișier | Rol |
 |---|---|
@@ -441,6 +441,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 46 | 12.10 | Harta călătoriei în curs pe Acasă |
 | 47 | 12.10 | Ecran nou: harta mare, doar ce nu arată bordul, meniul compact jos |
 | 48 | 12.10 | Harta nu mai ține memorie cât aplicația e în fundal; verificarea senzorilor de temperatură ai navigației (în jurnal) |
+| 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 
 ### FaikkitCar Panel (telefonul)
 

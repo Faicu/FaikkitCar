@@ -1,4 +1,4 @@
-package ro.faicu.vwwelcome;
+package ro.faicu.faikkitcar;
 
 import android.content.ComponentName;
 import android.content.Intent;
