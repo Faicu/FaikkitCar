@@ -55,18 +55,7 @@ export function NowPage() {
           </div>
         )}
         {d?.climate && <ClimateLine climate={d.climate} />}
-        {d?.instantL100 != null && (
-          <p className="text-sm">
-            <span className="text-muted-foreground">Consum acum* </span>
-            {num(d.instantL100)} L/100 km
-          </p>
-        )}
         {d && <CarDetails d={d} />}
-        {d?.instantL100 != null && (
-          <p className="text-xs text-muted-foreground">
-            * consumul instantaneu al bordului (presupus; compară cu afișajul din bord).
-          </p>
-        )}
       </div>
 
       {live.trip && (

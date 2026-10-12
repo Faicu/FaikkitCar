@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.43 (`build-43`) · FaikkitCar Panel 1.0.12 (`panel-12`) |
+| **Versiuni** | FaikkitCar 1.1.47 (`build-47`) · FaikkitCar Panel 1.0.14 (`panel-14`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -23,7 +23,15 @@ a crescut într-un proiect cu trei părți:
 
 ---
 
-## Pe scurt: unde suntem (02.10.2026)
+## Pe scurt: unde suntem (12.10.2026)
+
+- 🧪 **Harta călătoriei în curs** pe site, în Panel și în mașină: de unde ai plecat, pe unde
+  ai fost și unde ești acum, actualizată pe drum (1.1.46, Panel 1.0.13).
+- 🧪 **Ecran nou în mașină** (1.1.47): harta mare, alături doar ce nu arată bordul (viteza,
+  costul și traficul drumului, bateria doar dacă e o problemă), meniul compact jos.
+- ✅ **Consumul real** verificat pe 12.10: 17 L pe 180 km = 9,4 L/100; drumurile dau 9,6.
+- ✅ **Temperaturile climei** (stânga / dreapta, și cu SYNC), **centura** și **luminile**
+  confirmate în mers pe 12.10.
 
 - ✅ **Sunetul de bun venit** merge după opririle scurte (autostart Teyes) și după
   hibernare. Începutul se tăia după un somn lung; de la 1.1.28 se redă întâi 1,2 s de
@@ -36,8 +44,6 @@ a crescut într-un proiect cu trei părți:
 - ✅ **Salutul vorbit** merge, cu vocea Piper „Mihai” de pe server (vocile Google de pe
   navigație sună robotic).
 - ✅ **Actualizarea din aplicație** merge (1.1.24 → 1.1.27 → 1.1.30 → 1.1.31).
-- ✅ **În mașină rulează FaikkitCar 1.1.34**, pe telefon Panel 1.0.2. Coada păstrată de
-  1.1.31 a ajuns pe car.faicu.ro.
 - ✅ **Contactul dedus din datele de bord** se potrivește cu realitatea pe drumurile din
   01.10 seara: „luat” exact la oprirea motorului, „pus” la pornire. Netestat încă: contact
   pus cu motorul oprit („Doar contact”).
@@ -54,9 +60,8 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează actualizările:** FaikkitCar 1.1.43 (în mașină, „Actualizează acum”) și
-   Panel 1.0.12 (pe telefon, la fel). Apoi de comparat cu bordul: temperaturile setate ale
-   climei și consumul instantaneu („Consum acum”).
+1. **Instalează actualizările** (FaikkitCar și Panel, „Actualizează acum”) și încearcă harta
+   pe un drum.
 2. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
    să iasă costul pe drum. Plinul nu mai e necesar.
 3. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
@@ -86,12 +91,12 @@ a crescut într-un proiect cu trei părți:
 | Funcție | Stare | Detalii |
 |---|---|---|
 | Nume nou: FaikkitCar / FaikkitCar Start | 🧪 | Din 1.1.32. Pachetul și componentele rămân aceleași, deci lista albă și autostart-ul Teyes nu se schimbă |
-| Interfață (temă întunecată, file Acasă / Sunete / Setări / Jurnal) | ✅ | |
+| Interfață (temă întunecată, file Acasă / Sunete / Setări / Jurnal) | ✅ | De la 1.1.47 meniul e o bară compactă jos |
 | Iconița FaikkitCar (săgeată de navigație) | 🧪 | Din 1.1.34, la fel în Panel și pe site |
 | Jurnal trimis live la server | ✅ | Coadă locală (2.000 de linii); la orice eroare a serverului datele rămân în coadă |
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează |
-| Acasă ca tablou de bord | 🧪 | Starea mașinii, viteza, turația, bateria, afară, clima, rezervorul cu autonomia, călătoria în curs și ziua de azi; sunetul de bun venit rămâne, compact (de la 1.1.41) |
+| Acasă: harta și ce nu arată bordul | 🧪 | De la 1.1.47: harta mare (călătoria în curs sau ultima, mașina pe ea) și alături viteza, starea, costul / litrii / traficul drumului, ziua de azi, bateria doar în afara limitelor, actualizarea și mentenanța scadentă. Turația, temperaturile, clima, rezervorul și kilometrajul le arată bordul, deci nu mai apar. Informațiile despre sunet sunt în fila Sunete |
 | Sonda CAN | ✅ | Calibrarea ghidată nu mai e necesară (toate codurile folosite sunt confirmate); în Setări („avansat”) rămâne sonda: 10 minute, marcaje cu text, schimbările live |
 | Scos | — | Diagnosticul Teyes, sonda CAN separată, pasul „rezervor” (codul e confirmat) |
 
@@ -117,8 +122,8 @@ a crescut într-un proiect cu trei părți:
 | Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
 | Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server) |
-| Acum: climă și detalii | 🧪 | De la 1.1.36: AC, AUTO, ventilator, temperaturile setate (formula de confirmat), afară; uși deschise, centură, frâna de mână, marșarier, faza scurtă, consumul instantaneu al bordului (c1033, presupus). Habitaclul nu e transmis de decodor |
-| Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost, cu întârziere de ~30 s |
+| Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși deschise, centură, frâna de mână, marșarier, lumini (confirmate pe 12.10). Habitaclul și consumul instantaneu nu sunt transmise de decodor |
+| Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și **harta live** (plecarea, traseul, mașina acum, opririle; o poți muta, „Urmărește mașina” o readuce) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
 | Costuri: 30 de zile și pe luni | 🧪 | Pe luni: km, timp, litri, L/100, cost estimat și ce s-a dat la pompă, cu bare |
@@ -430,12 +435,20 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 31 | 01.10 | Calibrare doar pentru ce e nesigur, cu motorul pornit (AC/AUTO, frână, marșarier, lumini, temperatură, rezervor) |
 | 32 | 01.10 | **FaikkitCar:** nume nou, totul pe car.faicu.ro, calibrarea redusă la c107 și marșarier (în Setări) |
 | 33 | 01.10 | Fără schimbări în aplicație (build declanșat de modificările CI-ului) |
+| 34–43 | 01.10–03.10 | Starea live, clima și detaliile, frâna de mână corectată, bateria la pornire, opririle în trafic, locurile, Acasă ca tablou de bord |
+| 44 | 12.10 | Temperatura setată a climei corectată (+2 °C) |
+| 45 | 12.10 | Sonda CAN arată și codurile climei (căutarea SYNC-ului) |
+| 46 | 12.10 | Harta călătoriei în curs pe Acasă |
+| 47 | 12.10 | Ecran nou: harta mare, doar ce nu arată bordul, meniul compact jos |
 
 ### FaikkitCar Panel (telefonul)
 
 | Build | Data | Ce a adus |
 |---|---|---|
 | 1 (1.0.1) | 01.10 | Prima versiune: login, poziția, totaluri, călătorii cu hartă și grafic, alimentări, mentenanță, jurnal, actualizare din aplicație |
+| 2–12 | 01.10–03.10 | Patru file ca site-ul, starea live, combinarea călătoriilor, locuri, propuneri, raportul lunii, jurnal de service |
+| 13 | 12.10 | Harta live a călătoriei în curs |
+| 14 | 12.10 | Scos „Consum acum” / „Bordul” (valoarea nu era consumul) |
 
 ### Serverul
 
@@ -443,6 +456,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 |---|---|
 | 29.09–01.10 | În FaikkitBox (`status.faicu.ro/vw`, `/calatorii`): jurnal, călătorii, mentenanță, APK, alimentări, consum, vocea Piper, rezervorul |
 | 01.10 | **car.faicu.ro** separat (`/opt/faikkitcar`), date migrate, FaikkitBox curățat |
+| 12.10 | Consumul nu mai e umflat de drumurile neînregistrate (extins la km de pe kilometraj); scos consumul „de pe bord”; traseul live (`/api/live/route`, `/api/car/route`) |
 
 ---
 
@@ -454,7 +468,8 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 - **Vocea Piper** cere internet în momentul salutului; altfel se folosește vocea Google,
   robotică.
 - **Consumul pe drum** e o estimare (±10–15% pe un drum, exact pe sumă după corecție).
-  Drumurile neînregistrate (fără GPS sau cu înregistrarea oprită) umflă puțin corecția.
+  Drumurile neînregistrate nu mai strică corecția (se iau în calcul din kilometraj), dar
+  nu apar în lista de călătorii.
 - **Pachetul `com.mapgoo.diruite`** e împrumutat de pe lista albă Teyes. Dacă un firmware
   nou schimbă lista, aplicația poate fi din nou închisă la somn, iar jurnalul o arată imediat.
 - **Codurile CAN** sunt găsite empiric pe această mașină și pe acest decodor. Alt decodor

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Harta calatoriei in curs pe ecranul Acasa (OpenStreetMap, osmdroid): verde = plecarea,
+ * Harta calatoriei in curs (sau a ultimei) pe ecranul Acasa (OpenStreetMap, osmdroid): verde = plecarea,
  * linia = pe unde a fost, albastru = unde e masina acum, galben = opririle cu motorul oprit.
  * Aceeasi harta ramane intre redesenari si primeste doar punctele noi de la /api/car/route;
  * urmareste masina pana o misti, apoi „Urmareste” o readuce.
@@ -35,8 +35,7 @@ final class RouteMap {
     volatile String tripStart; // calatoria afisata
     volatile String lastT; // ora ultimului punct primit
     boolean follow = true;
-    boolean touching; // cat e atinsa, ecranul nu se redeseneaza (ar taia gestul)
-    Runnable onTouchEnd;
+    Runnable onTouchEnd; // dupa un gest (apare „Urmareste masina”)
 
     static void init(Context c) {
         // OpenStreetMap cere un User-Agent propriu; cache-ul de dale sta in folderul aplicatiei.
@@ -61,12 +60,8 @@ final class RouteMap {
             boolean end = e.getAction() == MotionEvent.ACTION_UP
                     || e.getAction() == MotionEvent.ACTION_CANCEL;
             v.getParent().requestDisallowInterceptTouchEvent(!end);
-            if (e.getAction() == MotionEvent.ACTION_DOWN) touching = true;
             if (e.getAction() == MotionEvent.ACTION_MOVE) follow = false;
-            if (end) {
-                touching = false;
-                if (onTouchEnd != null) map.post(onTouchEnd);
-            }
+            if (end && onTouchEnd != null) map.post(onTouchEnd);
             return false;
         });
         line = new Polyline(map);

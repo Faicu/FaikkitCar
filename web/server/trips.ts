@@ -31,7 +31,7 @@ export interface IncomingPoint {
   temp?: number | null; // temperatura exterioară, °C
   odo?: number | null; // kilometraj, km
   fuel?: number | null; // litri în rezervor
-  ic?: number | null; // probabil consumul instantaneu al bordului (c1033), L/100 km x10
+  ic?: number | null; // c1033 brut (nu e consumul, vezi CLAUDE.md); păstrat în trip_point.cons
   cv?: number | null; // tensiunea minimă la pornirea motorului (demarorul), V
   ac?: number | null; // AC pornit 1/0
   fan?: number | null; // treapta ventilatorului
@@ -161,7 +161,7 @@ const allTrips = memo((): Trip[] => {
   const since = new Date(Date.now() - HISTORY_DAYS * 86_400_000).toISOString();
   const rows = getDb()
     .prepare(
-      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
+      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, crank,
               ac, belt, hb, door, rev
        FROM trip_point WHERE device_at >= ? ORDER BY device_at`,
     )

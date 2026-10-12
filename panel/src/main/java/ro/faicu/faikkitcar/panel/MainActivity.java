@@ -509,10 +509,6 @@ public class MainActivity extends Activity {
                 line.setPadding(0, dp(this, 10), 0, 0);
                 card.addView(line);
             }
-            if (!d.isNull("instantL100") && d.has("instantL100")) {
-                Ui.hint(this, card, "Consum acum*: " + Fmt.num(d.optDouble("instantL100"), 1)
-                        + " L/100 km (bordul; presupus, compară cu afișajul)");
-            }
             renderCarDetails(card, d);
         }
 
@@ -738,14 +734,11 @@ public class MainActivity extends Activity {
         fc.add(Ui.info(this, "Combustibil (est.)", t.isNull("fuelL") ? "—" : "≈ " + Fmt.liters(t.optDouble("fuelL"))));
         fc.add(Ui.info(this, "Consum (est.)", t.isNull("lPer100") ? "—" : Fmt.num(t.optDouble("lPer100"), 1) + " L/100"));
         fc.add(Ui.info(this, "Cost (est.)", t.isNull("cost") ? "—" : Fmt.lei(t.optDouble("cost"))));
-        boolean board = t.has("boardLPer100") && !t.isNull("boardLPer100");
-        if (board) fc.add(Ui.info(this, "Bordul, în mers*", Fmt.num(t.optDouble("boardLPer100"), 1) + " L/100"));
         if (!t.isNull("fuelStart") && !t.isNull("fuelEnd")) {
             fc.add(Ui.info(this, "Rezervor", Fmt.num(t.optDouble("fuelStart"), 0) + " → "
                     + Fmt.num(t.optDouble("fuelEnd"), 0) + " L"));
         }
         fuelCard.addView(Ui.grid(this, fc, 3));
-        if (board) Ui.hint(this, fuelCard, "* din consumul instantaneu al bordului (c1033), de confirmat cu afișajul.");
 
         LinearLayout car = Ui.section(this, content, "Mașina");
         List<View> cc = new ArrayList<>();

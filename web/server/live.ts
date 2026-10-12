@@ -8,7 +8,7 @@
 import { readLastPosition, type Position } from "./car.ts";
 import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
-import { BOARD_CONFIRMED, TRAFFIC_MAX_MS } from "./trip-math.ts";
+import { TRAFFIC_MAX_MS } from "./trip-math.ts";
 import { readTripPoints, readTrips, TRIP_GAP_MS, type Trip, type TripStop } from "./trips.ts";
 
 // „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive), cu aceeași
@@ -35,7 +35,6 @@ export interface IncomingState {
     fan?: number;
     tl?: number;
     tr?: number;
-    ic?: number;
     belt?: number;
     hb?: number;
     s41?: number;
@@ -67,7 +66,6 @@ export interface LiveData {
   odo: number | null;
   climate: Climate | null; // null = aplicația din mașină nu le trimite încă (< 1.1.36)
   // Probabil consumul instantaneu al bordului (c1033 / 10), L/100 km; doar în mers.
-  instantL100: number | null;
   doorsOpen: string[];
   belt: boolean | null; // centura șoferului pusă
   handbrake: boolean | null; // trasă
@@ -110,7 +108,6 @@ function details(p: IncomingState, state: CarState) {
   if (!x) {
     return {
       climate: null,
-      instantL100: null,
       doorsOpen: [],
       belt: null,
       handbrake: null,
@@ -131,9 +128,6 @@ function details(p: IncomingState, state: CarState) {
       setLeft: setTemp(x.tl),
       setRight: setTemp(x.tr),
     },
-    // c1033 nu e consumul (vezi BOARD_CONFIRMED în trip-math.ts).
-    instantL100:
-      BOARD_CONFIRMED && state === "driving" && x.ic !== undefined ? x.ic / 10 : null,
     doorsOpen: (x.doors ?? []).map((i) => DOORS[i]).filter((d): d is string => d !== undefined),
     belt: x.belt === undefined ? null : x.belt === 0,
     // c103: 0 = trasă, 1 = eliberată (confirmat pe drumurile din 02–03.10); altfel bitul 0x20
@@ -293,11 +287,17 @@ export interface LiveRoute {
   // [ora, lat, lon], doar punctele cu GPS bun; cu `after`, doar cele mai noi.
   points: Array<[string, number, number]>;
   stops: TripStop[];
+  current: boolean; // false = ultima călătorie, încheiată
 }
 
-/** Null dacă nu e nicio călătorie în curs. `after` = ora ultimului punct deja primit. */
-export function readLiveRoute(after?: string): LiveRoute | null {
-  const trip = readLive().trip;
+/**
+ * Null dacă nu e nicio călătorie în curs (cu `orLast`, atunci ultima călătorie, ca harta din
+ * mașină să arate drumul de dinainte și unde a rămas parcată). `after` = ora ultimului punct
+ * deja primit.
+ */
+export function readLiveRoute(after?: string, orLast = false): LiveRoute | null {
+  const current = readLive().trip;
+  const trip = current ?? (orLast ? (readTrips(1)[0] ?? null) : null);
   if (!trip) return null;
   const from = after && after > trip.start ? after : trip.start;
   const points: LiveRoute["points"] = [];
@@ -305,7 +305,7 @@ export function readLiveRoute(after?: string): LiveRoute | null {
     if (p.lat === null || p.lon === null || (after && p.t <= after)) continue;
     points.push([p.t, Math.round(p.lat * 1e6) / 1e6, Math.round(p.lon * 1e6) / 1e6]);
   }
-  return { start: trip.start, fromPlace: trip.fromPlace, points, stops: trip.stops };
+  return { start: trip.start, fromPlace: trip.fromPlace, points, stops: trip.stops, current: current !== null };
 }
 
 export interface CarSummary {

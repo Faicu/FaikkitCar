@@ -243,7 +243,6 @@ final class TripRecorder implements LocationListener {
             putIfKnown(x, "fan", can.fan());
             putIfKnown(x, "tl", can.tempLeft());
             putIfKnown(x, "tr", can.tempRight());
-            putIfKnown(x, "ic", can.instant());
             putIfKnown(x, "belt", can.belt());
             putIfKnown(x, "hb", can.handbrake());
             putIfKnown(x, "s41", can.status41());
@@ -252,11 +251,8 @@ final class TripRecorder implements LocationListener {
             x.put("doors", new org.json.JSONArray(can.openDoors()));
             x.put("parked", parked && stoppedAt != 0);
             s.put("x", x);
-            // Fara consumul instantaneu (se schimba mereu); restul declanseaza trimiterea.
-            Object ic = x.remove("ic");
-            String details = x.toString();
-            if (ic != null) x.put("ic", ic);
-            LiveState.maybeSend(kind, details, s);
+            // Orice schimbare de detaliu declanseaza trimiterea.
+            LiveState.maybeSend(kind, x.toString(), s);
         } catch (JSONException ignored) {
         }
     }

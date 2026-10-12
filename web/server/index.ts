@@ -135,7 +135,7 @@ app.get("/api/car/summary", (c) => {
 // Traseul călătoriei în curs, pentru harta de pe ecranul din mașină (?after = ultimul punct).
 app.get("/api/car/route", (c) => {
   requireCarToken(c);
-  return c.json(readLiveRoute(c.req.query("after")));
+  return c.json(readLiveRoute(c.req.query("after"), c.req.query("last") === "1"));
 });
 
 app.post("/api/car/tts", async (c) => {

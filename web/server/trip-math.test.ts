@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, BOARD_CONFIRMED, canScale, type PointRow } from "./trip-math.ts";
+import { analyze, canScale, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -18,7 +18,6 @@ function p(s: number, speed: number, lonKm: number | null, extra: Partial<PointR
     temp: 12,
     odo: 245000,
     fuel: 37,
-    cons: null,
     crank: null,
     ac: null,
     belt: null,
@@ -90,11 +89,6 @@ describe("analyze", () => {
     expect(m.durationMin).toBeCloseTo(2.3, 1);
   });
 
-  it("consumul bordului (c1033) pe porțiunile în mers", () => {
-    const rows: PointRow[] = [];
-    for (let i = 0; i <= 12; i++) rows.push(p(i * 5, 36, i * 0.05, { cons: 60 }));
-    expect(analyze(rows).boardLPer100).toBe(BOARD_CONFIRMED ? 6 : null); // 60 = 6,0 L/100 km, pe 0,6 km
-  });
 });
 
 describe("bateria", () => {

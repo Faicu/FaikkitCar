@@ -132,9 +132,6 @@ export function TripSections({ trip }: { trip: Trip }) {
         <Row label="Combustibil (est.)" value={trip.fuelL !== null ? `≈ ${liters(trip.fuelL)}` : "—"} />
         <Row label="Consum (est.)" value={trip.lPer100 !== null ? `${num(trip.lPer100)} L/100` : "—"} />
         <Row label="Cost (est.)" value={trip.cost !== null ? lei(trip.cost) : "—"} />
-        {trip.boardLPer100 !== null && (
-          <Row label="Bordul, în mers*" value={`${num(trip.boardLPer100)} L/100`} />
-        )}
         {trip.fuelStart !== null && trip.fuelEnd !== null && (
           <Row label="Rezervor" value={`${trip.fuelStart} → ${trip.fuelEnd} L`} />
         )}
@@ -171,11 +168,6 @@ export function TripSections({ trip }: { trip: Trip }) {
         />
         <Row label="Kilometraj" value={trip.odoEnd !== null ? `${trip.odoEnd.toLocaleString("ro-RO")} km` : "—"} />
       </Section>
-      {trip.boardLPer100 !== null && (
-        <p className="px-1 text-xs text-muted-foreground">
-          * din consumul instantaneu al bordului (c1033), de confirmat cu afișajul din bord.
-        </p>
-      )}
     </>
   );
 }

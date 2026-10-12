@@ -73,12 +73,13 @@ final class VwStatus {
     }
 
     /**
-     * Traseul calatoriei in curs (/api/car/route), cu `after` doar punctele noi. Null fara
-     * calatorie in curs sau fara internet; pe un fir de fundal.
+     * Traseul calatoriei in curs sau al ultimei (/api/car/route), cu `after` doar punctele noi.
+     * Null fara calatorii sau fara internet; pe un fir de fundal.
      */
     static JSONObject route(String after) {
         try {
-            String q = after == null ? "" : "?after=" + java.net.URLEncoder.encode(after, "UTF-8");
+            // last=1: fara calatorie in curs, ultima (harta arata unde a ramas masina).
+            String q = "?last=1" + (after == null ? "" : "&after=" + java.net.URLEncoder.encode(after, "UTF-8"));
             HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/car/route" + q).openConnection();
             conn.setConnectTimeout(8_000);
             conn.setReadTimeout(10_000);
