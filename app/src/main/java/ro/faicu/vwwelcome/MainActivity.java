@@ -364,7 +364,7 @@ public class MainActivity extends Activity {
         } else if (can.auto() >= 0 || can.ac() >= 0) {
             clima = (can.auto() == 1 ? "AUTO" : "manual") + (can.ac() == 1 ? " · AC" : "");
             int tl = can.tempLeft();
-            if (tl > 0 && tl < 31) clima += String.format(Locale.US, " · %.1f°", 15.5 + tl / 2.0);
+            if (tl > 0 && tl < 31) clima += String.format(Locale.US, " · %.1f°", 17.5 + tl / 2.0);
         }
         homeTiles[4].setText(clima);
         StringBuilder sub = new StringBuilder();

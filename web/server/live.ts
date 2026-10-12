@@ -100,9 +100,10 @@ function num(x: unknown): number | null {
  * Temperatura setată din codul decodorului: pași de 0,5 °C, 11 = 21 °C (valoarea de fabrică
  * VW). De confirmat cu afișajul climei; 0 și ≥ 31 ar fi LO / HI.
  */
+/** Confirmat 12.10: 11 = 23 °C pe afișaj (pași de 0,5 °C, 30.09). */
 function setTemp(v: number | undefined): number | null {
   if (v === undefined || v <= 0 || v >= 31) return null;
-  return 15.5 + v / 2;
+  return 17.5 + v / 2;
 }
 
 function details(p: IncomingState, state: CarState) {
