@@ -8,7 +8,7 @@
 import { readLastPosition, type Position } from "./car.ts";
 import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
-import { TRAFFIC_MAX_MS } from "./trip-math.ts";
+import { BOARD_CONFIRMED, TRAFFIC_MAX_MS } from "./trip-math.ts";
 import { readTrips, TRIP_GAP_MS, type Trip } from "./trips.ts";
 
 // „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive), cu aceeași
@@ -131,7 +131,9 @@ function details(p: IncomingState, state: CarState) {
       setLeft: setTemp(x.tl),
       setRight: setTemp(x.tr),
     },
-    instantL100: state === "driving" && x.ic !== undefined ? x.ic / 10 : null,
+    // c1033 nu e consumul (vezi BOARD_CONFIRMED în trip-math.ts).
+    instantL100:
+      BOARD_CONFIRMED && state === "driving" && x.ic !== undefined ? x.ic / 10 : null,
     doorsOpen: (x.doors ?? []).map((i) => DOORS[i]).filter((d): d is string => d !== undefined),
     belt: x.belt === undefined ? null : x.belt === 0,
     // c103: 0 = trasă, 1 = eliberată (confirmat pe drumurile din 02–03.10); altfel bitul 0x20
