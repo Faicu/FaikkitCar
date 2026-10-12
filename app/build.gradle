@@ -51,3 +51,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 }
+
+dependencies {
+    // Harta calatoriei in curs (OpenStreetMap), ca in Panel.
+    implementation 'org.osmdroid:osmdroid-android:6.1.20'
+}

@@ -314,6 +314,17 @@ utilizator la fiecare trezire din hibernare (ACC ON). Detaliile de funcționare 
   48 → 44.42697, 26.02269. Pe Acum nu mai apare „uși închise” (doar ușile deschise).
   Luminile: 1.1.43 scrie în jurnal „Lumini: aprinse/stinse (0x14=…)”; CONFIRMAT 12.10 (pe AUTO,
   aprinse de la 15:07 local, 0x14=81), la fel centura nepusă (c101).
+- Harta călătoriei în curs (12.10, pe toate trei): `live.ts` `readLiveRoute(after)` = traseul
+  călătoriei din `readLive().trip` ca [ora, lat, lon] (doar GPS bun, cu `after` doar punctele noi)
+  + `stops`; rute `GET /api/live/route` (login) și `GET /api/car/route` (CAR_TOKEN). Site
+  `components/LiveTripMap.tsx` pe Acum (harta Leaflet creată o dată, cere punctele noi la
+  fiecare stare live; urmărește mașina până o tragi, butonul „Urmărește mașina”), Panel
+  `MapBox.LiveRoute` (aceeași MapView mutată între redesenări, `setDestroyMode(false)`; cât e
+  atinsă, `render()` așteaptă) și mașina `RouteMap` (osmdroid adăugat în `app/`, sub cifrele
+  călătoriei în curs, la 15 s odată cu rezumatul). Verde = plecare, albastru = acum, galben =
+  opririle cu motorul oprit. În timpul călătoriei harta „Unde e mașina” nu mai apare separat.
+  Test: server de probă pe portul 3999 (`FAIKKITCAR_DATA_DIR`, copie prin `VACUUM INTO`) +
+  APK-uri de test cu adresa `http://10.0.2.2:3999` (nu trimite nimic la serverul real).
 - Locuri salvate (02.10): tabela `place` (nume, lat, lon, rază implicit 100 m; Acasă și Serviciu 100 m de pe 03.10), `web/server/places.ts`;
   `placeAt` denumește plecarea/sosirea (`Trip.fromPlace/toPlace`), opririle și mașina
   parcată (`Position.place`). Rute `GET|POST /api/places`, `DELETE /api/places/:id`; pe site

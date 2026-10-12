@@ -9,7 +9,7 @@ import { readLastPosition, type Position } from "./car.ts";
 import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
 import { BOARD_CONFIRMED, TRAFFIC_MAX_MS } from "./trip-math.ts";
-import { readTrips, TRIP_GAP_MS, type Trip } from "./trips.ts";
+import { readTripPoints, readTrips, TRIP_GAP_MS, type Trip, type TripStop } from "./trips.ts";
 
 // „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive), cu aceeași
 // limită ca la călătorii (trip-math.ts).
@@ -285,6 +285,28 @@ const estimatedLPer100 = memo((): number | null => {
   const liters = trips.reduce((s, t) => s + (t.fuelL ?? 0), 0);
   return km >= 5 ? (liters / km) * 100 : null;
 }, hourKey);
+
+/** Traseul călătoriei în curs, pentru harta live (site, Panel, mașină). */
+export interface LiveRoute {
+  start: string;
+  fromPlace: string | null;
+  // [ora, lat, lon], doar punctele cu GPS bun; cu `after`, doar cele mai noi.
+  points: Array<[string, number, number]>;
+  stops: TripStop[];
+}
+
+/** Null dacă nu e nicio călătorie în curs. `after` = ora ultimului punct deja primit. */
+export function readLiveRoute(after?: string): LiveRoute | null {
+  const trip = readLive().trip;
+  if (!trip) return null;
+  const from = after && after > trip.start ? after : trip.start;
+  const points: LiveRoute["points"] = [];
+  for (const p of readTripPoints(from, "9999")) {
+    if (p.lat === null || p.lon === null || (after && p.t <= after)) continue;
+    points.push([p.t, Math.round(p.lat * 1e6) / 1e6, Math.round(p.lon * 1e6) / 1e6]);
+  }
+  return { start: trip.start, fromPlace: trip.fromPlace, points, stops: trip.stops };
+}
 
 export interface CarSummary {
   trip: Trip | null; // în curs

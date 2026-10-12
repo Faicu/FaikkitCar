@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Fuel, Navigation, Wind } from "lucide-react";
 
 import { CarPosition } from "../components/CarPosition";
+import { LiveTripMap } from "../components/LiveTripMap";
 import { Suggestions } from "../components/Suggestions";
 import { TripSummary } from "../components/TripView";
 import { api, duration, num, relativeTime, shortDuration, Unauthorized, type Live } from "../api";
@@ -79,6 +80,7 @@ export function NowPage() {
           }
         />
       )}
+      {live.trip && <LiveTripMap live={live} />}
 
       {live.tank && (
         <div className="flex items-center gap-3 rounded-2xl glass-card p-4">
@@ -97,7 +99,8 @@ export function NowPage() {
         </div>
       )}
 
-      <CarPosition position={live.position} />
+      {/* În timpul călătoriei, mașina se vede pe harta de mai sus. */}
+      {!live.trip && <CarPosition position={live.position} />}
     </>
   );
 }

@@ -4,7 +4,7 @@
 import type { LogEntry } from "../server/log.ts";
 import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
-import type { Live } from "../server/live.ts";
+import type { Live, LiveRoute } from "../server/live.ts";
 import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
 import type { ServiceEntry, ServiceInput } from "../server/service.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
@@ -34,6 +34,13 @@ export const api = {
   // Cu `after`, serverul răspunde abia la o stare nouă de la mașină (cel mult 25 s).
   live: (after?: string | null, signal?: AbortSignal) =>
     call<Live>("GET", after ? `/api/live?after=${encodeURIComponent(after)}` : "/api/live", undefined, signal),
+  liveRoute: (after?: string | null, signal?: AbortSignal) =>
+    call<LiveRoute | null>(
+      "GET",
+      after ? `/api/live/route?after=${encodeURIComponent(after)}` : "/api/live/route",
+      undefined,
+      signal,
+    ),
   stats: () => call<Stats>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
   joinTrips: (start: string, end: string) => call<{ ok: true }>("POST", "/api/trips/join", { start, end }),
@@ -87,6 +94,7 @@ export type {
   FuelSummary,
   GeocodeResult,
   Live,
+  LiveRoute,
   LogEntry,
   MonthStats,
   PeriodStats,

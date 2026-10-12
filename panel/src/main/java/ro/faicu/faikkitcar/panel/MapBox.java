@@ -126,6 +126,111 @@ final class MapBox {
     }
 
     /**
+     * Harta calatoriei in curs: verde = plecarea, linia = pe unde a fost, albastru = unde e
+     * masina acum, galben = opririle cu motorul oprit. Aceeasi harta ramane intre redesenari
+     * (doar se muta in pagina) si primeste doar punctele noi; urmareste masina pana o misti.
+     */
+    static final class LiveRoute {
+        final MapView map;
+        private final Context c;
+        private final Polyline line;
+        private final List<GeoPoint> geo = new ArrayList<>();
+        private final List<Marker> stopMarkers = new ArrayList<>();
+        private Marker start, car;
+        volatile String tripStart; // inceputul calatoriei afisate
+        volatile String lastT; // ora ultimului punct primit (cererea urmatoare cere doar ce e dupa)
+        boolean follow = true;
+        boolean touching; // cat e atinsa, pagina nu se redeseneaza (ar taia gestul)
+        Runnable onTouchEnd;
+
+        @SuppressLint("ClickableViewAccessibility")
+        LiveRoute(Context c) {
+            this.c = c;
+            map = base(c);
+            // Harta e scoasa si pusa la loc in pagina la fiecare stare noua: sa nu se distruga.
+            map.setDestroyMode(false);
+            map.setOnTouchListener((v, e) -> {
+                boolean end = e.getAction() == MotionEvent.ACTION_UP
+                        || e.getAction() == MotionEvent.ACTION_CANCEL;
+                v.getParent().requestDisallowInterceptTouchEvent(!end);
+                if (e.getAction() == MotionEvent.ACTION_DOWN) touching = true;
+                if (e.getAction() == MotionEvent.ACTION_MOVE) follow = false;
+                if (end) {
+                    touching = false;
+                    if (onTouchEnd != null) map.post(onTouchEnd);
+                }
+                return false;
+            });
+            line = new Polyline(map);
+            line.getOutlinePaint().setColor(Ui.ACCENT);
+            line.getOutlinePaint().setStrokeWidth(Ui.dp(c, 5));
+            map.getOverlays().add(line);
+            map.getController().setZoom(13.0);
+            map.getController().setCenter(new GeoPoint(44.4268, 26.1025));
+        }
+
+        /** Adauga raspunsul de la /api/live/route (sau o ia de la capat la o calatorie noua). */
+        void update(JSONObject route) {
+            String s = route.optString("start");
+            if (!s.equals(tripStart)) {
+                tripStart = s;
+                lastT = null;
+                geo.clear();
+                follow = true;
+            }
+            JSONArray pts = route.optJSONArray("points");
+            for (int i = 0; pts != null && i < pts.length(); i++) {
+                JSONArray p = pts.optJSONArray(i);
+                geo.add(new GeoPoint(p.optDouble(1), p.optDouble(2)));
+                lastT = p.optString(0);
+            }
+            if (geo.isEmpty()) return;
+            line.setPoints(geo);
+            if (start != null) map.getOverlays().remove(start);
+            start = dot(c, map, geo.get(0), 0xFF22C55E, 14);
+            map.getOverlays().add(start);
+            for (Marker m : stopMarkers) map.getOverlays().remove(m);
+            stopMarkers.clear();
+            JSONArray stops = route.optJSONArray("stops");
+            for (int i = 0; stops != null && i < stops.length(); i++) {
+                JSONObject st = stops.optJSONObject(i);
+                JSONArray pos = st.optJSONArray("pos");
+                if (pos == null) continue;
+                Marker m = dot(c, map, new GeoPoint(pos.optDouble(0), pos.optDouble(1)), Ui.WARN, 16);
+                m.setInfoWindow(new org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
+                        org.osmdroid.library.R.layout.bonuspack_bubble, map));
+                m.setTitle((st.isNull("place") ? "Oprire " : st.optString("place") + " ")
+                        + Fmt.duration(st.optDouble("minutes")) + " · "
+                        + Fmt.hm(st.optString("from")) + "–" + Fmt.hm(st.optString("to")));
+                stopMarkers.add(m);
+                map.getOverlays().add(m);
+            }
+            if (car != null) map.getOverlays().remove(car);
+            car = dot(c, map, geo.get(geo.size() - 1), 0xFF0EA5E9, 20);
+            map.getOverlays().add(car); // ultima, deasupra liniei
+            if (follow) fit();
+            map.invalidate();
+        }
+
+        /** Tot traseul pe ecran (sau masina, cat e un singur loc). */
+        void fit() {
+            follow = true;
+            if (geo.isEmpty()) return;
+            BoundingBox box = BoundingBox.fromGeoPointsSafe(geo);
+            Runnable go = () -> {
+                if (box.getLatitudeSpan() < 0.002 && box.getLongitudeSpan() < 0.002) {
+                    map.getController().setZoom(16.5);
+                    map.getController().setCenter(geo.get(geo.size() - 1));
+                } else {
+                    map.zoomToBoundingBox(box, false, Ui.dp(c, 32));
+                }
+            };
+            if (map.getWidth() > 0) go.run();
+            else map.addOnFirstLayoutListener((v, l, t, r, b) -> go.run());
+        }
+    }
+
+    /**
      * Harta pentru alegerea unui loc: pinul se muta atingand harta sau tragandu-l; cercul arata
      * raza. `onPin` primeste fiecare pozitie noua.
      */

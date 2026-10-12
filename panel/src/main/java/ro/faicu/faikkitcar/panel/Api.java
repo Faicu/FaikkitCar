@@ -50,6 +50,12 @@ final class Api {
         return new JSONObject(call("GET", path, null, true, 40_000));
     }
 
+    /** Traseul calatoriei in curs (null daca nu e una); cu `after`, doar punctele noi. */
+    JSONObject liveRoute(String after) throws Exception {
+        String body = call("GET", after == null ? "/api/live/route" : "/api/live/route?after=" + enc(after), null, true);
+        return "null".equals(body.trim()) ? null : new JSONObject(body);
+    }
+
     /** {last30, months}: totalurile calculate pe server (aceleasi ca pe site). */
     JSONObject stats() throws Exception {
         return new JSONObject(call("GET", "/api/stats", null, true));

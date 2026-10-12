@@ -72,6 +72,29 @@ final class VwStatus {
         }
     }
 
+    /**
+     * Traseul calatoriei in curs (/api/car/route), cu `after` doar punctele noi. Null fara
+     * calatorie in curs sau fara internet; pe un fir de fundal.
+     */
+    static JSONObject route(String after) {
+        try {
+            String q = after == null ? "" : "?after=" + java.net.URLEncoder.encode(after, "UTF-8");
+            HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/car/route" + q).openConnection();
+            conn.setConnectTimeout(8_000);
+            conn.setReadTimeout(10_000);
+            conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
+            try {
+                if (conn.getResponseCode() != 200) return null;
+                String body = read(conn.getInputStream()).trim();
+                return "null".equals(body) ? null : new JSONObject(body);
+            } finally {
+                conn.disconnect();
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     static String read(InputStream in) throws java.io.IOException {
         try (InputStream is = in) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

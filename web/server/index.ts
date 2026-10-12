@@ -33,7 +33,7 @@ import {
   type ReminderInput,
 } from "./car.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, saveRefuel, type RefuelInput } from "./fuel.ts";
-import { readCarSummary, readLive, saveState, waitForState, type IncomingState } from "./live.ts";
+import { readCarSummary, readLive, readLiveRoute, saveState, waitForState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
 import {
   insertPoints,
@@ -130,6 +130,12 @@ app.get("/api/car/status", (c) => {
 app.get("/api/car/summary", (c) => {
   requireCarToken(c);
   return c.json(readCarSummary());
+});
+
+// Traseul călătoriei în curs, pentru harta de pe ecranul din mașină (?after = ultimul punct).
+app.get("/api/car/route", (c) => {
+  requireCarToken(c);
+  return c.json(readLiveRoute(c.req.query("after")));
 });
 
 app.post("/api/car/tts", async (c) => {
@@ -263,6 +269,12 @@ app.get("/api/live", async (c) => {
   const after = c.req.query("after");
   if (after) await waitForState(after, 25_000);
   return c.json(readLive());
+});
+
+// Traseul călătoriei în curs (harta de pe Acum); cu ?after doar punctele noi.
+app.get("/api/live/route", (c) => {
+  requireUser(c);
+  return c.json(readLiveRoute(c.req.query("after")));
 });
 
 app.get("/api/stats", (c) => {

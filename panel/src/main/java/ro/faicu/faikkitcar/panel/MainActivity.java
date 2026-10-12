@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -54,6 +55,7 @@ public class MainActivity extends Activity {
     private ScrollView scroll;
     private final TextView[] tabViews = new TextView[TABS.length];
     private final List<MapView> maps = new ArrayList<>();
+    private MapBox.LiveRoute liveMap; // harta calatoriei in curs, pastrata intre redesenari
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
     private JSONArray trips, log, places, suggestions, service;
@@ -77,6 +79,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         for (MapView m : maps) m.onResume();
+        if (liveMap != null) liveMap.map.onResume();
         if (content != null) load(false);
     }
 
@@ -86,6 +89,7 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(tick);
         stopLive();
         for (MapView m : maps) m.onPause();
+        if (liveMap != null) liveMap.map.onPause();
     }
 
     @Override
@@ -303,8 +307,10 @@ public class MainActivity extends Activity {
                 try {
                     JSONObject l = api.live(after);
                     if (liveGen != gen) return;
+                    JSONObject route = liveRoute(l);
                     ui.post(() -> {
                         live = l;
+                        if (route != null) liveMap().update(route);
                         render();
                     });
                     after = l.isNull("at") ? null : l.optString("at");
@@ -326,6 +332,30 @@ public class MainActivity extends Activity {
         }, "live").start();
     }
 
+    private MapBox.LiveRoute liveMap() {
+        if (liveMap == null) {
+            liveMap = new MapBox.LiveRoute(this);
+            liveMap.onTouchEnd = () -> {
+                shown = "";
+                render();
+            };
+        }
+        return liveMap;
+    }
+
+    /** Punctele noi ale calatoriei in curs (toate, la una noua); null fara calatorie. */
+    private JSONObject liveRoute(JSONObject l) {
+        JSONObject trip = l.optJSONObject("trip");
+        if (trip == null) return null;
+        MapBox.LiveRoute m = liveMap;
+        boolean same = m != null && trip.optString("start").equals(m.tripStart);
+        try {
+            return api.liveRoute(same ? m.lastT : null);
+        } catch (Exception e) {
+            return null; // harta ramane cum era; la starea urmatoare incearca din nou
+        }
+    }
+
     private void stopLive() {
         liveOn = false;
         liveGen++;
@@ -345,6 +375,7 @@ public class MainActivity extends Activity {
 
     private void render() {
         if (content == null) return;
+        if (liveMap != null && liveMap.touching) return; // reluat la ridicarea degetului
         if (placeDraft != null) {
             // Editorul de loc se construieste o singura data (nu la fiecare reimprospatare),
             // ca textul scris si pinul sa nu se piarda.
@@ -486,7 +517,10 @@ public class MainActivity extends Activity {
         }
 
         JSONObject trip = live.optJSONObject("trip");
-        if (trip != null) tripSummary(trip, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
+        if (trip != null) {
+            tripSummary(trip, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
+            renderLiveMap();
+        }
 
         JSONObject tank = live.optJSONObject("tank");
         if (tank != null) {
@@ -500,7 +534,8 @@ public class MainActivity extends Activity {
         }
 
         JSONObject pos = live.optJSONObject("position");
-        if (pos != null) {
+        // In timpul calatoriei, masina se vede pe harta de mai sus.
+        if (pos != null && trip == null) {
             LinearLayout pc = Ui.card(this, content);
             LinearLayout prow = new LinearLayout(this);
             prow.setGravity(Gravity.CENTER_VERTICAL);
@@ -520,6 +555,26 @@ public class MainActivity extends Activity {
             prow.addView(gm);
             pc.addView(prow);
             addMap(content, MapBox.position(this, lat, lon), 220);
+        }
+    }
+
+    /** Harta calatoriei in curs (aceeasi MapView, mutata in pagina noua) si „Urmareste masina”. */
+    private void renderLiveMap() {
+        MapBox.LiveRoute m = liveMap();
+        if (m.map.getParent() != null) ((ViewGroup) m.map.getParent()).removeView(m.map);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(this, 300));
+        lp.bottomMargin = dp(this, m.follow ? 14 : 4);
+        content.addView(m.map, lp);
+        if (m.tripStart == null) Ui.hint(this, content, "Aștept poziția GPS...");
+        if (!m.follow) {
+            TextView f = Ui.text(this, "◎ Urmărește mașina", 15, Ui.ACCENT, true);
+            f.setPadding(0, dp(this, 6), 0, dp(this, 14));
+            f.setOnClickListener(v -> {
+                m.fit();
+                shown = "";
+                render();
+            });
+            content.addView(f);
         }
     }
 

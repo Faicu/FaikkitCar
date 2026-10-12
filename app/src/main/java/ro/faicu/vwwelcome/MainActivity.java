@@ -72,6 +72,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         CrashLog.install(this);
+        RouteMap.init(this);
         // Si daca aplicatia e deschisa din autostart, serviciul trebuie sa porneasca.
         // Marcam deschiderea, ca serviciul sa nu o ia drept trezire si sa redea sunetul.
         Prefs.markUiStart(this);
@@ -199,6 +200,7 @@ public class MainActivity extends Activity {
     private TextView homeTripSince;
     private long homeTripStart;
     private org.json.JSONObject summary;
+    private RouteMap routeMap; // harta calatoriei in curs, pastrata intre redesenari
     private long summaryAt;
     private boolean summaryLoading;
     private final Runnable homeTick = new Runnable() {
@@ -383,11 +385,20 @@ public class MainActivity extends Activity {
         summaryLoading = true;
         new Thread(() -> {
             org.json.JSONObject s = VwStatus.summary();
+            org.json.JSONObject r = null;
+            org.json.JSONObject trip = s == null ? null : s.optJSONObject("trip");
+            if (trip != null) {
+                RouteMap m = routeMap;
+                boolean same = m != null && trip.optString("start").equals(m.tripStart);
+                r = VwStatus.route(same ? m.lastT : null);
+            }
+            org.json.JSONObject route = r;
             runOnUiThread(() -> {
                 summaryLoading = false;
                 summaryAt = System.currentTimeMillis();
                 if (s == null) return;
                 summary = s;
+                if (route != null) routeMap().update(route);
                 renderHomeTrip();
                 updateHomeLive();
             });
@@ -397,6 +408,7 @@ public class MainActivity extends Activity {
     /** Calatoria in curs (sau ultima) si ziua de azi, din rezumatul de pe server. */
     private void renderHomeTrip() {
         if (homeTrip == null) return;
+        if (routeMap != null && routeMap.touching) return; // reluat la ridicarea degetului
         homeTrip.removeAllViews();
         if (summary == null) return;
         org.json.JSONObject trip = summary.optJSONObject("trip");
@@ -430,6 +442,7 @@ public class MainActivity extends Activity {
                 homeTripSince = dur;
                 homeTripStart = parseIso(start);
                 updateTripSince();
+                addRouteMap(card);
             }
         }
         org.json.JSONObject today = summary.optJSONObject("today");
@@ -439,6 +452,43 @@ public class MainActivity extends Activity {
                     today.optDouble("km"), minutes(today.optDouble("minutes")),
                     today.isNull("cost") ? "" : String.format(Locale.US, " · %.2f lei", today.optDouble("cost"))));
         }
+    }
+
+    private RouteMap routeMap() {
+        if (routeMap == null) {
+            routeMap = new RouteMap(this);
+            routeMap.onTouchEnd = this::renderHomeTrip; // reluat dupa gest (si „Urmareste masina”)
+        }
+        return routeMap;
+    }
+
+    /** Harta calatoriei in curs, sub cifre; aceeasi MapView, mutata in cardul nou. */
+    private void addRouteMap(LinearLayout card) {
+        RouteMap m = routeMap();
+        if (m.map.getParent() != null) ((android.view.ViewGroup) m.map.getParent()).removeView(m.map);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(this, 320));
+        lp.topMargin = dp(this, 14);
+        card.addView(m.map, lp);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout legend = new LinearLayout(this);
+        if (m.hasPoints()) {
+            legend.addView(Ui.text(this, "● plecare    ", 14, Ui.OK, false));
+            legend.addView(Ui.text(this, "● opriri    ", 14, Ui.WARN, false));
+            legend.addView(Ui.text(this, "● acum", 14, 0xFF0EA5E9, false));
+        } else {
+            legend.addView(Ui.text(this, "Astept pozitia GPS...", 14, Ui.MUTED, false));
+        }
+        row.addView(legend, new LinearLayout.LayoutParams(0, -2, 1));
+        if (!m.follow) {
+            row.addView(Ui.button(this, "◎  Urmareste masina", Ui.SECONDARY, v -> {
+                m.fit();
+                renderHomeTrip();
+            }));
+        }
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+        rlp.topMargin = dp(this, 8);
+        card.addView(row, rlp);
     }
 
     /** „De cand merg”: de la plecare pana acum, nu doar pana la ultimul punct primit de server. */
@@ -890,11 +940,13 @@ public class MainActivity extends Activity {
         super.onPause();
         ui.removeCallbacks(liveTick);
         ui.removeCallbacks(homeTick);
+        if (routeMap != null) routeMap.map.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (routeMap != null) routeMap.map.onResume();
         refresh();
         // Serviciul pornit in onCreate apare in lista abia dupa cateva sute de ms.
         ui.postDelayed(this::updateStatus, 1000);
