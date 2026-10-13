@@ -130,7 +130,9 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   fixuri bune la ≤ 15 s, altfel din viteză (GPS sau CAN × `canScale`, 0,85–1,05, implicit 0,95).
   Distanța se potrivește cu kilometrajul la ±1 km. Opririle cu motorul pornit: trafic dacă sunt
   între două porțiuni de mers, ≤ 5 min și fără semne de parcare (frâna de mână, o ușă, marșarierul
-  cu ≤ 60 s înainte, un loc salvat; centura NU e semnal); altfel staționare. mers + trafic +
+  cu ≤ 60 s înainte dacă de atunci n-a trecut de 12 km/h, un loc salvat; centura NU e semnal);
+  altfel staționare. (13.10: ieșit cu spatele din parcare și oprit la semafor după 150 m apărea
+  „Parcat, motor pornit”; corectat și în aplicație, `TripRecorder.drovePastReverse`, 1.1.50.) mers + trafic +
   staționare + opriri = durata. Bateria: `crankVolt` (demarorul, din `trip_point.crank`; sub 9,6 V
   slabă), `runVolt` (mediana cu motorul pornit, normal 13,5–14,9 V).
 - `trips.ts`: gruparea (pauze > 5 min), combinările (`trip_join`), locurile (`placeAt`), cache
