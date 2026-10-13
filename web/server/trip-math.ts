@@ -84,6 +84,11 @@ export const POINT_GAP_MS = 60_000;
 export const TRAFFIC_MAX_MS = 5 * 60_000;
 /** Marșarierul cu atât înainte de oprire = manevră de parcare. */
 const REVERSE_BEFORE_MS = 60_000;
+/**
+ * Marșarierul de dinainte contează doar dacă de atunci n-a mers mai repede ca la o manevră: ieșit
+ * cu spatele din parcare și oprit la semafor după 150 m (13.10) e trafic, nu parcare.
+ */
+const MANEUVER_KMH = 12;
 /** Pe loc: sub atât (km/h). */
 const STILL_KMH = 1;
 /** GPS-ul între două puncte se folosește doar dacă sunt la cel mult atâtea ms. */
@@ -240,6 +245,7 @@ export function analyze(
     // Episoadele pe loc cu motorul pornit (de la primul punct pe loc la primul în mers).
     const engine = (r.rpm ?? 0) > 0;
     if (r.rev === 1) lastReverseAt = t[i];
+    else if (v >= MANEUVER_KMH) lastReverseAt = -Infinity;
     if (v < STILL_KMH && engine) {
       if (!ep) {
         ep = {

@@ -51,6 +51,12 @@ final class TripRecorder implements LocationListener {
     // nu e trafic, ci stationare. Raman pana la plecare.
     private volatile boolean parked;
     private static final long REVERSE_BEFORE_MS = 60_000;
+    /**
+     * Marsarierul de dinainte conteaza doar daca de atunci n-a mers mai repede ca la o manevra:
+     * iesit cu spatele din parcare si oprit la semafor dupa 150 m (13.10) e trafic, nu parcare.
+     */
+    private static final double MANEUVER_KMH = 12;
+    private boolean drovePastReverse;
     private static final long TRAFFIC_MAX_MS = 5 * 60_000;
     private boolean gpsOn;
     // GPS-ul n-a putut porni fiindca lipsea permisiunea; check() il porneste cand apare.
@@ -163,6 +169,8 @@ final class TripRecorder implements LocationListener {
         boolean moving = (!Double.isNaN(canKmh) && canKmh >= 1)
                 || (Double.isNaN(canKmh) && !Double.isNaN(gpsKmh) && gpsKmh >= 3);
         boolean engine = rpm > 300;
+        if (can.reverse()) drovePastReverse = false;
+        else if (!Double.isNaN(canKmh) && canKmh >= MANEUVER_KMH) drovePastReverse = true;
         double crank = can.takeCrankVolt();
         if (!Double.isNaN(crank)) pendingCrank = crank;
         monitor(now, moving, engine, rpm, canKmh);
@@ -263,7 +271,8 @@ final class TripRecorder implements LocationListener {
 
     /** Frana de mana trasa, o usa deschisa, marsarierul (manevra) sau un loc salvat. */
     private boolean parkingSignal(Location loc) {
-        if (can.handbrakePulled() || !can.openDoors().isEmpty() || can.reversedWithin(REVERSE_BEFORE_MS)) return true;
+        boolean reversed = can.reverse() || (can.reversedWithin(REVERSE_BEFORE_MS) && !drovePastReverse);
+        if (can.handbrakePulled() || !can.openDoors().isEmpty() || reversed) return true;
         return loc != null && VwStatus.placeAt(c, loc.getLatitude(), loc.getLongitude()) != null;
     }
 

@@ -124,6 +124,23 @@ describe("trafic sau staționare", () => {
   it("fără semne de parcare: trafic", () => {
     expect(stop({}).trafficStops).toBe(1);
   });
+  it("ieșit cu spatele din parcare, apoi mers și oprit la semafor: trafic", () => {
+    const rows = [
+      p(0, 3, 0, { rev: 1 }),
+      p(5, 0, 0.002, { rev: 1 }),
+      p(10, 5, 0.004),
+      p(15, 20, 0.02),
+      p(20, 22, 0.05),
+      p(25, 0, 0.06), // la 20 s după marșarier
+      p(55, 0, 0.06),
+      p(60, 30, 0.1),
+    ];
+    expect(analyze(rows).trafficStops).toBe(1);
+  });
+  it("marșarier, puțin înainte la viteză de manevră, apoi oprit: staționare", () => {
+    const rows = [p(0, 30, 0), p(5, 3, 0.04, { rev: 1 }), p(10, 4, 0.042), p(15, 0, 0.043), p(45, 0, 0.043), p(50, 30, 0.08)];
+    expect(analyze(rows).trafficStops).toBe(0);
+  });
   it("frâna de mână, o ușă, marșarierul sau un loc salvat: staționare", () => {
     for (const m of [stop({ hb: 1 }), stop({ door: 1 }), stop({ rev: 1 }), stop({}, true)]) {
       expect(m.trafficStops).toBe(0);
