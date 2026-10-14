@@ -3,7 +3,7 @@
 #            && systemctl daemon-reload && systemctl restart claude
 # Atenție: restart-ul închide toate sesiunile Claude care rulează pe serverul tmux al serviciului.
 [Unit]
-Description=Claude Remote Control (faikkitbox + faikkitcar + faikkithome + faikkittiktok)
+Description=Claude Remote Control (faikkitbox + faikkitcar + faikkithome + faikkittiktok + bogdan)
 Wants=network-online.target
 After=network-online.target
 
@@ -15,6 +15,9 @@ ExecStart=/usr/bin/tmux new-session -d -s faikkitbox -x 200 -y 50 "/usr/local/bi
 ExecStartPost=/usr/bin/tmux new-session -d -s faikkitcar -x 200 -y 50 "/usr/local/bin/claude-rc /opt/faikkitcar faikkitcar"
 ExecStartPost=/usr/bin/tmux new-session -d -s faikkithome -x 200 -y 50 "/usr/local/bin/claude-rc /opt/faikkithome faikkithome"
 ExecStartPost=/usr/bin/tmux new-session -d -s faikkittiktok -x 200 -y 50 "/usr/local/bin/claude-rc /opt/faikkittiktok faikkittiktok"
+# Bogdan: rulează ca userul neprivilegiat „bogdan”, cu contul lui Claude (în /home/bogdan/.claude);
+# regulile lui sunt în /opt/bogdan/CLAUDE.md și /opt/bogdan/.claude/settings.json (root, needitabile).
+ExecStartPost=/usr/bin/tmux new-session -d -s bogdan -x 200 -y 50 "/usr/sbin/runuser -u bogdan -- env XDG_RUNTIME_DIR=/run/user/1002 /usr/local/bin/claude-rc /opt/bogdan bogdan"
 ExecStop=/usr/bin/tmux kill-server
 RemainAfterExit=yes
 
