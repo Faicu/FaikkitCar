@@ -12,8 +12,8 @@ import { TRAFFIC_MAX_MS } from "./trip-math.ts";
 import { readTripPoints, readTrips, TRIP_GAP_MS, type Trip, type TripStop } from "./trips.ts";
 
 // „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive), cu aceeași
-// limită ca la călătorii (trip-math.ts).
-export type CarState = "off" | "contact" | "engine" | "traffic" | "driving";
+// limită ca la călătorii (trip-math.ts). „nosignal” nici atât: tăcere după mers / motor pornit.
+export type CarState = "off" | "contact" | "engine" | "traffic" | "driving" | "nosignal";
 
 export interface IncomingState {
   version?: string; // versiunea aplicației din mașină
@@ -89,6 +89,9 @@ export interface Live {
 
 // Fără stare nouă atâta timp, unitatea doarme sau s-a oprit: mașina e oprită.
 const STALE_MS = 90_000;
+// Tăcerea după mers sau motor pornit e lipsă de internet (punctele așteaptă în mașină), nu
+// oprire: „Fără semnal” până la o oră, apoi „Oprită” (poate a parcat într-o zonă fără semnal).
+const NO_SIGNAL_MAX_MS = 60 * 60_000;
 
 function num(x: unknown): number | null {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
@@ -221,19 +224,25 @@ export function readLive(): Live {
   let state: CarState = "off";
   let since: string | null = null;
   let data: LiveData | null = null;
+  const silentMs = row ? Date.now() - new Date(row.received_at).getTime() : Infinity;
   if (row && !stale) {
     state = row.state;
     since = row.since;
     data = JSON.parse(row.data) as LiveData;
+  } else if (row && (row.state === "driving" || row.state === "engine") && silentMs < NO_SIGNAL_MAX_MS) {
+    state = "nosignal";
+    since = row.received_at;
   } else if (row) {
     // Oprită de la ultima stare primită (sau de când a raportat ea „oprită”).
     since = row.state === "off" ? row.since : row.received_at;
   }
 
-  // Călătoria în curs: ultima, dacă n-a trecut pauza care desparte călătoriile.
+  // Călătoria în curs: ultima, dacă n-a trecut pauza care desparte călătoriile (fără semnal,
+  // socotită până la ultima stare primită: punctele de după vin când revine internetul).
   const last = readTrips(1)[0];
+  const ref = state === "nosignal" ? Date.now() - silentMs : Date.now();
   const trip =
-    last && state !== "off" && Date.now() - new Date(last.end).getTime() < TRIP_GAP_MS
+    last && state !== "off" && ref - new Date(last.end).getTime() < TRIP_GAP_MS
       ? applyFuel([last])[0]
       : null;
   // Oprit cu motorul pornit după ce a mers în drumul ăsta (semafor, coloană): „în trafic”, dacă

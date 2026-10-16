@@ -136,8 +136,9 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   staționare + opriri = durata. Bateria: `crankVolt` (demarorul, din `trip_point.crank`; sub 9,6 V
   slabă), `runVolt` (mediana cu motorul pornit, normal 13,5–14,9 V).
 - `trips.ts`: gruparea (pauze > 5 min), combinările (`trip_join`), locurile (`placeAt`), cache
-  `memo` refăcut la `dataChanged()`. `live.ts`: starea live (fără stare 90 s = oprită; călătoria
-  în curs = ultima, terminată acum < 5 min; „Oprit în trafic” calculat în `readLive`),
+  `memo` refăcut la `dataChanged()`. `live.ts`: starea live (fără stare 90 s = oprită, dar după mers /
+  motor pornit „nosignal” = „Fără semnal” până la 1 h; călătoria în curs = ultima, terminată < 5 min
+  înainte de acum sau, fără semnal, de ultima stare; „Oprit în trafic” calculat în `readLive`),
   `readLiveRoute`, `readCarSummary`.
 - Combustibilul: estimarea brută pe drum (`fuel-model.ts`, linia Willans + AC 0,4 L/h) × factorul
   de calibrare. Factorul vine din nivelul rezervorului (`levelConsumption`, 90 de zile: nivelul de

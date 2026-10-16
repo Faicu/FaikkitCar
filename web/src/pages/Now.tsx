@@ -21,6 +21,7 @@ const STATES: Record<Live["state"], { label: string; dot: string }> = {
   engine: { label: "Motor pornit, pe loc", dot: "bg-emerald-400" },
   traffic: { label: "Oprit în trafic", dot: "bg-orange-400 animate-pulse" },
   driving: { label: "În mers", dot: "bg-sky-400 animate-pulse" },
+  nosignal: { label: "Fără semnal", dot: "bg-slate-400 animate-pulse" },
 };
 
 /**
@@ -44,6 +45,11 @@ export function NowPage() {
               {live.since ? `de ${sinceText(live.since)}` : "nicio stare primită încă"}
               {live.state === "off" && live.at ? ` · ultimul semnal ${relativeTime(live.at)}` : ""}
             </p>
+            {live.state === "nosignal" && (
+              <p className="text-xs text-muted-foreground">
+                Mașina nu are internet; drumul se înregistrează și apare întreg când revine semnalul.
+              </p>
+            )}
           </div>
         </div>
         {d && (

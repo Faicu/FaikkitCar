@@ -442,6 +442,7 @@ public class MainActivity extends Activity {
             case "engine": return "Motor pornit, pe loc";
             case "traffic": return "Oprit în trafic";
             case "contact": return "Doar contact";
+            case "nosignal": return "Fără semnal";
             default: return "Oprită";
         }
     }
@@ -452,6 +453,7 @@ public class MainActivity extends Activity {
             case "engine": return Ui.OK;
             case "traffic": return 0xFFFB923C;
             case "contact": return Ui.WARN;
+            case "nosignal": return 0xFF94A3B8;
             default: return Ui.MUTED;
         }
     }
@@ -490,6 +492,10 @@ public class MainActivity extends Activity {
                     : Fmt.ago(iso).replaceFirst("^acum ", "")) + " (din " + Fmt.hm(iso) + ")";
         }
         texts.addView(Ui.text(this, since, 13, Ui.MUTED, false));
+        if ("nosignal".equals(state)) {
+            texts.addView(Ui.text(this, "Mașina nu are internet; drumul se înregistrează și apare întreg când revine semnalul.",
+                    13, Ui.MUTED, false));
+        }
         row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
         card.addView(row);
         JSONObject d = live.optJSONObject("data");

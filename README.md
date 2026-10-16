@@ -121,6 +121,7 @@ a crescut într-un proiect cu trei părți:
 | Login | ✅ | Site: cookie de 180 de zile. Panel: token păstrat în aplicație |
 | Patru file: Acum · Călătorii · Costuri · Mai mult | 🧪 | La fel pe site și în Panel (în Panel, filele sunt jos) |
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
+| Acum: „Fără semnal” | 🧪 | Din 16.10: dacă mașina tace după mers sau motor pornit (zonă fără internet), apare „Fără semnal” de la ultima stare primită, cu drumul în curs până acolo, nu „Oprită”; după o oră fără nimic, „Oprită”. Drumul se înregistrează în mașină și apare întreg când revine semnalul |
 | Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server) |
 | Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși deschise, centură, frâna de mână, marșarier, lumini (confirmate pe 12.10). Habitaclul și consumul instantaneu nu sunt transmise de decodor |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și **harta live** (plecarea, traseul, mașina acum, opririle; o poți muta, „Urmărește mașina” o readuce) |
@@ -452,6 +453,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 2–12 | 01.10–03.10 | Patru file ca site-ul, starea live, combinarea călătoriilor, locuri, propuneri, raportul lunii, jurnal de service |
 | 13 | 12.10 | Harta live a călătoriei în curs |
 | 14 | 12.10 | Scos „Consum acum” / „Bordul” (valoarea nu era consumul) |
+| următorul | 16.10 | Starea „Fără semnal” pe fila Acum |
 
 ### Serverul
 
@@ -460,6 +462,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 29.09–01.10 | În FaikkitBox (`status.faicu.ro/vw`, `/calatorii`): jurnal, călătorii, mentenanță, APK, alimentări, consum, vocea Piper, rezervorul |
 | 01.10 | **car.faicu.ro** separat (`/opt/faikkitcar`), date migrate, FaikkitBox curățat |
 | 12.10 | Consumul nu mai e umflat de drumurile neînregistrate (extins la km de pe kilometraj); scos consumul „de pe bord”; traseul live (`/api/live/route`, `/api/car/route`) |
+| 16.10 | Starea live „Fără semnal” (tăcere < 1 h după mers / motor pornit), cu călătoria în curs păstrată |
 
 ---
 
