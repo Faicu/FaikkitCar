@@ -181,6 +181,8 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 ## Stare (12.10.2026)
 
 - În mașină FaikkitCar 1.1.45+ (actualizat din aplicație), pe telefon Panel (din aplicație).
+- De făcut (17.10): mașina e încă pe aplicația cu cheia veche. După ce jurnalul arată 1.1.51+,
+  scoate `CAR_TOKEN_OLD` din `.env` și repornește serverul (cheia veche a fost publică în APK-uri).
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Netestat încă în mașină: avertizarea de ușă, contact pus cu motorul oprit, harta live pe drum.
