@@ -20,8 +20,6 @@ export interface IncomingLine {
 }
 
 const MAX_LINE_LEN = 1000;
-// Sonda CAN a aplicației trimite mii de linii pe drum; păstrăm mult, dar nu la nesfârșit.
-const MAX_ROWS = 200_000;
 export const MAX_LINES_PER_REQUEST = 200;
 
 /** Inserează un lot; întoarce câte linii noi au intrat (duplicatele se ignoră). */
@@ -42,10 +40,7 @@ export function insertLines(lines: IncomingLine[], version: string | null): numb
       const r = stmt.run(deviceAt, now, version, l.text.slice(0, MAX_LINE_LEN));
       added += Number(r.changes);
     }
-    // Păstrăm doar ultimele MAX_ROWS linii primite.
-    db.prepare(
-      `DELETE FROM log WHERE id <= (SELECT id FROM log ORDER BY id DESC LIMIT 1 OFFSET ?)`,
-    ).run(MAX_ROWS);
+    // Jurnalul nu se șterge niciodată (câteva zeci de MB pe an).
     db.exec("COMMIT");
   } catch (e) {
     db.exec("ROLLBACK");

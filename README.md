@@ -469,7 +469,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 01.10 | **car.faicu.ro** separat (`/opt/faikkitcar`), date migrate, FaikkitBox curățat |
 | 12.10 | Consumul nu mai e umflat de drumurile neînregistrate (extins la km de pe kilometraj); scos consumul „de pe bord”; traseul live (`/api/live/route`, `/api/car/route`) |
 | 16.10 | Starea live „Fără semnal” (tăcere < 1 h după mers / motor pornit), cu călătoria în curs păstrată |
-| 17.10 | Revizuire: cheie separată pentru CI (`CI_TOKEN`) și tranziția cheii mașinii (`CAR_TOKEN_OLD`); erorile de validare dau 400, nu 500; un lot cu o oră imposibilă nu mai e respins la nesfârșit; tensiunea la pornire ≥ 12 V (demarorul neprins) ignorată; „Făcut” la o dată fixă fără interval nu mai șterge data; vocea Piper fără conflict la cereri simultane; numele locurilor escapate pe hartă |
+| 17.10 | Revizuire: cheie separată pentru CI (`CI_TOKEN`) și tranziția cheii mașinii (`CAR_TOKEN_OLD`); erorile de validare dau 400, nu 500; un lot cu o oră imposibilă nu mai e respins la nesfârșit; tensiunea la pornire ≥ 12 V (demarorul neprins) ignorată; „Făcut” la o dată fixă fără interval nu mai șterge data; vocea Piper fără conflict la cereri simultane; numele locurilor escapate pe hartă; jurnalul nu se mai taie la 200.000 de linii (nu se șterge niciodată) |
 
 ---
 
