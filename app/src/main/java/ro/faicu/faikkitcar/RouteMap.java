@@ -103,6 +103,8 @@ final class RouteMap {
         JSONArray pts = route.optJSONArray("points");
         for (int i = 0; pts != null && i < pts.length(); i++) {
             JSONArray p = pts.optJSONArray(i);
+            // Un raspuns venit dupa altul mai nou (cereri suprapuse): punctele stiute se sar.
+            if (lastT != null && p.optString(0).compareTo(lastT) <= 0) continue;
             geo.add(new GeoPoint(p.optDouble(1), p.optDouble(2)));
             lastT = p.optString(0);
         }

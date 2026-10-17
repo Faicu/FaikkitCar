@@ -35,8 +35,10 @@ export function insertLines(lines: IncomingLine[], version: string | null): numb
   db.exec("BEGIN");
   try {
     for (const l of lines) {
-      if (!Number.isFinite(l.t) || typeof l.text !== "string") continue;
-      const deviceAt = new Date(l.t).toISOString();
+      // O oră în afara intervalului Date ar arunca și ar respinge tot lotul la nesfârșit.
+      const at = new Date(l.t);
+      if (!Number.isFinite(l.t) || Number.isNaN(at.getTime()) || typeof l.text !== "string") continue;
+      const deviceAt = at.toISOString();
       const r = stmt.run(deviceAt, now, version, l.text.slice(0, MAX_LINE_LEN));
       added += Number(r.changes);
     }

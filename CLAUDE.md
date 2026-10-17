@@ -32,13 +32,16 @@ tmux `faikkitbox` și `faikkitcar`.
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
   (`trip-math.test.ts`, `fuel-model.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
-  utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`).
+  utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
+  APK), `CAR_TOKEN_OLD` (doar în tranziție, cât mașina are aplicația cu cheia veche), `CI_TOKEN`
+  (= secretul GitHub `CI_TOKEN`, doar `POST /api/*/apk`). Repo-ul e privat din 17.10 (cheia mașinii
+  ajunsese în APK-urile publice).
 - `/opt/faikkitcar/data`: `faikkitcar.db`, `apk/`, `tts/` (cache voce), `piper/` (binar + model
   `ro_RO-mihai-medium`, nu în git), `service/<id>/<fileId>` (bonuri).
   Tabele: `log`, `trip_point`, `car_state` (un rând), `reminder`, `refuel`, `place`, `trip_join`,
   `service`, `service_file`, `dismissed`. Coloane noi se adaugă prin migrare în `db.ts`.
   Jurnalul nu se șterge niciodată.
-- API mașină (Bearer `CAR_TOKEN`): `POST /api/car/log`, `/api/car/trip`, `/api/car/state`,
+- API mașină (Bearer `CAR_TOKEN`; APK-urile se încarcă cu `CI_TOKEN`): `POST /api/car/log`, `/api/car/trip`, `/api/car/state`,
   `/api/car/tts`; `GET /api/car/status` (kilometraj, mentenanță, ultimul APK, locuri),
   `/api/car/summary` (ecranul Acasă), `/api/car/route?last=1&after=` (harta), `GET|POST
   /api/car/apk`, `/api/car/apk/download`.
@@ -171,7 +174,7 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 - CI: `.github/workflows/build.yml` (aplicația: la push pe main, nu pentru `web/**`, `deploy/**`,
   `*.md`; release `build-<N>`, `versionName` = `1.1.<N>`, publicat la `POST /api/car/apk`) și
   `panel.yml` (release `panel-<N>`, `1.0.<N>`, `POST /api/panel/apk`). `[skip ci]` în mesaj
-  sare build-ul. Secrete: `VW_LOG_TOKEN`, `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` (PKCS12, alias
+  sare build-ul. Secrete: `VW_LOG_TOKEN`, `CI_TOKEN`, `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` (PKCS12, alias
   `vwwelcome`; keystore-ul nu e în repo). Fără `VW_LOG_TOKEN` trimiterea e dezactivată.
 - Descărcare manuală: https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk
 

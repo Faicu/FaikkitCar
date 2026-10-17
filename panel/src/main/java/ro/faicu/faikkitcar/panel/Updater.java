@@ -65,6 +65,10 @@ final class Updater {
                     int n;
                     while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
                     session.fsync(out);
+                } catch (Exception e) {
+                    // Altfel APK-ul descarcat pe jumatate ramane intr-o sesiune deschisa.
+                    session.abandon();
+                    throw e;
                 }
                 Intent done = new Intent(c, Result.class);
                 PendingIntent pending = PendingIntent.getBroadcast(c, id, done,

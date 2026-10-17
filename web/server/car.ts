@@ -4,6 +4,8 @@
 // Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { HTTPException } from "hono/http-exception";
+
 import { getDb } from "./db.ts";
 import { placeAt } from "./places.ts";
 
@@ -150,7 +152,7 @@ export function saveReminder(input: ReminderInput): void {
   const title = String(input.title ?? "")
     .trim()
     .slice(0, 80);
-  if (!title) throw new Error("Titlul lipsește");
+  if (!title) throw new HTTPException(400, { message: "Titlul lipsește" });
   const values = [
     title,
     intOrNull(input.everyKm),
@@ -187,7 +189,7 @@ export function markReminderDone(id: number): void {
     { every_months: number | null; due_date: string | null } | undefined;
   if (!r) return;
   const dueDate =
-    r.due_date !== null && r.every_months !== null ? addMonths(r.due_date, r.every_months) : null;
+    r.due_date !== null && r.every_months !== null ? addMonths(r.due_date, r.every_months) : r.due_date;
   db.prepare(`UPDATE reminder SET last_km = ?, last_date = ?, due_date = ? WHERE id = ?`).run(
     readOdometer(),
     today(),

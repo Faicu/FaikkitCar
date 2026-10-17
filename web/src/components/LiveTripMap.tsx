@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 
-import { api, duration, hm, type Live, type LiveRoute } from "../api";
+import { api, duration, esc, hm, type Live, type LiveRoute } from "../api";
 
 type Point = LiveRoute["points"][number];
 
@@ -91,7 +91,7 @@ export function LiveTripMap({ live }: { live: Live }) {
     const coords = points.map((p) => [p[1], p[2]] as [number, number]);
     const line = L.polyline(coords, { color: "#38bdf8", weight: 5, opacity: 0.9 }).addTo(layer);
     L.circleMarker(coords[0], { radius: 7, color: "#fff", weight: 2, fillColor: "#22c55e", fillOpacity: 1 })
-      .bindTooltip(`Plecare ${hm(route.start)}${route.fromPlace ? ` · ${route.fromPlace}` : ""}`, {
+      .bindTooltip(`Plecare ${hm(route.start)}${route.fromPlace ? ` · ${esc(route.fromPlace)}` : ""}`, {
         direction: "top",
         offset: [0, -8],
       })
@@ -99,7 +99,7 @@ export function LiveTripMap({ live }: { live: Live }) {
     for (const s of route.stops) {
       if (!s.pos) continue;
       L.circleMarker(s.pos, { radius: 8, color: "#fff", weight: 2, fillColor: "#f59e0b", fillOpacity: 1 })
-        .bindTooltip(`${s.place ?? "Oprire"} ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
+        .bindTooltip(`${esc(s.place ?? "Oprire")} ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
           direction: "top",
           offset: [0, -8],
         })

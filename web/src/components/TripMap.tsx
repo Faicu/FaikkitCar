@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 
-import { duration, hm, type Trip, type TripPoint } from "../api";
+import { duration, esc, hm, type Trip, type TripPoint } from "../api";
 
 // Harta traseului (Leaflet + OpenStreetMap). Leaflet atinge `window` la import,
 // deci îl încărcăm doar în browser, din efect.
@@ -61,7 +61,7 @@ export function TripMap({ points, stops = [] }: { points: TripPoint[]; stops?: T
           fillColor: "#f59e0b",
           fillOpacity: 1,
         })
-          .bindTooltip(`${s.place ?? "Oprire"} ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
+          .bindTooltip(`${esc(s.place ?? "Oprire")} ${duration(s.minutes)} · ${hm(s.from)}–${hm(s.to)}`, {
             permanent: true,
             direction: "top",
             offset: [0, -8],

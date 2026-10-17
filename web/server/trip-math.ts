@@ -321,8 +321,11 @@ export function analyze(
   const fuel = estimateFuel(
     rows.map((r, i) => ({ t: t[i], speed: speedOf(r), rpm: r.rpm, ac: r.ac === 1 })),
   );
-  // Măsurarea din mașină are prioritate; altfel doar o cădere reală prinsă într-un punct.
-  const measured = rows.map((r) => r.crank).filter((c): c is number => c !== null && c > 5);
+  // Măsurarea din mașină are prioritate; altfel doar o cădere reală prinsă într-un punct. Și
+  // măsurarea contează doar cu o cădere prinsă: 14,35 V pe 08.10 = fără citiri la demaror.
+  const measured = rows
+    .map((r) => r.crank)
+    .filter((c): c is number => c !== null && c > 5 && c < CRANK_SEEN_V);
   if (measured.length) crankVolt = Math.min(...measured);
   else if (crankVolt !== null && crankVolt >= CRANK_SEEN_V) crankVolt = null;
   return {

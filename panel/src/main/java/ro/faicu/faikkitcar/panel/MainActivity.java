@@ -78,6 +78,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         for (MapView m : maps) m.onResume();
         if (liveMap != null) liveMap.map.onResume();
         if (content != null) load(false);
@@ -86,6 +87,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        resumed = false;
         ui.removeCallbacks(tick);
         stopLive();
         for (MapView m : maps) m.onPause();
@@ -99,6 +101,8 @@ public class MainActivity extends Activity {
     }
 
     private final Runnable tick = () -> load(false);
+    // In prim-plan: o cerere terminata dupa onPause nu mai reporneste nimic (tick, starea live).
+    private boolean resumed;
 
     private void toast(String s) {
         Toast.makeText(this, s, Toast.LENGTH_LONG).show();
@@ -229,6 +233,7 @@ public class MainActivity extends Activity {
     /** Citeste datele filei curente pe firul de fundal; force = redeseneaza oricum. */
     private void load(boolean force) {
         ui.removeCallbacks(tick);
+        if (!resumed) return;
         if (force) shown = "";
         if (tab == NOW) startLive();
         else stopLive();

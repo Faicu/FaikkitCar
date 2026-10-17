@@ -114,6 +114,11 @@ describe("bateria", () => {
     const rows = [p(0, 0, 0, { volt: 14, crank: 9.8 }), p(35, 30, 0.04, { volt: 14.3 })];
     expect(analyze(rows).crankVolt).toBe(9.8);
   });
+
+  it("o măsurare fără cădere (14,35 V, demarorul neprins) nu se folosește", () => {
+    const rows = [p(0, 0, 0, { volt: 14, crank: 14.35 }), p(35, 30, 0.04, { volt: 14.3 })];
+    expect(analyze(rows).crankVolt).toBeNull();
+  });
 });
 
 describe("trafic sau staționare", () => {

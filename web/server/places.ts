@@ -3,6 +3,8 @@
 // „de la” / „până la” după ele, iar mașina parcată spune unde stă. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { HTTPException } from "hono/http-exception";
+
 import { dataChanged, getDb } from "./db.ts";
 
 export interface Place {
@@ -53,11 +55,11 @@ export function savePlace(input: PlaceInput): void {
   const name = String(input.name ?? "")
     .trim()
     .slice(0, 40);
-  if (!name) throw new Error("Numele lipsește");
+  if (!name) throw new HTTPException(400, { message: "Numele lipsește" });
   const lat = Number(input.lat);
   const lon = Number(input.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
-    throw new Error("Poziția e invalidă");
+    throw new HTTPException(400, { message: "Poziția e invalidă" });
   }
   const radius = Math.round(Math.min(2000, Math.max(30, Number(input.radius) || DEFAULT_RADIUS)));
   const db = getDb();

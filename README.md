@@ -296,7 +296,7 @@ Rulează pe același server cu FaikkitBox, dar complet separat:
 | Cod | `/opt/faikkitcar/web`: Node 22 (rulează direct TypeScript), Hono, `node:sqlite`, site React + Vite + Tailwind |
 | Serviciu | systemd `faikkitcar` (unitatea în `deploy/faikkitcar.service`, utilizatorul `faikkitcar`, scrie doar în `data/`) |
 | Rețea | Portul 3001; Cloudflare Tunnel `car.faicu.ro` → `http://192.168.1.192:3001` |
-| Config | `/opt/faikkitcar/.env` (nu e în git): `PORT`, `ADMIN_USER` / `ADMIN_PASS`, `SESSION_SECRET`, `CAR_TOKEN` |
+| Config | `/opt/faikkitcar/.env` (nu e în git): `PORT`, `ADMIN_USER` / `ADMIN_PASS`, `SESSION_SECRET`, `CAR_TOKEN` (+ `CAR_TOKEN_OLD` în tranziție), `CI_TOKEN` |
 | Date | `/opt/faikkitcar/data`: `faikkitcar.db` (tabele `log`, `trip_point`, `reminder`, `refuel`), `apk/`, `tts/` (cache voce), `piper/` (vocea, nu e în git) |
 | Actualizare site | `cd web && npm run build && systemctl restart faikkitcar` |
 
@@ -312,7 +312,8 @@ Rulează pe același server cu FaikkitBox, dar complet separat:
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
 | `/api/live`, `/api/stats`, `/api/trips`, `/api/trips/points`, `POST /api/trips/join|split`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/log` | Datele pentru site și Panel (cu login) |
 
-Rutele `/api/car/*` și `POST /api/*/apk` cer cheia mașinii (`CAR_TOKEN`); restul, login-ul.
+Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`; în tranziție și `CAR_TOKEN_OLD`, cât aplicația
+din mașină are cheia veche), `POST /api/*/apk` cheia CI-ului (`CI_TOKEN`); restul, login-ul.
 
 ---
 
@@ -366,7 +367,10 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 - **Secretele repo-ului** (Settings → Secrets and variables → Actions):
   - `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`: cheia de semnare (PKCS12, alias `vwwelcome`),
     aceeași pentru ambele aplicații. **Păstrează o copie a keystore-ului.**
-  - `VW_LOG_TOKEN`: cheia mașinii, aceeași ca `CAR_TOKEN` din `/opt/faikkitcar/.env`.
+  - `VW_LOG_TOKEN`: cheia mașinii (intră în APK), aceeași ca `CAR_TOKEN` din `/opt/faikkitcar/.env`.
+  - `CI_TOKEN`: doar pentru publicarea APK-urilor (`POST /api/*/apk`), același ca `CI_TOKEN` din
+    `.env`; nu intră în aplicație. (Din 17.10: cheia mașinii ajunsese în APK-urile publice, deci
+    repo-ul e privat și cheile au fost separate.)
 - **Local pe server:** JDK 17, Gradle 8.7 și Android SDK 34 în `/root/android`:
   ```
   export JAVA_HOME=/root/android/jdk
@@ -444,6 +448,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 48 | 12.10 | Harta nu mai ține memorie cât aplicația e în fundal; verificarea senzorilor de temperatură ai navigației (în jurnal) |
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
+| următorul | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
 
 ### FaikkitCar Panel (telefonul)
 
@@ -454,6 +459,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 13 | 12.10 | Harta live a călătoriei în curs |
 | 14 | 12.10 | Scos „Consum acum” / „Bordul” (valoarea nu era consumul) |
 | următorul | 16.10 | Starea „Fără semnal” pe fila Acum |
+| următorul | 17.10 | Nu mai întreabă serverul în fundal după ieșirea din aplicație; harta live fără puncte dublate; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
 
 ### Serverul
 
@@ -463,6 +469,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 01.10 | **car.faicu.ro** separat (`/opt/faikkitcar`), date migrate, FaikkitBox curățat |
 | 12.10 | Consumul nu mai e umflat de drumurile neînregistrate (extins la km de pe kilometraj); scos consumul „de pe bord”; traseul live (`/api/live/route`, `/api/car/route`) |
 | 16.10 | Starea live „Fără semnal” (tăcere < 1 h după mers / motor pornit), cu călătoria în curs păstrată |
+| 17.10 | Revizuire: cheie separată pentru CI (`CI_TOKEN`) și tranziția cheii mașinii (`CAR_TOKEN_OLD`); erorile de validare dau 400, nu 500; un lot cu o oră imposibilă nu mai e respins la nesfârșit; tensiunea la pornire ≥ 12 V (demarorul neprins) ignorată; „Făcut” la o dată fixă fără interval nu mai șterge data; vocea Piper fără conflict la cereri simultane; numele locurilor escapate pe hartă |
 
 ---
 

@@ -148,6 +148,11 @@ export function num(n: number, digits = 1): string {
   return n.toLocaleString("ro-RO", { maximumFractionDigits: digits });
 }
 
+/** Text sigur în HTML (etichetele Leaflet primesc HTML, iar numele locurilor sunt scrise de mână). */
+export function esc(s: string): string {
+  return s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+}
+
 /** „Acasă → Serviciu”, sau "" dacă niciun capăt nu e un loc salvat. */
 export function route(t: { fromPlace: string | null; toPlace: string | null }): string {
   if (!t.fromPlace && !t.toPlace) return "";

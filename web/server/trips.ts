@@ -5,6 +5,8 @@
 // recalculează doar la date noi (memo din db.ts). Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { HTTPException } from "hono/http-exception";
+
 import { dataChanged, getDb, memo } from "./db.ts";
 import { placeAt, readPlaces } from "./places.ts";
 import {
@@ -95,7 +97,8 @@ export function insertPoints(points: IncomingPoint[]): number {
   db.exec("BEGIN");
   try {
     for (const p of points) {
-      if (!Number.isFinite(p?.t)) continue;
+      // O oră în afara intervalului Date ar arunca și ar respinge tot lotul la nesfârșit.
+      if (!Number.isFinite(p?.t) || Number.isNaN(new Date(p.t).getTime())) continue;
       const rpm = num(p.rpm);
       const odo = num(p.odo);
       const r = stmt.run(
@@ -252,7 +255,7 @@ function readJoins(): Join[] {
  * singură, ex. dus-întors cu o oprire scurtă. Intervalele care se suprapun se unesc.
  */
 export function joinTrips(start: string, end: string): void {
-  if (!(start < end)) throw new Error("Interval invalid");
+  if (!(start < end)) throw new HTTPException(400, { message: "Interval invalid" });
   const db = getDb();
   const overlapping = db
     .prepare(`SELECT id, start, end FROM trip_join WHERE start <= ? AND end >= ?`)

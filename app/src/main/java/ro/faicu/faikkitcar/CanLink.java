@@ -55,6 +55,7 @@ final class CanLink {
     private int voltN;
     private volatile long engineStartAt;
     private boolean crankTaken = true;
+    private static final double NO_CRANK_V = 12;
     private int fuelLogged = -1;
     // Momentul ultimei viteze din c109 (x100); c1031 (km/h intregi) o inlocuieste doar daca
     // c109 tace de 2 s, altfel viteza ar sari intre valoarea exacta si cea rotunjita.
@@ -225,9 +226,11 @@ final class CanLink {
             if (dt >= -10_000 && dt <= 3_000 && voltVal[i] > 5 && !(voltVal[i] >= min)) min = voltVal[i];
         }
         if (!Double.isNaN(min)) {
-            Prefs.log(c, "Pornire motor: baterie minim " + String.format(java.util.Locale.US, "%.2f", min) + " V");
+            Prefs.log(c, "Pornire motor: baterie minim " + String.format(java.util.Locale.US, "%.2f", min) + " V"
+                    + (min >= NO_CRANK_V ? " (fara caderea de la demaror, ignorat)" : ""));
         }
-        return min;
+        // Fara cadere sub 12 V n-am prins demarorul (ex. bordul tacea la pornire, 08.10: 14,35 V).
+        return min >= NO_CRANK_V ? Double.NaN : min;
     }
 
     /** Pana confirmam care cod e frana de mana: fiecare schimbare ajunge in jurnal. */

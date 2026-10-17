@@ -385,8 +385,12 @@ public class MainActivity extends Activity {
                 summaryAt = System.currentTimeMillis();
                 if (s == null) return;
                 summary = s;
-                // Doar cu Acasa pe ecran: in fundal (onStop) harta nu se reface.
-                if (route != null && homeHeadline != null) routeMap().update(route);
+                // Doar cu Acasa pe ecran: in fundal (onStop) harta nu se reface. Daca harta a
+                // fost refacuta intre timp (onStop / onResume), raspunsul are doar punctele de
+                // dupa harta veche: il lasam si cerem imediat traseul intreg.
+                boolean sameMap = m == null || routeMap == m;
+                if (route != null && homeHeadline != null && sameMap) routeMap().update(route);
+                if (!sameMap) summaryAt = 0;
                 renderHomeTrip();
                 updateMapOverlay();
             });

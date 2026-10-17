@@ -57,7 +57,10 @@ export async function synthesize(text: string): Promise<Buffer> {
   const id = createHash("sha1").update(`mihai-medium|${clean}`).digest("hex");
   const mp3 = join(dir, `${id}.mp3`);
   if (!existsSync(mp3)) {
-    const wav = join(dir, `${id}.wav`);
+    // Nume unice: două cereri simultane cu același text nu-și șterg una alteia fișierele.
+    const tag = `${process.pid}-${Math.random().toString(36).slice(2)}`;
+    const wav = join(dir, `${id}.${tag}.wav`);
+    const tmp = join(dir, `${id}.${tag}.tmp.mp3`);
     const piper = piperDir();
     try {
       await run(
@@ -75,13 +78,13 @@ export async function synthesize(text: string): Promise<Buffer> {
         "adelay=400:all=1",
         "-b:a",
         "96k",
-        `${mp3}.tmp.mp3`,
+        tmp,
       ]);
       // Redenumirea e atomică: o cerere paralelă nu vede niciodată un MP3 pe jumătate.
-      renameSync(`${mp3}.tmp.mp3`, mp3);
+      renameSync(tmp, mp3);
     } finally {
       rmSync(wav, { force: true });
-      rmSync(`${mp3}.tmp.mp3`, { force: true });
+      rmSync(tmp, { force: true });
     }
     prune(dir);
   }

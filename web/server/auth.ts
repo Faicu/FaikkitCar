@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Autentificarea: (1) mașina și CI-ul cu cheia CAR_TOKEN ("Authorization: Bearer …");
+// Autentificarea: (1) mașina cu cheia CAR_TOKEN, CI-ul cu CI_TOKEN ("Authorization: Bearer …");
 // (2) utilizatorul (site și aplicația Panel) cu ADMIN_USER / ADMIN_PASS, care primește
 // o sesiune semnată cu SESSION_SECRET: cookie pentru site, token Bearer pentru Panel.
 // ---------------------------------------------------------------------------
@@ -29,9 +29,21 @@ function bearer(c: Context): string {
   return h.startsWith("Bearer ") ? h.slice(7) : "";
 }
 
-/** Cheia mașinii (aplicația de pe navigație și CI-ul care publică APK-ul). */
+/**
+ * Cheia mașinii (aplicația de pe navigație). CAR_TOKEN_OLD, dacă e pus, e acceptată în
+ * tranziție: aplicația veche din mașină o folosește până se actualizează la cheia nouă.
+ */
 export function requireCarToken(c: Context): void {
-  if (!same(bearer(c), env("CAR_TOKEN"))) throw new HTTPException(401, { message: "Invalid token" });
+  const t = bearer(c);
+  const old = process.env.CAR_TOKEN_OLD;
+  if (!same(t, env("CAR_TOKEN")) && !(old && same(t, old))) {
+    throw new HTTPException(401, { message: "Invalid token" });
+  }
+}
+
+/** Cheia CI-ului, doar pentru publicarea APK-urilor; nu ajunge în aplicație. */
+export function requireCiToken(c: Context): void {
+  if (!same(bearer(c), env("CI_TOKEN"))) throw new HTTPException(401, { message: "Invalid token" });
 }
 
 function sign(payload: string): string {

@@ -5,6 +5,8 @@
 // Cele respinse rămân în tabela `dismissed`. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { HTTPException } from "hono/http-exception";
+
 import { dataChanged, getDb } from "./db.ts";
 import { fuelState } from "./fuel.ts";
 import { levelRefills } from "./fuel-model.ts";
@@ -123,7 +125,7 @@ export async function readSuggestions(): Promise<Suggestion[]> {
 
 /** „Nu” la o propunere: nu mai apare. */
 export function dismissSuggestion(kind: string, key: string, lat?: number, lon?: number): void {
-  if (kind !== "refuel" && kind !== "place") throw new Error("Propunere necunoscută");
+  if (kind !== "refuel" && kind !== "place") throw new HTTPException(400, { message: "Propunere necunoscută" });
   getDb()
     .prepare(
       `INSERT OR IGNORE INTO dismissed (kind, key, lat, lon, created_at) VALUES (?, ?, ?, ?, ?)`,

@@ -44,11 +44,11 @@ jobs:
       - name: Publish APK to car.faicu.ro
         if: github.ref == 'refs/heads/main'
         env:
-          VW_LOG_TOKEN: ${{ secrets.VW_LOG_TOKEN }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
         run: |
-          if [ -z "$VW_LOG_TOKEN" ]; then echo "::warning::VW_LOG_TOKEN lipseste, APK-ul nu e publicat"; exit 0; fi
+          if [ -z "$CI_TOKEN" ]; then echo "::warning::CI_TOKEN lipseste, APK-ul nu e publicat"; exit 0; fi
           curl -sS --fail-with-body -X POST \
-            -H "Authorization: Bearer $VW_LOG_TOKEN" \
+            -H "Authorization: Bearer $CI_TOKEN" \
             -H "X-Version-Code: ${{ github.run_number }}" \
             -H "X-Version-Name: 1.0.${{ github.run_number }}" \
             -H "Content-Type: application/vnd.android.package-archive" \

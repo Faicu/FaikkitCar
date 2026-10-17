@@ -24,6 +24,7 @@ final class Uploader {
     private static final String URL_LOG = "https://car.faicu.ro/api/car/log";
     private static final String URL_TRIP = "https://car.faicu.ro/api/car/trip";
     private static final int POINT_BATCH = 300;
+    private static final int POINT_CHUNK = 3000;
     private static final int BATCH = 100;
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean running = new AtomicBoolean();
@@ -60,16 +61,26 @@ final class Uploader {
             Prefs.dropOutbox(c, batch.length());
             Prefs.setUploadStatus(c, "ok");
         }
-        // Punctele de traseu (TripRecorder), pe ruta lor.
+        // Punctele de traseu (TripRecorder), pe ruta lor. Coada (pana la 40.000 de puncte dupa
+        // zile fara internet) se citeste si se rescrie o data la POINT_CHUNK puncte, nu la
+        // fiecare lot; daca procesul moare la mijloc, serverul ignora punctele retrimise.
         while (true) {
-            JSONArray batch = PointQueue.peek(c, POINT_BATCH);
-            if (batch.length() == 0) break;
-            String error = post(URL_TRIP, "points", batch);
+            JSONArray chunk = PointQueue.peek(c, POINT_CHUNK);
+            if (chunk.length() == 0) break;
+            int sent = 0;
+            String error = null;
+            while (sent < chunk.length()) {
+                JSONArray batch = new JSONArray();
+                for (int i = sent; i < chunk.length() && batch.length() < POINT_BATCH; i++) batch.put(chunk.opt(i));
+                error = post(URL_TRIP, "points", batch);
+                if (error != null) break;
+                sent += batch.length();
+            }
+            if (sent > 0) PointQueue.drop(c, sent);
             if (error != null) {
                 Prefs.setUploadStatus(c, "eroare traseu: " + error);
                 return;
             }
-            PointQueue.drop(c, batch.length());
         }
         // Avem internet: reimprospatam si starea (mentenanta, versiunea noua).
         VwStatus.refreshIfOld(c);

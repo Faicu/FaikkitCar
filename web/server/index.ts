@@ -21,6 +21,7 @@ import {
   isUser,
   loginAllowed,
   requireCarToken,
+  requireCiToken,
   requireUser,
 } from "./auth.ts";
 import {
@@ -151,7 +152,7 @@ app.post("/api/car/tts", async (c) => {
   });
 });
 
-// GET: metadatele ultimului APK; POST (din CI): APK-ul, cu X-Version-Code / X-Version-Name.
+// GET: metadatele ultimului APK; POST (din CI, cu CI_TOKEN): APK-ul, cu X-Version-Code / X-Version-Name.
 app.get("/api/car/apk", (c) => {
   requireCarToken(c);
   return c.json(readApkInfo() ?? { versionCode: 0 });
@@ -159,7 +160,7 @@ app.get("/api/car/apk", (c) => {
 
 /** Primește un APK de la CI (octeții + X-Version-Code / X-Version-Name). */
 async function receiveApk(c: Context, kind: "car" | "panel") {
-  requireCarToken(c);
+  requireCiToken(c);
   const versionCode = Number(c.req.header("x-version-code"));
   const versionName = String(c.req.header("x-version-name") ?? "").slice(0, 40);
   if (!Number.isInteger(versionCode) || versionCode <= 0 || !versionName) {
@@ -191,7 +192,7 @@ app.get("/api/car/apk/download", (c) => {
   return sendApk(c, "car");
 });
 
-// Aplicația Panel: CI-ul o încarcă tot cu CAR_TOKEN; telefonul o citește cu login-ul.
+// Aplicația Panel: CI-ul o încarcă tot cu CI_TOKEN; telefonul o citește cu login-ul.
 app.post("/api/panel/apk", (c) => receiveApk(c, "panel"));
 
 app.get("/api/panel/apk", (c) => {

@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { HTTPException } from "hono/http-exception";
 
 import { readOdometer } from "./car.ts";
 import { dataChanged, dataDir, getDb } from "./db.ts";
@@ -64,11 +65,11 @@ function numOrNull(x: unknown): number | null {
 /** Salvează o lucrare; întoarce id-ul ei (pentru fișierele atașate apoi). */
 export function saveService(input: ServiceInput): number {
   const title = String(input.title ?? "").trim().slice(0, 80);
-  if (!title) throw new Error("Scrie ce s-a făcut");
+  if (!title) throw new HTTPException(400, { message: "Scrie ce s-a făcut" });
   const date = String(input.date ?? "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Data lipsește");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HTTPException(400, { message: "Data lipsește" });
   const cost = numOrNull(input.cost);
-  if (cost !== null && (cost < 0 || cost > 100_000)) throw new Error("Costul pare greșit");
+  if (cost !== null && (cost < 0 || cost > 100_000)) throw new HTTPException(400, { message: "Costul pare greșit" });
   const odoIn = numOrNull(input.odo);
   const odo = odoIn !== null ? Math.round(odoIn) : readOdometer();
   const notes = String(input.notes ?? "").trim().slice(0, 500) || null;
@@ -103,9 +104,9 @@ export function deleteService(id: number): void {
 
 /** Atașează un fișier (bon, factură, poză) la o lucrare. */
 export function addServiceFile(serviceId: number, name: string, mime: string, data: Buffer): ServiceFile {
-  if (!getDb().prepare(`SELECT id FROM service WHERE id = ?`).get(serviceId)) throw new Error("Lucrarea nu există");
-  if (data.length === 0 || data.length > MAX_FILE) throw new Error("Fișierul e gol sau mai mare de 15 MB");
-  if (!MIMES.includes(mime)) throw new Error("Doar poze (JPEG, PNG, WEBP, HEIC) sau PDF");
+  if (!getDb().prepare(`SELECT id FROM service WHERE id = ?`).get(serviceId)) throw new HTTPException(400, { message: "Lucrarea nu există" });
+  if (data.length === 0 || data.length > MAX_FILE) throw new HTTPException(400, { message: "Fișierul e gol sau mai mare de 15 MB" });
+  if (!MIMES.includes(mime)) throw new HTTPException(400, { message: "Doar poze (JPEG, PNG, WEBP, HEIC) sau PDF" });
   const clean = name.replace(/[^\w.\- ăâîșțĂÂÎȘȚ]/g, "_").slice(0, 80) || "fisier";
   const r = getDb()
     .prepare(`INSERT INTO service_file (service_id, name, mime, size, created_at) VALUES (?, ?, ?, ?, ?)`)

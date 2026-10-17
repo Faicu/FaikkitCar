@@ -5,6 +5,8 @@
 // alimentări. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { HTTPException } from "hono/http-exception";
+
 import { dataChanged, getDb, memo } from "./db.ts";
 import {
   calibrate,
@@ -162,12 +164,12 @@ function numOrNull(x: unknown): number | null {
 
 export function saveRefuel(input: RefuelInput): void {
   const at = new Date(String(input.at ?? ""));
-  if (Number.isNaN(at.getTime())) throw new Error("Data lipsește");
+  if (Number.isNaN(at.getTime())) throw new HTTPException(400, { message: "Data lipsește" });
   const liters = numOrNull(input.liters);
   if (liters === null || liters <= 0 || liters > 100)
-    throw new Error("Litrii trebuie să fie între 0 și 100");
+    throw new HTTPException(400, { message: "Litrii trebuie să fie între 0 și 100" });
   const price = numOrNull(input.price);
-  if (price !== null && (price <= 0 || price > 50)) throw new Error("Prețul pe litru pare greșit");
+  if (price !== null && (price <= 0 || price > 50)) throw new HTTPException(400, { message: "Prețul pe litru pare greșit" });
   const iso = at.toISOString();
   const odoIn = numOrNull(input.odo);
   const odo = odoIn !== null ? Math.round(odoIn) : odometerAt(iso);
