@@ -302,7 +302,7 @@ Rulează pe același server cu FaikkitBox, dar complet separat:
 
 | Rută | Rol |
 |---|---|
-| `POST /api/car/log` | Jurnalul aplicației (ultimele 200.000 de linii) |
+| `POST /api/car/log` | Jurnalul aplicației (păstrat integral, nu se șterge) |
 | `POST /api/car/trip` | Punctele de traseu |
 | `POST /api/car/state` | Starea de acum (contact, turație, viteză, rezervor), la 15 s |
 | `GET /api/car/status` | Kilometraj, mentenanță și ultimul APK, citite de aplicație |
