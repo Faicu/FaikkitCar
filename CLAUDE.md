@@ -33,7 +33,7 @@ tmux `faikkitbox` și `faikkitcar`.
   (`trip-math.test.ts`, `fuel-model.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
   utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
-  APK), `CAR_TOKEN_OLD` (doar în tranziție, cât mașina are aplicația cu cheia veche), `CI_TOKEN`
+  APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
   (= secretul GitHub `CI_TOKEN`, doar `POST /api/*/apk`). Repo-ul e privat din 17.10 (cheia mașinii
   ajunsese în APK-urile publice).
 - `/opt/faikkitcar/data`: `faikkitcar.db`, `apk/`, `tts/` (cache voce), `piper/` (binar + model
@@ -180,9 +180,7 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
-- În mașină FaikkitCar 1.1.45+ (actualizat din aplicație), pe telefon Panel (din aplicație).
-- De făcut (17.10): mașina e încă pe aplicația cu cheia veche. După ce jurnalul arată 1.1.51+,
-  scoate `CAR_TOKEN_OLD` din `.env` și repornește serverul (cheia veche a fost publică în APK-uri).
+- În mașină FaikkitCar 1.1.51 (din 18.10, cu cheia nouă; actualizat din aplicație), pe telefon Panel (din aplicație).
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Netestat încă în mașină: avertizarea de ușă, contact pus cu motorul oprit, harta live pe drum.
