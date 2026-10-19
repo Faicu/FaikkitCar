@@ -98,7 +98,7 @@ function cleanItems(items: unknown): ServiceItem[] {
 
 /** Salvează o lucrare; întoarce id-ul ei (pentru fișierele atașate apoi). */
 export function saveService(input: ServiceInput): number {
-  const title = String(input.title ?? "").trim().slice(0, 80);
+  const title = String(input.title ?? "").trim().slice(0, 120);
   if (!title) throw new HTTPException(400, { message: "Scrie ce s-a făcut" });
   const date = String(input.date ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HTTPException(400, { message: "Data lipsește" });

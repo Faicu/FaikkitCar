@@ -1173,12 +1173,14 @@ public class MainActivity extends Activity {
                 top.addView(tc);
             }
             row.addView(top);
-            List<String> parts = new ArrayList<>();
-            parts.add(Fmt.date(e.optString("date") + "T12:00:00Z"));
-            if (!e.isNull("odo")) parts.add(Fmt.km(e.optLong("odo")));
-            if (!e.isNull("shop")) parts.add(e.optString("shop"));
-            row.addView(Ui.text(this, String.join(" · ", parts), 13, Ui.MUTED, false));
-            serviceItems(row, e.optJSONArray("items"));
+            String when = LocalDate.parse(e.optString("date")).format(java.time.format.DateTimeFormatter
+                    .ofPattern("EEEE, d MMMM yyyy", new java.util.Locale("ro", "RO")));
+            TextView wt = Ui.text(this, "📅 " + when, 14, Ui.TEXT, false);
+            wt.setPadding(0, dp(this, 6), 0, 0);
+            row.addView(wt);
+            if (!e.isNull("odo")) row.addView(Ui.text(this, "🛣 " + Fmt.km(e.optLong("odo")), 14, Ui.TEXT, false));
+            if (!e.isNull("shop")) row.addView(Ui.text(this, "📍 " + e.optString("shop"), 14, Ui.TEXT, false));
+            serviceItems(row, e);
             if (!e.isNull("notes")) {
                 TextView nt = Ui.text(this, e.optString("notes"), 13, Ui.MUTED, false);
                 nt.setPadding(0, dp(this, 8), 0, 0);
@@ -1202,11 +1204,18 @@ public class MainActivity extends Activity {
     }
 
     /** Articolele lucrarii (piese cu cod, manopera, reduceri), pe grupe, cu subtotal. */
-    private void serviceItems(LinearLayout row, JSONArray items) {
+    private void serviceItems(LinearLayout row, JSONObject e) {
+        JSONArray items = e.optJSONArray("items");
         if (items == null || items.length() == 0) return;
+        double parts = 0, labor = 0, off = 0;
         java.util.LinkedHashMap<String, List<JSONObject>> groups = new java.util.LinkedHashMap<>();
         for (int i = 0; i < items.length(); i++) {
             JSONObject it = items.optJSONObject(i);
+            double pr = it.isNull("price") ? 0 : it.optDouble("price");
+            // Manopera = randurile care incep cu „Manoperă”; reducerile = preturile negative.
+            if (pr < 0) off += pr;
+            else if (it.optString("name").toLowerCase(java.util.Locale.ROOT).startsWith("manoper")) labor += pr;
+            else parts += pr;
             groups.computeIfAbsent(it.optString("group"), k -> new ArrayList<>()).add(it);
         }
         for (java.util.Map.Entry<String, List<JSONObject>> g : groups.entrySet()) {
@@ -1252,6 +1261,25 @@ public class MainActivity extends Activity {
             }
             row.addView(box);
         }
+        LinearLayout tot = new LinearLayout(this);
+        tot.setOrientation(LinearLayout.VERTICAL);
+        tot.setPadding(0, dp(this, 10), 0, 0);
+        String[] k = {"Piese", "Manoperă", "Reduceri"};
+        double[] v = {parts, labor, off};
+        for (int i = 0; i < 3; i++) if (v[i] != 0) tot.addView(pair(k[i], Fmt.lei(v[i]), 14, Ui.MUTED, false));
+        double all = Math.round((parts + labor + off) * 100) / 100.0;
+        double cost = e.isNull("cost") ? all : e.optDouble("cost");
+        tot.addView(pair("Total", Fmt.lei(cost), 16, Ui.TEXT, true));
+        if (Math.abs(cost - all) >= 1)
+            tot.addView(Ui.text(this, "Articolele adunate dau " + Fmt.lei(all) + ", nu " + Fmt.lei(cost) + ".", 12, Ui.WARN, false));
+        row.addView(tot);
+    }
+
+    private LinearLayout pair(String k, String v, float sp, int color, boolean bold) {
+        LinearLayout l = new LinearLayout(this);
+        l.addView(Ui.text(this, k, sp, color, bold), new LinearLayout.LayoutParams(0, -2, 1));
+        l.addView(Ui.text(this, v, sp, color, bold));
+        return l;
     }
 
     private void serviceDialog(JSONObject e) {
