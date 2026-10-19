@@ -49,6 +49,9 @@ tmux `faikkitbox` și `faikkitcar`.
   polling cu `?after=`), `/api/live/route`, `/api/trips`, `/api/trips/points`, `/api/trips/join|split`,
   `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
   `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log`, `/api/panel/apk…`.
+- Service: `service.items` (JSON: `group`, `name`, `code`, `qty`, `price` pe tot rândul, cu TVA;
+  reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
+  afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
 - Pagini: Acum (`Now.tsx`: starea, călătoria în curs cu harta live `LiveTripMap.tsx`,
   rezervorul, „Unde e mașina” când nu merge), Călătorii (`Trips.tsx` + `TripView.tsx`), Costuri
   (`Costs.tsx`), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).

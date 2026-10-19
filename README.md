@@ -132,7 +132,7 @@ a crescut într-un proiect cu trei părți:
 | Opriri în trafic vs. staționare | 🧪 | Oprirea cu motorul pornit între două porțiuni de mers (≤ 5 min), fără semne de parcare = trafic; altfel staționare. Plus cea mai lungă oprire și viteza doar în mișcare. Live: „Oprit în trafic · 1 min 20 s” pe site, în Panel și în mașină |
 | Drumurile tale | 🧪 | În Costuri: pentru drumurile dese (ex. Acasă → Serviciu) costul și durata medie, timpul în trafic, costul lunii și, cu destule date, ora cea mai bună de plecare |
 | Staționarea cu motorul pornit | 🧪 | În raportul lunii: cât timp, litri și lei s-au dus pe încălzire și așteptat |
-| Jurnal de service | 🧪 | În Mai mult: lucrările (ulei, piese, ITP...) cu data, kilometrajul, costul și pozele bonurilor; costul intră în raportul lunii |
+| Jurnal de service | ✅ | În Mai mult: lucrările (ulei, piese, ITP...) cu data, kilometrajul, locul, costul, articolele pe grupe (piesă, cod, bucăți, preț; manoperă, reduceri) și bonurile / facturile atașate; costul intră în raportul lunii |
 | Propuneri | 🧪 | Sus pe Acum: „Ai alimentat pe … ~16 L?” (salt în rezervor, fără alimentare în jurnal) și „Parchezi des aici: Strada X” (de cel puțin 2 ori în 60 de zile); „Da” completează, „Nu” ascunde |
 | Raportul lunii | 🧪 | În Costuri: luna curentă față de cea trecută (km, călătorii, timp, trafic, litri, consum, cost), cea mai lungă călătorie, locurile cele mai dese |
 | Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”, mașina „parcată la Serviciu”. Loc nou din Mai mult: după adresă (stradă, număr), cu pinul mutat pe hartă și raza; sau din detaliile unei călătorii, „Salvează sosirea ca loc” |
@@ -460,6 +460,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 14 | 12.10 | Scos „Consum acum” / „Bordul” (valoarea nu era consumul) |
 | următorul | 16.10 | Starea „Fără semnal” pe fila Acum |
 | următorul | 17.10 | Nu mai întreabă serverul în fundal după ieșirea din aplicație; harta live fără puncte dublate; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| următorul | 19.10 | Jurnalul de service arată articolele lucrării pe grupe (cod, preț, subtotal) și locul |
 
 ### Serverul
 
@@ -470,6 +471,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 12.10 | Consumul nu mai e umflat de drumurile neînregistrate (extins la km de pe kilometraj); scos consumul „de pe bord”; traseul live (`/api/live/route`, `/api/car/route`) |
 | 16.10 | Starea live „Fără semnal” (tăcere < 1 h după mers / motor pornit), cu călătoria în curs păstrată |
 | 17.10 | Revizuire: cheie separată pentru CI (`CI_TOKEN`) și tranziția cheii mașinii (`CAR_TOKEN_OLD`); erorile de validare dau 400, nu 500; un lot cu o oră imposibilă nu mai e respins la nesfârșit; tensiunea la pornire ≥ 12 V (demarorul neprins) ignorată; „Făcut” la o dată fixă fără interval nu mai șterge data; vocea Piper fără conflict la cereri simultane; numele locurilor escapate pe hartă; jurnalul nu se mai taie la 200.000 de linii (nu se șterge niciodată) |
+| 19.10 | Jurnalul de service pe articole (`service.items`, JSON: grupă, piesă, cod, bucăți, preț) și locul (`service.shop`); pe site carduri cu data, totalul, grupele cu subtotal și fișierele; prima revizie trecută (19.10, 2.979 lei, cu devizul și factura) |
 
 ---
 

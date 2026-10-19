@@ -17,6 +17,15 @@ export interface ServiceFile {
   size: number;
 }
 
+/** Un rând din lucrare: o piesă, manopera sau o reducere (preț negativ), cu TVA. */
+export interface ServiceItem {
+  group: string; // „Revizie”, „Frâne spate”, „Manoperă”...
+  name: string;
+  code: string | null; // codul piesei
+  qty: number | null;
+  price: number | null; // lei pe tot rândul
+}
+
 export interface ServiceEntry {
   id: number;
   date: string; // YYYY-MM-DD
@@ -24,6 +33,8 @@ export interface ServiceEntry {
   title: string;
   cost: number | null;
   notes: string | null;
+  shop: string | null; // unde s-a făcut
+  items: ServiceItem[];
   files: ServiceFile[];
 }
 
@@ -34,6 +45,8 @@ export interface ServiceInput {
   title: string;
   cost: number | null;
   notes: string | null;
+  shop?: string | null;
+  items?: ServiceItem[]; // lipsă = rămân cele salvate (Panel-ul nu le trimite)
 }
 
 const MAX_FILE = 15 * 1024 * 1024;
@@ -46,13 +59,14 @@ function fileDir(): string {
 export function readService(): ServiceEntry[] {
   const db = getDb();
   const rows = db
-    .prepare(`SELECT id, date, odo, title, cost, notes FROM service ORDER BY date DESC, id DESC`)
-    .all() as unknown as Omit<ServiceEntry, "files">[];
+    .prepare(`SELECT id, date, odo, title, cost, notes, shop, items FROM service ORDER BY date DESC, id DESC`)
+    .all() as unknown as Array<Omit<ServiceEntry, "files" | "items"> & { items: string | null }>;
   const files = db
     .prepare(`SELECT id, service_id, name, mime, size FROM service_file ORDER BY id`)
     .all() as unknown as Array<ServiceFile & { service_id: number }>;
   return rows.map((r) => ({
     ...r,
+    items: r.items ? (JSON.parse(r.items) as ServiceItem[]) : [],
     files: files.filter((f) => f.service_id === r.id).map(({ service_id: _, ...f }) => f),
   }));
 }
@@ -60,6 +74,26 @@ export function readService(): ServiceEntry[] {
 function numOrNull(x: unknown): number | null {
   const n = typeof x === "number" ? x : typeof x === "string" && x.trim() ? Number(x.replace(",", ".")) : NaN;
   return Number.isFinite(n) ? n : null;
+}
+
+function cleanItems(items: unknown): ServiceItem[] {
+  if (!Array.isArray(items)) throw new HTTPException(400, { message: "Articolele lipsesc" });
+  if (items.length > 80) throw new HTTPException(400, { message: "Prea multe articole" });
+  const str = (x: unknown, n: number) => String(x ?? "").trim().slice(0, n);
+  return items
+    .map((it: Record<string, unknown>) => {
+      const price = numOrNull(it?.price);
+      if (price !== null && Math.abs(price) > 100_000) throw new HTTPException(400, { message: "Un preț pare greșit" });
+      const qty = numOrNull(it?.qty);
+      return {
+        group: str(it?.group, 40) || "Altele",
+        name: str(it?.name, 120),
+        code: str(it?.code, 40) || null,
+        qty: qty !== null && qty > 0 ? qty : null,
+        price,
+      };
+    })
+    .filter((it) => it.name);
 }
 
 /** Salvează o lucrare; întoarce id-ul ei (pentru fișierele atașate apoi). */
@@ -72,22 +106,29 @@ export function saveService(input: ServiceInput): number {
   if (cost !== null && (cost < 0 || cost > 100_000)) throw new HTTPException(400, { message: "Costul pare greșit" });
   const odoIn = numOrNull(input.odo);
   const odo = odoIn !== null ? Math.round(odoIn) : readOdometer();
-  const notes = String(input.notes ?? "").trim().slice(0, 500) || null;
+  const notes = String(input.notes ?? "").trim().slice(0, 1000) || null;
   const db = getDb();
   let id = Number(input.id) || 0;
+  const old = id
+    ? (db.prepare(`SELECT shop, items FROM service WHERE id = ?`).get(id) as { shop: string | null; items: string | null } | undefined)
+    : undefined;
+  const shop = input.shop === undefined ? (old?.shop ?? null) : String(input.shop ?? "").trim().slice(0, 120) || null;
+  const items = input.items === undefined ? (old?.items ?? null) : JSON.stringify(cleanItems(input.items));
   if (id) {
-    db.prepare(`UPDATE service SET date = ?, odo = ?, title = ?, cost = ?, notes = ? WHERE id = ?`).run(
+    db.prepare(`UPDATE service SET date = ?, odo = ?, title = ?, cost = ?, notes = ?, shop = ?, items = ? WHERE id = ?`).run(
       date,
       odo,
       title,
       cost,
       notes,
+      shop,
+      items,
       id,
     );
   } else {
     const r = db
-      .prepare(`INSERT INTO service (date, odo, title, cost, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
-      .run(date, odo, title, cost, notes, new Date().toISOString());
+      .prepare(`INSERT INTO service (date, odo, title, cost, notes, shop, items, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(date, odo, title, cost, notes, shop, items, new Date().toISOString());
     id = Number(r.lastInsertRowid);
   }
   dataChanged();

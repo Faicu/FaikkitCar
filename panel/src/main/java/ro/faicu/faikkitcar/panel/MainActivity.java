@@ -1165,13 +1165,25 @@ public class MainActivity extends Activity {
             row.setBackground(Ui.round(this, Ui.CARD2, 14));
             int p = dp(this, 12);
             row.setPadding(p, p, p, p);
-            row.addView(Ui.text(this, e.optString("title"), 16, Ui.TEXT, true));
+            LinearLayout top = new LinearLayout(this);
+            top.addView(Ui.text(this, e.optString("title"), 16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+            if (!e.isNull("cost")) {
+                TextView tc = Ui.text(this, Fmt.lei(e.optDouble("cost")), 16, Ui.TEXT, true);
+                tc.setPadding(dp(this, 8), 0, 0, 0);
+                top.addView(tc);
+            }
+            row.addView(top);
             List<String> parts = new ArrayList<>();
             parts.add(Fmt.date(e.optString("date") + "T12:00:00Z"));
             if (!e.isNull("odo")) parts.add(Fmt.km(e.optLong("odo")));
-            if (!e.isNull("cost")) parts.add(Fmt.lei(e.optDouble("cost")));
+            if (!e.isNull("shop")) parts.add(e.optString("shop"));
             row.addView(Ui.text(this, String.join(" · ", parts), 13, Ui.MUTED, false));
-            if (!e.isNull("notes")) row.addView(Ui.text(this, e.optString("notes"), 14, Ui.TEXT, false));
+            serviceItems(row, e.optJSONArray("items"));
+            if (!e.isNull("notes")) {
+                TextView nt = Ui.text(this, e.optString("notes"), 13, Ui.MUTED, false);
+                nt.setPadding(0, dp(this, 8), 0, 0);
+                row.addView(nt);
+            }
             JSONArray files = e.optJSONArray("files");
             for (int k = 0; files != null && k < files.length(); k++) {
                 JSONObject f = files.optJSONObject(k);
@@ -1186,6 +1198,59 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);
+        }
+    }
+
+    /** Articolele lucrarii (piese cu cod, manopera, reduceri), pe grupe, cu subtotal. */
+    private void serviceItems(LinearLayout row, JSONArray items) {
+        if (items == null || items.length() == 0) return;
+        java.util.LinkedHashMap<String, List<JSONObject>> groups = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject it = items.optJSONObject(i);
+            groups.computeIfAbsent(it.optString("group"), k -> new ArrayList<>()).add(it);
+        }
+        for (java.util.Map.Entry<String, List<JSONObject>> g : groups.entrySet()) {
+            LinearLayout gh = new LinearLayout(this);
+            gh.setPadding(0, dp(this, 10), 0, dp(this, 2));
+            gh.addView(Ui.text(this, g.getKey().toUpperCase(java.util.Locale.ROOT), 12, Ui.ACCENT, true),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            double sub = 0;
+            boolean priced = false;
+            for (JSONObject it : g.getValue()) {
+                if (!it.isNull("price")) {
+                    sub += it.optDouble("price");
+                    priced = true;
+                }
+            }
+            if (priced) gh.addView(Ui.text(this, Fmt.lei(sub), 12, Ui.MUTED, true));
+            row.addView(gh);
+            LinearLayout box = new LinearLayout(this);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setBackground(Ui.round(this, Ui.CARD, 10));
+            int p = dp(this, 8);
+            box.setPadding(p, dp(this, 4), p, dp(this, 4));
+            for (JSONObject it : g.getValue()) {
+                LinearLayout line = new LinearLayout(this);
+                line.setPadding(0, dp(this, 4), 0, dp(this, 4));
+                LinearLayout left = new LinearLayout(this);
+                left.setOrientation(LinearLayout.VERTICAL);
+                double qty = it.isNull("qty") ? 1 : it.optDouble("qty");
+                left.addView(Ui.text(this, it.optString("name") + (qty != 1 ? "  × " + Fmt.num(qty, 2) : ""), 14, Ui.TEXT, false));
+                if (!it.isNull("code")) {
+                    TextView code = Ui.text(this, it.optString("code"), 12, Ui.MUTED, false);
+                    code.setTypeface(android.graphics.Typeface.MONOSPACE);
+                    left.addView(code);
+                }
+                line.addView(left, new LinearLayout.LayoutParams(0, -2, 1));
+                if (!it.isNull("price")) {
+                    double pr = it.optDouble("price");
+                    TextView pt = Ui.text(this, Fmt.lei(pr), 14, pr < 0 ? Ui.OK : Ui.TEXT, false);
+                    pt.setPadding(dp(this, 8), 0, 0, 0);
+                    line.addView(pt);
+                }
+                box.addView(line);
+            }
+            row.addView(box);
         }
     }
 

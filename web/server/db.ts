@@ -185,5 +185,8 @@ export function getDb(): DatabaseSync {
   ]) {
     if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
   }
+  // Lucrările de service pe articole (piese, manoperă, reduceri; JSON) și unde s-au făcut.
+  if (!cols("service").includes("items")) db.exec(`ALTER TABLE service ADD COLUMN items TEXT`);
+  if (!cols("service").includes("shop")) db.exec(`ALTER TABLE service ADD COLUMN shop TEXT`);
   return db;
 }

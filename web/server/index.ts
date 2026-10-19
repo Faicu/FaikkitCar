@@ -358,7 +358,7 @@ app.get("/api/service", (c) => {
 
 app.post("/api/service", async (c) => {
   requireUser(c);
-  return c.json({ ok: true, id: saveService(await json<ServiceInput>(c, 8192)) });
+  return c.json({ ok: true, id: saveService(await json<ServiceInput>(c, 65536)) });
 });
 
 app.delete("/api/service/:id", (c) => {

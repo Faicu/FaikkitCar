@@ -6,7 +6,7 @@ import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live, LiveRoute } from "../server/live.ts";
 import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
-import type { ServiceEntry, ServiceInput } from "../server/service.ts";
+import type { ServiceEntry, ServiceInput, ServiceItem } from "../server/service.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
 import type { Suggestion } from "../server/suggestions.ts";
 import type { Trip, TripPoint } from "../server/trips.ts";
@@ -100,7 +100,7 @@ export type {
   PeriodStats,
   Place,
   RouteStats,
-  ServiceEntry,
+  ServiceEntry, ServiceItem,
   Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
