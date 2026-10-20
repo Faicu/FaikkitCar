@@ -917,6 +917,10 @@ public class MainActivity extends Activity {
             if (routeMap.map.getParent() != null) ((android.view.ViewGroup) routeMap.map.getParent()).removeView(routeMap.map);
             routeMap.map.onDetach();
             routeMap = null;
+            // osmdroid pastreaza imaginile dalelor intr-un depozit global, pentru refolosire, si
+            // dupa onDetach. 20.10: navigatia ramasese fara memorie (swap plin), iar noi eram al
+            // treilea proces ca marime si neprotejat (5 in skipkillapp.prop) -> omorati la somn.
+            org.osmdroid.tileprovider.BitmapPool.getInstance().clearBitmapPool();
         }
         homeHeadline = null;
         summaryAt = 0; // la revenire, rezumatul si traseul se cer imediat
