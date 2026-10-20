@@ -95,6 +95,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   animat al utilizatorului (`earthmoon`, ~330 MB, 25% CPU) a fost și el omorât. Dezactivate de
   utilizator: TXZ, Google; Spotify Teyes nu se poate. `KeepAliveListener` (1.1.55): „Acces la
   notificări” → adj 100 și repornire de către sistem (emulator: 200 → 100, repornit în ~5 s).
+  Pe Teyes, cu accesul dat (20.10), adj rămâne 200 (ROM-ul modifică OomAdjuster). Un `kill -9`
+  cu navigația trează: serviciul repornit în ~1 s (START_STICKY). Netestat: moartea în somn
+  lung (dimineața 20.10) și cine ne repornește atunci. YouTube Music ~400 MB, Waze 300–500 MB:
+  cu ele, ~420 MB disponibili; tapetul animat e omorât primul.
 - `RemoteCmd` (20.10, 1.1.54): comenzi shell de pe server, doar cu Setări → Sistem → „Comenzi de
   la distanta (teste)” pornit (implicit oprit; utilizatorul îl pornește la teste). Serverul
   (`cmd.ts`, tabela `car_cmd`) pune `cmd: <n>` în răspunsul la `/api/car/state`; aplicația ia
@@ -209,7 +213,11 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
-- În mașină FaikkitCar 1.1.51 (din 18.10, cu cheia nouă; actualizat din aplicație), pe telefon Panel (din aplicație).
+- În mașină FaikkitCar 1.1.55 (din 20.10, cu „Acces la notificări” dat; actualizat din aplicație,
+  cu a doua apăsare după scanarea Play Protect), pe telefon Panel 1.0.19.
+- De urmărit: la următoarea oprire > 20 min, dacă aplicația supraviețuiește somnului (jurnal:
+  „trezire din hibernare” vs „Serviciu pornit … ultima activitate”, „Alarma de rezerva”, „Acces la
+  notificari: sistemul ne-a pornit”); la următoarea actualizare, pașii „sesiunea X …” din jurnal.
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Netestat încă în mașină: avertizarea de ușă, contact pus cu motorul oprit, harta live pe drum.
