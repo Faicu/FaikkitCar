@@ -784,6 +784,11 @@ public class MainActivity extends Activity {
                 refresh();
             });
         }).start());
+        Ui.hint(this, sys, "Acces la notificari: " + (KeepAliveListener.granted(this)
+                ? "dat (ok): prioritate mai mare, repornire de catre sistem"
+                : "NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie (notificarile nu se citesc)"));
+        Ui.addButton(this, sys, "Acces la notificari", Ui.SECONDARY, v -> startActivity(
+                new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
         Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
         Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
         toggle(sys, "Comenzi de la distanta (teste)", "Lasa serverul sa ruleze comenzi pe navigatie, "

@@ -70,7 +70,8 @@ final class TeyesCheck {
         ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
         am.getMemoryInfo(mi);
         sb.append(" | memorie libera ").append(mi.availMem >> 20).append(" / ")
-                .append(mi.totalMem >> 20).append(" MB").append(mi.lowMemory ? " (PUTINA)" : "");
+                .append(mi.totalMem >> 20).append(" MB").append(mi.lowMemory ? " (PUTINA)" : "")
+                .append(" | acces la notificari: ").append(KeepAliveListener.granted(c) ? "da" : "nu");
         return sb.toString();
     }
 

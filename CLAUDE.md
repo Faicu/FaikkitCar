@@ -90,6 +90,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `PackageInstaller`, merge), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
   trimite `CAN MARK <text> | schimbări`; lista `KNOWN` din `MainActivity` ascunde codurile
   știute, dar nu c10/c13/c27/c28 și cadrul 0x21).
+- Memoria (20.10, cu comenzile): navigația are 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili;
+  Teyes își dă −700 (`skipkillapp.prop` −14), noi 200 (serviciu) → omorâți la somn. Tapetul
+  animat al utilizatorului (`earthmoon`, ~330 MB, 25% CPU) a fost și el omorât. Dezactivate de
+  utilizator: TXZ, Google; Spotify Teyes nu se poate. `KeepAliveListener` (1.1.55): „Acces la
+  notificări” → adj 100 și repornire de către sistem (emulator: 200 → 100, repornit în ~5 s).
 - `RemoteCmd` (20.10, 1.1.54): comenzi shell de pe server, doar cu Setări → Sistem → „Comenzi de
   la distanta (teste)” pornit (implicit oprit; utilizatorul îl pornește la teste). Serverul
   (`cmd.ts`, tabela `car_cmd`) pune `cmd: <n>` în răspunsul la `/api/car/state`; aplicația ia
