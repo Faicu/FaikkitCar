@@ -88,6 +88,14 @@ public class WelcomeService extends Service {
                 + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
         Prefs.log(this, "Info: " + Prefs.deviceInfo(this).replace("\n", " | "));
         Prefs.log(this, UnitSensors.describe(this));
+        // APK-ul MainServer-ului se citeste in fundal (cativa MB).
+        new Thread(() -> {
+            try {
+                Prefs.log(this, TeyesCheck.describe(this));
+            } catch (Throwable t) {
+                Prefs.log(this, "Teyes: verificarea a esuat: " + t);
+            }
+        }, "teyes-check").start();
         if (boot >= 0 && lastBoot >= 0 && boot != lastBoot) {
             onWake("boot nou");
         } else if (alive > 0 && now - alive > thresholdMs()) {

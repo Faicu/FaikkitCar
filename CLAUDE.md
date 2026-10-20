@@ -106,6 +106,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 
 ## Somnul Teyes (confirmat din jurnal)
 
+- 20.10: procesul a murit de două ori exact la intrarea în somn (~10 min după ACC OFF, 09:26 și
+  11:16, fără „Ecran stins”), iar autostart-ul n-a pornit aplicația la ACC ON. `TeyesCheck`
+  (linia „Teyes: …” la pornirea serviciului) arată dacă suntem încă pe listele Teyes.
 - 20.10: procesul a murit în somnul de la service, fără „Serviciu oprit” și fără repornirea
   START_STICKY (deci probabil force-stop), iar autostart-ul a ratat la plecare: 3 km pierduți.
 - ACC OFF scurt (sub ~10 min): procesorul nu doarme, nu vine SCREEN_OFF; doar autostart-ul
