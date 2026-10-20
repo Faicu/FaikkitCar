@@ -10,6 +10,7 @@ import { HTTPException } from "hono/http-exception";
 import { dataChanged, getDb, memo } from "./db.ts";
 import {
   calibrate,
+  currentLevel,
   priceAt,
   type FuelInterval,
   type FuelRefuel,
@@ -106,14 +107,6 @@ export function applyFuel(trips: Trip[]): Trip[] {
   });
 }
 
-function currentLevel(levels: LevelReading[]): number {
-  const end = Date.parse(levels[levels.length - 1].t);
-  const xs = levels.filter((l) => end - Date.parse(l.t) <= 10 * 60_000).map((l) => l.fuel);
-  const s = xs.sort((a, b) => a - b);
-  const m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-}
-
 export function readFuelSummary(): FuelSummary {
   const { refuels, levels, cal } = fuelState();
   const last = levels[levels.length - 1];
@@ -135,8 +128,7 @@ export function readFuelSummary(): FuelSummary {
     lastPrice: priced.length ? priced[priced.length - 1].price : null,
     source: cal.source,
     level: cal.level,
-    // Mediana ultimelor 10 minute: citirile oscilează cu 1 L (37/38).
-    tank: last ? { liters: currentLevel(levels), at: last.t } : null,
+    tank: last ? { liters: currentLevel(levels)!, at: last.t } : null,
   };
 }
 

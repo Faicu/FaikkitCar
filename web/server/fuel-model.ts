@@ -192,6 +192,22 @@ export function levelConsumption(
   };
 }
 
+/**
+ * Nivelul de acum: mediana ultimelor 10 minute, dar doar după ultima alimentare (altfel, imediat
+ * după plin, mediana ar lua nivelul de dinainte). `readings` crescător, fuel > 0.
+ */
+export function currentLevel(readings: LevelReading[]): number | null {
+  if (!readings.length) return null;
+  let jump = 0;
+  for (let i = readings.length - 1; i > 0; i--) {
+    if (readings[i].fuel - readings[i - 1].fuel >= REFILL_JUMP) {
+      jump = i;
+      break;
+    }
+  }
+  return levelAround(readings, readings.length - 1, -1, jump);
+}
+
 /** O alimentare văzută în nivelul rezervorului (un salt ≥ 3 L). */
 export interface LevelRefill {
   at: string; // prima citire după salt

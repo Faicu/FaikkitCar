@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calibrate,
+  currentLevel,
   estimateFuel,
   levelConsumption,
   levelRefills,
@@ -199,5 +200,33 @@ describe("levelRefills", () => {
   it("oscilațiile de 1 L nu sunt alimentări", () => {
     const xs = [37, 38, 37, 38, 37].map((fuel, i) => ({ t: `2026-10-02T10:0${i}:00Z`, fuel, odo: null }));
     expect(levelRefills(xs)).toEqual([]);
+  });
+});
+
+describe("currentLevel", () => {
+  const r = (t: string, fuel: number) => ({ t, fuel, odo: null });
+
+  it("imediat după plin ia doar citirile de după salt (20.10: 12 → 52)", () => {
+    const xs = [
+      ...Array.from({ length: 40 }, (_, i) =>
+        r(`2026-10-20T07:5${Math.floor(i / 6)}:${String((i % 6) * 10).padStart(2, "0")}Z`, 12),
+      ),
+      r("2026-10-20T08:04:47Z", 52),
+      r("2026-10-20T08:05:47Z", 52),
+      r("2026-10-20T08:06:27Z", 52),
+    ];
+    expect(currentLevel(xs)).toBe(52);
+  });
+
+  it("fără alimentare: mediana ultimelor 10 minute", () => {
+    expect(
+      currentLevel([
+        r("2026-10-01T10:00:00Z", 40),
+        r("2026-10-01T10:15:00Z", 37),
+        r("2026-10-01T10:16:00Z", 38),
+        r("2026-10-01T10:17:00Z", 38),
+      ]),
+    ).toBe(38);
+    expect(currentLevel([])).toBeNull();
   });
 });
