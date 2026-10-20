@@ -264,10 +264,12 @@ export function calibrate(
     if (from) {
       const a = from.at;
       const b = r.at;
-      const modelLiters = trips
-        .filter((t) => t.start >= a && t.start < b)
-        .reduce((s, t) => s + t.modelLiters, 0);
+      const inside = trips.filter((t) => t.start >= a && t.start < b);
+      let modelLiters = inside.reduce((s, t) => s + t.modelLiters, 0);
       const km = from.odo !== null && r.odo !== null && r.odo > from.odo ? r.odo - from.odo : null;
+      // Drumurile neînregistrate consumă și ele: estimarea se extinde la km de pe kilometraj.
+      const tripKm = inside.reduce((s, t) => s + (t.distanceKm ?? 0), 0);
+      if (km !== null && tripKm > 0 && km > tripKm) modelLiters *= km / tripKm;
       intervals.push({
         fromId: from.id,
         toId: r.id,
@@ -284,8 +286,13 @@ export function calibrate(
   const model = used.reduce((s, i) => s + i.modelLiters, 0);
   const real = used.reduce((s, i) => s + i.liters, 0);
   const clamp = (x: number) => Math.min(FACTOR_MAX, Math.max(FACTOR_MIN, x));
-  // Nivelul din rezervor are prioritate: nu cere plinuri și acoperă toate drumurile.
   const level = levelConsumption(readings, refuels);
+  // Plin → plin are prioritate: litrii de pe bonuri sunt exacți, pe când indicatorul nu e
+  // liniar la capete (20.10: +40,5 L pe indicator, 46,18 L pe bon).
+  if (model > 0) {
+    return { factor: clamp(real / model), calibrated: true, source: "refuels", intervals, level };
+  }
+  // Altfel nivelul din rezervor: nu cere plinuri și acoperă toate drumurile.
   if (level && level.liters >= MIN_LEVEL_LITERS) {
     const inside = trips.filter((t) => t.start >= level.from && t.start <= level.to);
     let levelModel = inside.reduce((s, t) => s + t.modelLiters, 0);
@@ -304,13 +311,7 @@ export function calibrate(
       };
     }
   }
-  return {
-    factor: model > 0 ? clamp(real / model) : 1,
-    calibrated: model > 0,
-    source: model > 0 ? "refuels" : null,
-    intervals,
-    level,
-  };
+  return { factor: 1, calibrated: false, source: null, intervals, level };
 }
 
 /** Prețul ultimei alimentări de dinainte de `at` (sau al primei, dacă toate sunt după). */

@@ -62,8 +62,10 @@ a crescut într-un proiect cu trei părți:
 
 1. **Instalează actualizările** (FaikkitCar și Panel, „Actualizează acum”) și încearcă harta
    pe un drum.
-2. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul de pe bon, ca
-   să iasă costul pe drum. Plinul nu mai e necesar.
+2. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul plătit efectiv
+   pe litru (după reducere). **Următorul plin** (până se oprește pistolul) dă primul consum
+   exact plin → plin; indicatorul rezervorului nu e liniar la capete (20.10: +40,5 L pe
+   indicator, 46,18 L pe bon).
 3. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
    primii ~8 L.
 4. **Idei:** alertă pe telefon la pornirea mașinii (prin Panel), alimentări detectate
@@ -279,8 +281,11 @@ segment:
   (citirile oscilează cu 1 L), iar o alimentare din jurnal intră cu litrii de pe bon. E
   calculat pe ultimele 90 de zile.
 - **Consumul bordului** (c1033, de confirmat) apare separat pe fiecare drum, în mers.
-- **Corecția:** după ~8 L consumați, estimarea de pe fiecare drum e înmulțită cu raportul
-  „real / estimat”. Fără nivel, corecția vine din plinuri.
+- **Corecția:** estimarea de pe fiecare drum e înmulțită cu raportul „real / estimat”.
+  Realul vine întâi din plinuri (plin → plin, litrii de pe bonuri, exact), altfel din nivel,
+  după ~8 L consumați. Indicatorul nu e liniar la capete: la plinul din 20.10 a urcat cu
+  40,5 L, iar pe bon erau 46,18 L.
+- **Rezervorul de acum** = mediana ultimelor 10 minute, dar doar după ultima alimentare.
 - **Costul** = litrii estimați × prețul ultimei alimentări introduse.
 - **Mai precis** s-ar putea cu un adaptor OBD2 Bluetooth (presiune admisie + temperatură
   aer + turație), ~5% pe orice drum.

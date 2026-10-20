@@ -147,12 +147,15 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   înainte de acum sau, fără semnal, de ultima stare; „Oprit în trafic” calculat în `readLive`),
   `readLiveRoute`, `readCarSummary`.
 - Combustibilul: estimarea brută pe drum (`fuel-model.ts`, linia Willans + AC 0,4 L/h) × factorul
-  de calibrare. Factorul vine din nivelul rezervorului (`levelConsumption`, 90 de zile: nivelul de
+  de calibrare. Factorul vine întâi din plinuri (plin → plin, ultimele 5 intervale, extins la km
+  de pe kilometraj; din 20.10, pentru că indicatorul nu e liniar la capete: plinul din 20.10 a
+  urcat indicatorul 11,5 → 52 L, adică +40,5, cu 46,18 L pe bon), altfel din nivelul rezervorului (`levelConsumption`, 90 de zile: nivelul de
   la început − cel de la sfârșit + alimentările; mediane pe 10 min; o alimentare = salt ≥ 3 L, cu
   litrii de pe bon dacă e în jurnal la ≤ 3 h), de la 8 L consumați; estimarea se extinde la km de
-  pe kilometraj, ca drumurile neînregistrate să nu umfle factorul. Altfel din plinuri, altfel 1.
+  pe kilometraj, ca drumurile neînregistrate să nu umfle factorul. Altfel 1.
   Verificat 12.10: 17 L pe 180 km = 9,4 L/100 real; drumurile dau 9,6 (factor 0,94). Costul =
-  litri × prețul ultimei alimentări. Autonomia = litrii ÷ consumul real.
+  litri × prețul ultimei alimentări (cel plătit efectiv, după reducere). Autonomia = litrii ÷
+  consumul real; rezervorul de acum = `currentLevel` (mediana pe 10 min, doar după ultimul salt).
 - Costuri (`stats.ts`): 30 de zile, pe luni, raportul lunii, „Drumurile tale” între locuri salvate
   (ora cea mai bună / proastă), staționarea pe lună. Propuneri (`suggestions.ts`): alimentări
   văzute în rezervor, locuri unde parchezi des. Locuri: după adresă (Nominatim, ≤ 1 cerere/s),

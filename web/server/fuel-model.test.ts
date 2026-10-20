@@ -99,6 +99,23 @@ describe("calibrate", () => {
     expect(c.factor).toBeCloseTo(1); // 10 L reali / (8 L × 100 / 80 km)
   });
 
+  it("plin → plin are prioritate față de nivel (indicatorul nu e liniar la capete)", () => {
+    const levels = [
+      { t: "2026-10-01T10:00:00Z", fuel: 40, odo: 1000 },
+      { t: "2026-10-09T10:00:00Z", fuel: 20, odo: 1100 },
+    ];
+    const c = calibrate(
+      [
+        refuel(1, "2026-10-01T09:00:00Z", 40, true, 1000),
+        refuel(2, "2026-10-09T11:00:00Z", 10, true, 1100),
+      ],
+      [{ start: "2026-10-02T10:00:00Z", modelLiters: 8, distanceKm: 80 }],
+      levels,
+    );
+    expect(c.source).toBe("refuels");
+    expect(c.factor).toBeCloseTo(1); // 10 L pe bon / (8 L × 100 / 80 km)
+  });
+
   it("factorul e limitat când datele lipsesc", () => {
     const c = calibrate(
       [refuel(1, "2026-10-01", 40, true), refuel(2, "2026-10-10", 40, true)],
