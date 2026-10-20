@@ -73,6 +73,8 @@ public class WelcomeService extends Service {
         super.onCreate();
         CrashLog.install(this);
         startForeground(1, buildNotification());
+        Watchdog.running = true;
+        Watchdog.schedule(this);
 
         // Caz 1: boot nou. Contorul de boot-uri nu depinde de ceas, deci merge
         // si cand ora nu e inca sincronizata dupa o pornire la rece.
@@ -218,6 +220,7 @@ public class WelcomeService extends Service {
         handler.removeCallbacks(tick);
         unregisterReceiver(screenReceiver);
         getSystemService(ConnectivityManager.class).unregisterNetworkCallback(netCallback);
+        Watchdog.running = false;
         Prefs.log(this, "Serviciu oprit");
         Prefs.setLastAlive(this, System.currentTimeMillis());
         super.onDestroy();

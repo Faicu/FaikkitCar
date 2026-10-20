@@ -17,7 +17,7 @@ import {
   type LevelConsumption,
   type LevelReading,
 } from "./fuel-model.ts";
-import { readTripsSince, type Trip } from "./trips.ts";
+import { readGaps, readTripsSince, type Gap, type Trip } from "./trips.ts";
 
 export interface Refuel extends FuelRefuel {
   note: string | null;
@@ -79,6 +79,8 @@ function readLevels(): LevelReading[] {
  * Alimentările, nivelurile și calibrarea, calculate o dată per versiune a datelor. Intră
  * călătoriile de la primul plin sau de la prima citire de nivel.
  */
+type FuelState = ReturnType<typeof fuelState>;
+
 export const fuelState = memo(() => {
   const refuels = readRefuels();
   const levels = readLevels();
@@ -107,13 +109,37 @@ export function applyFuel(trips: Trip[]): Trip[] {
   });
 }
 
+/**
+ * Drumurile neînregistrate, cu litrii din consumul real mediu (nivel sau plinuri) și prețul de
+ * atunci. Fără consum real încă, rămân fără litri.
+ */
+export function readGapsWithFuel(days = 60): Gap[] {
+  const { refuels, cal } = fuelState();
+  const lPer100 = avgLPer100(cal);
+  return readGaps(days).map((g) => {
+    if (lPer100 === null) return g;
+    const fuelL = (g.km * lPer100) / 100;
+    const price = priceAt(refuels, g.after);
+    return {
+      ...g,
+      fuelL: Math.round(fuelL * 100) / 100,
+      cost: price !== null ? Math.round(fuelL * price * 100) / 100 : null,
+    };
+  });
+}
+
+/** Consumul real mediu, din aceeași sursă ca factorul (plinurile au prioritate). */
+function avgLPer100(cal: FuelState["cal"]): number | null {
+  const withKm = cal.intervals.filter((i) => i.km !== null);
+  const km = withKm.reduce((s, i) => s + (i.km ?? 0), 0);
+  const fromRefuels = km > 0 ? (withKm.reduce((s, i) => s + i.liters, 0) / km) * 100 : null;
+  return cal.source === "refuels" ? fromRefuels : (cal.level?.lPer100 ?? fromRefuels);
+}
+
 export function readFuelSummary(): FuelSummary {
   const { refuels, levels, cal } = fuelState();
   const last = levels[levels.length - 1];
   const byTo = new Map<number, FuelInterval>(cal.intervals.map((i) => [i.toId, i]));
-  const withKm = cal.intervals.filter((i) => i.km !== null);
-  const km = withKm.reduce((s, i) => s + (i.km ?? 0), 0);
-  const liters = withKm.reduce((s, i) => s + i.liters, 0);
   const priced = refuels.filter((r) => r.price !== null);
   return {
     refuels: refuels
@@ -124,7 +150,7 @@ export function readFuelSummary(): FuelSummary {
       .reverse(),
     factor: cal.factor,
     calibrated: cal.calibrated,
-    avgLPer100: cal.level?.lPer100 ?? (km > 0 ? (liters / km) * 100 : null),
+    avgLPer100: avgLPer100(cal),
     lastPrice: priced.length ? priced[priced.length - 1].price : null,
     source: cal.source,
     level: cal.level,

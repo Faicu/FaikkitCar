@@ -68,6 +68,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 - `WelcomeService`: foreground (`START_STICKY`, `foregroundServiceType="location"`), tick la 5 s
   cu `elapsedRealtime()`; o pauză peste prag (implicit 60 s) = trezire; contor de boot schimbat
   sau ultima activitate veche = trezire. `SCREEN_ON`/`USER_PRESENT` verifică imediat.
+- `Watchdog` (20.10): alarmă `ELAPSED_REALTIME` (nu trezește unitatea) la 60 s, pusă în
+  `WelcomeService.onCreate`; dacă serviciul nu rulează, îl pornește („Alarma de rezerva” în jurnal).
+  Testat în emulatorul Android 10 (AVD `car29`). Force-stop-ul anulează alarma.
 - `StartActivity` („FaikkitCar Start”, translucidă): lansată de lista de autostart Teyes la ACC
   ON → `WelcomeService.startAccOn` redă direct. `BootReceiver`: `BOOT_COMPLETED`,
   `QUICKBOOT_POWERON`, `MY_PACKAGE_REPLACED` (fără `LOCKED_BOOT_COMPLETED`).
@@ -103,6 +106,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 
 ## Somnul Teyes (confirmat din jurnal)
 
+- 20.10: procesul a murit în somnul de la service, fără „Serviciu oprit” și fără repornirea
+  START_STICKY (deci probabil force-stop), iar autostart-ul a ratat la plecare: 3 km pierduți.
 - ACC OFF scurt (sub ~10 min): procesorul nu doarme, nu vine SCREEN_OFF; doar autostart-ul
   prinde ACC ON. ACC OFF lung: somn la ~10 min (SCREEN_OFF). Cu `com.mapgoo.diruite` (în
   `unkill_app.txt` din com.syu.ms și `LaunchWhiteList` din `/oem/app/pwctl_config.xml`) serviciul
@@ -141,6 +146,9 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   „Parcat, motor pornit”; corectat și în aplicație, `TripRecorder.drovePastReverse`, 1.1.50.) mers + trafic +
   staționare + opriri = durata. Bateria: `crankVolt` (demarorul, din `trip_point.crank`; sub 9,6 V
   slabă), `runVolt` (mediana cu motorul pornit, normal 13,5–14,9 V).
+- Drumurile neînregistrate (`findGaps` în `trip-math.ts`, `readGaps`, `/api/trips/gaps`): kilometrajul
+  sare cu ≥ 2 km între două călătorii; litrii = km × consumul real mediu. Afișate în lista de
+  călătorii (site și Panel), nu intră în statistici.
 - `trips.ts`: gruparea (pauze > 5 min), combinările (`trip_join`), locurile (`placeAt`), cache
   `memo` refăcut la `dataChanged()`. `live.ts`: starea live (fără stare 90 s = oprită, dar după mers /
   motor pornit „nosignal” = „Fără semnal” până la 1 h; călătoria în curs = ultima, terminată < 5 min

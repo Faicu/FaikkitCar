@@ -33,7 +33,7 @@ import {
   saveReminder,
   type ReminderInput,
 } from "./car.ts";
-import { applyFuel, deleteRefuel, readFuelSummary, saveRefuel, type RefuelInput } from "./fuel.ts";
+import { applyFuel, deleteRefuel, readFuelSummary, readGapsWithFuel, saveRefuel, type RefuelInput } from "./fuel.ts";
 import { readCarSummary, readLive, readLiveRoute, saveState, waitForState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
 import {
@@ -237,6 +237,12 @@ app.get("/api/me", (c) => c.json({ user: isUser(c) }));
 app.get("/api/trips", (c) => {
   requireUser(c);
   return c.json(applyFuel(readTrips()));
+});
+
+// Drumurile neînregistrate: kilometrajul a sărit între două călătorii (aplicația oprită).
+app.get("/api/trips/gaps", (c) => {
+  requireUser(c);
+  return c.json(readGapsWithFuel());
 });
 
 // Combinarea călătoriilor consecutive (start = plecarea primei, end = sosirea ultimei).

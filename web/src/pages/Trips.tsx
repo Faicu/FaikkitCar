@@ -1,12 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Combine, MapPin, Split } from "lucide-react";
+import { ArrowLeft, CircleOff, Combine, MapPin, Split } from "lucide-react";
 import { toast } from "sonner";
 
 import { PlaceEditor, type PlaceDraft } from "../components/Places";
 import { TripSummary, TripSections } from "../components/TripView";
 import { TripMap } from "../components/TripMap";
-import { api, day, duration, hm, lei, liters, num, route, shortDuration, type Trip } from "../api";
+import {
+  api,
+  day,
+  duration,
+  hm,
+  lei,
+  liters,
+  num,
+  route,
+  shortDuration,
+  type Gap,
+  type Trip,
+} from "../api";
 
 const LIVE = { refetchInterval: 15_000, staleTime: 10_000 };
 const HIDE_IDLE_KEY = "calatorii.hideIdle";
@@ -17,10 +29,36 @@ function fuelLine(t: Trip): string {
   return ` · ≈ ${liters(t.fuelL)}${t.cost !== null ? ` · ${lei(t.cost)}` : ""}`;
 }
 
+/**
+ * Un drum neînregistrat (aplicația a fost oprită): doar ce se știe din kilometraj, între
+ * sosirea călătoriei de dinainte și plecarea celei de după.
+ */
+function GapCard({ gap }: { gap: Gap }) {
+  const sameDay = day(gap.after) === day(gap.before);
+  return (
+    <div className="rounded-2xl border border-dashed border-amber-500/40 p-3">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 font-semibold text-amber-300">
+          <CircleOff className="h-4 w-4" /> Drum neînregistrat
+        </span>
+        <span className="text-sm text-amber-300">~{gap.km} km</span>
+      </div>
+      {route(gap) && <p className="text-sm text-sky-300">{route(gap)}</p>}
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        între {day(gap.after)} {hm(gap.after)} și {sameDay ? "" : `${day(gap.before)} `}
+        {hm(gap.before)} · aplicația era oprită, se știe doar din kilometraj
+        {gap.fuelL !== null ? ` · ≈ ${liters(gap.fuelL)}` : ""}
+        {gap.cost !== null ? ` · ${lei(gap.cost)}` : ""}
+      </p>
+    </div>
+  );
+}
+
 /** Fila Călătorii: doar lista; o călătorie aleasă se deschide pe ecranul ei. */
 export function TripsPage() {
   const { data, isLoading } = useQuery({ queryKey: ["trips"], queryFn: api.trips, ...LIVE });
   const all = data ?? [];
+  const { data: gaps } = useQuery({ queryKey: ["gaps"], queryFn: api.gaps, ...LIVE });
   const [hideIdle, setHideIdle] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   useEffect(() => {
@@ -88,34 +126,63 @@ export function TripsPage() {
           </button>
         </div>
       )}
-      {trips.map((t) => (
-        <button
+      {trips.map((t, i) => (
+        <TripRow
           key={t.start}
-          type="button"
-          onClick={() => {
-            setSelected(t.start);
-            scrollTo(0, 0);
-          }}
-          className="block w-full rounded-2xl glass-card glass-card-hover press-tile p-3 text-left"
-        >
-          <div className="flex items-center justify-between">
-            <span className="font-semibold">
-              {day(t.start)} · {hm(t.start)}–{hm(t.end)}
-            </span>
-            <span className="text-sm text-sky-400">{t.distanceKm} km</span>
-          </div>
-          {route(t) && <p className="text-sm text-sky-300">{route(t)}</p>}
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {t.idle ? "pe loc · " : ""}
-            {t.parts > 1 ? `${t.parts} părți, oprire ${duration(t.stopMin)} · ` : ""}
-            {duration(t.durationMin)}
-            {t.avgSpeed !== null ? ` · medie ${t.avgSpeed} km/h` : ""}
-            {t.maxSpeed !== null ? ` · max ${t.maxSpeed} km/h` : ""}
-            {fuelLine(t)}
-          </p>
-        </button>
+          trip={t}
+          gaps={gapsBefore(gaps ?? [], t, trips[i - 1])}
+          onOpen={setSelected}
+        />
       ))}
     </div>
+  );
+}
+
+/** Golurile dintre o călătorie și cea mai nouă de deasupra ei din listă. */
+function gapsBefore(gaps: Gap[], trip: Trip, newer: Trip | undefined): Gap[] {
+  return gaps.filter((g) => g.after >= trip.end && (!newer || g.before <= newer.start));
+}
+
+function TripRow({
+  trip: t,
+  gaps,
+  onOpen,
+}: {
+  trip: Trip;
+  gaps: Gap[];
+  onOpen: (start: string) => void;
+}) {
+  return (
+    <>
+      {gaps.map((g) => (
+        <GapCard key={g.after} gap={g} />
+      ))}
+      <button
+        key={t.start}
+        type="button"
+        onClick={() => {
+          onOpen(t.start);
+          scrollTo(0, 0);
+        }}
+        className="block w-full rounded-2xl glass-card glass-card-hover press-tile p-3 text-left"
+      >
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">
+            {day(t.start)} · {hm(t.start)}–{hm(t.end)}
+          </span>
+          <span className="text-sm text-sky-400">{t.distanceKm} km</span>
+        </div>
+        {route(t) && <p className="text-sm text-sky-300">{route(t)}</p>}
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {t.idle ? "pe loc · " : ""}
+          {t.parts > 1 ? `${t.parts} părți, oprire ${duration(t.stopMin)} · ` : ""}
+          {duration(t.durationMin)}
+          {t.avgSpeed !== null ? ` · medie ${t.avgSpeed} km/h` : ""}
+          {t.maxSpeed !== null ? ` · max ${t.maxSpeed} km/h` : ""}
+          {fuelLine(t)}
+        </p>
+      </button>
+    </>
   );
 }
 

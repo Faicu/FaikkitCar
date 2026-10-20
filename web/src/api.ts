@@ -9,7 +9,7 @@ import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
 import type { ServiceEntry, ServiceInput, ServiceItem } from "../server/service.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
 import type { Suggestion } from "../server/suggestions.ts";
-import type { Trip, TripPoint } from "../server/trips.ts";
+import type { Gap, Trip, TripPoint } from "../server/trips.ts";
 
 export class Unauthorized extends Error {}
 
@@ -43,6 +43,7 @@ export const api = {
     ),
   stats: () => call<Stats>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
+  gaps: () => call<Gap[]>("GET", "/api/trips/gaps"),
   joinTrips: (start: string, end: string) => call<{ ok: true }>("POST", "/api/trips/join", { start, end }),
   splitTrip: (start: string) => call<{ ok: true }>("POST", "/api/trips/split", { start }),
   tripPoints: (start: string, end: string) =>
@@ -92,6 +93,7 @@ export const api = {
 
 export type {
   FuelSummary,
+  Gap,
   GeocodeResult,
   Live,
   LiveRoute,

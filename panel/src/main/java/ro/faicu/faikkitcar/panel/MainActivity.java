@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
     private MapBox.LiveRoute liveMap; // harta calatoriei in curs, pastrata intre redesenari
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
-    private JSONArray trips, log, places, suggestions, service;
+    private JSONArray trips, gaps, log, places, suggestions, service;
     private JSONObject live, car, fuel, stats, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
@@ -254,8 +254,10 @@ public class MainActivity extends Activity {
                     return;
                 } else if (forTab == TRIPS) {
                     JSONArray t = api.trips();
+                    JSONArray g = gapsOrEmpty();
                     ui.post(() -> {
                         trips = t;
+                        gaps = g;
                         render();
                     });
                 } else if (forTab == COSTS) {
@@ -909,8 +911,11 @@ public class MainActivity extends Activity {
             Ui.hint(this, card, "Nicio călătorie încă. Aplicația FaikkitCar trimite traseul automat când mașina merge.");
             return;
         }
+        String newer = null;
         for (JSONObject t : list) {
             String start = t.optString("start");
+            addGapRows(card, t.optString("end"), newer);
+            newer = start;
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.VERTICAL);
             row.setBackground(Ui.round(this, Ui.CARD2, 14));
@@ -938,6 +943,48 @@ public class MainActivity extends Activity {
                 render();
                 scroll.post(() -> scroll.scrollTo(0, 0));
             });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.topMargin = dp(this, 8);
+            card.addView(row, lp);
+        }
+    }
+
+    /** Golurile de kilometraj (aplicatia din masina oprita); un server vechi = niciunul. */
+    private JSONArray gapsOrEmpty() {
+        try {
+            return api.gaps();
+        } catch (Exception e) {
+            return new JSONArray();
+        }
+    }
+
+    /** Drumurile neinregistrate dintre sosirea `after` si plecarea `before` (null = oricand). */
+    private void addGapRows(LinearLayout card, String after, String before) {
+        if (gaps == null) return;
+        for (int i = 0; i < gaps.length(); i++) {
+            JSONObject g = gaps.optJSONObject(i);
+            String from = g.optString("after"), to = g.optString("before");
+            if (from.compareTo(after) < 0 || (before != null && to.compareTo(before) > 0)) continue;
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            android.graphics.drawable.GradientDrawable bg = Ui.round(this, Ui.CARD, 14);
+            bg.setStroke(dp(this, 1), Ui.WARN, dp(this, 6), dp(this, 4));
+            row.setBackground(bg);
+            int p = dp(this, 12);
+            row.setPadding(p, p, p, p);
+            LinearLayout top = new LinearLayout(this);
+            top.addView(Ui.text(this, "Drum neînregistrat", 16, Ui.WARN, true),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            top.addView(Ui.text(this, "~" + g.optInt("km") + " km", 15, Ui.WARN, true));
+            row.addView(top);
+            if (!Fmt.route(g).isEmpty()) row.addView(Ui.text(this, Fmt.route(g), 14, Ui.ACCENT, false));
+            boolean sameDay = Fmt.day(from).equals(Fmt.day(to));
+            StringBuilder sub = new StringBuilder("între ").append(Fmt.day(from)).append(' ')
+                    .append(Fmt.hm(from)).append(" și ").append(sameDay ? "" : Fmt.day(to) + " ")
+                    .append(Fmt.hm(to)).append(" · aplicația era oprită, se știe doar din kilometraj");
+            if (!g.isNull("fuelL")) sub.append(" · ≈ ").append(Fmt.liters(g.optDouble("fuelL")));
+            if (!g.isNull("cost")) sub.append(" · ").append(Fmt.lei(g.optDouble("cost")));
+            row.addView(Ui.text(this, sub.toString(), 13, Ui.MUTED, false));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);

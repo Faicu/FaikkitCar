@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, canScale, type PointRow } from "./trip-math.ts";
+import { analyze, canScale, findGaps, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -177,5 +177,45 @@ describe("clima și centura", () => {
 describe("canScale", () => {
   it("implicit sub 5 km", () => {
     expect(canScale([p(0, 36, 0), p(5, 36, 0.05)])).toBe(0.95);
+  });
+});
+
+describe("findGaps", () => {
+  const trip = (start: string, end: string, odoStart: number | null, odoEnd: number | null) => ({
+    start,
+    end,
+    odoStart,
+    odoEnd,
+    startPos: [44.44, 26.03] as [number, number],
+    endPos: [44.443, 26.02] as [number, number],
+  });
+
+  it("20.10: service → spălătorie cu aplicația oprită (245.315 → 245.318)", () => {
+    const gaps = findGaps([
+      trip("2026-10-20T05:58:28Z", "2026-10-20T06:16:04Z", 245313, 245315),
+      trip("2026-10-20T07:53:52Z", "2026-10-20T07:59:11Z", 245318, 245319),
+    ]);
+    expect(gaps).toEqual([
+      {
+        after: "2026-10-20T06:16:04Z",
+        before: "2026-10-20T07:53:52Z",
+        km: 3,
+        odoStart: 245315,
+        odoEnd: 245318,
+        fromPos: [44.443, 26.02],
+        toPos: [44.44, 26.03],
+      },
+    ]);
+  });
+
+  it("un km diferență e rotunjire, iar fără kilometraj nu se poate ști", () => {
+    expect(
+      findGaps([
+        trip("2026-10-20T05:00:00Z", "2026-10-20T05:10:00Z", 100, 104),
+        trip("2026-10-20T06:00:00Z", "2026-10-20T06:10:00Z", 105, 110),
+        trip("2026-10-20T07:00:00Z", "2026-10-20T07:10:00Z", null, null),
+        trip("2026-10-20T08:00:00Z", "2026-10-20T08:10:00Z", 150, 151),
+      ]),
+    ).toEqual([]);
   });
 });

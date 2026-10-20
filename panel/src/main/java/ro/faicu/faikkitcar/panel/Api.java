@@ -65,6 +65,10 @@ final class Api {
         return new JSONArray(call("GET", "/api/trips", null, true));
     }
 
+    JSONArray gaps() throws Exception {
+        return new JSONArray(call("GET", "/api/trips/gaps", null, true));
+    }
+
     JSONArray tripPoints(String start, String end) throws Exception {
         return new JSONArray(call("GET", "/api/trips/points?start=" + enc(start) + "&end=" + enc(end), null, true));
     }

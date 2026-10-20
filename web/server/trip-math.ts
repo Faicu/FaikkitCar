@@ -363,3 +363,44 @@ export function analyze(
       trafficMs + standMs > 0 ? stillRevs * FUEL_MODEL.litersPerRev * (standMs / (trafficMs + standMs)) : 0,
   };
 }
+
+/** Un drum neînregistrat: kilometrajul a sărit între două călătorii (aplicația oprită). */
+export interface TripGap {
+  after: string; // sosirea călătoriei de dinainte
+  before: string; // plecarea celei de după
+  km: number;
+  odoStart: number;
+  odoEnd: number;
+  fromPos: [number, number] | null;
+  toPos: [number, number] | null;
+}
+
+/**
+ * Sub atâția km diferența poate fi doar rotunjirea kilometrajului (vine în km întregi, iar
+ * ultima citire a unui drum poate fi cu un km în urmă).
+ */
+export const GAP_MIN_KM = 2;
+
+/** Golurile de kilometraj dintre călătorii consecutive; `trips` crescător după plecare. */
+export function findGaps(
+  trips: Array<Pick<TripMetrics, "start" | "end" | "odoStart" | "odoEnd" | "startPos" | "endPos">>,
+): TripGap[] {
+  const out: TripGap[] = [];
+  for (let i = 1; i < trips.length; i++) {
+    const a = trips[i - 1];
+    const b = trips[i];
+    if (a.odoEnd === null || b.odoStart === null) continue;
+    const km = b.odoStart - a.odoEnd;
+    if (km < GAP_MIN_KM) continue;
+    out.push({
+      after: a.end,
+      before: b.start,
+      km,
+      odoStart: a.odoEnd,
+      odoEnd: b.odoStart,
+      fromPos: a.endPos,
+      toPos: b.startPos,
+    });
+  }
+  return out;
+}

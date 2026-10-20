@@ -12,10 +12,12 @@ import { placeAt, readPlaces } from "./places.ts";
 import {
   analyze,
   canScale,
+  findGaps,
   haversineKm,
   pos,
   speedOf,
   type PointRow,
+  type TripGap,
   type TripMetrics,
   type TripStop,
 } from "./trip-math.ts";
@@ -228,6 +230,30 @@ const allTrips = memo((): Trip[] => {
     };
   });
 });
+
+export interface Gap extends TripGap {
+  fromPlace: string | null;
+  toPlace: string | null;
+  // Completate de fuel.ts cu consumul real mediu și prețul de atunci.
+  fuelL: number | null;
+  cost: number | null;
+}
+
+/** Drumurile neînregistrate din ultimele `days` zile, cele mai noi primele. */
+export function readGaps(days = 60): Gap[] {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const places = readPlaces();
+  return findGaps(allTrips())
+    .filter((g) => g.before >= since)
+    .map((g) => ({
+      ...g,
+      fromPlace: placeAt(g.fromPos, places),
+      toPlace: placeAt(g.toPos, places),
+      fuelL: null,
+      cost: null,
+    }))
+    .reverse();
+}
 
 /** Călătoriile începute în ultimele `days` zile, cele mai noi primele. */
 export function readTrips(days = 60): Trip[] {
