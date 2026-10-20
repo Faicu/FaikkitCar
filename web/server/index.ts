@@ -33,6 +33,7 @@ import {
   saveReminder,
   type ReminderInput,
 } from "./car.ts";
+import { pendingCmdCount, queueCmd, readCmd, readCmds, saveCmdResult, takeCmds } from "./cmd.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, readGapsWithFuel, saveRefuel, type RefuelInput } from "./fuel.ts";
 import { readCarSummary, readLive, readLiveRoute, saveState, waitForState, type IncomingState } from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
@@ -105,7 +106,20 @@ app.post("/api/car/trip", async (c) => {
 app.post("/api/car/state", async (c) => {
   requireCarToken(c);
   const p = await json<IncomingState>(c, 4096);
-  return c.json({ ok: true, state: saveState(p) });
+  // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
+  return c.json({ ok: true, state: saveState(p), cmd: pendingCmdCount() });
+});
+
+app.get("/api/car/cmd", (c) => {
+  requireCarToken(c);
+  return c.json(takeCmds());
+});
+
+app.post("/api/car/cmd/:id", async (c) => {
+  requireCarToken(c);
+  const { exitCode, output } = await json<{ exitCode?: unknown; output?: unknown }>(c, 1024 * 1024);
+  saveCmdResult(Number(c.req.param("id")), exitCode, output);
+  return c.json({ ok: true });
 });
 
 // Kilometrajul, mentenanța (salutul vorbit), ultimul APK (actualizarea din aplicație) și
@@ -228,6 +242,25 @@ app.post("/api/login", async (c) => {
 app.post("/api/logout", (c) => {
   deleteCookie(c, SESSION_COOKIE, { path: "/" });
   return c.json({ ok: true });
+});
+
+// Comenzile shell pentru navigație (cmd.ts): puse în coadă de utilizator, cu rezultatul.
+app.get("/api/cmd", (c) => {
+  requireUser(c);
+  return c.json(readCmds());
+});
+
+app.get("/api/cmd/:id", (c) => {
+  requireUser(c);
+  const cmd = readCmd(Number(c.req.param("id")));
+  if (!cmd) throw new HTTPException(404, { message: "Comandă necunoscută" });
+  return c.json(cmd);
+});
+
+app.post("/api/cmd", async (c) => {
+  requireUser(c);
+  const { cmd, timeoutS } = await json<{ cmd?: unknown; timeoutS?: unknown }>(c, 8192);
+  return c.json({ id: queueCmd(cmd, timeoutS) });
 });
 
 app.get("/api/me", (c) => c.json({ user: isUser(c) }));

@@ -157,6 +157,15 @@ final class Prefs {
         sp(c).edit().putBoolean("door_alert", on).apply();
     }
 
+    /** Comenzile shell de pe server (RemoteCmd), pentru teste; implicit oprite. */
+    static boolean remoteCmdEnabled(Context c) {
+        return sp(c).getBoolean("remote_cmd", false);
+    }
+
+    static void setRemoteCmdEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("remote_cmd", on).apply();
+    }
+
     /** Inregistrarea calatoriilor (GPS + date masina) la car.faicu.ro. */
     static boolean tripsEnabled(Context c) {
         return sp(c).getBoolean("trips", true);

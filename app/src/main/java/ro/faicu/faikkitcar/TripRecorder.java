@@ -260,7 +260,7 @@ final class TripRecorder implements LocationListener {
             x.put("parked", parked && stoppedAt != 0);
             s.put("x", x);
             // Orice schimbare de detaliu declanseaza trimiterea.
-            LiveState.maybeSend(kind, x.toString(), s);
+            LiveState.maybeSend(c, kind, x.toString(), s);
         } catch (JSONException ignored) {
         }
     }

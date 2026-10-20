@@ -90,6 +90,13 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `PackageInstaller`, merge), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
   trimite `CAN MARK <text> | schimbări`; lista `KNOWN` din `MainActivity` ascunde codurile
   știute, dar nu c10/c13/c27/c28 și cadrul 0x21).
+- `RemoteCmd` (20.10, 1.1.54): comenzi shell de pe server, doar cu Setări → Sistem → „Comenzi de
+  la distanta (teste)” pornit (implicit oprit; utilizatorul îl pornește la teste). Serverul
+  (`cmd.ts`, tabela `car_cmd`) pune `cmd: <n>` în răspunsul la `/api/car/state`; aplicația ia
+  comenzile (`GET /api/car/cmd`), rulează `sh -c` ca aplicația (fără root: fără `logcat` al
+  altora, fără `dumpsys`), limită de timp și 256 KB, trimite `POST /api/car/cmd/<id>`. Eu rulez:
+  `cd web && node --env-file=/opt/faikkitcar/.env scripts/car-cmd.ts [--timeout 30] '<cmd>'`
+  (doar cât navigația e trează). Testat în emulator cu server de test pe 3999.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

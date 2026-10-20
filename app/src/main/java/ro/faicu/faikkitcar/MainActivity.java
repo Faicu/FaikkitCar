@@ -786,6 +786,12 @@ public class MainActivity extends Activity {
         }).start());
         Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
         Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
+        toggle(sys, "Comenzi de la distanta (teste)", "Lasa serverul sa ruleze comenzi pe navigatie, "
+                + "fara root, pentru diagnostic. Porneste-l doar cand facem teste; fiecare comanda apare in jurnal",
+                Prefs.remoteCmdEnabled(this), on -> {
+                    Prefs.setRemoteCmdEnabled(this, on);
+                    Prefs.log(this, "Comenzi de la distanta: " + (on ? "pornite" : "oprite"));
+                });
         Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
             WelcomeService.start(this);
             toast("Serviciul ruleaza");

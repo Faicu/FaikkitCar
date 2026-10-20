@@ -165,6 +165,18 @@ export function getDb(): DatabaseSync {
       note TEXT,
       created_at TEXT NOT NULL
     );
+
+    -- Comenzi shell rulate de aplicație pe navigație (teste, diagnostic), cu rezultatul.
+    CREATE TABLE IF NOT EXISTS car_cmd (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cmd TEXT NOT NULL,
+      timeout_s INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      sent_at TEXT,
+      done_at TEXT,
+      exit_code INTEGER,
+      output TEXT
+    );
   `);
   // Migrări pentru coloanele adăugate după crearea tabelelor.
   const cols = (table: string) =>

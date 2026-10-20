@@ -99,6 +99,7 @@ a crescut într-un proiect cu trei părți:
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează |
 | Acasă: harta și ce nu arată bordul | 🧪 | De la 1.1.47: harta mare (călătoria în curs sau ultima, mașina pe ea) și alături viteza, starea, costul / litrii / traficul drumului, ziua de azi, bateria doar în afara limitelor, actualizarea și mentenanța scadentă. Turația, temperaturile, clima, rezervorul și kilometrajul le arată bordul, deci nu mai apar. Informațiile despre sunet sunt în fila Sunete |
+| Comenzi de la distanță (teste) | 🧪 | Setări → Sistem, oprit implicit: cu el pornit, serverul poate rula comenzi pe navigație (fără root) pentru diagnostic; fiecare comandă apare în jurnal |
 | Sonda CAN | ✅ | Calibrarea ghidată nu mai e necesară (toate codurile folosite sunt confirmate); în Setări („avansat”) rămâne sonda: 10 minute, marcaje cu text, schimbările live |
 | Scos | — | Diagnosticul Teyes, sonda CAN separată, pasul „rezervor” (codul e confirmat) |
 
@@ -455,6 +456,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
 | 51 | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| următorul | 20.10 | Comenzi de la distanță pentru teste (Setări → Sistem, oprit implicit); jurnalul notează fiecare pas al actualizării din aplicație (după scanarea Play Protect, prima încercare rămânea uneori neterminată) |
 | 53 | 20.10 | La pornirea serviciului, jurnalul arată dacă suntem încă pe listele Teyes (`unkill_app.txt` din com.syu.ms, `pwctl_config.xml`, `skipkillapp.prop`, `protected_app.txt`), versiunea MainServer-ului și memoria liberă (20.10: omorât de două ori la intrarea în somn) |
 | 52 | 20.10 | Alarmă de rezervă: dacă procesul e omorât, serviciul repornește la prima trezire a navigației, în cel mult ~1 min (20.10: omorât la service, autostart-ul a ratat, 3 km neînregistrați). O oprire forțată (force-stop) anulează și alarma |
 
@@ -482,6 +484,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 17.10 | Revizuire: cheie separată pentru CI (`CI_TOKEN`) și tranziția cheii mașinii (`CAR_TOKEN_OLD`); erorile de validare dau 400, nu 500; un lot cu o oră imposibilă nu mai e respins la nesfârșit; tensiunea la pornire ≥ 12 V (demarorul neprins) ignorată; „Făcut” la o dată fixă fără interval nu mai șterge data; vocea Piper fără conflict la cereri simultane; numele locurilor escapate pe hartă; jurnalul nu se mai taie la 200.000 de linii (nu se șterge niciodată) |
 | 19.10 | Jurnalul de service pe articole (`service.items`, JSON: grupă, piesă, cod, bucăți, preț) și locul (`service.shop`); pe site carduri cu data, totalul, grupele cu subtotal și fișierele; prima revizie trecută (19.10, 2.979 lei, cu devizul și factura) |
 | 20.10 | Rezervorul de acum ia doar citirile de după ultima alimentare (după plin arăta 12 L în loc de 52); plinurile (plin → plin) au prioritate la consumul real față de indicator, care nu e liniar la capete; drumurile neînregistrate (`/api/trips/gaps`: salt de kilometraj ≥ 2 km între călătorii, cu litrii și costul estimate) |
+| 20.10 | Comenzile pentru navigație (`car_cmd`, `/api/cmd`, `/api/car/cmd`; `scripts/car-cmd.ts`) |
 
 ---
 

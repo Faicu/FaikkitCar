@@ -1,5 +1,6 @@
 package ro.faicu.faikkitcar;
 
+import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -40,7 +41,7 @@ final class LiveState {
      * (usi, frana de mana, clima...) schimbate = trimitere imediata, ca ultima stare dinainte
      * de luarea contactului sa fie cea reala (ex. frana trasa chiar inainte).
      */
-    static void maybeSend(String kind, String details, JSONObject state) {
+    static void maybeSend(Context c, String kind, String details, JSONObject state) {
         if (!Uploader.configured()) return;
         long now = SystemClock.elapsedRealtime();
         long every = "off".equals(kind) ? IDLE_MS : "contact".equals(kind) ? CONTACT_MS : ENGINE_MS;
@@ -51,14 +52,15 @@ final class LiveState {
         lastSentAt = now;
         EXEC.execute(() -> {
             try {
-                post(state);
+                if (post(state)) RemoteCmd.poll(c);
             } finally {
                 busy.set(false);
             }
         });
     }
 
-    private static void post(JSONObject state) {
+    /** Trimite starea; true = serverul are comenzi in asteptare (RemoteCmd). */
+    private static boolean post(JSONObject state) {
         HttpURLConnection conn = null;
         try {
             byte[] body = state.put("version", BuildConfig.VERSION_NAME).toString().getBytes(StandardCharsets.UTF_8);
@@ -76,15 +78,17 @@ final class LiveState {
             // Raspunsul citit pana la capat si inchis (fara disconnect): conexiunea ramane in
             // pool si urmatoarea trimitere nu mai reface TLS-ul.
             conn.getResponseCode();
+            java.io.ByteArrayOutputStream resp = new java.io.ByteArrayOutputStream();
             try (InputStream in = conn.getInputStream()) {
                 byte[] buf = new byte[512];
-                while (in.read(buf) > 0) {
-                    // golim raspunsul
-                }
+                int n;
+                while ((n = in.read(buf)) > 0) if (resp.size() < 64 * 1024) resp.write(buf, 0, n);
             }
+            return new JSONObject(resp.toString("UTF-8")).optInt("cmd", 0) > 0;
         } catch (Exception e) {
             Log.w("FaikkitCar", "Trimitere stare esuata", e);
             if (conn != null) conn.disconnect();
+            return false;
         }
     }
 }
