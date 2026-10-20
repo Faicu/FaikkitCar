@@ -16,14 +16,32 @@ a crescut într-un proiect cu trei părți:
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
-| **Actualizat** | 01.10.2026 |
+| **Actualizat** | 20.10.2026 |
 
 **Legendă:** ✅ confirmat în uz real · 🧪 construit, netestat în uz real · 🔍 în lucru ·
 💡 idee / neînceput
 
 ---
 
-## Pe scurt: unde suntem (12.10.2026)
+## Pe scurt: unde suntem (20.10.2026)
+
+- 🔍 **Aplicația a murit de câteva ori în somnul navigației** (20.10: la ~10 min după ACC OFF
+  și la service), iar autostart-ul n-a pornit-o la plecare: 3 km neînregistrați. Cauza
+  probabilă: navigația rămâne fără memorie (swap plin, ~400–550 MB disponibili) și ne omoară.
+  Acum avem trei plase de siguranță (vezi [Ținerea în viață](#ținerea-în-viață-a-aplicației)):
+  alarma de rezervă (1.1.52), „Acces la notificări” (1.1.55) și serviciul repornit de sistem.
+  În emulator aplicația revine în ~5 s după kill și imediat după o oprire forțată; pe
+  navigație, de confirmat la următoarea oprire lungă.
+- 🧪 **Consum mai mic de resurse** (1.1.55–1.1.56): harta se eliberează complet când ieși din
+  aplicație, vocea locală se eliberează la 30 s după ce vorbește, trimiterea la server
+  păstrează conexiunea deschisă.
+- 🧪 **Comenzi de la distanță** (1.1.54, oprite implicit): diagnostic pe navigație de pe
+  server (memorie, procese, liste Teyes), fără root.
+- 🧪 **Drumurile neînregistrate** apar în lista de călătorii (salt de kilometraj), cu litrii
+  și costul estimate.
+- ✅ **Prima revizie** e în jurnalul de service (19.10, 2.979 lei, cu devizul și factura).
+- ✅ **Plinul din 20.10** (46,18 L): consumul real se ia de acum din plinuri, pentru că
+  indicatorul rezervorului nu e liniar la capete.
 
 - 🧪 **Harta călătoriei în curs** pe site, în Panel și în mașină: de unde ai plecat, pe unde
   ai fost și unde ești acum, actualizată pe drum (1.1.46, Panel 1.0.13).
@@ -36,7 +54,8 @@ a crescut într-un proiect cu trei părți:
 - ✅ **Sunetul de bun venit** merge după opririle scurte (autostart Teyes) și după
   hibernare. Începutul se tăia după un somn lung; de la 1.1.28 se redă întâi 1,2 s de
   liniște, iar în jurnal redările arată „după 1200 ms de liniște”.
-- ✅ **Aplicația nu mai e închisă de Teyes la somn** (poartă un nume de pe lista albă).
+- ✅ **Teyes nu mai închide aplicația din lista lui** la somn (poartă un nume de pe lista
+  albă); moartea din 20.10 vine din lipsa de memorie, nu din lista Teyes.
 - ✅ **Datele mașinii** sunt identificate și confirmate: viteză, turație, tensiune,
   kilometraj, temperatură, uși, centură, frâna de mână, clima, lumini și **litrii din
   rezervor** (confirmat la alimentarea din 01.10).
@@ -60,15 +79,17 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează actualizările** (FaikkitCar și Panel, „Actualizează acum”) și încearcă harta
-   pe un drum.
-2. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul plătit efectiv
+1. **Instalează FaikkitCar 1.1.56** („Actualizează acum”, cu mașina oprită).
+2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
+   somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
+   ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
+3. **Alimentări:** se trece fiecare pe car.faicu.ro sau în Panel, cu prețul plătit efectiv
    pe litru (după reducere). **Următorul plin** (până se oprește pistolul) dă primul consum
    exact plin → plin; indicatorul rezervorului nu e liniar la capete (20.10: +40,5 L pe
    indicator, 46,18 L pe bon).
-3. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
+4. **De verificat în uz:** avertizarea „ușă deschisă” în mers și consumul calibrat după
    primii ~8 L.
-4. **Idei:** alertă pe telefon la pornirea mașinii (prin Panel), alimentări detectate
+5. **Idei:** alertă pe telefon la pornirea mașinii (prin Panel), alimentări detectate
    automat din salturile rezervorului, ore de liniște, sunet după ora zilei, adaptor OBD2
    pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
 
@@ -99,6 +120,9 @@ a crescut într-un proiect cu trei părți:
 | Căderile aplicației ajung în jurnal | ✅ | Cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează |
 | Acasă: harta și ce nu arată bordul | 🧪 | De la 1.1.47: harta mare (călătoria în curs sau ultima, mașina pe ea) și alături viteza, starea, costul / litrii / traficul drumului, ziua de azi, bateria doar în afara limitelor, actualizarea și mentenanța scadentă. Turația, temperaturile, clima, rezervorul și kilometrajul le arată bordul, deci nu mai apar. Informațiile despre sunet sunt în fila Sunete |
+| Ținută în viață | 🧪 | Serviciu permanent repornit de sistem, alarma de rezervă la 1 min, „Acces la notificări” (Setări → Sistem). Vezi [Ținerea în viață](#ținerea-în-viață-a-aplicației) |
+| Resurse puține în fundal | 🧪 | Harta și ecranul lucrează doar cât aplicația e deschisă; în fundal rămân doar serviciul (datele mașinii, GPS-ul cu motorul pornit, trimiterea). Vocea locală se eliberează la 30 s după ce vorbește (1.1.56) |
+| Linia „Teyes” în jurnal | 🧪 | La fiecare pornire a serviciului: dacă suntem pe listele Teyes, accesul la notificări, memoria liberă |
 | Comenzi de la distanță (teste) | 🧪 | Setări → Sistem, oprit implicit: cu el pornit, serverul poate rula comenzi pe navigație (fără root) pentru diagnostic; fiecare comandă apare în jurnal |
 | Sonda CAN | ✅ | Calibrarea ghidată nu mai e necesară (toate codurile folosite sunt confirmate); în Setări („avansat”) rămâne sonda: 10 minute, marcaje cu text, schimbările live |
 | Scos | — | Diagnosticul Teyes, sonda CAN separată, pasul „rezervor” (codul e confirmat) |
@@ -203,6 +227,22 @@ ordinea liniilor din jurnal poate părea inversată chiar atunci.
 
 ---
 
+## Ținerea în viață a aplicației
+
+| Ce se întâmplă | Ce ne repornește | Cât durează |
+|---|---|---|
+| Procesul e omorât (memorie, kill) | Sistemul repornește serviciul permanent; „Acces la notificări” | Emulator ~5 s, navigația ~1 s (20.10) |
+| Oprire forțată (force-stop) | „Acces la notificări”: sistemul se leagă din nou de aplicație | Emulator: imediat (20.10); pe navigație netestat |
+| Omorât în somn | Alarma de rezervă (nu trezește navigația) | La prima trezire, cel mult ~1 min |
+| ACC ON după o oprire scurtă | Autostart-ul Teyes („FaikkitCar Start”) | Imediat |
+| Boot complet / actualizare | `BootReceiver` | La pornire |
+| Teyes închide aplicațiile la somn | Numele `com.mapgoo.diruite`, pe listele albe Teyes | Nu suntem închiși |
+
+Prioritatea procesului rămâne 200 pe navigație (Teyes își dă −700); cu „Acces la notificări”
+ar trebui să fie 100 (așa e în emulator), dar ROM-ul Teyes nu o schimbă.
+
+---
+
 ## Ce am aflat despre Teyes CC3 2K
 
 | Aspect | Constatare |
@@ -214,6 +254,8 @@ ordinea liniilor din jurnal poate părea inversată chiar atunci.
 | Ieșirea audio | Pornește abia când începe un sunet (~0,5 s pierdute), oricât s-ar aștepta înainte |
 | Voce | Google TTS cu o singură voce română (`vfv`, locală și online, la fel de robotice); cea online întârzie ~3 s |
 | Lipsuri | Nu are selector de fișiere Android (nici `OPEN_DOCUMENT`, nici `GET_CONTENT`); „Car Info” nu mai afișează litrii |
+| Memoria | 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili (20.10). YouTube Music ~400 MB, Waze 300–500 MB, tapetul animat ~330 MB. Dezactivate: aplicația Google și asistentul TXZ (motorul de voce Google rămâne) |
+| Somnul | Aplicația a murit de două ori exact la intrarea în somn (20.10), fără să fie închisă de MainServer |
 | Datele mașinii | MainServer le distribuie prin AIDL-ul `com.syu.ipc`, fără permisiuni (vezi `Syu.java`) |
 
 ---
@@ -304,20 +346,22 @@ Rulează pe același server cu FaikkitBox, dar complet separat:
 | Serviciu | systemd `faikkitcar` (unitatea în `deploy/faikkitcar.service`, utilizatorul `faikkitcar`, scrie doar în `data/`) |
 | Rețea | Portul 3001; Cloudflare Tunnel `car.faicu.ro` → `http://192.168.1.192:3001` |
 | Config | `/opt/faikkitcar/.env` (nu e în git): `PORT`, `ADMIN_USER` / `ADMIN_PASS`, `SESSION_SECRET`, `CAR_TOKEN` (+ `CAR_TOKEN_OLD` în tranziție), `CI_TOKEN` |
-| Date | `/opt/faikkitcar/data`: `faikkitcar.db` (tabele `log`, `trip_point`, `reminder`, `refuel`), `apk/`, `tts/` (cache voce), `piper/` (vocea, nu e în git) |
+| Date | `/opt/faikkitcar/data`: `faikkitcar.db` (tabele `log`, `trip_point`, `car_state`, `reminder`, `refuel`, `place`, `trip_join`, `service`, `service_file`, `dismissed`, `car_cmd`), `apk/`, `tts/` (cache voce), `piper/` (vocea, nu e în git), `service/` (bonuri) |
 | Actualizare site | `cd web && npm run build && systemctl restart faikkitcar` |
 
 | Rută | Rol |
 |---|---|
 | `POST /api/car/log` | Jurnalul aplicației (păstrat integral, nu se șterge) |
 | `POST /api/car/trip` | Punctele de traseu |
-| `POST /api/car/state` | Starea de acum (contact, turație, viteză, rezervor), la 15 s |
+| `POST /api/car/state` | Starea de acum (contact, turație, viteză, rezervor): la 5 s cu motorul pornit, 15 s doar contact, 60 s fără, imediat la o schimbare |
+| `GET /api/car/summary`, `/api/car/route` | Ecranul Acasă din mașină: călătoria în curs și harta ei |
+| `GET /api/car/cmd`, `POST /api/car/cmd/<id>` | Comenzile de la distanță (doar cu opțiunea pornită în aplicație) |
 | `GET /api/car/status` | Kilometraj, mentenanță și ultimul APK, citite de aplicație |
 | `POST /api/car/tts` | Salutul vorbit, vocea Piper „Mihai” (MP3, cu 0,4 s de liniște la început) |
 | `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → aplicația din mașină) |
 | `POST /api/panel/apk`, `GET /api/panel/apk[/download]` | APK-ul Panel (CI → telefon, cu login) |
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
-| `/api/live`, `/api/stats`, `/api/trips`, `/api/trips/points`, `POST /api/trips/join|split`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/log` | Datele pentru site și Panel (cu login) |
+| `/api/live`, `/api/live/route`, `/api/stats`, `/api/trips`, `/api/trips/points`, `/api/trips/gaps`, `POST /api/trips/join|split`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/places`, `/api/geocode`, `/api/suggestions`, `/api/service`, `/api/log`, `/api/cmd` | Datele pentru site și Panel (cu login) |
 
 Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`; în tranziție și `CAR_TOKEN_OLD`, cât aplicația
 din mașină are cheia veche), `POST /api/*/apk` cheia CI-ului (`CI_TOKEN`); restul, login-ul.
@@ -352,7 +396,9 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 3. **Setări:** dezactivează optimizarea bateriei și permite localizarea când ți se cere.
    Pauza după hibernare: 3 s.
 4. **Autostart Teyes:** adaugă „FaikkitCar Start” (fostul „VW Welcome Start”, aceeași intrare).
-5. Test: Acasă → „▶ Redă acum”; Setări → „Ascultă salutul acum”.
+5. **Acces la notificări:** Setări → Sistem → „Acces la notificari”; în ecranul Android, pornește
+   FaikkitCar (nu citește notificările, doar ține aplicația în viață).
+6. Test: Acasă → „▶ Redă acum”; Setări → „Ascultă salutul acum”.
 
 ### Pe telefon (FaikkitCar Panel)
 
@@ -383,7 +429,8 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
   export JAVA_HOME=/root/android/jdk
   /root/android/gradle-8.7/bin/gradle :app:assembleDebug     # sau :panel:assembleDebug
   ```
-  Emulator Android 14 pentru teste (KVM): `/root/android/sdk/emulator/emulator -avd panel -no-window`.
+  Emulatoare pentru teste (KVM): `/root/android/sdk/emulator/emulator -avd panel -no-window`
+  (Android 14, cu vocea Google) și `-avd car29` (Android 10, ca navigația).
 
 ---
 
@@ -393,9 +440,9 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 |---|---|
 | `app/` | FaikkitCar, Java fără AndroidX, UI din cod (`ro.faicu.faikkitcar`; iconițele păstrează numele vechi `ro.faicu.vwwelcome.*`, pentru autostart-ul Teyes) |
 | `panel/` | FaikkitCar Panel, Java fără AndroidX, UI din cod, hartă osmdroid (`ro.faicu.faikkitcar.panel`) |
-| `web/server/` | API-ul: `index.ts` (rute), `auth.ts`, `db.ts`, `log.ts`, `trips.ts`, `car.ts`, `fuel.ts`, `fuel-model.ts` (+ teste), `apk.ts`, `tts.ts` |
-| `web/src/` | Site-ul: `App.tsx` (login, file), `pages/Trips.tsx`, `pages/Log.tsx`, `components/` |
-| `web/scripts/` | `import-faikkitbox.ts` (migrarea) |
+| `web/server/` | API-ul: `index.ts` (rute), `auth.ts`, `db.ts`, `log.ts`, `trips.ts`, `trip-math.ts` (+ teste), `live.ts`, `car.ts`, `fuel.ts`, `fuel-model.ts` (+ teste), `stats.ts`, `suggestions.ts`, `places.ts`, `service.ts`, `cmd.ts`, `apk.ts`, `tts.ts` |
+| `web/src/` | Site-ul: `App.tsx` (login, file), `pages/` (`Now`, `Trips`, `Costs`, `More`, `Log`), `components/` |
+| `web/scripts/` | `import-faikkitbox.ts` (migrarea), `car-cmd.ts` (comenzi pe navigație) |
 | `deploy/` | `faikkitcar.service`, `claude.service` + `claude-rc` (Remote Control) |
 
 Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
@@ -403,12 +450,15 @@ Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 | Fișier | Rol |
 |---|---|
 | `WelcomeService` | Serviciul permanent: detecția pornirii, tick-ul de 5 s, rețea, pornește restul |
+| `Watchdog`, `KeepAliveListener` | Alarma de rezervă; „Acces la notificări” (prioritate și repornire) |
 | `StartActivity`, `BootReceiver` | Intrarea invizibilă pentru autostart; pornirea la boot/actualizare |
 | `Player` | Redarea sunetului (liniște de pornire, focus audio, volum, pauză) |
 | `TripRecorder`, `PointQueue` | Călătoriile (GPS + CAN), salutul, avertizarea de ușă, GPS-ul econom; coada de puncte pe disc |
 | `CanLink`, `CanProbe`, `Syu` | Datele mașinii din MainServer (inclusiv rezervorul), sonda calibrării, protocolul |
 | `Speaker`, `Greeting` | Vocea (Piper de pe server sau TextToSpeech) și textele rostite |
-| `Uploader`, `VwStatus`, `Updater` | Trimiterea la server, starea de pe server, actualizarea din aplicație |
+| `Uploader`, `LiveState`, `VwStatus`, `Updater` | Trimiterea la server (jurnal, puncte, starea live), starea de pe server, actualizarea din aplicație |
+| `RouteMap` | Harta de pe Acasă (osmdroid) |
+| `RemoteCmd`, `TeyesCheck`, `UnitSensors` | Comenzile de la distanță, verificarea listelor Teyes, temperaturile unității |
 | `Prefs`, `CrashLog` | Setări și jurnal, căderile |
 | `MainActivity`, `Ui` | Interfața |
 
@@ -498,9 +548,12 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 - **Vocea Piper** cere internet în momentul salutului; altfel se folosește vocea Google,
   robotică.
 - **Consumul pe drum** e o estimare (±10–15% pe un drum, exact pe sumă după corecție).
-  Drumurile neînregistrate nu mai strică corecția (se iau în calcul din kilometraj), dar
-  nu apar în lista de călătorii.
+  Drumurile neînregistrate nu mai strică corecția (se iau în calcul din kilometraj); apar
+  în lista de călătorii ca „Drum neînregistrat”, fără traseu.
 - **Pachetul `com.mapgoo.diruite`** e împrumutat de pe lista albă Teyes. Dacă un firmware
-  nou schimbă lista, aplicația poate fi din nou închisă la somn, iar jurnalul o arată imediat.
+  nou schimbă lista, aplicația poate fi din nou închisă la somn, iar jurnalul o arată imediat
+  (linia „Teyes”).
+- **Memoria navigației** e la limită: cu YouTube Music și Waze deschise, aplicația poate fi
+  omorâtă; plasele de siguranță o repornesc, dar în timpul acela drumul nu se înregistrează.
 - **Codurile CAN** sunt găsite empiric pe această mașină și pe acest decodor. Alt decodor
   poate folosi alte coduri.
