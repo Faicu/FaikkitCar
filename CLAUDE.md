@@ -70,7 +70,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   sau ultima activitate veche = trezire. `SCREEN_ON`/`USER_PRESENT` verifică imediat.
 - `Watchdog` (20.10): alarmă `ELAPSED_REALTIME` (nu trezește unitatea) la 60 s, pusă în
   `WelcomeService.onCreate`; dacă serviciul nu rulează, îl pornește („Alarma de rezerva” în jurnal).
-  Testat în emulatorul Android 10 (AVD `car29`). Force-stop-ul anulează alarma.
+  Testat în emulatorul Android 10 (AVD `car29`). Force-stop-ul anulează alarma, dar cu „Acces la
+  notificări” sistemul reface legătura cu `KeepAliveListener` și ne repornește imediat (emulator
+  20.10: kill -9 → ~5 s, force-stop → ~20 ms; pe Teyes netestat).
 - `StartActivity` („FaikkitCar Start”, translucidă): lansată de lista de autostart Teyes la ACC
   ON → `WelcomeService.startAccOn` redă direct. `BootReceiver`: `BOOT_COMPLETED`,
   `QUICKBOOT_POWERON`, `MY_PACKAGE_REPLACED` (fără `LOCKED_BOOT_COMPLETED`).
@@ -78,14 +80,17 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   pornește abia cu primul sunet), pauză 5 s + 2 s după hibernare (utilizatorul: +3 s), volum în %,
   anti-dublare 20 s. `Prefs`: sunete în `filesDir/sounds`, istoric, jurnal (100), setări `cfg`.
 - `Uploader`: jurnalul (coadă `outbox`, max 2000, loturi de 100) și punctele (`PointQueue`,
-  JSONL, max 40.000, loturi de 300) la server; orice răspuns ≠ 200 păstrează datele. În
+  JSONL, max 40.000, loturi de 300) la server; orice răspuns ≠ 200 păstrează datele. Conexiunile rămân în pool (fără `disconnect`, răspunsul citit
+  până la capăt), ca în `LiveState`. În
   `Uploader` nu se folosește `Prefs.log`. `CrashLog` scrie „CADERE: …” în jurnal.
 - `CanLink` (legătură permanentă la `com.syu.ms`, protocolul `Syu`), `TripRecorder` (GPS + CAN;
   punct la 5 s în mers, 30 s pe loc cu motorul pornit, unul la oprire; GPS oprit după 1 min cu
   motorul oprit), `LiveState` (`/api/car/state`: 5 s cu motorul pornit, 15 s doar contact, 60 s
   fără, imediat la orice schimbare de detaliu). Contactul e dedus în `CanLink.contact()`.
 - `Speaker` + `Greeting`: salut după 30 s de mers (MP3 Piper de la `/api/car/tts`, altfel
-  TextToSpeech local `ro-ro-x-vfv-local`), avertizare de ușă deschisă la ≥ 5 km/h.
+  TextToSpeech local `ro-ro-x-vfv-local`, motorul `com.google.android.tts`), avertizare de ușă
+  deschisă la ≥ 5 km/h (mereu vocea locală). TextToSpeech se eliberează la 30 s după ultima
+  vorbire (1.1.56). Utilizatorul a dezactivat aplicația Google și TXZ, nu motorul de voce.
 - `VwStatus` (`/api/car/status`, `summary`, `route`), `Updater` (actualizare din aplicație prin
   `PackageInstaller`, merge), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
   trimite `CAN MARK <text> | schimbări`; lista `KNOWN` din `MainActivity` ascunde codurile

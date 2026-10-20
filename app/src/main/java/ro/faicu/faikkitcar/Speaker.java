@@ -42,6 +42,11 @@ final class Speaker {
     private static final String URL_TTS = "https://car.faicu.ro/api/car/tts";
     // Referinta statica: altfel MediaPlayer poate fi colectat de GC in timpul redarii.
     private static MediaPlayer serverPlayer;
+    // Motorul TTS tinut legat ramane in memorie (procesul lui, zeci de MB) cat traim noi; pe
+    // navigatia fara memorie il eliberam la atat timp dupa ultima vorbire si il refacem la nevoie.
+    private static final long TTS_IDLE_MS = 30_000;
+    private static final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final Runnable releaseTts = Speaker::releaseTts;
 
     private Speaker() {}
 
@@ -157,6 +162,21 @@ final class Speaker {
         chooseVoice(c, !urgent && online(c));
         int r = tts.speak(text, TextToSpeech.QUEUE_ADD, null, "vw" + System.nanoTime());
         Prefs.log(c, "Voce: \"" + text + "\"" + (r == TextToSpeech.SUCCESS ? "" : " (eroare " + r + ")"));
+        main.removeCallbacks(releaseTts);
+        main.postDelayed(releaseTts, TTS_IDLE_MS);
+    }
+
+    /** Elibereaza motorul TTS dupa TTS_IDLE_MS fara vorbire (cat inca vorbeste, mai asteapta). */
+    private static synchronized void releaseTts() {
+        if (tts == null || !ready) return;
+        if (tts.isSpeaking()) {
+            main.postDelayed(releaseTts, TTS_IDLE_MS);
+            return;
+        }
+        tts.shutdown();
+        tts = null;
+        ready = false;
+        currentVoice = null;
     }
 
     /** Vocile romane ale motorului, o data pe pornire, ca sa stim ce are navigatia. */

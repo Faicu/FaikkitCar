@@ -6,6 +6,7 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -106,12 +107,20 @@ final class Uploader {
                 out.write(body);
             }
             int code = conn.getResponseCode();
+            // Raspunsul citit pana la capat si inchis (fara disconnect): conexiunea ramane in
+            // pool, ca la LiveState, si lotul urmator (in mers, la ~10 s) nu mai reface TLS-ul.
+            try (InputStream in = code < 400 ? conn.getInputStream() : conn.getErrorStream()) {
+                if (in != null) {
+                    byte[] buf = new byte[512];
+                    while (in.read(buf) > 0) {
+                    }
+                }
+            }
             return code == 200 ? null : "HTTP " + code;
         } catch (Exception e) {
             Log.w("FaikkitCar", "Trimitere jurnal esuata", e);
-            return e.getClass().getSimpleName();
-        } finally {
             if (conn != null) conn.disconnect();
+            return e.getClass().getSimpleName();
         }
     }
 }
