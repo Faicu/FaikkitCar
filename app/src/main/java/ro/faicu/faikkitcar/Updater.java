@@ -73,6 +73,7 @@ final class Updater {
                                 | (android.os.Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
                 session.commit(pending.getIntentSender());
             }
+            Prefs.log(c, "Actualizare: sesiunea " + id + " trimisa la instalare");
             return null;
         } catch (Exception e) {
             return "eroare " + e;
@@ -86,15 +87,20 @@ final class Updater {
         @Override
         public void onReceive(Context c, Intent intent) {
             int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -999);
+            int id = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1);
             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+                // 20.10: dupa confirmare si scanarea Play Protect, prima sesiune ramanea uneori
+                // fara rezultat si se termina abia la a doua apasare; pasii, ca sa vedem unde.
+                Prefs.log(c, "Actualizare: sesiunea " + id + " cere confirmarea"
+                        + (confirm == null ? " (fara fereastra!)" : ""));
                 if (confirm != null) {
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     c.startActivity(confirm);
                 }
                 return;
             }
-            Prefs.log(c, "Actualizare: " + (status == PackageInstaller.STATUS_SUCCESS ? "instalata"
+            Prefs.log(c, "Actualizare: sesiunea " + id + " " + (status == PackageInstaller.STATUS_SUCCESS ? "instalata"
                     : "esuata (" + status + ") " + intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)));
         }
     }
