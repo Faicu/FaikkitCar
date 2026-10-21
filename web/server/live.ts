@@ -133,10 +133,10 @@ function details(p: IncomingState, state: CarState) {
     },
     doorsOpen: (x.doors ?? []).map((i) => DOORS[i]).filter((d): d is string => d !== undefined),
     belt: x.belt === undefined ? null : x.belt === 0,
-    // c103: 0 = trasă, 1 = eliberată (confirmat pe drumurile din 02–03.10); altfel bitul 0x20
-    // din 0x41/1, pus = trasă (161 parcat, 128 în mers pe 03.10).
-    handbrake:
-      x.hb !== undefined ? x.hb === 0 : x.s41 !== undefined ? (x.s41 & 0x20) !== 0 : null,
+    // c103: 0 = trasă, 1 = eliberată (confirmat pe drumurile din 02–03.10). Fără c103 nu știm:
+    // bitul 0x20 din 0x41/1 a stat 0 cu frâna trasă (21.10), iar din 1.1.58 aplicația nu
+    // trimite c103 după repornirea navigației până la prima schimbare (vine 1 și cu frâna trasă).
+    handbrake: x.hb !== undefined ? x.hb === 0 : null,
     reverse: x.rev ?? null,
     // Iluminarea bordului (0x14): 0 ziua, 84 cu farurile aprinse. Bitul 0x80 din 0x41/1 stă
     // pus și ziua, cu luminile pe AUTO, deci nu e folosit.

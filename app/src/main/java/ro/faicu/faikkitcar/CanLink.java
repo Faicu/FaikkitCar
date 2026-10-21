@@ -46,6 +46,11 @@ final class CanLink {
     // Valorile brute pentru starea live (serverul le traduce); -1 = necunoscut.
     private volatile int ac = -1, auto = -1, fan = -1, tempL = -1, tempR = -1, instant = -1,
             belt = -1, handbrake = -1, status41 = -1, lights14 = -1;
+    // Dupa repornirea navigatiei c103 vine 1 (eliberata) chiar cu frana trasa, pana la prima
+    // schimbare (21.10: trasa, raportata eliberata 30 min, corecta dupa o eliberare + tragere).
+    // Valoarea 1 conteaza doar dupa o schimbare vazuta in boot-ul curent (tinut minte peste
+    // repornirile procesului); 0 vine doar dintr-un cadru real.
+    private volatile boolean handbrakeTrusted;
     private volatile boolean reverse;
     private volatile long reverseOffAt; // cand a iesit ultima data din marsarier
     // Caderea de tensiune de la demaror: ultimele citiri ale tensiunii (timp, valoare) si
@@ -66,6 +71,8 @@ final class CanLink {
 
     private CanLink(Context c) {
         this.c = c.getApplicationContext();
+        int boot = bootCount();
+        handbrakeTrusted = boot >= 0 && Prefs.handbrakeBoot(this.c) == boot;
         HandlerThread t = new HandlerThread("CanLink");
         t.start();
         handler = new Handler(t.getLooper());
@@ -124,6 +131,10 @@ final class CanLink {
                         case BELT: belt = v; break;
                         case HANDBRAKE:
                             if (handbrake >= 0 && v != handbrake) logHandbrake("c103 " + handbrake + " -> " + v);
+                            if (!handbrakeTrusted && (v == 0 || (handbrake >= 0 && v != handbrake))) {
+                                handbrakeTrusted = true;
+                                Prefs.setHandbrakeBoot(c, bootCount());
+                            }
                             handbrake = v;
                             break;
                         case RPM:
@@ -305,7 +316,13 @@ final class CanLink {
     /** c1033 brut (probabil L/100 km x10); -1 daca nu stim. */
     int instant() { return instant; }
     int belt() { return belt; }
-    int handbrake() { return handbrake; }
+    /** c103 brut; -1 daca nu stim sau daca e valoarea implicita de dupa repornire (vezi handbrakeTrusted). */
+    int handbrake() { return handbrakeTrusted ? handbrake : -1; }
+
+    private int bootCount() {
+        return android.provider.Settings.Global.getInt(c.getContentResolver(),
+                android.provider.Settings.Global.BOOT_COUNT, -1);
+    }
     int status41() { return status41; }
     boolean reverse() { return reverse; }
 
@@ -315,13 +332,12 @@ final class CanLink {
     }
 
     /**
-     * Frana de mana trasa: c103 (0 = trasa, 1 = eliberata; confirmat pe drumurile din 02–03.10),
-     * altfel bitul 0x20 din 0x41/1 (pus = trasa); false daca nu stim.
+     * Frana de mana trasa: c103 (0 = trasa, 1 = eliberata; confirmat pe drumurile din 02–03.10);
+     * false daca nu stim. Bitul 0x20 din 0x41/1 nu mai e folosit: pe 21.10 a stat 0 (128) cu
+     * frana trasa.
      */
     boolean handbrakePulled() {
-        if (handbrake >= 0) return handbrake == 0;
-        if (status41 >= 0) return (status41 & 0x20) != 0;
-        return false;
+        return handbrake() == 0;
     }
 
     /** Iluminarea bordului din cadrul 0x14 (0 = luminile stinse); -1 daca nu stim. */

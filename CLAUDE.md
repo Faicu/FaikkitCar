@@ -145,12 +145,15 @@ Confirmate: c110 / c1032 turație; c1031 viteză km/h (~6% peste GPS); c109 vite
 tensiune ×100; c106 kilometraj; c139 temperatura exterioară ×10; c104 litri în rezervor (0 cu
 motorul oprit, se ignoră ≤ 0; oscilează cu 1 L); c1–c5 uși (șofer, pasager, spate st., spate dr.,
 portbagaj; 1 = deschis); c101 centura șoferului desfăcută (1, confirmat 12.10); c103 frâna de
-mână (0 = trasă, 1 = eliberată; sursa principală); c11 AC; c49 AUTO; c21 ventilator (0 =
+mână (0 = trasă, 1 = eliberată; sursa principală; după repornirea navigației vine 1 și cu frâna
+trasă până la prima schimbare, deci din 1.1.58 valoarea 1 contează doar după o schimbare în boot-ul
+curent); c11 AC; c49 AUTO; c21 ventilator (0 =
 climatronic oprit); c27/c28 temperatura setată stânga/dreapta = 17,5 + v/2 °C (confirmat 12.10:
 11 = 23 °C, 7 = 21 °C; urmează și SYNC-ul, care n-are cod propriu); cadrul 0x21 = clima [5, 200,
 ventilator, stânga, dreapta, 0, sumă]; cadrul 0x14 al doilea octet = iluminarea bordului =
 luminile (0 / 76–84, confirmat 12.10 pe AUTO); cadrul 0x24 bitul 0x02 = frâna de mână trasă;
-0x41/1 = biți de stare (0x20 = frâna trasă; 0x80 NU e faza scurtă); 0x41/2 = rpm, viteză,
+0x41/1 = biți de stare (0x20 părea frâna trasă, dar pe 21.10 a stat 0 cu frâna trasă, deci nu se mai
+folosește; 0x80 NU e faza scurtă); 0x41/2 = rpm, viteză,
 tensiune, temp., km (3 B), litri; m0 c68 = marșarierul ([1, 1] băgat); m0 c179 = GPS; m0 c77 =
 atingerile pe ecran.
 Nu sunt transmise: pedala de frână, semnalizarea, avariile, ștergătoarele, temperatura din

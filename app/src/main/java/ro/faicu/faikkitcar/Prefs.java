@@ -214,6 +214,15 @@ final class Prefs {
         sp(c).edit().putInt("boot_count", n).apply();
     }
 
+    /** Boot-ul Android in care c103 (frana de mana) s-a schimbat macar o data (-1 = niciunul). */
+    static int handbrakeBoot(Context c) {
+        return sp(c).getInt("hb_boot", -1);
+    }
+
+    static void setHandbrakeBoot(Context c, int n) {
+        sp(c).edit().putInt("hb_boot", n).apply();
+    }
+
     /** Ultimele treziri detectate, cea mai noua prima, cate una pe rand. */
     static String history(Context c) {
         return journal(c).getString("history", "");
