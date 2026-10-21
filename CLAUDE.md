@@ -218,11 +218,13 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
-- În mașină FaikkitCar 1.1.55 (din 20.10, cu „Acces la notificări” dat; actualizat din aplicație,
-  cu a doua apăsare după scanarea Play Protect), pe telefon Panel 1.0.19.
-- De urmărit: la următoarea oprire > 20 min, dacă aplicația supraviețuiește somnului (jurnal:
-  „trezire din hibernare” vs „Serviciu pornit … ultima activitate”, „Alarma de rezerva”, „Acces la
-  notificari: sistemul ne-a pornit”); la următoarea actualizare, pașii „sesiunea X …” din jurnal.
+- În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19.
+- 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
+  după plecare (memorie), repornită de `KeepAliveListener` în ~7 s. Actualizarea: după confirmare
+  instalarea mai durează ~25 s (Play Protect) fără nimic pe ecran; a doua apăsare făcea a doua
+  sesiune și o a doua instalare. Din 1.1.57 `Updater.busy` blochează apăsarea și butonul arată
+  „Se instaleaza...”.
+- De urmărit: cât de des moare procesul imediat după plecare (aplicațiile pornite la trezire).
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Netestat încă în mașină: avertizarea de ușă, contact pus cu motorul oprit, harta live pe drum.

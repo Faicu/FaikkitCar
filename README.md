@@ -12,11 +12,11 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.56 (`build-56`) · FaikkitCar Panel 1.0.19 (`panel-19`) |
+| **Versiuni** | FaikkitCar 1.1.57 (`build-57`) · FaikkitCar Panel 1.0.19 (`panel-19`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
-| **Actualizat** | 20.10.2026 |
+| **Actualizat** | 21.10.2026 |
 
 **Legendă:** ✅ confirmat în uz real · 🧪 construit, netestat în uz real · 🔍 în lucru ·
 💡 idee / neînceput
@@ -25,6 +25,9 @@ a crescut într-un proiect cu trei părți:
 
 ## Pe scurt: unde suntem (20.10.2026)
 
+- ✅ **Plasele de siguranță merg pe navigație** (21.10): aplicația a trecut prin somnul de
+  peste noapte (18 h), iar când a fost omorâtă la 2,5 min după plecare, „Acces la
+  notificări” a repornit-o în ~7 s.
 - 🔍 **Aplicația a murit de câteva ori în somnul navigației** (20.10: la ~10 min după ACC OFF
   și la service), iar autostart-ul n-a pornit-o la plecare: 3 km neînregistrați. Cauza
   probabilă: navigația rămâne fără memorie (swap plin, ~400–550 MB disponibili) și ne omoară.
@@ -79,7 +82,8 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.56** („Actualizează acum”, cu mașina oprită).
+1. **Instalează FaikkitCar 1.1.57** („Actualizează acum”, o singură apăsare, apoi
+   confirmarea; durează ~30 s până pornește versiunea nouă).
 2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
@@ -231,7 +235,7 @@ ordinea liniilor din jurnal poate părea inversată chiar atunci.
 
 | Ce se întâmplă | Ce ne repornește | Cât durează |
 |---|---|---|
-| Procesul e omorât (memorie, kill) | Sistemul repornește serviciul permanent; „Acces la notificări” | Emulator ~5 s, navigația ~1 s (20.10) |
+| Procesul e omorât (memorie, kill) | Sistemul repornește serviciul permanent; „Acces la notificări” | Emulator ~5 s; navigația ~1 s (20.10), ~7 s prin „Acces la notificări” în mers (21.10) |
 | Oprire forțată (force-stop) | „Acces la notificări”: sistemul se leagă din nou de aplicație | Emulator: imediat (20.10); pe navigație netestat |
 | Omorât în somn | Alarma de rezervă (nu trezește navigația) | La prima trezire, cel mult ~1 min |
 | ACC ON după o oprire scurtă | Autostart-ul Teyes („FaikkitCar Start”) | Imediat |
@@ -506,6 +510,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
 | 51 | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| 57 | 21.10 | Actualizarea: după confirmare, Android mai verifică aplicația ~25 s fără nimic pe ecran, iar o nouă apăsare pornea a doua instalare (21.10: instalată de două ori). Acum butonul arată „Se instalează...” și o nouă apăsare nu mai pornește alta |
 | 56 | 20.10 | Vocea locală (avertizarea de ușă, salutul fără internet) se eliberează la 30 s după ce termină, nu mai ține motorul de voce în memorie; punctele de traseu se trimit pe aceeași conexiune păstrată deschisă, ca starea live (în mers nu mai refac criptarea la ~10 s). Verificat în emulator: după kill -9 serviciul revine în ~5 s, iar după force-stop „Acces la notificări” îl repornește imediat |
 | 55 | 20.10 | „Acces la notificări” (Setări → Sistem): sistemul se leagă de aplicație, prioritatea urcă de la 200 la 100 și, dacă e omorâtă, o repornește în câteva secunde (testat în emulator); harta golește depozitul de dale la ieșire; linia „Teyes” arată și accesul |
 | 54 | 20.10 | Comenzi de la distanță pentru teste (Setări → Sistem, oprit implicit); jurnalul notează fiecare pas al actualizării din aplicație (după scanarea Play Protect, prima încercare rămânea uneori neterminată) |

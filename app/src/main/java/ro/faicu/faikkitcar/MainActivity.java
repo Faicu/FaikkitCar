@@ -203,10 +203,16 @@ public class MainActivity extends Activity {
     private RouteMap routeMap; // pastrata intre redesenari, doar mutata in pagina noua
     private long summaryAt;
     private boolean summaryLoading;
+    private boolean updateBusyShown; // butonul de actualizare arata „Se instaleaza...”
     private final Runnable homeTick = new Runnable() {
         @Override
         public void run() {
             if (tab != 0 || homeHeadline == null) return;
+            // Instalarea a esuat sau a fost anulata: butonul revine.
+            if (updateBusyShown && !Updater.busy(MainActivity.this)) {
+                refresh();
+                return;
+            }
             updateHomeLive();
             if (System.currentTimeMillis() - summaryAt > 15_000) loadSummary();
             ui.postDelayed(this, 2_000);
@@ -318,14 +324,20 @@ public class MainActivity extends Activity {
         if (apk != null) {
             LinearLayout up = Ui.card(this, col);
             up.addView(Ui.text(this, "Versiune noua: " + apk.optString("versionName"), 18, Ui.ACCENT, true));
-            Ui.hint(this, up, "Instaleaza cu masina oprita; Android iti cere o confirmare.");
-            Ui.addButton(this, up, "Actualizeaza acum", Ui.PRIMARY, v -> {
-                toast("Descarc actualizarea...");
+            updateBusyShown = Updater.busy(this);
+            Ui.hint(this, up, updateBusyShown
+                    ? "Se instaleaza. Dupa confirmare, Android verifica aplicatia inca ~30 s, fara nimic pe ecran; "
+                            + "aplicatia se inchide si porneste singura cu versiunea noua. Nu e nevoie sa apesi din nou."
+                    : "Instaleaza cu masina oprita; Android iti cere o confirmare.");
+            Button b = Ui.addButton(this, up, updateBusyShown ? "Se instaleaza..." : "Actualizeaza acum", Ui.PRIMARY, v -> {
+                v.setEnabled(false);
+                ((Button) v).setText("Se descarca...");
                 Updater.start(this, error -> {
                     if (error != null) toast("Actualizare esuata: " + error);
                     refresh();
                 });
             });
+            b.setEnabled(!updateBusyShown);
         }
         java.util.List<VwStatus.Reminder> due = new java.util.ArrayList<>();
         for (VwStatus.Reminder r : VwStatus.reminders(this)) if (r.soon || r.overdue) due.add(r);
