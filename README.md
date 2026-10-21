@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.57 (`build-57`) · FaikkitCar Panel 1.0.19 (`panel-19`) |
+| **Versiuni** | FaikkitCar 1.1.58 (`build-58`) · FaikkitCar Panel 1.0.19 (`panel-19`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -82,7 +82,7 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.57** („Actualizează acum”, o singură apăsare, apoi
+1. **Instalează FaikkitCar 1.1.58** („Actualizează acum”, o singură apăsare, apoi
    confirmarea; durează ~30 s până pornește versiunea nouă).
 2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
@@ -258,7 +258,8 @@ ar trebui să fie 100 (așa e în emulator), dar ROM-ul Teyes nu o schimbă.
 | Ieșirea audio | Pornește abia când începe un sunet (~0,5 s pierdute), oricât s-ar aștepta înainte |
 | Voce | Google TTS cu o singură voce română (`vfv`, locală și online, la fel de robotice); cea online întârzie ~3 s |
 | Lipsuri | Nu are selector de fișiere Android (nici `OPEN_DOCUMENT`, nici `GET_CONTENT`); „Car Info” nu mai afișează litrii |
-| Memoria | 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili (20.10). YouTube Music ~400 MB, Waze 300–500 MB, tapetul animat ~330 MB. Dezactivate: aplicația Google și asistentul TXZ (motorul de voce Google rămâne) |
+| Memoria | 4 GB, swap 2,2 GB. Pe 20.10: swap plin, ~400–550 MB disponibili. Pe 21.10: tapet static, dezactivate Google Maps, YouTube, Bunăstare, Chrome, Android Auto (plus aplicația Google și TXZ, mai demult), repornire → ~1,1 GB disponibili cu Waze și YouTube Music pornite. Aplicațiile Teyes rămase (gesturi, actualizări, Spotify Teyes, butoane) nu se pot dezactiva din meniu; ar trebui ADB prin cablu USB-A–A |
+| Opțiunile pentru dezvoltatori | Codul: 681232. ADB merge doar prin USB (fără port de rețea) |
 | Somnul | Aplicația a murit de două ori exact la intrarea în somn (20.10), fără să fie închisă de MainServer |
 | Datele mașinii | MainServer le distribuie prin AIDL-ul `com.syu.ipc`, fără permisiuni (vezi `Syu.java`) |
 
@@ -510,6 +511,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
 | 51 | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| 58 | 21.10 | Frâna de mână: după repornirea navigației, CAN-ul o raporta eliberată chiar trasă, până la prima mișcare a manetei (verificat pe 21.10). Acum valoarea „eliberată” se folosește doar după ce frâna s-a mișcat măcar o dată de la pornirea navigației; până atunci Panel-ul și site-ul n-o mai afișează |
 | 57 | 21.10 | Actualizarea: după confirmare, Android mai verifică aplicația ~25 s fără nimic pe ecran, iar o nouă apăsare pornea a doua instalare (21.10: instalată de două ori). Acum butonul arată „Se instalează...” și o nouă apăsare nu mai pornește alta |
 | 56 | 20.10 | Vocea locală (avertizarea de ușă, salutul fără internet) se eliberează la 30 s după ce termină, nu mai ține motorul de voce în memorie; punctele de traseu se trimit pe aceeași conexiune păstrată deschisă, ca starea live (în mers nu mai refac criptarea la ~10 s). Verificat în emulator: după kill -9 serviciul revine în ~5 s, iar după force-stop „Acces la notificări” îl repornește imediat |
 | 55 | 20.10 | „Acces la notificări” (Setări → Sistem): sistemul se leagă de aplicație, prioritatea urcă de la 200 la 100 și, dacă e omorâtă, o repornește în câteva secunde (testat în emulator); harta golește depozitul de dale la ieșire; linia „Teyes” arată și accesul |
