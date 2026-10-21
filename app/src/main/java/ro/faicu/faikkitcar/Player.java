@@ -22,6 +22,8 @@ final class Player {
     // Volumul sistemului de dinainte de redare (-1 = nu l-am schimbat) si cel setat de noi.
     private static int restoreVolume = -1;
     private static int ourVolume;
+    // Schimbarea de volum a redarii curente, pusa in linia „Redare pornita”.
+    private static String volumeNote = "";
     // Liniste redata inainte de sunet: pe Teyes iesirea audio porneste abia cu primul sunet
     // (si dupa schimbarea volumului), deci primele ~0,5 s se pierdeau oricat asteptam inainte.
     private static final int WARMUP_MS = 1200;
@@ -80,10 +82,7 @@ final class Player {
         try {
             mp.setAudioAttributes(attrs);
             mp.setDataSource(f.getAbsolutePath());
-            mp.setOnCompletionListener(m -> {
-                Prefs.log(c, "Redare terminata");
-                finish(c, m, am, focus);
-            });
+            mp.setOnCompletionListener(m -> finish(c, m, am, focus));
             mp.setOnErrorListener((m, what, extra) -> {
                 Prefs.log(c, "Redare: eroare MediaPlayer " + what + "/" + extra);
                 finish(c, m, am, focus);
@@ -105,7 +104,8 @@ final class Player {
                 Prefs.log(c, "Redare pornita: " + Prefs.soundName(f) + ", " + mp.getDuration() / 1000
                         + " s, focus audio " + (granted == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
                                 ? "primit" : "REFUZAT (" + granted + ")")
-                        + (warm ? ", dupa " + WARMUP_MS + " ms de liniste" : ""));
+                        + (warm ? ", dupa " + WARMUP_MS + " ms de liniste" : "")
+                        + (volumeNote.isEmpty() ? "" : ", " + volumeNote));
             }, warm ? WARMUP_MS : 0);
         } catch (Exception e) {
             Prefs.log(c, "Redare: eroare " + e);
@@ -160,6 +160,7 @@ final class Player {
 
     /** Seteaza volumul media la procentul ales; il refacem la final. */
     private static void applyVolume(Context c, AudioManager am) {
+        volumeNote = "";
         int pct = Prefs.volumePercent(c);
         if (pct <= 0) return;
         try {
@@ -168,7 +169,7 @@ final class Player {
             ourVolume = Math.max(1, Math.round(max * pct / 100f));
             am.setStreamVolume(AudioManager.STREAM_MUSIC, ourVolume, 0);
             restoreVolume = before;
-            Prefs.log(c, "Volum " + before + " -> " + ourVolume + " (din " + max + ")");
+            volumeNote = "volum " + before + " -> " + ourVolume + " din " + max;
         } catch (Exception e) {
             Prefs.log(c, "Volum: nu am putut seta (" + e + ")");
         }

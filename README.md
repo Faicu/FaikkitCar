@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.60 (`build-60`) · FaikkitCar Panel 1.0.21 (`panel-21`) |
+| **Versiuni** | FaikkitCar 1.1.61 (`build-61`) · FaikkitCar Panel 1.0.21 (`panel-21`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -82,7 +82,7 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.60** (și Panel 1.0.21) („Actualizează acum”, o singură apăsare, apoi
+1. **Instalează FaikkitCar 1.1.61** (și Panel 1.0.21) („Actualizează acum”, o singură apăsare, apoi
    confirmarea; durează ~30 s până pornește versiunea nouă).
 2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
@@ -463,7 +463,7 @@ Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 | `Speaker`, `Greeting` | Vocea (Piper de pe server sau TextToSpeech) și textele rostite |
 | `Uploader`, `LiveState`, `VwStatus`, `Updater` | Trimiterea la server (jurnal, puncte, starea live), starea de pe server, actualizarea din aplicație |
 | `RouteMap` | Harta de pe Acasă (osmdroid) |
-| `RemoteCmd`, `TeyesCheck`, `UnitSensors` | Comenzile de la distanță, verificarea listelor Teyes, temperaturile unității |
+| `RemoteCmd`, `TeyesCheck` | Comenzile de la distanță, verificarea listelor Teyes |
 | `Prefs`, `CrashLog` | Setări și jurnal, căderile |
 | `MainActivity`, `Ui` | Interfața |
 
@@ -511,6 +511,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
 | 51 | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| 61 | 21.10 | Jurnal mai curat: fără temperaturile unității, tensiunea la demaror, litrii din rezervor și pornirea / oprirea GPS-ului (toate sunt în punctele de traseu); volumul apare în linia „Redare pornita”, fără „Redare terminata” |
 | 60 | 21.10 | Comenzile la distanță nu mai intră în jurnal: sunt în jurnalul separat „Comenzi la distanță” (site și Panel), cu rezultatul |
 | 59 | 21.10 | Luminile nu se mai citesc (nici în jurnal, nici în starea live): CAN-ul le trimite doar la schimbare, deci după o repornire a aplicației lipseau ore întregi. Intrările vechi din jurnal rămân |
 | 58 | 21.10 | Frâna de mână: după repornirea navigației, CAN-ul o raporta eliberată chiar trasă, până la prima mișcare a manetei (verificat pe 21.10). Acum valoarea „eliberată” se folosește doar după ce frâna s-a mișcat măcar o dată de la pornirea navigației; până atunci Panel-ul și site-ul n-o mai afișează |

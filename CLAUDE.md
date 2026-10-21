@@ -124,8 +124,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   autonomia, kilometrajul, distanța și durata nu mai apar acolo (le arată bordul).
   În `onStop` harta se eliberează (`onDetach`, fără descărcări sau memorie în fundal) și se reface la
   revenire; în fundal rămâne doar serviciul (CAN, GPS cu motorul pornit, trimiterea la server).
-- `UnitSensors` (1.1.48): la pornirea serviciului, o linie „Temperaturi unitate: …” (senzor de aer
-  Android, temperatura „bateriei”, zonele termice) — căutăm temperatura din habitaclu fără OBD2.
+- Jurnalul din aplicație (1.1.61): fără „Temperaturi unitate” (`UnitSensors` șters: dădea doar temperaturile
+  procesorului), „Pornire motor: baterie minim”, „Rezervor”, „Calatorii: GPS pornit/oprit” (datele sunt în
+  punctele de traseu); volumul intră în „Redare pornita”, fără „Redare terminata”. Comenzile la distanță nu
+  intră în jurnal (1.1.60).
 
 ## Somnul Teyes (confirmat din jurnal)
 

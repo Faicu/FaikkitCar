@@ -114,7 +114,6 @@ final class TripRecorder implements LocationListener {
             LocationManager lm = c.getSystemService(LocationManager.class);
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this, handler.getLooper());
             gpsOn = true;
-            Prefs.log(c, "Calatorii: GPS pornit");
         } catch (Exception e) {
             Prefs.log(c, "Calatorii: GPS indisponibil " + e);
         }
@@ -329,7 +328,6 @@ final class TripRecorder implements LocationListener {
         } catch (Exception ignored) {
         }
         gpsOn = false;
-        Prefs.log(c, "Calatorii: GPS oprit, motorul e oprit");
     }
 
     private static double round1(double x) {

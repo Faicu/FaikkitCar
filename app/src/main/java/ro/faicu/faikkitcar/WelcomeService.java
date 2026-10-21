@@ -87,7 +87,6 @@ public class WelcomeService extends Service {
                 + " s), ultima activitate "
                 + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
         Prefs.log(this, "Info: " + Prefs.deviceInfo(this).replace("\n", " | "));
-        Prefs.log(this, UnitSensors.describe(this));
         // APK-ul MainServer-ului se citeste in fundal (cativa MB).
         new Thread(() -> {
             try {

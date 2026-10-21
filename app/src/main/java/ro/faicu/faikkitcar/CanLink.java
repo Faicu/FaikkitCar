@@ -25,7 +25,6 @@ final class CanLink {
     // care e alimentat doar cu contactul pus; daca tac atatea secunde, contactul e luat.
     private static final long CONTACT_MS = 10_000;
     // Un salt de atatia litri in rezervor (alimentare) se noteaza in jurnal.
-    private static final int FUEL_JUMP = 3;
     // Usile, din calibrarea ghidata: c1 sofer, c2 pasager fata, c3 spate stanga, c4 spate
     // dreapta, c5 portbagaj (1 = deschis).
     // Cu diacritice: textele sunt rostite de TextToSpeech.
@@ -61,7 +60,6 @@ final class CanLink {
     private volatile long engineStartAt;
     private boolean crankTaken = true;
     private static final double NO_CRANK_V = 12;
-    private int fuelLogged = -1;
     // Momentul ultimei viteze din c109 (x100); c1031 (km/h intregi) o inlocuieste doar daca
     // c109 tace de 2 s, altfel viteza ar sari intre valoarea exacta si cea rotunjita.
     private volatile long speed100At;
@@ -228,10 +226,6 @@ final class CanLink {
             long dt = voltAt[i] - engineStartAt;
             if (dt >= -10_000 && dt <= 3_000 && voltVal[i] > 5 && !(voltVal[i] >= min)) min = voltVal[i];
         }
-        if (!Double.isNaN(min)) {
-            Prefs.log(c, "Pornire motor: baterie minim " + String.format(java.util.Locale.US, "%.2f", min) + " V"
-                    + (min >= NO_CRANK_V ? " (fara caderea de la demaror, ignorat)" : ""));
-        }
         // Fara cadere sub 12 V n-am prins demarorul (ex. bordul tacea la pornire, 08.10: 14,35 V).
         return min >= NO_CRANK_V ? Double.NaN : min;
     }
@@ -241,14 +235,9 @@ final class CanLink {
         Prefs.log(c, "Frana de mana: " + what + " (c103=" + handbrake + ", 0x41/1=" + status41 + ")");
     }
 
-    /** Prima valoare si salturile mari (alimentare) ajung in jurnal; restul doar in puncte. */
+    /** Litrii ajung doar in puncte (alimentarile le vede serverul din salturi). */
     private void onFuel(int v) {
         fuel = v;
-        if (v <= 0) return;
-        if (fuelLogged < 0 || Math.abs(v - fuelLogged) >= FUEL_JUMP) {
-            Prefs.log(c, "Rezervor: " + v + " L" + (fuelLogged < 0 ? "" : " (inainte " + fuelLogged + " L)"));
-            fuelLogged = v;
-        }
     }
 
     /**
