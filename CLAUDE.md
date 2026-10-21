@@ -1,7 +1,8 @@
 # FaikkitCar – context pentru Claude
 
-Utilizatorul scrie în română; răspunde în română. Rezumatul pentru utilizator (funcții, ✅/🧪,
-ce urmează, istoricul versiunilor) e în `README.md`; ține-l la zi. Mașina: Golf 6 (1K), 1.2 TSI
+Utilizatorul scrie în română; răspunde în română. Rezumatul pentru utilizator (doar starea de acum: funcții,
+✅/🧪, ce urmează) e în `README.md`; istoricul (versiuni, constatări datate, migrarea, coduri CAN
+renunțate) în `ISTORIC.md`. Ține-le la zi; nu pune istorie în README. Mașina: Golf 6 (1K), 1.2 TSI
 77 kW (CBZB), benzină, 2012. Navigația: Teyes CC3 2K (FYT/SYU, Android 10, `sprd
 ums512_1h10_Natv`, ecran lat, fără selector de fișiere).
 
