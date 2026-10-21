@@ -30,7 +30,7 @@ tmux `faikkitbox` și `faikkitcar`.
 - Node rulează direct `server/index.ts` (Hono, `node:sqlite`; tipurile TS se șterg, deci doar
   sintaxă ștergibilă și importuri cu `.ts`). Site: React + Vite + Tailwind în `web/src`, construit
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
-  (`trip-math.test.ts`, `fuel-model.test.ts`), `npx tsc --noEmit`.
+  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
   utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
   APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
@@ -197,7 +197,12 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   litri × prețul ultimei alimentări (cel plătit efectiv, după reducere). Autonomia = litrii ÷
   consumul real; rezervorul de acum = `currentLevel` (mediana pe 10 min, doar după ultimul salt).
 - Costuri (`stats.ts`): 30 de zile, pe luni, raportul lunii, „Drumurile tale” între locuri salvate
-  (ora cea mai bună / proastă), staționarea pe lună. Propuneri (`suggestions.ts`): alimentări
+  (doar de la 10 deplasări în 90 de zile; durata = `arriveAt − departAt` fără opriri), staționarea pe lună.
+- Turele (`commute.ts`, 21.10): utilizatorul lucrează 12/24: zi 08–20, noapte 20–08, liber, liber.
+  Drumurile Acasă → Serviciu se leagă de tura după sosire (−3 h … +1 h față de început), cele
+  înapoi după plecare față de sfârșit (−1 h … +3 h); ora de plecare = început − 15 min − percentila
+  90 a drumului (`departAt` → `arriveAt`); ciclul de 4 zile dedus prin vot din drumuri (`next`).
+  Nu mai afișa „cea mai bună oră de plecare”: n-are sens la ture fixe (cererea utilizatorului). Propuneri (`suggestions.ts`): alimentări
   văzute în rezervor, locuri unde parchezi des. Locuri: după adresă (Nominatim, ≤ 1 cerere/s),
   pin tras pe hartă, raza 50–250 m. Salvate: Acasă 44.44058, 26.03458; Serviciu 44.44166, 26.06091.
 

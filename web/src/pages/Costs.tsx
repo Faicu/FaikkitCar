@@ -2,7 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Stat } from "../components/Cells";
 import { FuelLog } from "../components/FuelLog";
-import { api, day, duration, lei, liters, num, type MonthStats, type PeriodStats, type RouteStats } from "../api";
+import {
+  api,
+  day,
+  duration,
+  hm,
+  lei,
+  liters,
+  num,
+  type Commute,
+  type MonthStats,
+  type PeriodStats,
+  type RouteStats,
+} from "../api";
 
 const LIVE = { refetchInterval: 30_000, staleTime: 15_000 };
 
@@ -18,6 +30,7 @@ export function CostsPage() {
   return (
     <>
       {stats && stats.months.length > 0 && <MonthReport months={stats.months} />}
+      {stats?.commute && <CommuteCard c={stats.commute} />}
       {stats && stats.routes.length > 0 && <Routes routes={stats.routes} />}
       {stats && <Last30 s={stats.last30} />}
       {stats && stats.months.length > 0 && <Monthly months={stats.months} />}
@@ -128,48 +141,113 @@ function MonthReport({ months }: { months: MonthStats[] }) {
   );
 }
 
-const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00–${String((h + 1) % 24).padStart(2, "0")}:00`;
+/** „azi”, „mâine” sau ziua (ora României, ca pe telefon). */
+function dayWord(iso: string): string {
+  const key = (d: Date) => d.toLocaleDateString("ro-RO");
+  const now = new Date();
+  if (key(new Date(iso)) === key(now)) return "azi";
+  if (key(new Date(iso)) === key(new Date(now.getTime() + 86_400_000))) return "mâine";
+  return day(iso);
+}
 
 /**
- * Drumurile pe care le faci des (între două locuri salvate): cât costă unul în medie, cât
- * durează, cât stai în trafic și, cu destule date, la ce oră e mai bine să pleci.
+ * Drumul la serviciu pe ture (zi 08–20, noapte 20–08, apoi două zile libere): următoarea tură
+ * cu minutul până la care să pleci ca să ajungi cu 15 min înainte și, pe fiecare tură, cum
+ * pleci și ajungi de obicei. Ora sigură ține cont și de zilele proaste (percentila 90).
  */
+function CommuteCard({ c }: { c: Commute }) {
+  const next = c.next.find((n) => Date.parse(n.start) > Date.now());
+  const nextShift = next && c.shifts.find((s) => s.name === next.shift);
+  return (
+    <div className="space-y-2 rounded-2xl glass-card p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        La {c.work.toLowerCase()} (ture 12/24, 90 de zile)
+      </p>
+      {next && nextShift && (
+        <div className="rounded-xl bg-emerald-500/10 p-3">
+          <p className="text-sm text-muted-foreground">
+            Următoarea tură: {dayWord(next.start)}, {nextShift.name.replace("Tura de ", "")} {hm(next.start)}
+          </p>
+          {next.leaveBy ? (
+            <>
+              <p className="mt-1 text-xl font-semibold text-emerald-400">Pleacă până la {hm(next.leaveBy)}</p>
+              <p className="text-xs text-muted-foreground">
+                ca să fii acolo cu {c.marginMin} min înainte (drumul: ~{duration(nextShift.toWork!.driveMin)}, în
+                zilele proaste {duration(nextShift.toWork!.safeMin)})
+                {nextShift.toWork!.warmupMin >= 1 &&
+                  `; cu încălzirea de ~${Math.round(nextShift.toWork!.warmupMin)} min, pornește motorul la ${hm(
+                    new Date(Date.parse(next.leaveBy) - Math.round(nextShift.toWork!.warmupMin) * 60_000).toISOString(),
+                  )}`}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">Ora de plecare apare după câteva drumuri la tura asta.</p>
+          )}
+        </div>
+      )}
+      {c.shifts.map((s) => (
+        <div key={s.name} className="rounded-xl bg-white/5 p-3 text-sm">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="font-semibold">{s.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {s.start}–{s.end}
+            </p>
+          </div>
+          {s.toWork ? (
+            <>
+              {s.toWork.leaveBy && (
+                <p className="mt-1">
+                  <span className="text-emerald-400">Pleacă până la {s.toWork.leaveBy}</span>
+                  <span className="text-muted-foreground"> (drum ~{duration(s.toWork.driveMin)}, cel mult {duration(s.toWork.safeMin)})</span>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                De obicei pleci la {s.toWork.usualLeave} și ajungi la {s.toWork.usualArrive}
+                {s.toWork.tight > 0 && (
+                  <span className="text-amber-400">
+                    {" "}
+                    · de {s.toWork.tight} din {s.toWork.trips} ori cu sub {c.marginMin} min înainte
+                    {s.toWork.late > 0 ? `, ${s.toWork.late} ${s.toWork.late === 1 ? "întârziere" : "întârzieri"}` : ""}
+                  </span>
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">Încă niciun drum spre {c.work.toLowerCase()} la tura asta.</p>
+          )}
+          {s.fromWork && (
+            <p className="text-xs text-muted-foreground">
+              Înapoi: pleci pe la {s.fromWork.usualLeave}, ești {c.home.toLowerCase()} pe la {s.fromWork.usualArrive} (~
+              {duration(s.fromWork.driveMin)})
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Drumurile pe care le faci des (de la 10 deplasări, între două locuri salvate): cât costă și cât durează. */
 function Routes({ routes }: { routes: RouteStats[] }) {
   return (
     <div className="space-y-2 rounded-2xl glass-card p-4">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Drumurile tale (90 de zile)</p>
-      {routes.map((r) => {
-        const best = r.byHour.find((h) => h.hour === r.bestHour);
-        const worst = r.byHour.find((h) => h.hour === r.worstHour);
-        return (
-          <div key={`${r.from}→${r.to}`} className="rounded-xl bg-white/5 p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="font-semibold">
-                {r.from} → {r.to}
-              </p>
-              <p className="text-xs text-muted-foreground">{r.trips} drumuri</p>
-            </div>
-            <p className="mt-1 text-sm">
-              ~{num(r.km)} km · {duration(r.minutes)}
-              {r.trafficMin > 0 ? ` (${duration(r.trafficMin)} în trafic)` : ""}
-              {r.cost !== null ? ` · ${lei(r.cost)} pe drum` : ""}
+      {routes.map((r) => (
+        <div key={`${r.from}→${r.to}`} className="rounded-xl bg-white/5 p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="font-semibold">
+              {r.from} → {r.to}
             </p>
-            {r.monthCost !== null && (
-              <p className="text-xs text-muted-foreground">Luna aceasta: {lei(r.monthCost)}</p>
-            )}
-            {best && worst ? (
-              <p className="mt-1 text-xs">
-                <span className="text-emerald-400">Cel mai bine pleci {hourLabel(best.hour)}</span> (~{duration(best.minutes)}),{" "}
-                <span className="text-amber-400">cel mai greu {hourLabel(worst.hour)}</span> (~{duration(worst.minutes)})
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ora cea mai bună de plecare apare după câteva drumuri la ore diferite.
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground">{r.trips} drumuri</p>
           </div>
-        );
-      })}
+          <p className="mt-1 text-sm">
+            ~{num(r.km)} km · {duration(r.minutes)}
+            {r.trafficMin > 0 ? ` (${duration(r.trafficMin)} în trafic)` : ""}
+            {r.cost !== null ? ` · ${lei(r.cost)} pe drum` : ""}
+          </p>
+          {r.monthCost !== null && <p className="text-xs text-muted-foreground">Luna aceasta: {lei(r.monthCost)}</p>}
+        </div>
+      ))}
     </div>
   );
 }

@@ -5,6 +5,7 @@
 // Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { commute, type Commute } from "./commute.ts";
 import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel } from "./fuel.ts";
 import { readTrips, type Trip } from "./trips.ts";
@@ -33,7 +34,7 @@ export interface MonthStats extends PeriodStats {
   serviceLei: number | null; // lucrările din jurnalul de service
 }
 
-/** Un drum pe care îl faci des (ex. Acasă → Serviciu): cât te costă și când e mai bine să pleci. */
+/** Un drum pe care îl faci des (ex. Acasă → Serviciu): cât te costă și cât durează. */
 export interface RouteStats {
   from: string;
   to: string;
@@ -44,16 +45,13 @@ export interface RouteStats {
   cost: number | null;
   lPer100: number | null;
   monthCost: number | null; // totalul pe drumul ăsta în luna curentă
-  // Durata medie după ora plecării; cea mai bună / cea mai proastă, din orele cu ≥ 2 drumuri.
-  byHour: Array<{ hour: number; trips: number; minutes: number; trafficMin: number }>;
-  bestHour: number | null;
-  worstHour: number | null;
 }
 
 export interface Stats {
   last30: PeriodStats;
   months: MonthStats[]; // cele mai noi primele, cel mult 12
   routes: RouteStats[]; // pe ultimele 90 de zile, cele mai dese primele
+  commute: Commute | null; // drumul la serviciu pe ture (commute.ts)
 }
 
 const MONTHS = 12;
@@ -118,9 +116,14 @@ function sum(trips: Trip[]): PeriodStats {
 }
 
 const ROUTE_DAYS = 90;
-const hourFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Bucharest", hour: "2-digit", hour12: false });
+// Un drum apare abia de la atâtea deplasări (cerut 21.10: două drumuri la Dedeman nu spun nimic).
+const ROUTE_MIN_TRIPS = 10;
 
-/** Drumurile între două locuri salvate diferite, făcute de cel puțin 2 ori în ultimele 90 de zile. */
+const drivingMin = (t: Trip) =>
+  (Date.parse(t.arriveAt) - Date.parse(t.departAt)) / 60_000 -
+  t.stops.filter((s) => s.from >= t.departAt && s.to <= t.arriveAt).reduce((a, s) => a + s.minutes, 0);
+
+/** Drumurile între două locuri salvate diferite, făcute des în ultimele 90 de zile. */
 function routes(trips: Trip[]): RouteStats[] {
   const cutoff = new Date(Date.now() - ROUTE_DAYS * 86_400_000).toISOString();
   const thisMonth = monthOf(new Date().toISOString());
@@ -132,39 +135,24 @@ function routes(trips: Trip[]): RouteStats[] {
   }
   const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
   return [...byRoute.values()]
-    .filter((ts) => ts.length >= 2)
+    .filter((ts) => ts.length >= ROUTE_MIN_TRIPS)
     .sort((a, b) => b.length - a.length)
     .map((ts) => {
       const priced = ts.filter((t) => t.cost !== null);
       const consum = ts.filter((t) => t.lPer100 !== null);
-      const hours = new Map<number, Trip[]>();
-      for (const t of ts) {
-        const h = Number(hourFmt.format(new Date(t.start)));
-        hours.set(h, [...(hours.get(h) ?? []), t]);
-      }
-      const byHour = [...hours.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([hour, hs]) => ({
-          hour,
-          trips: hs.length,
-          minutes: round(avg(hs.map((t) => t.durationMin - t.stopMin)), 1),
-          trafficMin: round(avg(hs.map((t) => t.trafficMin)), 1),
-        }));
-      const solid = byHour.filter((h) => h.trips >= 2).sort((a, b) => a.minutes - b.minutes);
       const month = ts.filter((t) => monthOf(t.start) === thisMonth && t.cost !== null);
       return {
         from: ts[0].fromPlace!,
         to: ts[0].toPlace!,
         trips: ts.length,
         km: round(avg(ts.map((t) => t.distanceKm)), 1),
-        minutes: round(avg(ts.map((t) => t.durationMin - t.stopMin)), 1),
+        // De la plecarea de pe loc la oprirea la destinație: fără încălzirea motorului și fără
+        // timpul stat în mașină la sosire (21.10: o oră în parcarea de la serviciu).
+        minutes: round(avg(ts.map((t) => Math.max(0, drivingMin(t)))), 1),
         trafficMin: round(avg(ts.map((t) => t.trafficMin)), 1),
         cost: priced.length ? round(avg(priced.map((t) => t.cost!)), 2) : null,
         lPer100: consum.length ? round(avg(consum.map((t) => t.lPer100!)), 1) : null,
         monthCost: month.length ? round(month.reduce((a, t) => a + t.cost!, 0), 2) : null,
-        byHour,
-        bestHour: solid.length >= 2 ? solid[0].hour : null,
-        worstHour: solid.length >= 2 ? solid[solid.length - 1].hour : null,
       };
     });
 }
@@ -208,5 +196,5 @@ export const readStats = memo((): Stats => {
         serviceLei: serviceByMonth.has(month) ? round(serviceByMonth.get(month)!, 2) : null,
       };
     });
-  return { last30: sum(trips.filter((t) => t.start >= cutoff)), months, routes: routes(trips) };
+  return { last30: sum(trips.filter((t) => t.start >= cutoff)), months, routes: routes(trips), commute: commute(trips) };
 }, hourKey);

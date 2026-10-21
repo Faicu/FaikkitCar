@@ -43,6 +43,9 @@ describe("analyze", () => {
     expect(m.distanceKm).toBeCloseTo(0.2, 1);
     expect(m.standMin).toBeCloseTo(1.1, 1); // la plecare, până la primul punct în mers (65 s)
     expect(m.trafficStops).toBe(0);
+    // Plecarea reală: ultimul punct pe loc (60 s), nu pornirea motorului; sosirea: primul pe loc.
+    expect(m.departAt).toBe(rows[2].device_at);
+    expect(m.arriveAt).toBe(rows[6].device_at);
     // Mers + opriri = durata, fără să se numere nimic de două ori.
     // (fiecare valoare e rotunjită la 0,1 min, deci suma poate diferi cu puțin)
     expect(Math.abs(m.movingMin + m.standMin + m.trafficMin + m.stopMin - m.durationMin)).toBeLessThan(0.15);

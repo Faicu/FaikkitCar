@@ -1002,6 +1002,7 @@ public class MainActivity extends Activity {
             return;
         }
         renderMonthReport(stats.optJSONArray("months"));
+        renderCommute(stats.optJSONObject("commute"));
         renderRoutes(stats.optJSONArray("routes"));
         renderStats(stats.optJSONObject("last30"));
         renderMonthly(stats.optJSONArray("months"));
@@ -1055,14 +1056,101 @@ public class MainActivity extends Activity {
         }
     }
 
-    private static String hourLabel(int h) {
-        return String.format(java.util.Locale.US, "%02d:00–%02d:00", h, (h + 1) % 24);
+    /** „azi”, „mâine” sau ziua. */
+    private static String dayWord(String iso) {
+        String d = Fmt.date(iso);
+        long now = System.currentTimeMillis();
+        if (d.equals(Fmt.date(java.time.Instant.ofEpochMilli(now).toString()))) return "azi";
+        if (d.equals(Fmt.date(java.time.Instant.ofEpochMilli(now + 86_400_000L).toString()))) return "mâine";
+        return Fmt.day(iso);
     }
 
     /**
-     * Drumurile pe care le faci des (intre doua locuri salvate): costul si durata medie, timpul
-     * in trafic si, cu destule date, ora cea mai buna / cea mai grea de plecare.
+     * Drumul la serviciu pe ture (zi 08–20, noapte 20–08, doua zile libere): urmatoarea tura cu
+     * minutul pana la care sa pleci (15 min rezerva) si, pe fiecare tura, cum pleci de obicei.
      */
+    private void renderCommute(JSONObject c) {
+        if (c == null) return;
+        int margin = c.optInt("marginMin");
+        String work = c.optString("work").toLowerCase(java.util.Locale.ROOT);
+        LinearLayout card = Ui.section(this, content, "La " + work + " (ture 12/24, 90 de zile)");
+        JSONArray shifts = c.optJSONArray("shifts");
+        JSONArray next = c.optJSONArray("next");
+        JSONObject nx = null;
+        for (int i = 0; next != null && i < next.length(); i++) {
+            JSONObject n = next.optJSONObject(i);
+            if (Fmt.millis(n.optString("start")) > System.currentTimeMillis()) { nx = n; break; }
+        }
+        JSONObject nxShift = null;
+        for (int i = 0; nx != null && shifts != null && i < shifts.length(); i++) {
+            if (shifts.optJSONObject(i).optString("name").equals(nx.optString("shift"))) nxShift = shifts.optJSONObject(i);
+        }
+        int p = dp(this, 12);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = dp(this, 8);
+        if (nx != null && nxShift != null) {
+            LinearLayout box = new LinearLayout(this);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setBackground(Ui.round(this, 0x2222C55E, 14));
+            box.setPadding(p, p, p, p);
+            box.addView(Ui.text(this, "Următoarea tură: " + dayWord(nx.optString("start")) + ", "
+                    + nxShift.optString("name").replace("Tura de ", "") + " " + Fmt.hm(nx.optString("start")), 14, Ui.MUTED, false));
+            JSONObject tw = nxShift.optJSONObject("toWork");
+            if (!nx.isNull("leaveBy") && tw != null) {
+                String leave = nx.optString("leaveBy");
+                box.addView(Ui.text(this, "Pleacă până la " + Fmt.hm(leave), 22, Ui.OK, true));
+                String why = "ca să fii acolo cu " + margin + " min înainte (drumul: ~" + Fmt.duration(tw.optDouble("driveMin"))
+                        + ", în zilele proaste " + Fmt.duration(tw.optDouble("safeMin")) + ")";
+                long warm = Math.round(tw.optDouble("warmupMin"));
+                if (warm >= 1) {
+                    why += "; cu încălzirea de ~" + warm + " min, pornește motorul la "
+                            + Fmt.hm(java.time.Instant.ofEpochMilli(Fmt.millis(leave) - warm * 60_000L).toString());
+                }
+                box.addView(Ui.text(this, why, 12, Ui.MUTED, false));
+            } else {
+                box.addView(Ui.text(this, "Ora de plecare apare după câteva drumuri la tura asta.", 12, Ui.MUTED, false));
+            }
+            card.addView(box, lp);
+        }
+        for (int i = 0; shifts != null && i < shifts.length(); i++) {
+            JSONObject s = shifts.optJSONObject(i);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setBackground(Ui.round(this, Ui.CARD2, 14));
+            row.setPadding(p, p, p, p);
+            LinearLayout top = new LinearLayout(this);
+            top.addView(Ui.text(this, s.optString("name"), 16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+            top.addView(Ui.text(this, s.optString("start") + "–" + s.optString("end"), 13, Ui.MUTED, false));
+            row.addView(top);
+            JSONObject tw = s.optJSONObject("toWork");
+            if (tw != null) {
+                if (!tw.isNull("leaveBy")) {
+                    row.addView(Ui.text(this, "Pleacă până la " + tw.optString("leaveBy") + " (drum ~"
+                            + Fmt.duration(tw.optDouble("driveMin")) + ", cel mult " + Fmt.duration(tw.optDouble("safeMin")) + ")",
+                            14, Ui.OK, false));
+                }
+                row.addView(Ui.text(this, "De obicei pleci la " + tw.optString("usualLeave") + " și ajungi la "
+                        + tw.optString("usualArrive"), 13, Ui.MUTED, false));
+                int tight = tw.optInt("tight"), late = tw.optInt("late");
+                if (tight > 0) {
+                    row.addView(Ui.text(this, "De " + tight + " din " + tw.optInt("trips") + " ori cu sub " + margin
+                            + " min înainte" + (late > 0 ? ", " + late + (late == 1 ? " întârziere" : " întârzieri") : ""),
+                            13, Ui.WARN, false));
+                }
+            } else {
+                row.addView(Ui.text(this, "Încă niciun drum spre " + work + " la tura asta.", 12, Ui.MUTED, false));
+            }
+            JSONObject fw = s.optJSONObject("fromWork");
+            if (fw != null) {
+                row.addView(Ui.text(this, "Înapoi: pleci pe la " + fw.optString("usualLeave") + ", ești "
+                        + c.optString("home").toLowerCase(java.util.Locale.ROOT) + " pe la " + fw.optString("usualArrive")
+                        + " (~" + Fmt.duration(fw.optDouble("driveMin")) + ")", 13, Ui.MUTED, false));
+            }
+            card.addView(row, lp);
+        }
+    }
+
+    /** Drumurile pe care le faci des (de la 10 deplasari, intre doua locuri salvate): costul si durata medie. */
     private void renderRoutes(JSONArray routes) {
         if (routes == null || routes.length() == 0) return;
         LinearLayout card = Ui.section(this, content, "Drumurile tale (90 de zile)");
@@ -1083,22 +1171,6 @@ public class MainActivity extends Activity {
             if (!r.isNull("cost")) sb.append(" · ").append(Fmt.lei(r.optDouble("cost"))).append(" pe drum");
             row.addView(Ui.text(this, sb.toString(), 14, Ui.TEXT, false));
             if (!r.isNull("monthCost")) row.addView(Ui.text(this, "Luna aceasta: " + Fmt.lei(r.optDouble("monthCost")), 13, Ui.MUTED, false));
-            JSONObject best = null, worst = null;
-            JSONArray hours = r.optJSONArray("byHour");
-            for (int k = 0; hours != null && k < hours.length(); k++) {
-                JSONObject h = hours.optJSONObject(k);
-                if (!r.isNull("bestHour") && h.optInt("hour") == r.optInt("bestHour")) best = h;
-                if (!r.isNull("worstHour") && h.optInt("hour") == r.optInt("worstHour")) worst = h;
-            }
-            if (best != null && worst != null) {
-                row.addView(Ui.text(this, "Cel mai bine pleci " + hourLabel(best.optInt("hour")) + " (~"
-                        + Fmt.duration(best.optDouble("minutes")) + ")", 13, Ui.OK, false));
-                row.addView(Ui.text(this, "Cel mai greu " + hourLabel(worst.optInt("hour")) + " (~"
-                        + Fmt.duration(worst.optDouble("minutes")) + ")", 13, Ui.WARN, false));
-            } else {
-                row.addView(Ui.text(this, "Ora cea mai bună de plecare apare după câteva drumuri la ore diferite.",
-                        12, Ui.MUTED, false));
-            }
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);

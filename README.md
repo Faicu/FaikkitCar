@@ -162,7 +162,8 @@ a crescut într-un proiect cu trei părți:
 | Costuri: 30 de zile și pe luni | 🧪 | Pe luni: km, timp, litri, L/100, cost estimat și ce s-a dat la pompă, cu bare |
 | Călătoria aleasă | ✅ | Pe ecranul ei: detalii, traseu (verde = plecare, roșu = sosire), grafic viteză/turație, rezervor |
 | Opriri în trafic vs. staționare | 🧪 | Oprirea cu motorul pornit între două porțiuni de mers (≤ 5 min), fără semne de parcare = trafic; altfel staționare. Plus cea mai lungă oprire și viteza doar în mișcare. Live: „Oprit în trafic · 1 min 20 s” pe site, în Panel și în mașină |
-| Drumurile tale | 🧪 | În Costuri: pentru drumurile dese (ex. Acasă → Serviciu) costul și durata medie, timpul în trafic, costul lunii și, cu destule date, ora cea mai bună de plecare |
+| La serviciu (ture 12/24) | 🧪 | În Costuri (site și Panel): următoarea tură (ciclul zi 08–20, noapte 20–08, liber, liber, dedus din drumuri) și minutul până la care să pleci ca să ajungi cu 15 min înainte (drumul din zilele proaste, percentila 90), plus ora de pornire a motorului cu încălzirea; pe fiecare tură cum pleci și ajungi de obicei, de câte ori ai ajuns cu sub 15 min sau ai întârziat și întoarcerea |
+| Drumurile tale | 🧪 | În Costuri: drumurile cu cel puțin 10 deplasări în 90 de zile: costul și durata medie (de la plecarea de pe loc la oprire, fără încălzire și staționarea la sosire), timpul în trafic, costul lunii |
 | Staționarea cu motorul pornit | 🧪 | În raportul lunii: cât timp, litri și lei s-au dus pe încălzire și așteptat |
 | Jurnal de service | ✅ | În Mai mult: lucrările (ulei, piese, ITP...) cu data, kilometrajul, locul, costul, articolele pe grupe (piesă, cod, bucăți, preț; manoperă, reduceri) și bonurile / facturile atașate; costul intră în raportul lunii |
 | Propuneri | 🧪 | Sus pe Acum: „Ai alimentat pe … ~16 L?” (salt în rezervor, fără alimentare în jurnal) și „Parchezi des aici: Strada X” (de cel puțin 2 ori în 60 de zile); „Da” completează, „Nu” ascunde |
@@ -533,6 +534,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | următorul | 16.10 | Starea „Fără semnal” pe fila Acum |
 | următorul | 17.10 | Nu mai întreabă serverul în fundal după ieșirea din aplicație; harta live fără puncte dublate; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
 | următorul | 19.10 | Jurnalul de service arată articolele lucrării pe grupe (cod, preț, subtotal) și locul |
+| următorul | 21.10 | „La serviciu”: următoarea tură și ora de plecare; „Drumurile tale” doar de la 10 deplasări, fără „cea mai bună oră” |
 | 21 | 21.10 | Jurnalul pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță (cu rezultatul fiecăreia), Tot |
 | 20 | 21.10 | Luminile nu mai apar pe ecranul Acum |
 | 19 | 20.10 | Drumurile neînregistrate apar în lista de călătorii |
@@ -550,6 +552,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 20.10 | Rezervorul de acum ia doar citirile de după ultima alimentare (după plin arăta 12 L în loc de 52); plinurile (plin → plin) au prioritate la consumul real față de indicator, care nu e liniar la capete; drumurile neînregistrate (`/api/trips/gaps`: salt de kilometraj ≥ 2 km între călătorii, cu litrii și costul estimate) |
 | 20.10 | Comenzile pentru navigație (`car_cmd`, `/api/cmd`, `/api/car/cmd`; `scripts/car-cmd.ts`) |
 | 21.10 | Frâna de mână doar din c103 (fără bitul din 0x41); luminile scoase; jurnalul pe categorii (`log.cat`, `log-category.ts`, `/api/log?cat=`), comenzile la distanță cu jurnal separat pe site și în Panel |
+| 21.10 | Drumul la serviciu pe ture (`commute.ts`, `stats.commute`): ora de plecare pentru 15 min rezervă și următoarea tură; călătoriile au `departAt`/`arriveAt` (plecarea de pe loc și oprirea); „Drumurile tale” de la 10 deplasări, fără ora cea mai bună (fără sens la ture), durata fără staționări |
 
 ---
 

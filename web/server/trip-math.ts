@@ -49,6 +49,10 @@ export interface TripMetrics {
   stopMin: number; // opririle cu motorul oprit
   stops: TripStop[];
   movingMin: number; // doar în mișcare
+  // Plecarea și sosirea reale: ultimul punct pe loc înainte de primul în mers și primul pe loc
+  // după ultimul în mers (fără încălzirea motorului și fără minutele stat în mașină la sosire).
+  departAt: string;
+  arriveAt: string;
   trafficMin: number; // oprit cu motorul pornit între două porțiuni de mers (≤ 5 min)
   trafficStops: number; // cele de cel puțin 5 s
   trafficMaxMin: number;
@@ -187,11 +191,17 @@ export function analyze(
   let ep: Ep | null = null;
   let moved = false;
   let lastReverseAt = -Infinity;
+  let firstMove = -1;
+  let lastMove = -1;
 
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     const p = pos(r);
     const v = speedOf(r) ?? 0;
+    if (v >= STILL_KMH) {
+      if (firstMove < 0) firstMove = i;
+      lastMove = i;
+    }
     if (i > 0) {
       const a = rows[i - 1];
       const dt = t[i] - t[i - 1];
@@ -337,6 +347,8 @@ export function analyze(
     stopMin: round(stopMs / 60_000),
     stops,
     movingMin: round(movingMs / 60_000),
+    departAt: rows[firstMove > 0 ? firstMove - 1 : 0].device_at,
+    arriveAt: rows[lastMove >= 0 ? Math.min(lastMove + 1, rows.length - 1) : rows.length - 1].device_at,
     trafficMin: round(trafficMs / 60_000),
     trafficStops,
     trafficMaxMin: round(trafficMaxMs / 60_000),
