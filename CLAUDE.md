@@ -97,7 +97,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   știute, dar nu c10/c13/c27/c28 și cadrul 0x21).
 - Memoria (20.10, cu comenzile): navigația are 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili;
   Teyes își dă −700 (`skipkillapp.prop` −14), noi 200 (serviciu) → omorâți la somn. Tapetul
-  animat al utilizatorului (`earthmoon`, ~330 MB, 25% CPU) a fost și el omorât; din 21.10 tapet static. Dezactivate de
+  animat al utilizatorului (`earthmoon`, ~330 MB, 25% CPU) a fost și el omorât; din 21.10 tapet static; tot pe 21.10 utilizatorul a dezactivat Google Maps, YouTube, Bunăstare, Chrome, Android Auto (după repornire: 1,7 GB disponibili la 2,5 min, înainte ~330 MB și swap plin). Restul (gesturi, FOTA, butoane, Rockchip etc.) cere ADB prin cablu USB-A–A; utilizatorul a renunțat. Dezactivate de
   utilizator: TXZ, Google; Spotify Teyes nu se poate. `KeepAliveListener` (1.1.55): „Acces la
   notificări” → adj 100 și repornire de către sistem (emulator: 200 → 100, repornit în ~5 s).
   Pe Teyes, cu accesul dat (20.10), adj rămâne 200 (ROM-ul modifică OomAdjuster). Un `kill -9`
