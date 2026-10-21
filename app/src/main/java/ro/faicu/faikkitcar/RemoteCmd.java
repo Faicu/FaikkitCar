@@ -51,8 +51,8 @@ final class RemoteCmd {
     }
 
     private static void run(Context c, int id, String cmd, int timeoutS) throws Exception {
-        Prefs.log(c, "Comanda #" + id + ": " + (cmd.length() > 200 ? cmd.substring(0, 200) + "…" : cmd));
-        long t0 = System.currentTimeMillis();
+        // Nu intra in jurnal (din 1.1.59): comanda, codul si rezultatul raman pe server
+        // (car_cmd), in jurnalul separat „Comenzi la distanta” de pe site si din Panel.
         int code;
         String output;
         Process p = null;
@@ -91,8 +91,6 @@ final class RemoteCmd {
             output = "eroare: " + e;
             if (p != null) p.destroyForcibly();
         }
-        Prefs.log(c, "Comanda #" + id + ": cod " + code + ", " + output.length() + " caractere, "
-                + (System.currentTimeMillis() - t0) + " ms");
         request("POST", BASE + "/" + id,
                 new JSONObject().put("exitCode", code).put("output", output).toString());
     }

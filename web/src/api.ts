@@ -1,6 +1,7 @@
 // Apelurile către API-ul FaikkitCar (aceleași pe care le folosește aplicația Panel).
 // Sesiunea vine din cookie; la 401 aplicația arată ecranul de login.
 
+import type { CarCmd } from "../server/cmd.ts";
 import type { LogEntry } from "../server/log.ts";
 import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
@@ -88,7 +89,9 @@ export const api = {
   saveRefuel: (r: RefuelInput) => call<{ ok: true }>("POST", "/api/refuels", r),
   deleteRefuel: (id: number) => call<{ ok: true }>("DELETE", `/api/refuels/${id}`),
   panelApk: () => call<{ versionCode: number; versionName?: string; size?: number }>("GET", "/api/panel/apk"),
-  log: (eventsOnly: boolean) => call<LogEntry[]>("GET", `/api/log?eventsOnly=${eventsOnly ? 1 : 0}`),
+  /** `cat` = o categorie (log-category.ts), „toate” sau nimic pentru evenimente. */
+  log: (cat?: string) => call<LogEntry[]>("GET", cat ? `/api/log?cat=${cat}` : "/api/log"),
+  cmds: () => call<CarCmd[]>("GET", "/api/cmd"),
 };
 
 export type {
@@ -97,6 +100,7 @@ export type {
   GeocodeResult,
   Live,
   LiveRoute,
+  CarCmd,
   LogEntry,
   MonthStats,
   PeriodStats,

@@ -7,6 +7,8 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { logCategory } from "./log-category.ts";
+
 export function dataDir(): string {
   return process.env.FAIKKITCAR_DATA_DIR ?? "/opt/faikkitcar/data";
 }
@@ -200,5 +202,15 @@ export function getDb(): DatabaseSync {
   // Lucrările de service pe articole (piese, manoperă, reduceri; JSON) și unde s-au făcut.
   if (!cols("service").includes("items")) db.exec(`ALTER TABLE service ADD COLUMN items TEXT`);
   if (!cols("service").includes("shop")) db.exec(`ALTER TABLE service ADD COLUMN shop TEXT`);
+  // Categoria fiecărei linii din jurnal (log-category.ts), completată și pentru liniile vechi.
+  if (!cols("log").includes("cat")) db.exec(`ALTER TABLE log ADD COLUMN cat TEXT`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_log_cat ON log(cat, device_at DESC)`);
+  const uncategorized = db.prepare(`SELECT id, line FROM log WHERE cat IS NULL`).all() as Array<{ id: number; line: string }>;
+  if (uncategorized.length > 0) {
+    const set = db.prepare(`UPDATE log SET cat = ? WHERE id = ?`);
+    db.exec("BEGIN");
+    for (const r of uncategorized) set.run(logCategory(r.line), r.id);
+    db.exec("COMMIT");
+  }
   return db;
 }

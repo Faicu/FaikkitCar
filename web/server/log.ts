@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
+import { EVENT_CATEGORIES, LOG_CATEGORIES, logCategory, type LogCategory } from "./log-category.ts";
 
 export interface LogEntry {
   id: number;
@@ -12,6 +13,7 @@ export interface LogEntry {
   receivedAt: string;
   version: string | null;
   line: string;
+  cat: LogCategory;
 }
 
 export interface IncomingLine {
@@ -27,7 +29,7 @@ export function insertLines(lines: IncomingLine[], version: string | null): numb
   const db = getDb();
   const now = new Date().toISOString();
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO log (device_at, received_at, version, line) VALUES (?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO log (device_at, received_at, version, line, cat) VALUES (?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -37,7 +39,8 @@ export function insertLines(lines: IncomingLine[], version: string | null): numb
       const at = new Date(l.t);
       if (!Number.isFinite(l.t) || Number.isNaN(at.getTime()) || typeof l.text !== "string") continue;
       const deviceAt = at.toISOString();
-      const r = stmt.run(deviceAt, now, version, l.text.slice(0, MAX_LINE_LEN));
+      const text = l.text.slice(0, MAX_LINE_LEN);
+      const r = stmt.run(deviceAt, now, version, text, logCategory(text));
       added += Number(r.changes);
     }
     // Jurnalul nu se șterge niciodată (câteva zeci de MB pe an).
@@ -49,20 +52,30 @@ export function insertLines(lines: IncomingLine[], version: string | null): numb
   return added;
 }
 
-/** `eventsOnly` ascunde liniile de diagnostic („DIAG …”) și ale sondei CAN („CAN …”). */
-export function readLog(eventsOnly: boolean, limit = 1000): LogEntry[] {
-  const filter = eventsOnly ? `WHERE line NOT LIKE 'DIAG %' AND line NOT LIKE 'CAN %'` : "";
+/**
+ * Liniile unei categorii (log-category.ts) sau, fără ea, „Evenimente”: toate în afară de CAN /
+ * diagnostic și comenzi. `cat = "toate"` le ia pe toate.
+ */
+export function readLog(cat: string | undefined, limit = 1000): LogEntry[] {
+  const cats: string[] =
+    cat === "toate"
+      ? LOG_CATEGORIES.map((c) => c.id)
+      : LOG_CATEGORIES.some((c) => c.id === cat)
+        ? [cat as string]
+        : EVENT_CATEGORIES;
   const rows = getDb()
     .prepare(
-      `SELECT id, device_at, received_at, version, line FROM log ${filter}
+      `SELECT id, device_at, received_at, version, line, cat FROM log
+       WHERE cat IN (${cats.map(() => "?").join(", ")})
        ORDER BY device_at DESC, id DESC LIMIT ?`,
     )
-    .all(limit) as Array<{
+    .all(...cats, limit) as Array<{
     id: number;
     device_at: string;
     received_at: string;
     version: string | null;
     line: string;
+    cat: LogCategory;
   }>;
   return rows.map((r) => ({
     id: r.id,
@@ -70,5 +83,6 @@ export function readLog(eventsOnly: boolean, limit = 1000): LogEntry[] {
     receivedAt: r.received_at,
     version: r.version,
     line: r.line,
+    cat: r.cat,
   }));
 }

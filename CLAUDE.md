@@ -48,7 +48,9 @@ tmux `faikkitbox` și `faikkitcar`.
 - API utilizator (cookie `fc_session` sau Bearer din `POST /api/login`): `/api/live` (long
   polling cu `?after=`), `/api/live/route`, `/api/trips`, `/api/trips/points`, `/api/trips/join|split`,
   `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
-  `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log`, `/api/panel/apk…`.
+  `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log?cat=` (categoriile din
+  `log-category.ts`, coloana `log.cat`; fără `cat` = evenimente, fără CAN și comenzi), `/api/cmd`
+  (comenzile la distanță, jurnalul lor separat), `/api/panel/apk…`.
 - Service: `service.items` (JSON: `group`, `name`, `code`, `qty`, `price` pe tot rândul, cu TVA;
   reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
@@ -222,7 +224,7 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
-- În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.20 publicat pe 21.10).
+- În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.21 publicat pe 21.10: jurnalul pe categorii).
 - 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
   după plecare (memorie), repornită de `KeepAliveListener` în ~7 s. Actualizarea: după confirmare
   instalarea mai durează ~25 s (Play Protect) fără nimic pe ecran; a doua apăsare făcea a doua

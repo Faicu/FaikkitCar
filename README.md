@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.59 (`build-59`) · FaikkitCar Panel 1.0.20 (`panel-20`) |
+| **Versiuni** | FaikkitCar 1.1.60 (`build-60`) · FaikkitCar Panel 1.0.21 (`panel-21`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -82,7 +82,7 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.59** („Actualizează acum”, o singură apăsare, apoi
+1. **Instalează FaikkitCar 1.1.60** (și Panel 1.0.21) („Actualizează acum”, o singură apăsare, apoi
    confirmarea; durează ~30 s până pornește versiunea nouă).
 2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
@@ -171,7 +171,7 @@ a crescut într-un proiect cu trei părți:
 | Detaliile călătoriei, aspect nou | 🧪 | Traseul, cifrele mari (distanță, durată, cost), bara timpului (mers / trafic / staționare / motor oprit), harta, apoi Viteză, Consum, Mașina |
 | Combinarea călătoriilor consecutive | 🧪 | În detaliile călătoriei: „Combină cu precedenta / următoarea”, „Desparte”. Opririle dintre părți nu intră în viteza medie și apar pe hartă ca puncte galbene, cu ora și durata |
 | Ascunde pornirile pe loc | ✅ | Sub 0,5 km (prinde și manevrele din parcare); totalurile le includ în continuare |
-| Jurnalul navigației | ✅ | În „Mai mult”. Filtru „doar evenimente”. Nu se poate goli, ca să nu se piardă nimic |
+| Jurnalul navigației | ✅ | În „Mai mult”, pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță (cu rezultatul), Tot. Nu se poate goli, ca să nu se piardă nimic |
 | Panel: actualizare din aplicație | 🧪 | CI-ul publică pe car.faicu.ro; Panel-ul arată „Actualizează acum” |
 
 ---
@@ -511,6 +511,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
 | 51 | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| 60 | 21.10 | Comenzile la distanță nu mai intră în jurnal: sunt în jurnalul separat „Comenzi la distanță” (site și Panel), cu rezultatul |
 | 59 | 21.10 | Luminile nu se mai citesc (nici în jurnal, nici în starea live): CAN-ul le trimite doar la schimbare, deci după o repornire a aplicației lipseau ore întregi. Intrările vechi din jurnal rămân |
 | 58 | 21.10 | Frâna de mână: după repornirea navigației, CAN-ul o raporta eliberată chiar trasă, până la prima mișcare a manetei (verificat pe 21.10). Acum valoarea „eliberată” se folosește doar după ce frâna s-a mișcat măcar o dată de la pornirea navigației; până atunci Panel-ul și site-ul n-o mai afișează |
 | 57 | 21.10 | Actualizarea: după confirmare, Android mai verifică aplicația ~25 s fără nimic pe ecran, iar o nouă apăsare pornea a doua instalare (21.10: instalată de două ori). Acum butonul arată „Se instalează...” și o nouă apăsare nu mai pornește alta |
@@ -531,6 +532,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | următorul | 16.10 | Starea „Fără semnal” pe fila Acum |
 | următorul | 17.10 | Nu mai întreabă serverul în fundal după ieșirea din aplicație; harta live fără puncte dublate; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
 | următorul | 19.10 | Jurnalul de service arată articolele lucrării pe grupe (cod, preț, subtotal) și locul |
+| 21 | 21.10 | Jurnalul pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță (cu rezultatul fiecăreia), Tot |
 | 20 | 21.10 | Luminile nu mai apar pe ecranul Acum |
 | 19 | 20.10 | Drumurile neînregistrate apar în lista de călătorii |
 
@@ -546,6 +548,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 19.10 | Jurnalul de service pe articole (`service.items`, JSON: grupă, piesă, cod, bucăți, preț) și locul (`service.shop`); pe site carduri cu data, totalul, grupele cu subtotal și fișierele; prima revizie trecută (19.10, 2.979 lei, cu devizul și factura) |
 | 20.10 | Rezervorul de acum ia doar citirile de după ultima alimentare (după plin arăta 12 L în loc de 52); plinurile (plin → plin) au prioritate la consumul real față de indicator, care nu e liniar la capete; drumurile neînregistrate (`/api/trips/gaps`: salt de kilometraj ≥ 2 km între călătorii, cu litrii și costul estimate) |
 | 20.10 | Comenzile pentru navigație (`car_cmd`, `/api/cmd`, `/api/car/cmd`; `scripts/car-cmd.ts`) |
+| 21.10 | Frâna de mână doar din c103 (fără bitul din 0x41); luminile scoase; jurnalul pe categorii (`log.cat`, `log-category.ts`, `/api/log?cat=`), comenzile la distanță cu jurnal separat pe site și în Panel |
 
 ---
 

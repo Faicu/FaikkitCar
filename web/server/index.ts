@@ -247,7 +247,8 @@ app.post("/api/logout", (c) => {
 // Comenzile shell pentru navigație (cmd.ts): puse în coadă de utilizator, cu rezultatul.
 app.get("/api/cmd", (c) => {
   requireUser(c);
-  return c.json(readCmds());
+  // În listă, rezultatul tăiat la 20.000 de caractere; tot e la /api/cmd/:id.
+  return c.json(readCmds().map((x) => ({ ...x, output: x.output && x.output.length > 20_000 ? x.output.slice(0, 20_000) + "\n[…]" : x.output })));
 });
 
 app.get("/api/cmd/:id", (c) => {
@@ -450,7 +451,10 @@ app.delete("/api/refuels/:id", (c) => {
 
 app.get("/api/log", (c) => {
   requireUser(c);
-  return c.json(readLog(c.req.query("eventsOnly") === "1"));
+  // `cat` = o categorie din log-category.ts sau „toate”; Panel-ul până la 1.0.20 trimite doar
+  // `eventsOnly` (0 = tot, inclusiv CAN).
+  const cat = c.req.query("cat") ?? (c.req.query("eventsOnly") === "0" ? "toate" : undefined);
+  return c.json(readLog(cat));
 });
 
 app.all("/api/*", (c) => c.json({ error: "Not found" }, 404));

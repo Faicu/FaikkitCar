@@ -62,7 +62,11 @@ public class MainActivity extends Activity {
     private JSONObject live, car, fuel, stats, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
-    private boolean eventsOnly = true;
+    // Fila jurnalului: "" = evenimente, o categorie (ca pe server), "toate"; "comenzi" = comenzile.
+    private String logCat = "";
+    private static final String[] LOG_CATS = {"", "sistem", "masina", "calatorii", "sunet", "actualizari", "can", "comenzi", "toate"};
+    private static final String[] LOG_LABELS = {"Evenimente", "Pornire și somn", "Mașina", "GPS", "Sunet și voce",
+            "Actualizări", "CAN și diagnostic", "Comenzi la distanță", "Tot"};
 
     @Override
     protected void onCreate(Bundle b) {
@@ -238,7 +242,7 @@ public class MainActivity extends Activity {
         if (tab == NOW) startLive();
         else stopLive();
         int forTab = tab;
-        boolean events = eventsOnly;
+        String cat = logCat;
         io.execute(() -> {
             try {
                 if (forTab == NOW) {
@@ -272,7 +276,7 @@ public class MainActivity extends Activity {
                     JSONObject c = api.car();
                     JSONArray pl = api.places();
                     JSONArray sv = api.service();
-                    JSONArray l = api.log(events);
+                    JSONArray l = cat.equals("comenzi") ? api.cmds() : api.log(cat);
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     ui.post(() -> {
                         car = c;
@@ -395,7 +399,7 @@ public class MainActivity extends Activity {
             scroll.post(() -> scroll.scrollTo(0, 0));
             return;
         }
-        String state = tab + "|" + selected + "|" + eventsOnly + "|" + Store.hideIdle(this) + "|"
+        String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|"
                 + (newerApk != null) + "|"
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == TRIPS ? trips + "|" + pointsFor
@@ -1903,31 +1907,48 @@ public class MainActivity extends Activity {
 
     private void renderLog() {
         LinearLayout card = Ui.card(this, content);
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout titles = new LinearLayout(this);
-        titles.setOrientation(LinearLayout.VERTICAL);
+        // Filele: un rand care se deruleaza orizontal.
+        android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(this);
+        hs.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(this);
+        for (int i = 0; i < LOG_CATS.length; i++) {
+            String id = LOG_CATS[i];
+            boolean on = id.equals(logCat);
+            TextView chip = Ui.text(this, LOG_LABELS[i], 14, on ? Ui.ACCENT : Ui.TEXT, true);
+            chip.setPadding(dp(this, 12), dp(this, 6), dp(this, 12), dp(this, 6));
+            chip.setBackground(Ui.round(this, on ? 0x2638BDF8 : Ui.CARD2, 14));
+            chip.setOnClickListener(v -> {
+                if (id.equals(logCat)) return;
+                logCat = id;
+                log = null;
+                render();
+                load(true);
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+            lp.rightMargin = dp(this, 6);
+            row.addView(chip, lp);
+        }
+        hs.addView(row);
+        card.addView(hs);
+        boolean cmds = logCat.equals("comenzi");
         int n = log == null ? 0 : log.length();
-        titles.addView(Ui.text(this, n + " linii" + (eventsOnly ? " · doar evenimente" : ""), 17, Ui.TEXT, true));
-        String version = n > 0 ? log.optJSONObject(0).optString("version", "") : "";
-        titles.addView(Ui.text(this, (version.isEmpty() ? "" : "Aplicație " + version + " · ")
-                + "ora e cea de pe navigație", 13, Ui.MUTED, false));
-        head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView toggle = Ui.text(this, eventsOnly ? "Și CAN" : "Doar evenimente", 14, Ui.ACCENT, false);
-        toggle.setOnClickListener(v -> {
-            eventsOnly = !eventsOnly;
-            log = null;
-            render();
-            load(true);
-        });
-        head.addView(toggle);
+        String label = LOG_LABELS[java.util.Arrays.asList(LOG_CATS).indexOf(logCat)];
+        TextView head = Ui.text(this, n + (cmds ? " comenzi" : " linii · " + label.toLowerCase()), 17, Ui.TEXT, true);
+        head.setPadding(0, dp(this, 10), 0, 0);
         card.addView(head);
+        String version = n > 0 && !cmds ? log.optJSONObject(0).optString("version", "") : "";
+        card.addView(Ui.text(this, cmds ? "Rulate doar cu „Comenzi de la distanta” pornit · ora serverului"
+                : (version.isEmpty() ? "" : "Aplicație " + version + " · ") + "ora e cea de pe navigație", 13, Ui.MUTED, false));
         if (log == null) {
             Ui.hint(this, card, "Se încarcă...");
             return;
         }
         if (n == 0) {
-            Ui.hint(this, card, "Nicio linie primită încă.");
+            Ui.hint(this, card, cmds ? "Nicio comandă încă." : "Nicio linie aici.");
+            return;
+        }
+        if (cmds) {
+            renderCmds();
             return;
         }
         LinearLayout lines = Ui.card(this, content);
@@ -1942,6 +1963,53 @@ public class MainActivity extends Activity {
             lines.addView(t);
         }
         if (n > max) Ui.hint(this, lines, "Restul (" + (n - max) + ") pe car.faicu.ro.");
+    }
+
+    /** Comenzile la distanta: comanda, starea, durata; atingerea arata rezultatul. */
+    private void renderCmds() {
+        for (int i = 0; i < log.length(); i++) {
+            JSONObject c = log.optJSONObject(i);
+            LinearLayout box = Ui.card(this, content);
+            String status;
+            int color;
+            if (c.isNull("doneAt")) {
+                status = c.isNull("sentAt") ? "în așteptare" : "rulează";
+                color = Ui.MUTED;
+            } else if (!c.isNull("exitCode") && c.optInt("exitCode") == 0) {
+                status = "cod 0";
+                color = Ui.OK;
+            } else {
+                status = c.isNull("exitCode") ? "fără cod" : "cod " + c.optInt("exitCode");
+                color = Ui.BAD;
+            }
+            String dur = "";
+            if (!c.isNull("doneAt") && !c.isNull("sentAt")) {
+                long ms = Fmt.millis(c.optString("doneAt")) - Fmt.millis(c.optString("sentAt"));
+                if (ms >= 0) dur = String.format(java.util.Locale.US, " · %.1f s", ms / 1000.0);
+            }
+            TextView meta = Ui.text(this, "#" + c.optInt("id") + " · " + Fmt.dateTime(c.optString("createdAt")) + " · " + status + dur,
+                    13, color, true);
+            box.addView(meta);
+            TextView cmd = Ui.mono(this, c.optString("cmd"), 12);
+            cmd.setTextColor(Ui.TEXT);
+            cmd.setPadding(0, dp(this, 4), 0, 0);
+            box.addView(cmd);
+            String out = c.isNull("output") ? "" : c.optString("output");
+            if (!out.isEmpty()) {
+                TextView more = Ui.text(this, "Arată rezultatul (" + out.length() + " caractere)", 13, Ui.ACCENT, false);
+                more.setPadding(0, dp(this, 6), 0, 0);
+                TextView res = Ui.mono(this, out.length() > 8000 ? out.substring(0, 8000) + "\n[… restul pe car.faicu.ro]" : out, 11);
+                res.setTextColor(Ui.MUTED);
+                res.setVisibility(View.GONE);
+                more.setOnClickListener(v -> {
+                    boolean show = res.getVisibility() != View.VISIBLE;
+                    res.setVisibility(show ? View.VISIBLE : View.GONE);
+                    more.setText(show ? "Ascunde rezultatul" : "Arată rezultatul (" + out.length() + " caractere)");
+                });
+                box.addView(more);
+                box.addView(res);
+            }
+        }
     }
 
     // ---------------------------------------------------------------- ajutoare

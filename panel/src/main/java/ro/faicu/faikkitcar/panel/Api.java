@@ -81,8 +81,14 @@ final class Api {
         return new JSONObject(call("GET", "/api/fuel", null, true));
     }
 
-    JSONArray log(boolean eventsOnly) throws Exception {
-        return new JSONArray(call("GET", "/api/log?eventsOnly=" + (eventsOnly ? 1 : 0), null, true));
+    /** cat = o categorie a jurnalului, "toate" sau "" pentru evenimente. */
+    JSONArray log(String cat) throws Exception {
+        return new JSONArray(call("GET", cat.isEmpty() ? "/api/log" : "/api/log?cat=" + cat, null, true));
+    }
+
+    /** Comenzile shell rulate pe navigatie, cu rezultatul. */
+    JSONArray cmds() throws Exception {
+        return new JSONArray(call("GET", "/api/cmd", null, true));
     }
 
     void saveRefuel(JSONObject r) throws Exception {
