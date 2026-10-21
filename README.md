@@ -12,7 +12,7 @@ a crescut într-un proiect cu trei părți:
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.58 (`build-58`) · FaikkitCar Panel 1.0.19 (`panel-19`) |
+| **Versiuni** | FaikkitCar 1.1.59 (`build-59`) · FaikkitCar Panel 1.0.20 (`panel-20`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → fila Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (fost `welcometovw`) |
@@ -51,7 +51,7 @@ a crescut într-un proiect cu trei părți:
 - 🧪 **Ecran nou în mașină** (1.1.47): harta mare, alături doar ce nu arată bordul (viteza,
   costul și traficul drumului, bateria doar dacă e o problemă), meniul compact jos.
 - ✅ **Consumul real** verificat pe 12.10: 17 L pe 180 km = 9,4 L/100; drumurile dau 9,6.
-- ✅ **Temperaturile climei** (stânga / dreapta, și cu SYNC), **centura** și **luminile**
+- ✅ **Temperaturile climei** (stânga / dreapta, și cu SYNC), și **centura**
   confirmate în mers pe 12.10.
 
 - ✅ **Sunetul de bun venit** merge după opririle scurte (autostart Teyes) și după
@@ -60,7 +60,7 @@ a crescut într-un proiect cu trei părți:
 - ✅ **Teyes nu mai închide aplicația din lista lui** la somn (poartă un nume de pe lista
   albă); moartea din 20.10 vine din lipsa de memorie, nu din lista Teyes.
 - ✅ **Datele mașinii** sunt identificate și confirmate: viteză, turație, tensiune,
-  kilometraj, temperatură, uși, centură, frâna de mână, clima, lumini și **litrii din
+  kilometraj, temperatură, uși, centură, frâna de mână, clima și **litrii din
   rezervor** (confirmat la alimentarea din 01.10).
 - ✅ **Călătoriile** se înregistrează, iar GPS-ul se oprește singur cu motorul oprit.
 - ✅ **Salutul vorbit** merge, cu vocea Piper „Mihai” de pe server (vocile Google de pe
@@ -82,7 +82,7 @@ a crescut într-un proiect cu trei părți:
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.58** („Actualizează acum”, o singură apăsare, apoi
+1. **Instalează FaikkitCar 1.1.59** („Actualizează acum”, o singură apăsare, apoi
    confirmarea; durează ~30 s până pornește versiunea nouă).
 2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
@@ -155,7 +155,7 @@ a crescut într-un proiect cu trei părți:
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie. Contactul e dedus din datele de bord (confirmat pe 01.10) |
 | Acum: „Fără semnal” | 🧪 | Din 16.10: dacă mașina tace după mers sau motor pornit (zonă fără internet), apare „Fără semnal” de la ultima stare primită, cu drumul în curs până acolo, nu „Oprită”; după o oră fără nimic, „Oprită”. Drumul se înregistrează în mașină și apare întreg când revine semnalul |
 | Acum: mai rapid | 🧪 | De la 1.1.35 mașina trimite starea la 5 s cu motorul pornit, iar site-ul și Panel o primesc imediat (cererea așteaptă la server) |
-| Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși deschise, centură, frâna de mână, marșarier, lumini (confirmate pe 12.10). Habitaclul și consumul instantaneu nu sunt transmise de decodor |
+| Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși deschise, centură, frâna de mână, marșarier (luminile, scoase din 1.1.59). Habitaclul și consumul instantaneu nu sunt transmise de decodor |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și **harta live** (plecarea, traseul, mașina acum, opririle; o poți muta, „Urmărește mașina” o readuce) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu (real din rezervor; până atunci estimat din drumuri) |
 | Unde e mașina (hartă, Google Maps) | ✅ | Ultima poziție GPS, pe fila Acum |
@@ -286,7 +286,7 @@ vs. GPS: +0,8 km/h în medie).
 | m7 raw 0x41/1 | Biți de stare: 0x20 = frâna de mână **trasă** (161 parcat, 128 în mers, 03.10); 0x80 stă pus și ziua cu luminile pe AUTO, deci **nu** e faza scurtă | 0 / 32 / 128 / 160 / 161 |
 | m0 c68 | Marșarierul | [1, 1] = băgat; [9, 1] după ce iese; [0, 0] la pornire |
 | m7 c21, c27/c28, c11, c49 | Clima: treapta ventilatorului (0 = climatronic oprit), temperatura stânga/dreapta (pași de 0,5 °C), AC, AUTO (rămâne 1 și cu climatronicul oprit) | 3, 11, 1, 1 |
-| m7 raw 0x14 | Luminile aprinse (iluminarea bordului; folosit de la 1.1.42) | 0 ziua / 84 cu farurile |
+| m7 raw 0x14 | Luminile aprinse (iluminarea bordului; folosit în 1.1.42–1.1.58, scos: vine doar la schimbare, deci după o repornire a aplicației starea lipsea) | 0 ziua / 84 cu farurile |
 | m7 raw 0x41/2 | Cadrul de bord: turație (2 B), viteză (2 B), tensiune (2 B), temperatură (2 B), kilometraj (3 B), litri (1 B) | |
 | m7 c1019 | Cadrele brute ale decodorului (protocol Raise, antet 0x2E) | clima, radar, uși, volan, date de bord |
 | m0 c179 | Poziția GPS a unității | lon, lat, alt |
@@ -511,6 +511,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | 49 | 12.10 | Codul mutat în pachetul `ro.faicu.faikkitcar`; iconițele și autostart-ul Teyes rămân aceleași |
 | 50 | 13.10 | Semaforul imediat după ieșirea cu spatele din parcare nu mai apare „Parcat, motor pornit” |
 | 51 | 17.10 | Revizuire: cheia nouă a mașinii; harta Acasă nu mai rămâne cu traseul pe jumătate după ieșirea din aplicație; pornirea fără căderea de la demaror nu mai dă o tensiune „bună” falsă; coada de puncte rescrisă de 10× mai rar după zile fără internet; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
+| 59 | 21.10 | Luminile nu se mai citesc (nici în jurnal, nici în starea live): CAN-ul le trimite doar la schimbare, deci după o repornire a aplicației lipseau ore întregi. Intrările vechi din jurnal rămân |
 | 58 | 21.10 | Frâna de mână: după repornirea navigației, CAN-ul o raporta eliberată chiar trasă, până la prima mișcare a manetei (verificat pe 21.10). Acum valoarea „eliberată” se folosește doar după ce frâna s-a mișcat măcar o dată de la pornirea navigației; până atunci Panel-ul și site-ul n-o mai afișează |
 | 57 | 21.10 | Actualizarea: după confirmare, Android mai verifică aplicația ~25 s fără nimic pe ecran, iar o nouă apăsare pornea a doua instalare (21.10: instalată de două ori). Acum butonul arată „Se instalează...” și o nouă apăsare nu mai pornește alta |
 | 56 | 20.10 | Vocea locală (avertizarea de ușă, salutul fără internet) se eliberează la 30 s după ce termină, nu mai ține motorul de voce în memorie; punctele de traseu se trimit pe aceeași conexiune păstrată deschisă, ca starea live (în mers nu mai refac criptarea la ~10 s). Verificat în emulator: după kill -9 serviciul revine în ~5 s, iar după force-stop „Acces la notificări” îl repornește imediat |
@@ -530,6 +531,7 @@ Detaliile tehnice pentru dezvoltare (inclusiv pentru Claude) sunt în [`CLAUDE.m
 | următorul | 16.10 | Starea „Fără semnal” pe fila Acum |
 | următorul | 17.10 | Nu mai întreabă serverul în fundal după ieșirea din aplicație; harta live fără puncte dublate; actualizarea eșuată nu mai lasă sesiunea de instalare deschisă |
 | următorul | 19.10 | Jurnalul de service arată articolele lucrării pe grupe (cod, preț, subtotal) și locul |
+| 20 | 21.10 | Luminile nu mai apar pe ecranul Acum |
 | 19 | 20.10 | Drumurile neînregistrate apar în lista de călătorii |
 
 ### Serverul

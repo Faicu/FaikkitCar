@@ -38,7 +38,6 @@ export interface IncomingState {
     belt?: number;
     hb?: number;
     s41?: number;
-    l14?: number; // iluminarea bordului din cadrul 0x14 (0 = luminile stinse), 1.1.42+
     rev?: boolean;
     doors?: number[];
     parked?: boolean; // semnale de parcare în oprirea curentă (1.1.41+)
@@ -70,7 +69,6 @@ export interface LiveData {
   belt: boolean | null; // centura șoferului pusă
   handbrake: boolean | null; // trasă
   reverse: boolean | null;
-  lights: boolean | null; // faza scurtă (bitul 0x80 din octetul de stare 0x41/1)
   parked: boolean; // mașina a dat semne de parcare în oprirea curentă
   // Temperatura din habitaclu nu e trimisă de decodor (Raise), deci nu există aici.
 }
@@ -115,7 +113,6 @@ function details(p: IncomingState, state: CarState) {
       belt: null,
       handbrake: null,
       reverse: null,
-      lights: null,
       parked: false,
     };
   }
@@ -138,9 +135,6 @@ function details(p: IncomingState, state: CarState) {
     // trimite c103 după repornirea navigației până la prima schimbare (vine 1 și cu frâna trasă).
     handbrake: x.hb !== undefined ? x.hb === 0 : null,
     reverse: x.rev ?? null,
-    // Iluminarea bordului (0x14): 0 ziua, 84 cu farurile aprinse. Bitul 0x80 din 0x41/1 stă
-    // pus și ziua, cu luminile pe AUTO, deci nu e folosit.
-    lights: x.l14 === undefined ? null : x.l14 > 0,
     parked: x.parked === true && !oldHandbrake,
   };
 }

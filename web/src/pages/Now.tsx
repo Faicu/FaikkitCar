@@ -187,7 +187,6 @@ function CarDetails({ d }: { d: LiveData }) {
   if (d.belt === false && speed >= 5) warn.push("Centura șoferului nu e pusă");
   else if (d.belt === true) ok.push("centura pusă");
   if (d.reverse) warn.push("În marșarier");
-  if (d.lights != null) ok.push(d.lights ? "luminile aprinse" : "luminile stinse");
   if (warn.length === 0 && ok.length === 0) return null;
   return (
     <div className="space-y-1 text-sm">

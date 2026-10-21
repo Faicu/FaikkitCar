@@ -652,7 +652,6 @@ public class MainActivity extends Activity {
             else if (d.optBoolean("belt")) ok.add("centura pusă");
         }
         if (d.optBoolean("reverse")) warn.add("În marșarier");
-        if (!d.isNull("lights") && d.has("lights")) ok.add(d.optBoolean("lights") ? "luminile aprinse" : "luminile stinse");
         for (String w : warn) {
             TextView t = Ui.text(this, "⚠ " + w, 15, Ui.WARN, true);
             t.setPadding(0, dp(this, 8), 0, 0);

@@ -151,7 +151,8 @@ curent); c11 AC; c49 AUTO; c21 ventilator (0 =
 climatronic oprit); c27/c28 temperatura setată stânga/dreapta = 17,5 + v/2 °C (confirmat 12.10:
 11 = 23 °C, 7 = 21 °C; urmează și SYNC-ul, care n-are cod propriu); cadrul 0x21 = clima [5, 200,
 ventilator, stânga, dreapta, 0, sumă]; cadrul 0x14 al doilea octet = iluminarea bordului =
-luminile (0 / 76–84, confirmat 12.10 pe AUTO); cadrul 0x24 bitul 0x02 = frâna de mână trasă;
+luminile (0 / 76–84, confirmat 12.10 pe AUTO; vine doar la schimbare, deci după o repornire a
+aplicației starea rămânea necunoscută: scos din 1.1.59, la cererea utilizatorului); cadrul 0x24 bitul 0x02 = frâna de mână trasă;
 0x41/1 = biți de stare (0x20 părea frâna trasă, dar pe 21.10 a stat 0 cu frâna trasă, deci nu se mai
 folosește; 0x80 NU e faza scurtă); 0x41/2 = rpm, viteză,
 tensiune, temp., km (3 B), litri; m0 c68 = marșarierul ([1, 1] băgat); m0 c179 = GPS; m0 c77 =
@@ -221,7 +222,7 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
-- În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19.
+- În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.20 publicat pe 21.10).
 - 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
   după plecare (memorie), repornită de `KeepAliveListener` în ~7 s. Actualizarea: după confirmare
   instalarea mai durează ~25 s (Play Protect) fără nimic pe ecran; a doua apăsare făcea a doua

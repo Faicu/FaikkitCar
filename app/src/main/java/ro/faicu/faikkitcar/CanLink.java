@@ -45,7 +45,7 @@ final class CanLink {
     private volatile int rpm = -1, odo = -1, fuel = -1;
     // Valorile brute pentru starea live (serverul le traduce); -1 = necunoscut.
     private volatile int ac = -1, auto = -1, fan = -1, tempL = -1, tempR = -1, instant = -1,
-            belt = -1, handbrake = -1, status41 = -1, lights14 = -1;
+            belt = -1, handbrake = -1, status41 = -1;
     // Dupa repornirea navigatiei c103 vine 1 (eliberata) chiar cu frana trasa, pana la prima
     // schimbare (21.10: trasa, raportata eliberata 30 min, corecta dupa o eliberare + tragere).
     // Valoarea 1 conteaza doar dupa o schimbare vazuta in boot-ul curent (tinut minte peste
@@ -187,21 +187,13 @@ final class CanLink {
     /**
      * Cadru brut Raise (0x2E, comanda, lungime, date..., uneori precedat de 0xFF): 0x41 vine de
      * la bord doar cu contactul pus; 0x41/1 are octetul de stare (0x20 = frana de mana TRASA:
-     * 161 parcat, 128 in mers pe 03.10; 0x80 sta pus si ziua, deci nu e faza scurta). 0x14 =
-     * iluminarea bordului (0 ziua, 84 cu farurile aprinse): luminile.
+     * 161 parcat, 128 in mers pe 03.10; 0x80 sta pus si ziua, deci nu e faza scurta). Luminile
+     * (iluminarea bordului din 0x14) nu se mai citesc din 1.1.59: cadrul vine doar la schimbare,
+     * deci dupa o repornire a aplicatiei starea ramanea necunoscuta ore intregi.
      */
     private void onRaw(int[] ints) {
         int o = ints[0] == 0x2E ? 0 : ints.length > 1 && ints[0] == 0xFF && ints[1] == 0x2E ? 1 : -1;
         if (o < 0 || ints.length < o + 2) return;
-        if (ints[o + 1] == 0x14) {
-            if (ints.length <= o + 3) return;
-            int v = ints[o + 3];
-            // Pana confirmam pe drum (ex. intr-un pasaj, cu blocul pe AUTO): fiecare aprindere /
-            // stingere ajunge in jurnal.
-            if ((v > 0) != (lights14 > 0)) Prefs.log(c, "Lumini: " + (v > 0 ? "aprinse" : "stinse") + " (0x14=" + v + ")");
-            lights14 = v;
-            return;
-        }
         if (ints[o + 1] != 0x41) return;
         dashAt = SystemClock.elapsedRealtime();
         if (ints.length > o + 4 && ints[o + 3] == 1) {
@@ -340,8 +332,6 @@ final class CanLink {
         return handbrake() == 0;
     }
 
-    /** Iluminarea bordului din cadrul 0x14 (0 = luminile stinse); -1 daca nu stim. */
-    int lights() { return lights14; }
 
     /** Indicii (in DOORS) usilor deschise acum. */
     java.util.List<Integer> openDoors() {
