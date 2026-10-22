@@ -115,6 +115,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   altora, fără `dumpsys`), limită de timp și 256 KB, trimite `POST /api/car/cmd/<id>`. Eu rulez:
   `cd web && node --env-file=/opt/faikkitcar/.env scripts/car-cmd.ts [--timeout 30] '<cmd>'`
   (doar cât navigația e trează). Testat în emulator cu server de test pe 3999.
+- `BleProbe` (22.10): test pentru un adaptor OBD2 fără fire. Bluetooth-ul Teyes (telefonul) e un modul separat
+  (`sys.fyt.bluetooth_type=7`, `/dev/BT_serial`, `com.syu.bt`), invizibil pentru aplicații; procesorul are și
+  cipul lui (`wcnd`, stiva Android). Testul raportează adaptorul Android, scanează BLE 10 s și clasic 12 s
+  (îl pornește și îl oprește la loc dacă era oprit). Setări → Sistem → „Test Bluetooth (adaptor OBD)” sau
+  comanda internă `@bluetooth` prin `car-cmd.ts` (`--timeout 60`). Navigația are și SIM cu LTE.
 - `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
   `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie

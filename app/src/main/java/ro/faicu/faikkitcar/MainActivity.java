@@ -809,6 +809,13 @@ public class MainActivity extends Activity {
                     Prefs.setRemoteCmdEnabled(this, on);
                     Prefs.log(this, "Comenzi de la distanta: " + (on ? "pornite" : "oprite"));
                 });
+        Ui.addButton(this, sys, "Test Bluetooth (adaptor OBD)", Ui.SECONDARY, v -> {
+            toast("Caut dispozitive Bluetooth, ~25 s; rezultatul apare in Jurnal");
+            new Thread(() -> {
+                Prefs.log(this, BleProbe.run(this));
+                runOnUiThread(this::refresh);
+            }).start();
+        });
         Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
             WelcomeService.start(this);
             toast("Serviciul ruleaza");

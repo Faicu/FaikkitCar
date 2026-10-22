@@ -56,6 +56,12 @@ final class RemoteCmd {
         int code;
         String output;
         Process p = null;
+        if (cmd.trim().equals("@bluetooth")) {
+            // Comanda interna: testul Bluetooth cere API-ul Android, nu se poate din shell.
+            request("POST", BASE + "/" + id,
+                    new JSONObject().put("exitCode", 0).put("output", BleProbe.run(c)).toString());
+            return;
+        }
         try {
             p = new ProcessBuilder("sh", "-c", cmd).redirectErrorStream(true).start();
             p.getOutputStream().close();
