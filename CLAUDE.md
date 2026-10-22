@@ -120,6 +120,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   cipul lui (`wcnd`, stiva Android). Testul raportează adaptorul Android, scanează BLE 10 s și clasic 12 s
   (îl pornește și îl oprește la loc dacă era oprit). Setări → Sistem → „Test Bluetooth (adaptor OBD)” sau
   comanda internă `@bluetooth` prin `car-cmd.ts` (`--timeout 60`). Navigația are și SIM cu LTE.
+  Rezultat 22.10: Bluetooth-ul Android e pornit (nume „FAImobil”), BLE merge (a găsit `LEDCAR-01`, −43 dBm),
+  deci un adaptor OBD2 BLE se poate citi direct din aplicație; ales vLinker MC+.
 - `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
   `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie
