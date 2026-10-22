@@ -31,7 +31,7 @@ tmux `faikkitbox` și `faikkitcar`.
 - Node rulează direct `server/index.ts` (Hono, `node:sqlite`; tipurile TS se șterg, deci doar
   sintaxă ștergibilă și importuri cu `.ts`). Site: React + Vite + Tailwind în `web/src`, construit
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
-  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`), `npx tsc --noEmit`.
+  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
   utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
   APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
@@ -56,8 +56,9 @@ tmux `faikkitbox` și `faikkitcar`.
   reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
 - Pagini: Acum (`Now.tsx`: starea, călătoria în curs cu harta live `LiveTripMap.tsx`,
-  rezervorul, „Unde e mașina” când nu merge), Călătorii (`Trips.tsx` + `TripView.tsx`), Costuri
-  (`Costs.tsx`), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
+  rezervorul, „Unde e mașina” când nu merge, rândul „Navigația” din `live.unitHealth`), Călătorii
+  (`Trips.tsx` + `TripView.tsx`), Costuri (`Costs.tsx`), Navigație (`Unit.tsx` + `UnitCard.tsx`,
+  aceeași stare live), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
 - Test fără mașină (12.10): copie a bazei cu `VACUUM INTO` într-un dosar temporar, al doilea server
   cu `FAIKKITCAR_DATA_DIR=<dosar> PORT=3999`, punctele unui drum mutate în prezent și stări
   trimise la 5 s la `/api/car/state`; APK-uri de test cu `https://car.faicu.ro` înlocuit cu
@@ -118,6 +119,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
   `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie
   proprie). Serverul (`unit.ts`): ultima în memorie (`live.unit`), istoricul la 30 s în `unit_stat`.
+  `unitHealth` (pur, `unit.test.ts`) dă starea pe scurt; numele proceselor (`procLabel`) tot acolo.
   Site `UnitCard.tsx`, Panel `UnitCard.java`. Emulatorul (Android 10) nu lasă aplicația să citească
   `/proc/stat`, `loadavg`, `uptime`; pe Teyes merg (comenzile din 20–21.10).
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
@@ -219,7 +221,7 @@ Java fără AndroidX, minSdk 26 / target 34, aceeași cheie de semnare, osmdroid
 token Bearer (`Store`); `Api` = aceleași rute ca site-ul. File jos: Acum (long polling pe fir
 separat, `startLive`; harta live `MapBox.LiveRoute`, aceeași MapView mutată, `render()` așteaptă
 cât e atinsă), Călătorii (listă + detalii: `tripSummary`, harta, opririle, `tripSections`,
-combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din aplicație (`Updater`,
+combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Același aspect ca site-ul. Actualizare din aplicație (`Updater`,
 `/api/panel/apk`).
 
 ## Build și publicare
@@ -238,7 +240,7 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
-- 22.10: publicate FaikkitCar 1.1.62 și Panel 1.0.23 (performanța navigației).
+- 22.10: în mașină FaikkitCar 1.1.62 (performanța navigației, confirmată), pe telefon Panel 1.0.23; 1.0.24 publicat (fila Navigație).
 - În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.21 publicat pe 21.10: jurnalul pe categorii).
 - 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
   după plecare (memorie), repornită de `KeepAliveListener` în ~7 s. Actualizarea: după confirmare

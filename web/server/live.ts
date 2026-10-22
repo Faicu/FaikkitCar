@@ -9,7 +9,7 @@ import { readLastPosition, type Position } from "./car.ts";
 import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
 import { TRAFFIC_MAX_MS } from "./trip-math.ts";
-import { readUnit, type UnitStats } from "./unit.ts";
+import { readUnit, readUnitHealth, type UnitHealth, type UnitStats } from "./unit.ts";
 import { readTripPoints, readTrips, TRIP_GAP_MS, type Trip, type TripStop } from "./trips.ts";
 
 // „traffic” nu vine de la mașină: e „engine” în timpul unui drum (readLive), cu aceeași
@@ -85,6 +85,7 @@ export interface Live {
   // Câți km mai merge cu ce e în rezervor, la consumul mediu (real sau estimat).
   range: { km: number; lPer100: number; real: boolean } | null;
   unit: UnitStats | null; // performanța navigației, ultima măsurare (unit.ts)
+  unitHealth: UnitHealth | null; // pe scurt, pentru primul card; null = navigația doarme
 }
 
 // Fără stare nouă atâta timp, unitatea doarme sau s-a oprit: mașina e oprită.
@@ -274,7 +275,7 @@ export function readLive(): Live {
   if (tank && lPer100 !== null && lPer100 > 0) {
     range = { km: Math.round((tank.liters / lPer100) * 100), lPer100: Math.round(lPer100 * 10) / 10, real };
   }
-  return { state, since, at: row?.received_at ?? null, data, trip, position, tank, range, unit: readUnit() };
+  return { state, since, at: row?.received_at ?? null, data, trip, position, tank, range, unit: readUnit(), unitHealth: readUnitHealth() };
 }
 
 /** Consumul estimat pe ultimele 60 de zile, cât nu există încă unul real din rezervor. */

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Fuel, Navigation, Wind } from "lucide-react";
+import { AlertTriangle, ChevronRight, Cpu, Fuel, Navigation, Wind } from "lucide-react";
 
 import { CarPosition } from "../components/CarPosition";
 import { LiveTripMap } from "../components/LiveTripMap";
 import { Suggestions } from "../components/Suggestions";
 import { TripSummary } from "../components/TripView";
-import { UnitCard } from "../components/UnitCard";
 import { api, duration, num, relativeTime, shortDuration, Unauthorized, type Live } from "../api";
 
 /** „1 min 20 s” sub 10 minute (semafor), altfel „2 h”, „ieri”. */
@@ -27,8 +26,8 @@ const STATES: Record<Live["state"], { label: string; dot: string }> = {
 
 /**
  * Fila Acum, în ordinea importanței: starea (cu valorile de acum, clima într-un rând și
- * avertizările), călătoria în curs, rezervorul cu autonomia, unde e mașina și performanța
- * navigației.
+ * avertizările, starea navigației pe scurt), călătoria în curs, rezervorul cu autonomia și unde
+ * e mașina. Performanța navigației pe larg e în fila Navigație.
  */
 export function NowPage() {
   const live = useLive();
@@ -64,6 +63,7 @@ export function NowPage() {
         )}
         {d?.climate && <ClimateLine climate={d.climate} />}
         {d && <CarDetails d={d} />}
+        {live.unitHealth && <UnitHealthLine health={live.unitHealth} />}
       </div>
 
       {live.trip && (
@@ -98,8 +98,6 @@ export function NowPage() {
 
       {/* În timpul călătoriei, mașina se vede pe harta de mai sus. */}
       {!live.trip && <CarPosition position={live.position} />}
-
-      <UnitCard unit={live.unit} />
     </>
   );
 }
@@ -145,7 +143,7 @@ function ClimateLine({ climate }: { climate: NonNullable<LiveData["climate"]> })
  * Starea live prin „long polling”: fiecare cerere așteaptă la server o stare nouă de la
  * mașină, apoi se pune imediat următoarea. Cât fila e ascunsă, nu întreabă.
  */
-function useLive(): Live | null {
+export function useLive(): Live | null {
   const [live, setLive] = useState<Live | null>(null);
   useEffect(() => {
     const abort = new AbortController();
@@ -177,6 +175,32 @@ function useLive(): Live | null {
     return () => abort.abort();
   }, []);
   return live;
+}
+
+/** Navigația pe scurt („merge bine · 1,1 GB liberi…” sau problemele); duce la fila Navigație. */
+function UnitHealthLine({ health }: { health: NonNullable<Live["unitHealth"]> }) {
+  const ok = health.level === "ok";
+  const Icon = ok ? Cpu : AlertTriangle;
+  const color = ok ? "text-sky-400" : health.level === "bad" ? "text-red-400" : "text-amber-400";
+  return (
+    <a
+      href="/navigatie"
+      onClick={(e) => {
+        e.preventDefault();
+        history.pushState(null, "", "/navigatie");
+        dispatchEvent(new PopStateEvent("popstate"));
+        scrollTo(0, 0);
+      }}
+      className="flex items-start gap-1.5 text-sm"
+    >
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />
+      <span className={`min-w-0 flex-1 ${ok ? "" : `font-medium ${color}`}`}>
+        <span className="font-normal text-muted-foreground">Navigația </span>
+        {health.text}
+      </span>
+      <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+    </a>
+  );
 }
 
 /** Ușile, centura, frâna de mână, marșarierul, luminile: doar ce e de semnalat. */

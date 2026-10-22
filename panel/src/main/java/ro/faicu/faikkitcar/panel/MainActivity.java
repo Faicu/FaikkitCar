@@ -43,8 +43,8 @@ import static ro.faicu.faikkitcar.panel.Ui.dp;
  */
 public class MainActivity extends Activity {
     private static final long REFRESH_MS = 30_000;
-    private static final String[] TABS = {"Acum", "Călătorii", "Costuri", "Mai mult"};
-    private static final int NOW = 0, TRIPS = 1, COSTS = 2, MORE = 3;
+    private static final String[] TABS = {"Acum", "Călătorii", "Costuri", "Navigație", "Mai mult"};
+    private static final int NOW = 0, TRIPS = 1, COSTS = 2, UNIT = 3, MORE = 4;
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -191,18 +191,11 @@ public class MainActivity extends Activity {
         bar.setPadding(bp, bp, bp, bp);
         for (int i = 0; i < TABS.length; i++) {
             int index = i;
-            TextView t = Ui.text(this, TABS[i], 15, Ui.MUTED, true);
+            TextView t = Ui.text(this, TABS[i], 13, Ui.MUTED, true);
+            t.setSingleLine(true);
             t.setGravity(Gravity.CENTER);
             t.setPadding(0, dp(this, 10), 0, dp(this, 10));
-            t.setOnClickListener(v -> {
-                placeDraft = null; // o fila inchide editorul de loc
-                if (tab == index && index == TRIPS) selected = null; // a doua atingere: inapoi la lista
-                tab = index;
-                shown = "";
-                styleTabs();
-                render();
-                load(false);
-            });
+            t.setOnClickListener(v -> openTab(index));
             tabViews[i] = t;
             bar.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
         }
@@ -226,6 +219,17 @@ public class MainActivity extends Activity {
         load(true);
     }
 
+    private void openTab(int index) {
+        placeDraft = null; // o fila inchide editorul de loc
+        if (tab == index && index == TRIPS) selected = null; // a doua atingere: inapoi la lista
+        tab = index;
+        shown = "";
+        styleTabs();
+        render();
+        load(false);
+        scroll.post(() -> scroll.scrollTo(0, 0));
+    }
+
     private void styleTabs() {
         for (int i = 0; i < tabViews.length; i++) {
             boolean on = i == tab;
@@ -239,7 +243,7 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(tick);
         if (!resumed) return;
         if (force) shown = "";
-        if (tab == NOW) startLive();
+        if (tab == NOW || tab == UNIT) startLive(); // Navigatie: aceeasi stare live
         else stopLive();
         int forTab = tab;
         String cat = logCat;
@@ -256,6 +260,8 @@ public class MainActivity extends Activity {
                     });
                     ui.postDelayed(tick, 60_000);
                     return;
+                } else if (forTab == UNIT) {
+                    return; // totul vine din starea live (si istoricul, loadUnitHistory)
                 } else if (forTab == TRIPS) {
                     JSONArray t = api.trips();
                     JSONArray g = gapsOrEmpty();
@@ -402,7 +408,8 @@ public class MainActivity extends Activity {
         }
         String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|"
                 + (newerApk != null) + "|"
-                + (tab == NOW ? live + "|" + suggestions + "|" + unitHistoryAt
+                + (tab == NOW ? live + "|" + suggestions
+                        : tab == UNIT ? live + "|" + unitHistoryAt
                         : tab == TRIPS ? trips + "|" + pointsFor
                         : tab == COSTS ? stats + "|" + fuel
                         : car + "|" + places + "|" + service + "|" + log);
@@ -414,6 +421,7 @@ public class MainActivity extends Activity {
         if (tab == NOW) renderNow();
         else if (tab == TRIPS) renderTrips();
         else if (tab == COSTS) renderCosts();
+        else if (tab == UNIT) renderUnit();
         else renderMore();
         scroll.post(() -> scroll.scrollTo(0, y));
     }
@@ -472,8 +480,8 @@ public class MainActivity extends Activity {
 
     /**
      * Fila Acum, in ordinea importantei: starea (cu valorile de acum, clima intr-un rand si
-     * avertizarile), calatoria in curs, rezervorul cu autonomia, unde e masina si performanta
-     * navigatiei.
+     * avertizarile, navigatia pe scurt), calatoria in curs, rezervorul cu autonomia si unde e
+     * masina. Performanta navigatiei pe larg e in fila Navigatie.
      */
     private void renderNow() {
         renderUpdate();
@@ -530,6 +538,14 @@ public class MainActivity extends Activity {
             }
             renderCarDetails(card, d);
         }
+        JSONObject health = live.optJSONObject("unitHealth");
+        if (health != null) {
+            // Navigatia pe scurt; atinsa, duce la fila Navigatie.
+            TextView line = UnitCard.healthLine(this, health, true);
+            line.setPadding(0, dp(this, 10), 0, 0);
+            line.setOnClickListener(v -> openTab(UNIT));
+            card.addView(line);
+        }
 
         JSONObject trip = live.optJSONObject("trip");
         if (trip != null) {
@@ -572,11 +588,21 @@ public class MainActivity extends Activity {
             addMap(content, MapBox.position(this, lat, lon), 220);
         }
 
-        JSONObject unit = live.optJSONObject("unit");
-        if (unit != null) {
-            UnitCard.render(this, content, unit, unitHistory);
-            loadUnitHistory();
+    }
+
+    /** Fila Navigatie: performanta navigatiei Teyes, din aceeasi stare live ca Acum. */
+    private void renderUnit() {
+        if (live == null) {
+            Ui.hint(this, content, "Se încarcă...");
+            return;
         }
+        JSONObject unit = live.optJSONObject("unit");
+        if (unit == null) {
+            Ui.hint(this, Ui.card(this, content), "Nicio măsurare încă: apare de la FaikkitCar 1.1.62, cât navigația e trează.");
+            return;
+        }
+        UnitCard.render(this, content, unit, live.optJSONObject("unitHealth"), unitHistory);
+        loadUnitHistory();
     }
 
     // Istoricul performantei navigatiei (graficele de pe Acum), cerut la cel mult un minut.

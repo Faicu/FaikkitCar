@@ -1,41 +1,18 @@
 import { useEffect, useState } from "react";
-import { Cpu } from "lucide-react";
+import { AlertTriangle, Cpu } from "lucide-react";
 
-import { api, duration, num, relativeTime, type UnitPoint, type UnitStats } from "../api";
+import { api, duration, num, relativeTime, type Live, type UnitPoint, type UnitStats } from "../api";
 
 // Fără măsurare nouă atâta timp, navigația doarme (sau aplicația nu rulează).
 const STALE_MS = 90_000;
 // Între două măsurări mai departe de atât, linia se întrerupe (somn, aplicația oprită).
 const GAP_MS = 120_000;
 
-/** Nume pe înțeles pentru procesele care apar des în topul navigației. */
-const NAMES: Array<[RegExp, string]> = [
-  [/^com\.mapgoo\.diruite/, "FaikkitCar"],
-  [/^com\.waze/, "Waze"],
-  [/^com\.google\.android\.apps\.youtube\.music/, "YouTube Music"],
-  [/^com\.google\.android\.gms/, "Servicii Google"],
-  [/^com\.syu\.ms/, "Teyes (CAN, sistem)"],
-  [/^com\.syu\.rearcamera/, "Camera spate"],
-  [/^com\.lsec\.gesture/, "Gesturi Teyes"],
-  [/^com\.android\.launcher/, "Ecranul principal"],
-  [/^com\.android\.systemui/, "Bara de sistem"],
-  [/^com\.android\.bluetooth/, "Bluetooth"],
-  [/^system_server$/, "Android (system_server)"],
-  [/^surfaceflinger$/, "Afișajul (surfaceflinger)"],
-  [/^com\.yf\.teyesspotify/, "Spotify Teyes"],
-  [/^com\.txznet/, "TXZ (asistent vocal)"],
-];
-
-export function procLabel(name: string): string {
-  for (const [re, label] of NAMES) if (re.test(name)) return label;
-  return name;
-}
-
 /**
  * Performanța navigației (Teyes), din aceeași stare live: procesorul, memoria, temperatura,
  * cu graficele pe ultima oră, și procesele care consumă cel mai mult.
  */
-export function UnitCard({ unit }: { unit: UnitStats | null }) {
+export function UnitCard({ unit, health }: { unit: UnitStats | null; health: Live["unitHealth"] }) {
   const history = useUnitHistory(unit?.at ?? null);
   if (!unit) return null;
   const awake = Date.now() - new Date(unit.at).getTime() < STALE_MS;
@@ -57,6 +34,12 @@ export function UnitCard({ unit }: { unit: UnitStats | null }) {
           {awake ? "trează · acum" : `doarme · ultima măsurare ${relativeTime(unit.at)}`}
         </p>
       </div>
+      {health && health.level !== "ok" && (
+        <p className={`flex items-center gap-1.5 text-sm font-medium ${health.level === "bad" ? "text-red-400" : "text-amber-400"}`}>
+          <AlertTriangle className="h-4 w-4 shrink-0" /> {health.text}
+        </p>
+      )}
+      {health?.level === "ok" && <p className="text-sm">{health.text[0].toUpperCase() + health.text.slice(1)}</p>}
       <div className="grid grid-cols-3 gap-2">
         <Spark
           label="procesor"
@@ -92,7 +75,7 @@ export function UnitCard({ unit }: { unit: UnitStats | null }) {
             {procs.map((p, i) => (
               <tr key={i} className="border-t border-white/5">
                 <td className="max-w-0 truncate py-1 pr-2" title={p.name}>
-                  {procLabel(p.name)}
+                  {p.label}
                 </td>
                 <td className="py-1 text-right tabular-nums">{p.cpu !== null ? `${num(p.cpu, 1)}%` : "—"}</td>
                 <td className="py-1 text-right tabular-nums">{p.mb} MB</td>

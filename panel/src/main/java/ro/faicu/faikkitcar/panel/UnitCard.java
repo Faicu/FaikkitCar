@@ -27,31 +27,40 @@ final class UnitCard {
     // Intre doua masurari mai departe de atat, linia se intrerupe (somn).
     private static final long GAP_MS = 120_000;
 
-    private static final String[][] NAMES = {
-            {"com.mapgoo.diruite", "FaikkitCar"},
-            {"com.waze", "Waze"},
-            {"com.google.android.apps.youtube.music", "YouTube Music"},
-            {"com.google.android.gms", "Servicii Google"},
-            {"com.syu.ms", "Teyes (CAN, sistem)"},
-            {"com.syu.rearcamera", "Camera spate"},
-            {"com.lsec.gesture", "Gesturi Teyes"},
-            {"com.android.launcher", "Ecranul principal"},
-            {"com.android.systemui", "Bara de sistem"},
-            {"com.android.bluetooth", "Bluetooth"},
-            {"com.yf.teyesspotify", "Spotify Teyes"},
-            {"com.txznet", "TXZ (asistent vocal)"},
-    };
-
     private UnitCard() {}
 
-    static String procLabel(String n) {
-        if ("system_server".equals(n)) return "Android (system_server)";
-        if ("surfaceflinger".equals(n)) return "Afișajul (surfaceflinger)";
-        for (String[] p : NAMES) if (n.startsWith(p[0])) return p[1];
-        return n;
+    /**
+     * Navigatia pe scurt (serverul o calculeaza: „merge bine · 1,1 GB liberi…” sau problemele).
+     * `prefix` = cu „Navigatia” in fata si „›” la capat (primul card de pe Acum).
+     */
+    static TextView healthLine(Context c, JSONObject h, boolean prefix) {
+        String level = h.optString("level");
+        String text = h.optString("text");
+        boolean ok = "ok".equals(level);
+        int color = ok ? Ui.TEXT : "bad".equals(level) ? Ui.BAD : Ui.WARN;
+        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(ok ? "▣ " : "⚠ ");
+        sb.setSpan(new android.text.style.ForegroundColorSpan(ok ? Ui.ACCENT : color), 0, sb.length(), 0);
+        if (prefix) {
+            int from = sb.length();
+            sb.append("Navigația  ");
+            sb.setSpan(new android.text.style.ForegroundColorSpan(Ui.MUTED), from, sb.length(), 0);
+        } else if (!text.isEmpty()) {
+            text = Character.toUpperCase(text.charAt(0)) + text.substring(1);
+        }
+        int start = sb.length();
+        sb.append(text);
+        if (!ok) sb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, sb.length(), 0);
+        if (prefix) {
+            int from = sb.length();
+            sb.append("\u00A0\u00A0›"); // lipit de text, nu singur pe un rand
+            sb.setSpan(new android.text.style.ForegroundColorSpan(Ui.MUTED), from, sb.length(), 0);
+        }
+        TextView t = Ui.text(c, "", 14, color, false);
+        t.setText(sb);
+        return t;
     }
 
-    static void render(Context c, LinearLayout content, JSONObject u, JSONArray history) {
+    static void render(Context c, LinearLayout content, JSONObject u, JSONObject health, JSONArray history) {
         String at = u.optString("at");
         boolean awake = System.currentTimeMillis() - Fmt.millis(at) < STALE_MS;
         LinearLayout card = Ui.card(c, content);
@@ -59,6 +68,11 @@ final class UnitCard {
         head.addView(Ui.text(c, "Navigația", 17, awake ? Ui.TEXT : Ui.MUTED, true), new LinearLayout.LayoutParams(0, -2, 1));
         head.addView(Ui.text(c, awake ? "trează · acum" : "doarme · ultima măsurare " + Fmt.ago(at), 12, Ui.MUTED, false));
         card.addView(head);
+        if (health != null) {
+            TextView h = healthLine(c, health, false);
+            h.setPadding(0, dp(c, 8), 0, 0);
+            card.addView(h);
+        }
 
         LinearLayout row = Ui.kpiRow(c,
                 spark(c, u, history, "cpu", "%", "procesor", 100),
@@ -96,7 +110,7 @@ final class UnitCard {
         });
         card.addView(procRow(c, "Procese (ultimele ~30 s)", "procesor", "memorie", true));
         for (JSONObject p : list) {
-            card.addView(procRow(c, procLabel(p.optString("name")),
+            card.addView(procRow(c, p.optString("label", p.optString("name")),
                     p.isNull("cpu") ? "—" : Fmt.num(p.optDouble("cpu"), 1) + "%", p.optInt("mb") + " MB", false));
         }
     }

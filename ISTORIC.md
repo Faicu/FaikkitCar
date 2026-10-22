@@ -20,6 +20,7 @@ Starea de acum e în [`README.md`](README.md).
 | 17.10 | Cheia mașinii ajunsese în APK-urile publice: repo-ul a devenit privat, cheile separate (`CAR_TOKEN`, `CI_TOKEN`) |
 | 19.10 | Prima revizie în jurnalul de service (2.979 lei, cu devizul și factura) |
 | 20.10 | Procesul a murit de două ori exact la intrarea în somn (09:26, 11:16) și o dată la service; autostart-ul a ratat la plecare: 3 km neînregistrați (Service → Spălătorie). Cauza probabilă: memoria (swap plin, ~400–550 MB disponibili). Au urmat alarma de rezervă (1.1.52), linia „Teyes” (1.1.53) și „Acces la notificări” (1.1.55). Plinul de 46,18 L a urcat indicatorul doar cu 40,5 L (11,5 → 52): indicatorul nu e liniar la capete, deci consumul real se ia din plinuri |
+| 22.10 | Performanța navigației (1.1.62) merge prin somn și repornire. Radio-ul Teyes (`sqlfmserver`) rămăsese pornit după închidere și ținea ocupat un nucleu întreg (12,5% din procesor); a dispărut abia la repornire. După repornire: ~1,0–1,1 GB liberi cu Waze și YouTube Music, swap ~27%, ~48 °C, procesor ~25% |
 | 21.10 | Aplicația a trecut prin somnul de 18 h; omorâtă la 2,5 min după plecare, „Acces la notificări” a repornit-o în ~7 s. Tapet static, dezactivate Google Maps, YouTube, Bunăstare, Chrome, Android Auto → ~1,1–1,7 GB disponibili. Frâna de mână raportată eliberată după repornirea navigației, până la prima mișcare (1.1.58); bitul 0x20 din 0x41/1 a stat 0 cu frâna trasă (nu se mai folosește). Actualizarea instalată de două ori la o a doua apăsare (1.1.57) |
 
 ---
@@ -107,6 +108,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Build | Data | Ce a adus |
 |---|---|---|
+| 24 | 22.10 | Fila Navigație (performanța pe larg); pe Acum doar un rând cu starea pe scurt, care duce acolo |
 | 23 | 22.10 | Cardul „Navigația” pe fila Acum (grafice pe ultima oră, procesele); reparată căderea pe Android sub 13 (`URLEncoder.encode` cu `Charset`) |
 | 21 | 21.10 | Jurnalul pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță (cu rezultatul fiecăreia), Tot |
 | 20 | 21.10 | Luminile nu mai apar pe ecranul Acum |
@@ -124,6 +126,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Data | Ce s-a schimbat |
 |---|---|
+| 22.10 | Starea pe scurt a navigației (`unitHealth`, `live.unitHealth`, testată în `unit.test.ts`), numele proceselor pe server (`label`); fila Navigație pe site |
 | 22.10 | Performanța navigației (`unit.ts`, tabela `unit_stat`, 90 de zile; `live.unit`, `/api/unit/history`); cardul „Navigația” pe Acum |
 | 21.10 | Drumul la serviciu pe ture (`commute.ts`, `stats.commute`): ora de plecare pentru 15 min rezervă și următoarea tură; călătoriile au `departAt`/`arriveAt`; „Drumurile tale” de la 10 deplasări, fără ora cea mai bună, durata fără staționări |
 | 21.10 | Frâna de mână doar din c103 (fără bitul din 0x41); luminile scoase; jurnalul pe categorii (`log.cat`, `log-category.ts`, `/api/log?cat=`), comenzile la distanță cu jurnal separat |

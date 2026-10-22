@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { QueryCache, QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Activity, LogOut, Menu, Route, Wallet } from "lucide-react";
+import { Activity, Cpu, LogOut, Menu, Route, Wallet } from "lucide-react";
 import { Toaster } from "sonner";
 
 import { api, Unauthorized } from "./api";
@@ -8,6 +8,7 @@ import { CostsPage } from "./pages/Costs";
 import { MorePage } from "./pages/More";
 import { NowPage } from "./pages/Now";
 import { TripsPage } from "./pages/Trips";
+import { UnitPage } from "./pages/Unit";
 
 // La 401 (sesiune expirată) revenim la ecranul de login.
 let onUnauthorized = () => {};
@@ -33,6 +34,7 @@ const TABS = [
   { path: "/", label: "Acum", icon: Activity, page: NowPage },
   { path: "/calatorii", label: "Călătorii", icon: Route, page: TripsPage },
   { path: "/costuri", label: "Costuri", icon: Wallet, page: CostsPage },
+  { path: "/navigatie", label: "Navigație", icon: Cpu, page: UnitPage },
   { path: "/mai-mult", label: "Mai mult", icon: Menu, page: MorePage },
 ] as const;
 

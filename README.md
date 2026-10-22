@@ -11,7 +11,7 @@
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.62 (`build-62`) · FaikkitCar Panel 1.0.23 (`panel-23`) |
+| **Versiuni** | FaikkitCar 1.1.62 (`build-62`) · FaikkitCar Panel 1.0.24 (`panel-24`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
@@ -40,11 +40,12 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.62** și Panel 1.0.23 („Actualizează acum”, o singură apăsare,
+1. **Instalează Panel 1.0.24** („Actualizează acum”, o singură apăsare,
    apoi confirmarea; ~30 s până pornește versiunea nouă).
-2. **Performanța navigației** (nou): pe fila Acum, cardul „Navigația” arată procesorul,
-   memoria, temperatura și procesele care consumă; de văzut pe drum dacă memoria liberă scade
-   înainte ca aplicația să fie omorâtă.
+2. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
+   regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
+   scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
+   închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
 3. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
@@ -100,7 +101,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
 
-La fel pe site și în Panel, în patru file: **Acum · Călătorii · Costuri · Mai mult**.
+La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri · Navigație · Mai mult**.
 
 | Funcție | Stare | Detalii |
 |---|---|---|
@@ -110,7 +111,8 @@ La fel pe site și în Panel, în patru file: **Acum · Călătorii · Costuri �
 | Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși, centură, frâna de mână, marșarier |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu real |
-| Acum: performanța navigației | 🧪 | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări |
+| Acum: navigația pe scurt | ✅ | Un rând în primul card: „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele (memorie sub 600 / 300 MB, swap plin, peste 70 / 80 °C, procesorul peste 75% în medie pe 3 min, un proces care ține ocupat un nucleu, sub 1 GB spațiu); atins, duce la fila Navigație |
+| Navigație | ✅ | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări (confirmat pe navigație pe 22.10, prin somn și repornire) |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
