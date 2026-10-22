@@ -11,11 +11,11 @@
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.61 (`build-61`) · FaikkitCar Panel 1.0.21 (`panel-21`) |
+| **Versiuni** | FaikkitCar 1.1.62 (`build-62`) · FaikkitCar Panel 1.0.23 (`panel-23`) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
-| **Actualizat** | 21.10.2026 |
+| **Actualizat** | 22.10.2026 |
 
 Istoricul (versiuni, constatări datate, migrarea din FaikkitBox) e în [`ISTORIC.md`](ISTORIC.md);
 detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
@@ -40,14 +40,17 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.61** și Panel 1.0.21 („Actualizează acum”, o singură apăsare,
+1. **Instalează FaikkitCar 1.1.62** și Panel 1.0.23 („Actualizează acum”, o singură apăsare,
    apoi confirmarea; ~30 s până pornește versiunea nouă).
-2. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
+2. **Performanța navigației** (nou): pe fila Acum, cardul „Navigația” arată procesorul,
+   memoria, temperatura și procesele care consumă; de văzut pe drum dacă memoria liberă scade
+   înainte ca aplicația să fie omorâtă.
+3. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
-3. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
+4. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
    litru (după reducere). Plinurile (până se oprește pistolul) dau consumul exact.
-4. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
+5. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
    adaptor OBD2 pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
 
 ---
@@ -107,6 +110,7 @@ La fel pe site și în Panel, în patru file: **Acum · Călătorii · Costuri �
 | Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși, centură, frâna de mână, marșarier |
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu real |
+| Acum: performanța navigației | 🧪 | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
@@ -293,7 +297,7 @@ Rulează pe același server cu FaikkitBox, dar complet separat.
 | `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → mașina) |
 | `POST /api/panel/apk`, `GET /api/panel/apk[/download]` | APK-ul Panel (CI → telefon, cu login) |
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
-| `/api/live`, `/api/live/route`, `/api/stats`, `/api/trips…`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/places`, `/api/geocode`, `/api/suggestions`, `/api/service`, `/api/log`, `/api/cmd` | Datele pentru site și Panel (cu login) |
+| `/api/live`, `/api/live/route`, `/api/unit/history`, `/api/stats`, `/api/trips…`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/places`, `/api/geocode`, `/api/suggestions`, `/api/service`, `/api/log`, `/api/cmd` | Datele pentru site și Panel (cu login) |
 
 Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI-ului
 (`CI_TOKEN`); restul, login-ul.
@@ -368,11 +372,12 @@ Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 | `Uploader`, `LiveState`, `VwStatus`, `Updater` | Trimiterea la server (jurnal, puncte, starea live), starea de pe server, actualizarea |
 | `RouteMap` | Harta de pe Acasă (osmdroid) |
 | `RemoteCmd`, `TeyesCheck` | Comenzile de la distanță, verificarea listelor Teyes |
+| `UnitStats` | Performanța navigației (procesor, memorie, temperatură, procese), trimisă cu starea live |
 | `Prefs`, `CrashLog` | Setări și jurnal, căderile |
 | `MainActivity`, `Ui` | Interfața |
 
 Panel (`panel/src/main/java/ro/faicu/faikkitcar/panel/`): `MainActivity` (ecranele), `Api`,
-`Store`, `Fmt`, `MapBox`, `ChartView`, `Updater`, `Ui`.
+`Store`, `Fmt`, `MapBox`, `ChartView`, `UnitCard`, `Updater`, `Ui`.
 
 ---
 

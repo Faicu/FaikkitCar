@@ -65,6 +65,11 @@ final class Api {
         return new JSONArray(call("GET", "/api/trips", null, true));
     }
 
+    /** Performanta navigatiei pe ultimele `min` minute: [{at, cpu, memAvail, swapFree, temp}]. */
+    JSONArray unitHistory(int min) throws Exception {
+        return new JSONArray(call("GET", "/api/unit/history?min=" + min, null, true));
+    }
+
     JSONArray gaps() throws Exception {
         return new JSONArray(call("GET", "/api/trips/gaps", null, true));
     }
@@ -230,8 +235,13 @@ final class Api {
         return conn;
     }
 
+    // encode(String, Charset) exista abia din Android 13 (API 33); minSdk e 26.
     private static String enc(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8);
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private String call(String method, String path, JSONObject body, boolean auth) throws Exception {

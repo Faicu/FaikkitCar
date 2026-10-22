@@ -63,6 +63,7 @@ final class LiveState {
     private static boolean post(JSONObject state) {
         HttpURLConnection conn = null;
         try {
+            state.put("u", UnitStats.sample()); // performanta navigatiei (Panel, site)
             byte[] body = state.put("version", BuildConfig.VERSION_NAME).toString().getBytes(StandardCharsets.UTF_8);
             conn = (HttpURLConnection) new URL(URL_STATE).openConnection();
             conn.setConnectTimeout(8_000);

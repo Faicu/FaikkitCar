@@ -5,6 +5,7 @@ import { CarPosition } from "../components/CarPosition";
 import { LiveTripMap } from "../components/LiveTripMap";
 import { Suggestions } from "../components/Suggestions";
 import { TripSummary } from "../components/TripView";
+import { UnitCard } from "../components/UnitCard";
 import { api, duration, num, relativeTime, shortDuration, Unauthorized, type Live } from "../api";
 
 /** „1 min 20 s” sub 10 minute (semafor), altfel „2 h”, „ieri”. */
@@ -26,7 +27,8 @@ const STATES: Record<Live["state"], { label: string; dot: string }> = {
 
 /**
  * Fila Acum, în ordinea importanței: starea (cu valorile de acum, clima într-un rând și
- * avertizările), călătoria în curs, rezervorul cu autonomia și unde e mașina.
+ * avertizările), călătoria în curs, rezervorul cu autonomia, unde e mașina și performanța
+ * navigației.
  */
 export function NowPage() {
   const live = useLive();
@@ -96,6 +98,8 @@ export function NowPage() {
 
       {/* În timpul călătoriei, mașina se vede pe harta de mai sus. */}
       {!live.trip && <CarPosition position={live.position} />}
+
+      <UnitCard unit={live.unit} />
     </>
   );
 }

@@ -179,6 +179,12 @@ export function getDb(): DatabaseSync {
       exit_code INTEGER,
       output TEXT
     );
+
+    -- Performanța navigației (unit.ts), la cel mult 30 s cât e trează; păstrată 90 de zile.
+    CREATE TABLE IF NOT EXISTS unit_stat (
+      at TEXT PRIMARY KEY,
+      data TEXT NOT NULL
+    );
   `);
   // Migrări pentru coloanele adăugate după crearea tabelelor.
   const cols = (table: string) =>

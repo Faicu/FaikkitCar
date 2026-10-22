@@ -60,6 +60,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Build | Data | Ce a adus |
 |---|---|---|
+| 62 | 22.10 | Performanța navigației trimisă cu starea live (`UnitStats`): procesorul, memoria, swap-ul, temperatura, memoria și adj-ul aplicației, spațiul liber, procesele care consumă |
 | 61 | 21.10 | Jurnal mai curat: fără temperaturile unității, tensiunea la demaror, litrii din rezervor și pornirea / oprirea GPS-ului (toate sunt în punctele de traseu); volumul apare în linia „Redare pornita”, fără „Redare terminata” |
 | 60 | 21.10 | Comenzile la distanță nu mai intră în jurnal: sunt în jurnalul separat „Comenzi la distanță” (site și Panel), cu rezultatul |
 | 59 | 21.10 | Luminile nu se mai citesc (nici în jurnal, nici în starea live): CAN-ul le trimite doar la schimbare, deci după o repornire a aplicației lipseau ore întregi. Intrările vechi din jurnal rămân |
@@ -106,6 +107,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Build | Data | Ce a adus |
 |---|---|---|
+| 23 | 22.10 | Cardul „Navigația” pe fila Acum (grafice pe ultima oră, procesele); reparată căderea pe Android sub 13 (`URLEncoder.encode` cu `Charset`) |
 | 21 | 21.10 | Jurnalul pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță (cu rezultatul fiecăreia), Tot |
 | 20 | 21.10 | Luminile nu mai apar pe ecranul Acum |
 | — | 21.10 | „La serviciu”: următoarea tură și ora de plecare; „Drumurile tale” doar de la 10 deplasări, fără „cea mai bună oră” |
@@ -122,6 +124,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Data | Ce s-a schimbat |
 |---|---|
+| 22.10 | Performanța navigației (`unit.ts`, tabela `unit_stat`, 90 de zile; `live.unit`, `/api/unit/history`); cardul „Navigația” pe Acum |
 | 21.10 | Drumul la serviciu pe ture (`commute.ts`, `stats.commute`): ora de plecare pentru 15 min rezervă și următoarea tură; călătoriile au `departAt`/`arriveAt`; „Drumurile tale” de la 10 deplasări, fără ora cea mai bună, durata fără staționări |
 | 21.10 | Frâna de mână doar din c103 (fără bitul din 0x41); luminile scoase; jurnalul pe categorii (`log.cat`, `log-category.ts`, `/api/log?cat=`), comenzile la distanță cu jurnal separat |
 | 20.10 | Comenzile pentru navigație (`car_cmd`, `/api/cmd`, `/api/car/cmd`; `scripts/car-cmd.ts`) |

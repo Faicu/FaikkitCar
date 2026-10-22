@@ -387,6 +387,7 @@ public class MainActivity extends Activity {
     private void render() {
         if (content == null) return;
         if (liveMap != null && liveMap.touching) return; // reluat la ridicarea degetului
+        if (UnitCard.Spark.touching) return; // idem, graficele navigatiei
         if (placeDraft != null) {
             // Editorul de loc se construieste o singura data (nu la fiecare reimprospatare),
             // ca textul scris si pinul sa nu se piarda.
@@ -401,7 +402,7 @@ public class MainActivity extends Activity {
         }
         String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|"
                 + (newerApk != null) + "|"
-                + (tab == NOW ? live + "|" + suggestions
+                + (tab == NOW ? live + "|" + suggestions + "|" + unitHistoryAt
                         : tab == TRIPS ? trips + "|" + pointsFor
                         : tab == COSTS ? stats + "|" + fuel
                         : car + "|" + places + "|" + service + "|" + log);
@@ -471,7 +472,8 @@ public class MainActivity extends Activity {
 
     /**
      * Fila Acum, in ordinea importantei: starea (cu valorile de acum, clima intr-un rand si
-     * avertizarile), calatoria in curs, rezervorul cu autonomia si unde e masina.
+     * avertizarile), calatoria in curs, rezervorul cu autonomia, unde e masina si performanta
+     * navigatiei.
      */
     private void renderNow() {
         renderUpdate();
@@ -569,6 +571,36 @@ public class MainActivity extends Activity {
             pc.addView(prow);
             addMap(content, MapBox.position(this, lat, lon), 220);
         }
+
+        JSONObject unit = live.optJSONObject("unit");
+        if (unit != null) {
+            UnitCard.render(this, content, unit, unitHistory);
+            loadUnitHistory();
+        }
+    }
+
+    // Istoricul performantei navigatiei (graficele de pe Acum), cerut la cel mult un minut.
+    private JSONArray unitHistory;
+    private long unitHistoryAt;
+    private boolean unitHistoryBusy;
+
+    private void loadUnitHistory() {
+        if (unitHistoryBusy || System.currentTimeMillis() - unitHistoryAt < 60_000) return;
+        unitHistoryBusy = true;
+        io.execute(() -> {
+            JSONArray h = null;
+            try {
+                h = api.unitHistory(60);
+            } catch (Exception ignored) {
+            }
+            JSONArray got = h;
+            ui.post(() -> {
+                unitHistoryBusy = false;
+                unitHistoryAt = System.currentTimeMillis();
+                if (got != null) unitHistory = got;
+                render();
+            });
+        });
     }
 
     /** Harta calatoriei in curs (aceeasi MapView, mutata in pagina noua) si „Urmareste masina”. */

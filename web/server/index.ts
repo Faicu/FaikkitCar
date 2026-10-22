@@ -59,6 +59,7 @@ import {
 import { readStats } from "./stats.ts";
 import { dismissSuggestion, readSuggestions } from "./suggestions.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
+import { readUnitHistory, saveUnit } from "./unit.ts";
 
 const app = new Hono();
 
@@ -105,7 +106,8 @@ app.post("/api/car/trip", async (c) => {
 // Starea de acum (contact, turație, viteză...), la ~15 s cât unitatea e trează.
 app.post("/api/car/state", async (c) => {
   requireCarToken(c);
-  const p = await json<IncomingState>(c, 4096);
+  const p = await json<IncomingState & { u?: unknown }>(c, 16 * 1024);
+  saveUnit(p.u);
   // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
   return c.json({ ok: true, state: saveState(p), cmd: pendingCmdCount() });
 });
@@ -310,6 +312,13 @@ app.get("/api/live", async (c) => {
   const after = c.req.query("after");
   if (after) await waitForState(after, 25_000);
   return c.json(readLive());
+});
+
+// Performanța navigației pe ultimele ?min= minute (implicit 60, cel mult o zi): graficele.
+app.get("/api/unit/history", (c) => {
+  requireUser(c);
+  const min = Math.min(1440, Math.max(5, Number(c.req.query("min")) || 60));
+  return c.json(readUnitHistory(min));
 });
 
 // Traseul călătoriei în curs (harta de pe Acum); cu ?after doar punctele noi.

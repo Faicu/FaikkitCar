@@ -12,6 +12,7 @@ import type { Commute } from "../server/commute.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
 import type { Suggestion } from "../server/suggestions.ts";
 import type { Gap, Trip, TripPoint } from "../server/trips.ts";
+import type { UnitPoint, UnitStats } from "../server/unit.ts";
 
 export class Unauthorized extends Error {}
 
@@ -34,6 +35,7 @@ export const api = {
   login: (user: string, pass: string) => call<{ ok: true }>("POST", "/api/login", { user, pass }),
   logout: () => call<{ ok: true }>("POST", "/api/logout"),
   // Cu `after`, serverul răspunde abia la o stare nouă de la mașină (cel mult 25 s).
+  unitHistory: (min = 60) => call<UnitPoint[]>("GET", `/api/unit/history?min=${min}`),
   live: (after?: string | null, signal?: AbortSignal) =>
     call<Live>("GET", after ? `/api/live?after=${encodeURIComponent(after)}` : "/api/live", undefined, signal),
   liveRoute: (after?: string | null, signal?: AbortSignal) =>
@@ -109,7 +111,7 @@ export type {
   RouteStats,
   Commute,
   ServiceEntry, ServiceItem,
-  Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint };
+  Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint, UnitPoint, UnitStats };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {

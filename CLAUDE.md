@@ -40,7 +40,7 @@ tmux `faikkitbox` și `faikkitcar`.
 - `/opt/faikkitcar/data`: `faikkitcar.db`, `apk/`, `tts/` (cache voce), `piper/` (binar + model
   `ro_RO-mihai-medium`, nu în git), `service/<id>/<fileId>` (bonuri).
   Tabele: `log`, `trip_point`, `car_state` (un rând), `reminder`, `refuel`, `place`, `trip_join`,
-  `service`, `service_file`, `dismissed`. Coloane noi se adaugă prin migrare în `db.ts`.
+  `service`, `service_file`, `dismissed`, `car_cmd`, `unit_stat` (performanța navigației, 90 de zile). Coloane noi se adaugă prin migrare în `db.ts`.
   Jurnalul nu se șterge niciodată.
 - API mașină (Bearer `CAR_TOKEN`; APK-urile se încarcă cu `CI_TOKEN`): `POST /api/car/log`, `/api/car/trip`, `/api/car/state`,
   `/api/car/tts`; `GET /api/car/status` (kilometraj, mentenanță, ultimul APK, locuri),
@@ -51,7 +51,7 @@ tmux `faikkitbox` și `faikkitcar`.
   `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
   `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log?cat=` (categoriile din
   `log-category.ts`, coloana `log.cat`; fără `cat` = evenimente, fără CAN și comenzi), `/api/cmd`
-  (comenzile la distanță, jurnalul lor separat), `/api/panel/apk…`.
+  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/panel/apk…`.
 - Service: `service.items` (JSON: `group`, `name`, `code`, `qty`, `price` pe tot rândul, cu TVA;
   reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
@@ -114,6 +114,12 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   altora, fără `dumpsys`), limită de timp și 256 KB, trimite `POST /api/car/cmd/<id>`. Eu rulez:
   `cd web && node --env-file=/opt/faikkitcar/.env scripts/car-cmd.ts [--timeout 30] '<cmd>'`
   (doar cât navigația e trează). Testat în emulator cu server de test pe 3999.
+- `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
+  trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
+  `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie
+  proprie). Serverul (`unit.ts`): ultima în memorie (`live.unit`), istoricul la 30 s în `unit_stat`.
+  Site `UnitCard.tsx`, Panel `UnitCard.java`. Emulatorul (Android 10) nu lasă aplicația să citească
+  `/proc/stat`, `loadavg`, `uptime`; pe Teyes merg (comenzile din 20–21.10).
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o
@@ -232,6 +238,7 @@ combinarea), Costuri, Mai mult. Același aspect ca site-ul. Actualizare din apli
 
 ## Stare (12.10.2026)
 
+- 22.10: publicate FaikkitCar 1.1.62 și Panel 1.0.23 (performanța navigației).
 - În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.21 publicat pe 21.10: jurnalul pe categorii).
 - 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
   după plecare (memorie), repornită de `KeepAliveListener` în ~7 s. Actualizarea: după confirmare
