@@ -10,9 +10,10 @@ ums512_1h10_Natv`, ecran lat, fără selector de fișiere).
 
 Repo `Faicu/FaikkitCar` (fost `welcometovw`/„VW Welcome”), pe server în `/opt/faikkitcar`.
 Separat complet de FaikkitBox (`/opt/faikkitbox`): nimic despre mașină acolo. Migrarea din
-FaikkitBox s-a încheiat pe 01.10.2026 (`web/scripts/import-faikkitbox.ts`; copie de siguranță în
-`/root/backups/faikkitcar-20261001-215730`). Remote Control: `claude.service` (sursa în
-`/opt/faikkitbox/deploy`) pornește câte o sesiune tmux pentru fiecare proiect.
+Importul datelor din FaikkitBox în FaikkitCar s-a încheiat pe 01.10.2026 (`web/scripts/import-faikkitbox.ts`;
+copie de siguranță în `/root/backups/faikkitcar-20261001-215730`); FaikkitBox rămâne o aplicație
+activă, separată. Remote Control: `claude.service` (sursa în
+`/opt/faikkit/deploy`) pornește câte o sesiune tmux pentru fiecare proiect.
 
 - `app/`: **FaikkitCar**, aplicația din mașină (+ „FaikkitCar Start” pentru autostart).
   `applicationId` = `com.mapgoo.diruite` (lista albă Teyes, vezi mai jos; nu-l schimba). Pachetul

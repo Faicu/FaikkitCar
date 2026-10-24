@@ -358,7 +358,7 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
 | `web/server/` | API-ul: `index.ts` (rute), `auth.ts`, `db.ts`, `log.ts`, `log-category.ts`, `trips.ts`, `trip-math.ts`, `live.ts`, `car.ts`, `fuel.ts`, `fuel-model.ts`, `stats.ts`, `commute.ts`, `suggestions.ts`, `places.ts`, `service.ts`, `cmd.ts`, `apk.ts`, `tts.ts` (testele: `trip-math`, `fuel-model`, `commute`) |
 | `web/src/` | Site-ul: `App.tsx` (login, file), `pages/` (`Now`, `Trips`, `Costs`, `More`, `Log`), `components/` |
 | `web/scripts/` | `import-faikkitbox.ts` (migrarea), `car-cmd.ts` (comenzi pe navigație) |
-| `deploy/` | `faikkitcar.service` (Remote Control: `claude.service` + `claude-rc` sunt în `/opt/faikkitbox/deploy`) |
+| `deploy/` | `faikkitcar.service` (Remote Control: `claude.service` + `claude-rc` sunt în `/opt/faikkit/deploy`) |
 
 Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 
