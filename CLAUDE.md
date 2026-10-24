@@ -116,6 +116,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   altora, fără `dumpsys`), limită de timp și 256 KB, trimite `POST /api/car/cmd/<id>`. Eu rulez:
   `cd web && node --env-file=/opt/faikkitcar/.env scripts/car-cmd.ts [--timeout 30] '<cmd>'`
   (doar cât navigația e trează). Testat în emulator cu server de test pe 3999.
+  Scripturile de diagnostic Teyes (21.10) sunt în `web/scripts/teyes/` (trimise prin `car-cmd.ts` sau
+  `adb shell < …`): `adb-check.sh`, `mem.sh`, `pkgs.sh`, `debloat.sh` (aplicațiile dezactivate pe navigație,
+  reversibil cu `pm enable`), `watch-hb.cjs` (urmărește frâna de mână în `car_state`).
 - `BleProbe` (22.10): test pentru un adaptor OBD2 fără fire. Bluetooth-ul Teyes (telefonul) e un modul separat
   (`sys.fyt.bluetooth_type=7`, `/dev/BT_serial`, `com.syu.bt`), invizibil pentru aplicații; procesorul are și
   cipul lui (`wcnd`, stiva Android). Testul raportează adaptorul Android, scanează BLE 10 s și clasic 12 s

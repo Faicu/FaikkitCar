@@ -1,0 +1,1 @@
+getprop | grep -iE "adb|usb\.config|usb\.state|usb_mode|otg|debug" ; echo ---; ls /sys/class/udc 2>&1; cat /sys/class/android_usb/android0/state 2>&1; echo ---; settings get global adb_enabled 2>&1; ps -A -o USER,NAME | grep -E "adbd" ; echo ---; ls /oem/app/fyt.prop >/dev/null && grep -iE "usb|adb|otg" /oem/app/fyt.prop
