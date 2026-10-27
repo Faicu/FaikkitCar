@@ -108,6 +108,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Build | Data | Ce a adus |
 |---|---|---|
+| 25 | 27.10 | „+ Poziție” la locurile salvate: încă o poziție cu același nume (a doua parcare „Acasă”) |
 | 24 | 22.10 | Fila Navigație (performanța pe larg); pe Acum doar un rând cu starea pe scurt, care duce acolo |
 | 23 | 22.10 | Cardul „Navigația” pe fila Acum (grafice pe ultima oră, procesele); reparată căderea pe Android sub 13 (`URLEncoder.encode` cu `Charset`) |
 | 21 | 21.10 | Jurnalul pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță (cu rezultatul fiecăreia), Tot |
@@ -126,6 +127,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Data | Ce s-a schimbat |
 |---|---|
+| 27.10 | Locurile cu mai multe poziții (rânduri `place` cu același nume; „acasa” se potrivește cu „Acasă”); pe site butonul „Încă o poziție” |
 | 22.10 | Starea pe scurt a navigației (`unitHealth`, `live.unitHealth`, testată în `unit.test.ts`), numele proceselor pe server (`label`); fila Navigație pe site |
 | 22.10 | Performanța navigației (`unit.ts`, tabela `unit_stat`, 90 de zile; `live.unit`, `/api/unit/history`); cardul „Navigația” pe Acum |
 | 21.10 | Drumul la serviciu pe ture (`commute.ts`, `stats.commute`): ora de plecare pentru 15 min rezervă și următoarea tură; călătoriile au `departAt`/`arriveAt`; „Drumurile tale” de la 10 deplasări, fără ora cea mai bună, durata fără staționări |

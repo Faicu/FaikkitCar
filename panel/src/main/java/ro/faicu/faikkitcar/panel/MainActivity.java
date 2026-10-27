@@ -1596,7 +1596,8 @@ public class MainActivity extends Activity {
         head.addView(add);
         card.addView(head);
         Ui.hint(this, card, "Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu”. "
-                + "Un loc nou: după adresă, cu pinul mutat pe hartă.");
+                + "Un loc nou: după adresă, cu pinul mutat pe hartă. Un loc poate avea mai multe "
+                + "poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui.");
         if (places == null || places.length() == 0) return;
         for (int i = 0; i < places.length(); i++) {
             JSONObject p = places.optJSONObject(i);
@@ -1608,8 +1609,21 @@ public class MainActivity extends Activity {
             LinearLayout texts = new LinearLayout(this);
             texts.setOrientation(LinearLayout.VERTICAL);
             texts.addView(Ui.text(this, p.optString("name"), 16, Ui.TEXT, true));
-            texts.addView(Ui.text(this, "rază " + p.optInt("radius") + " m", 12, Ui.MUTED, false));
+            // Pozitiile aceluiasi loc vin una dupa alta (lista e ordonata dupa nume, apoi id).
+            int nth = 1, total = 0;
+            for (int j = 0; j < places.length(); j++) {
+                if (!places.optJSONObject(j).optString("name").equals(p.optString("name"))) continue;
+                total++;
+                if (j < i) nth++;
+            }
+            texts.addView(Ui.text(this, (total > 1 ? "poziția " + nth + " · " : "")
+                    + "rază " + p.optInt("radius") + " m", 12, Ui.MUTED, false));
             row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView more = Ui.text(this, "+ Poziție", 14, Ui.ACCENT, true);
+            more.setOnClickListener(v -> openPlaceEditor(null, p.optString("name"),
+                    pos == null ? null : pos.optDouble("lat"), pos == null ? null : pos.optDouble("lon"),
+                    p.optInt("radius", 100), true));
+            row.addView(more);
             TextView edit = Ui.text(this, "Modifică", 14, Ui.ACCENT, true);
             edit.setPadding(dp(this, 10), 0, dp(this, 10), 0);
             edit.setOnClickListener(v -> openPlaceEditor(p.optInt("id"), p.optString("name"),
@@ -1631,8 +1645,14 @@ public class MainActivity extends Activity {
     private static final int[] RADII = {50, 100, 150, 250};
 
     private void openPlaceEditor(Integer id, String name, Double lat, Double lon, int radius) {
+        openPlaceEditor(id, name, lat, lon, radius, false);
+    }
+
+    /** extra = inca o pozitie pentru un loc existent (ex. a doua parcare „Acasă”), cu acelasi nume. */
+    private void openPlaceEditor(Integer id, String name, Double lat, Double lon, int radius, boolean extra) {
         try {
             placeDraft = new JSONObject().put("name", name).put("radius", radius);
+            if (extra) placeDraft.put("extra", true);
             if (id != null) placeDraft.put("id", id);
             if (lat != null && lon != null && !lat.isNaN()) placeDraft.put("lat", lat).put("lon", lon);
         } catch (Exception ignored) {
@@ -1658,7 +1678,11 @@ public class MainActivity extends Activity {
         back.setOnClickListener(v -> closePlaceEditor());
         content.addView(back);
         LinearLayout card = Ui.card(this, content);
-        card.addView(Ui.text(this, d.has("id") ? "Modifică locul" : "Loc nou", 19, Ui.TEXT, true));
+        boolean extra = d.optBoolean("extra");
+        card.addView(Ui.text(this, d.has("id") ? "Modifică locul"
+                : extra ? "Încă o poziție pentru „" + d.optString("name") + "”" : "Loc nou", 19, Ui.TEXT, true));
+        if (extra) Ui.hint(this, card, "Pinul pornește unde e mașina acum; călătoriile până aici vor apărea tot „"
+                + d.optString("name") + "”.");
         EditText name = Ui.labeled(this, card, "Nume (ex. Frizerie)", d.optString("name"), InputType.TYPE_CLASS_TEXT);
         EditText address = Ui.labeled(this, card, "Adresa (ex. Bulevardul Timișoara 48)", "", InputType.TYPE_CLASS_TEXT);
         LinearLayout results = new LinearLayout(this);
@@ -1753,7 +1777,7 @@ public class MainActivity extends Activity {
                     JSONArray pl = api.places();
                     ui.post(() -> {
                         places = pl;
-                        toast("Loc salvat");
+                        toast(o.optBoolean("extra") ? "Poziție adăugată" : "Loc salvat");
                         closePlaceEditor();
                         load(true);
                     });

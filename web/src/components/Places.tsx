@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { MapPin, MapPinPlus, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
@@ -10,6 +10,8 @@ import { api, type GeocodeResult, type Place } from "../api";
 export interface PlaceDraft {
   id?: number;
   name: string;
+  /** O poziție în plus pentru un loc existent (ex. a doua parcare „Acasă”): numele rămâne. */
+  extra?: boolean;
   lat: number | null;
   lon: number | null;
   radius: number;
@@ -45,15 +47,29 @@ export function Places() {
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu”.
+        Călătoriile apar ca „Acasă → Serviciu”, iar mașina parcată „la Serviciu”. Un loc poate avea
+        mai multe poziții (ex. două parcări acasă): „+” pe rândul lui.
       </p>
       {draft && <PlaceEditor draft={draft} onClose={() => setDraft(null)} />}
-      {(places ?? []).map((p: Place) => (
+      {(places ?? []).map((p: Place, i: number, all: Place[]) => (
         <div key={p.id} className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2">
           <MapPin className="h-4 w-4 text-sky-400" />
           <span className="flex-1 font-medium">
-            {p.name} <span className="text-xs font-normal text-muted-foreground">· {p.radius} m</span>
+            {p.name}{" "}
+            <span className="text-xs font-normal text-muted-foreground">
+              {positionLabel(all, i)}· {p.radius} m
+            </span>
           </span>
+          <button
+            type="button"
+            title="Încă o poziție pentru acest loc"
+            onClick={() =>
+              setDraft({ name: p.name, extra: true, lat: pos?.lat ?? null, lon: pos?.lon ?? null, radius: p.radius })
+            }
+            className="rounded-lg p-1.5 text-sky-400 hover:bg-sky-500/10"
+          >
+            <MapPinPlus className="h-4 w-4" />
+          </button>
           <button
             type="button"
             title="Modifică"
@@ -67,6 +83,13 @@ export function Places() {
       ))}
     </div>
   );
+}
+
+/** „poziția 2 ” când locul are mai multe poziții (lista e ordonată după nume, apoi id). */
+function positionLabel(all: Place[], i: number): string {
+  const same = all.filter((p) => p.name === all[i].name);
+  if (same.length < 2) return "";
+  return `poziția ${same.indexOf(all[i]) + 1} `;
 }
 
 function DeletePlace({ place }: { place: Place }) {
@@ -125,7 +148,7 @@ export function PlaceEditor({ draft, onClose }: { draft: PlaceDraft; onClose: ()
     try {
       await api.savePlace({ id: draft.id, name, lat: pin[0], lon: pin[1], radius });
       await qc.invalidateQueries();
-      toast.success("Loc salvat");
+      toast.success(draft.extra ? "Poziție adăugată" : "Loc salvat");
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -137,7 +160,16 @@ export function PlaceEditor({ draft, onClose }: { draft: PlaceDraft; onClose: ()
   const input = "w-full rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-sm";
   return (
     <div className="space-y-2 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3">
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nume (ex. Frizerie)" className={input} />
+      {draft.extra ? (
+        <p className="text-sm">
+          Încă o poziție pentru <b>{draft.name}</b>
+          <span className="block text-xs text-muted-foreground">
+            Pinul pornește unde e mașina acum; călătoriile până aici vor apărea tot „{draft.name}”.
+          </span>
+        </p>
+      ) : (
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nume (ex. Frizerie)" className={input} />
+      )}
       <form onSubmit={search} className="flex gap-2">
         <input
           value={query}

@@ -27,7 +27,7 @@ const DEFAULT_RADIUS = 100;
 
 export function readPlaces(): Place[] {
   return getDb()
-    .prepare(`SELECT id, name, lat, lon, radius FROM place ORDER BY name`)
+    .prepare(`SELECT id, name, lat, lon, radius FROM place ORDER BY name, id`)
     .all() as unknown as Place[];
 }
 
@@ -51,11 +51,22 @@ export function placeAt(pos: [number, number] | null, places = readPlaces()): st
   return best?.name ?? null;
 }
 
+/** Pentru potrivirea numelor: fără majuscule și diacritice („acasa” = „Acasă”). */
+function nameKey(name: string): string {
+  return name.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
+/**
+ * Un loc poate avea mai multe poziții (ex. două parcări „Acasă”): rânduri cu același nume.
+ * Un nume scris altfel („acasa”) primește numele locului existent, ca să se potrivească.
+ */
 export function savePlace(input: PlaceInput): void {
-  const name = String(input.name ?? "")
+  let name = String(input.name ?? "")
     .trim()
     .slice(0, 40);
   if (!name) throw new HTTPException(400, { message: "Numele lipsește" });
+  const same = readPlaces().find((p) => p.id !== input.id && nameKey(p.name) === nameKey(name));
+  if (same) name = same.name;
   const lat = Number(input.lat);
   const lon = Number(input.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {

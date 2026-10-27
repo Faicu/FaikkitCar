@@ -121,7 +121,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Costuri: 30 de zile, pe luni, raportul lunii | 🧪 | km, timp, trafic, litri, L/100, cost estimat și ce s-a dat la pompă; staționarea cu motorul pornit (timp, litri, lei); cea mai lungă călătorie, locurile cele mai dese |
 | La serviciu (ture 12/24) | 🧪 | Următoarea tură (zi 08–20, noapte 20–08, liber, liber, dedus din drumuri) și ora până la care să pleci ca să ajungi cu 15 min înainte (drumul din zilele proaste, percentila 90) |
 | Drumurile tale | 🧪 | Între locuri salvate, de la 10 deplasări în 90 de zile: costul, durata medie fără staționări, timpul în trafic |
-| Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc” |
+| Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc”. Un loc poate avea mai multe poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui (site, Panel 1.0.25) |
 | Jurnal de service | ✅ | Lucrările cu data, kilometrajul, locul, costul, articolele pe grupe și bonurile / facturile atașate; costul intră în raportul lunii |
 | Jurnalul navigației | ✅ | Pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță, Tot. Nu se poate goli |
 | Panel: actualizare din aplicație | ✅ | „Actualizează acum” |

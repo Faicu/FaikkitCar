@@ -224,7 +224,8 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   90 a drumului (`departAt` → `arriveAt`); ciclul de 4 zile dedus prin vot din drumuri (`next`).
   Nu mai afișa „cea mai bună oră de plecare”: n-are sens la ture fixe (cererea utilizatorului). Propuneri (`suggestions.ts`): alimentări
   văzute în rezervor, locuri unde parchezi des. Locuri: după adresă (Nominatim, ≤ 1 cerere/s),
-  pin tras pe hartă, raza 50–250 m. Salvate: Acasă 44.44058, 26.03458; Serviciu 44.44166, 26.06091.
+  pin tras pe hartă, raza 50–250 m. Un loc poate avea mai multe poziții = rânduri `place` cu același nume (27.10: a doua parcare
+  „Acasă”, butonul „+ Poziție”); `savePlace` aduce un nume scris altfel („acasa”) la numele existent. Salvate: Acasă 44.44058, 26.03458; Serviciu 44.44166, 26.06091.
 
 ## Panel (`panel/`)
 
