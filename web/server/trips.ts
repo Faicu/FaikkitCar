@@ -43,6 +43,12 @@ export interface IncomingPoint {
   hb?: number | null; // frâna de mână trasă 1/0
   door?: number | null; // o ușă deschisă 1/0
   rev?: number | null; // marșarier 1/0
+  // Semnalul mobil al navigației (1.1.64+, CellSignal.java).
+  net?: number | null; // 0 fără internet, 1 date mobile, 2 Wi-Fi
+  rat?: string | null; // lte / nr / 3g / 2g / "-" (fără rețea)
+  ch?: number | null; // EARFCN / NR-ARFCN / UARFCN / ARFCN
+  sig?: number | null; // dBm (RSRP la 4G/5G)
+  op?: string | null; // MCC+MNC, ex. 22605 = Digi
 }
 
 export interface TripPoint {
@@ -85,6 +91,10 @@ function num(x: unknown): number | null {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
 }
 
+function str(x: unknown): string | null {
+  return typeof x === "string" && x.length > 0 && x.length <= 16 ? x : null;
+}
+
 /** Inserează un lot de puncte; întoarce câte au intrat (duplicatele după oră se ignoră). */
 export function insertPoints(points: IncomingPoint[]): number {
   const db = getDb();
@@ -92,8 +102,8 @@ export function insertPoints(points: IncomingPoint[]): number {
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO trip_point
        (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
-        ac, fan, belt, hb, door, rev)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ac, fan, belt, hb, door, rev, net, rat, ch, sig, op)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -125,6 +135,11 @@ export function insertPoints(points: IncomingPoint[]): number {
         num(p.hb),
         num(p.door),
         num(p.rev),
+        num(p.net),
+        str(p.rat),
+        num(p.ch),
+        num(p.sig),
+        str(p.op),
       );
       added += Number(r.changes);
     }

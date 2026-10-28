@@ -32,7 +32,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
 - Node rulează direct `server/index.ts` (Hono, `node:sqlite`; tipurile TS se șterg, deci doar
   sintaxă ștergibilă și importuri cu `.ts`). Site: React + Vite + Tailwind în `web/src`, construit
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
-  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`), `npx tsc --noEmit`.
+  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`, `signal.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
   utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
   APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
@@ -52,7 +52,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
   `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log?cat=` (categoriile din
   `log-category.ts`, coloana `log.cat`; fără `cat` = evenimente, fără CAN și comenzi), `/api/cmd`
-  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/panel/apk…`.
+  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/unit/signal?days=` (semnalul mobil), `/api/panel/apk…`.
 - Service: `service.items` (JSON: `group`, `name`, `code`, `qty`, `price` pe tot rândul, cu TVA;
   reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
@@ -133,6 +133,12 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `unitHealth` (pur, `unit.test.ts`) dă starea pe scurt; numele proceselor (`procLabel`) tot acolo.
   Site `UnitCard.tsx`, Panel `UnitCard.java`. Emulatorul (Android 10) nu lasă aplicația să citească
   `/proc/stat`, `loadavg`, `uptime`; pe Teyes merg (comenzile din 20–21.10).
+- `CellSignal` (28.10, 1.1.64): pe fiecare punct de traseu `net` (0 fără internet, 1 date
+  mobile, 2 Wi-Fi), `rat` (lte/nr/3g/2g/„-”), `ch` (EARFCN…), `sig` (dBm, RSRP la 4G), `op`
+  (MCC+MNC, 22605 Digi); din `getAllCellInfo` (doar permisiunea de locație). Serverul
+  (`signal.ts`, pur + `signal.test.ts`): banda din canal, harta pe pătrate de ~200 m, căderile
+  de internet; `GET /api/unit/signal?days=`, site `SignalCard.tsx` pe fila Navigație (Panel-ul
+  încă nu). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o
@@ -252,7 +258,7 @@ combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Ac
 
 ## Stare (12.10.2026)
 
-- 22.10: în mașină FaikkitCar 1.1.62 (performanța navigației, confirmată), pe telefon Panel 1.0.23; 1.0.24 publicat (fila Navigație).
+- 22.10: în mașină FaikkitCar 1.1.62 (1.1.63 publicat: testul Bluetooth) (performanța navigației, confirmată), pe telefon Panel 1.0.23; 1.0.24 publicat (fila Navigație).
 - În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.21 publicat pe 21.10: jurnalul pe categorii).
 - 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
   după plecare (memorie), repornită de `KeepAliveListener` în ~7 s. Actualizarea: după confirmare

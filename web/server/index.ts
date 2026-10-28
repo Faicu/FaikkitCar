@@ -56,6 +56,7 @@ import {
   saveService,
   type ServiceInput,
 } from "./service.ts";
+import { readSignal } from "./signal.ts";
 import { readStats } from "./stats.ts";
 import { dismissSuggestion, readSuggestions } from "./suggestions.ts";
 import { MAX_TTS_CHARS, synthesize } from "./tts.ts";
@@ -319,6 +320,13 @@ app.get("/api/unit/history", (c) => {
   requireUser(c);
   const min = Math.min(1440, Math.max(5, Number(c.req.query("min")) || 60));
   return c.json(readUnitHistory(min));
+});
+
+// Semnalul mobil al navigației pe ultimele ?days= zile (implicit 30): harta și benzile.
+app.get("/api/unit/signal", (c) => {
+  requireUser(c);
+  const days = Math.min(400, Math.max(1, Number(c.req.query("days")) || 30));
+  return c.json(readSignal(days));
 });
 
 // Traseul călătoriei în curs (harta de pe Acum); cu ?after doar punctele noi.

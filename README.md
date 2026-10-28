@@ -40,18 +40,24 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **Instalează Panel 1.0.24** („Actualizează acum”, o singură apăsare,
+1. **Instalează FaikkitCar 1.1.64** în mașină (Setări → actualizare): semnalul mobil al
+   cartelei Digi pe fiecare punct de traseu. După câteva drumuri, fila Navigație → „Semnal
+   mobil” arată pe hartă unde cade internetul și pe ce bandă. Benzile Teyes (B1, B3, B7, B8,
+   B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
+   (5 + 3 MHz), deci în afara orașelor pierde primul. Apoi, de comparat cu o cartelă Orange
+   preplătită pe aceleași drumuri.
+2. **Instalează Panel 1.0.24** („Actualizează acum”, o singură apăsare,
    apoi confirmarea; ~30 s până pornește versiunea nouă).
-2. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
+3. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
    regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
    scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
    închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
-3. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
+4. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
-4. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
+5. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
    litru (după reducere). Plinurile (până se oprește pistolul) dau consumul exact.
-5. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
+6. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
    adaptor OBD2 pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
 
 ---
@@ -112,6 +118,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu real |
 | Acum: navigația pe scurt | ✅ | Un rând în primul card: „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele (memorie sub 600 / 300 MB, swap plin, peste 70 / 80 °C, procesorul peste 75% în medie pe 3 min, un proces care ține ocupat un nucleu, sub 1 GB spațiu); atins, duce la fila Navigație |
+| Navigație: semnal mobil | 🧪 | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile; doar pe site, de la FaikkitCar 1.1.64 |
 | Navigație | ✅ | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări (confirmat pe navigație pe 22.10, prin somn și repornire) |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
@@ -209,6 +216,7 @@ ar trebui să fie 100 (așa e în emulator), dar ROM-ul Teyes nu o schimbă.
 | Voce | Google TTS cu o singură voce română (`vfv`, locală și online, la fel de robotice); cea online întârzie ~3 s |
 | Lipsuri | Nu are selector de fișiere Android (nici `OPEN_DOCUMENT`, nici `GET_CONTENT`); „Car Info” nu afișează litrii |
 | Memoria | 4 GB, swap 2,2 GB. Cu tapet static și Google, TXZ, Google Maps, YouTube, Bunăstare, Chrome, Android Auto dezactivate: ~1,1–1,7 GB disponibili. Restul aplicațiilor Teyes (gesturi, actualizări, Spotify Teyes, butoane) cer ADB prin cablu USB-A–A |
+| Modemul 4G | FDD B1, B2, B3, B5, B7, B8, B20, B28A; TDD B34, B38, B39, B40, B41 (fișa produsului). Acoperă toate benzile 4G din România, în afară de B32 (1500 MHz, doar suplimentară, Orange). Cartela: Digi (226 05) |
 | Opțiunile pentru dezvoltatori | Codul: 681232. ADB merge doar prin USB (fără port de rețea) |
 | Datele mașinii | MainServer le distribuie prin AIDL-ul `com.syu.ipc`, fără permisiuni (vezi `Syu.java`) |
 
@@ -375,6 +383,7 @@ Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 | `RouteMap` | Harta de pe Acasă (osmdroid) |
 | `RemoteCmd`, `TeyesCheck` | Comenzile de la distanță, verificarea listelor Teyes |
 | `UnitStats` | Performanța navigației (procesor, memorie, temperatură, procese), trimisă cu starea live |
+| `CellSignal` | Semnalul mobil (tehnologia, canalul, dBm, operatorul, internetul) pe fiecare punct de traseu |
 | `Prefs`, `CrashLog` | Setări și jurnal, căderile |
 | `MainActivity`, `Ui` | Interfața |
 

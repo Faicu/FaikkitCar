@@ -215,6 +215,8 @@ final class TripRecorder implements LocationListener {
             p.put("hb", can.handbrakePulled() ? 1 : 0);
             p.put("door", can.openDoors().isEmpty() ? 0 : 1);
             p.put("rev", can.reverse() ? 1 : 0);
+            // Semnalul mobil al cartelei din navigatie: harta zonelor fara internet.
+            CellSignal.put(c, p);
             if (!Double.isNaN(pendingCrank)) {
                 p.put("cv", Math.round(pendingCrank * 100) / 100.0);
                 pendingCrank = Double.NaN;

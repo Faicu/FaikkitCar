@@ -10,6 +10,7 @@ import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
 import type { ServiceEntry, ServiceInput, ServiceItem } from "../server/service.ts";
 import type { Commute } from "../server/commute.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
+import type { SignalSummary } from "../server/signal.ts";
 import type { Suggestion } from "../server/suggestions.ts";
 import type { Gap, Trip, TripPoint } from "../server/trips.ts";
 import type { UnitPoint, UnitStats } from "../server/unit.ts";
@@ -36,6 +37,7 @@ export const api = {
   logout: () => call<{ ok: true }>("POST", "/api/logout"),
   // Cu `after`, serverul răspunde abia la o stare nouă de la mașină (cel mult 25 s).
   unitHistory: (min = 60) => call<UnitPoint[]>("GET", `/api/unit/history?min=${min}`),
+  signal: (days = 30) => call<SignalSummary>("GET", `/api/unit/signal?days=${days}`),
   live: (after?: string | null, signal?: AbortSignal) =>
     call<Live>("GET", after ? `/api/live?after=${encodeURIComponent(after)}` : "/api/live", undefined, signal),
   liveRoute: (after?: string | null, signal?: AbortSignal) =>
@@ -111,7 +113,7 @@ export type {
   RouteStats,
   Commute,
   ServiceEntry, ServiceItem,
-  Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint, UnitPoint, UnitStats };
+  Suggestion, Position, Reminder, ReminderInput, RefuelInput, Trip, TripPoint, UnitPoint, UnitStats, SignalSummary };
 
 /** „acum 5 min”, „acum 2 h”, „acum 3 zile”. */
 export function relativeTime(iso: string): string {

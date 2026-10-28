@@ -202,6 +202,12 @@ export function getDb(): DatabaseSync {
     ["hb", "INTEGER"],
     ["door", "INTEGER"],
     ["rev", "INTEGER"],
+    // Semnalul mobil al navigației (1.1.64+): internet 0/1/2, tehnologia, canalul, dBm, operatorul.
+    ["net", "INTEGER"],
+    ["rat", "TEXT"],
+    ["ch", "INTEGER"],
+    ["sig", "INTEGER"],
+    ["op", "TEXT"],
   ]) {
     if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
   }
