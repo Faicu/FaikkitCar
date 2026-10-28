@@ -125,6 +125,78 @@ final class MapBox {
         return map;
     }
 
+    /** Culoarea nivelului de semnal, ca pe site (SignalCard.tsx). */
+    static int signalColor(String level) {
+        switch (level) {
+            case "good": return 0xFF22C55E;
+            case "fair": return 0xFFEAB308;
+            case "weak": return 0xFFF97316;
+            default: return 0xFFEF4444;
+        }
+    }
+
+    /**
+     * Semnalul mobil pe patrate de ~200 m (verde = bun … rosu = fara internet), desenate direct
+     * pe canvas (pot fi mii; markerele ar fi prea grele), plus caderile de internet, ce se pot atinge.
+     */
+    static MapView signal(Context c, JSONArray cells, JSONArray zones) {
+        if (cells == null || cells.length() == 0) return null;
+        MapView map = base(c);
+        int n = cells.length();
+        double[] lat = new double[n], lon = new double[n];
+        int[] color = new int[n];
+        List<GeoPoint> geo = new ArrayList<>();
+        // Cele bune intai, ca punctele rosii sa ramana deasupra.
+        List<JSONObject> sorted = new ArrayList<>();
+        for (int i = 0; i < n; i++) sorted.add(cells.optJSONObject(i));
+        java.util.List<String> order = java.util.Arrays.asList("good", "fair", "weak", "none");
+        sorted.sort((a, b) -> order.indexOf(a.optString("level")) - order.indexOf(b.optString("level")));
+        for (int i = 0; i < n; i++) {
+            JSONObject cell = sorted.get(i);
+            lat[i] = cell.optDouble("lat");
+            lon[i] = cell.optDouble("lon");
+            color[i] = (signalColor(cell.optString("level")) & 0x00FFFFFF) | 0xD9000000;
+            geo.add(new GeoPoint(lat[i], lon[i]));
+        }
+        float radius = Ui.dp(c, 4);
+        map.getOverlays().add(new org.osmdroid.views.overlay.Overlay() {
+            private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            private final android.graphics.Point px = new android.graphics.Point();
+            private final GeoPoint gp = new GeoPoint(0.0, 0.0);
+
+            @Override
+            public void draw(android.graphics.Canvas canvas, org.osmdroid.views.Projection pj) {
+                for (int i = 0; i < lat.length; i++) {
+                    gp.setCoords(lat[i], lon[i]);
+                    pj.toPixels(gp, px);
+                    paint.setColor(color[i]);
+                    canvas.drawCircle(px.x, px.y, radius, paint);
+                }
+            }
+        });
+        for (int i = 0; zones != null && i < zones.length(); i++) {
+            JSONObject z = zones.optJSONObject(i);
+            Marker m = dot(c, map, new GeoPoint(z.optDouble("lat"), z.optDouble("lon")), Ui.BAD, 16);
+            m.setInfoWindow(new org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
+                    org.osmdroid.library.R.layout.bonuspack_bubble, map));
+            m.setTitle(Fmt.day(z.optString("at")) + " " + Fmt.hm(z.optString("at"))
+                    + " · fără internet " + Fmt.shortDuration(z.optDouble("minutes")));
+            map.getOverlays().add(m);
+        }
+        BoundingBox box = BoundingBox.fromGeoPointsSafe(geo);
+        map.addOnFirstLayoutListener((v, l, t, r, b) -> {
+            if (box.getLatitudeSpan() < 0.004 && box.getLongitudeSpan() < 0.004) {
+                map.getController().setZoom(15.0);
+                map.getController().setCenter(box.getCenterWithDateLine());
+            } else {
+                map.zoomToBoundingBox(box, false, Ui.dp(c, 20));
+            }
+        });
+        map.getController().setCenter(box.getCenterWithDateLine());
+        map.getController().setZoom(12.0);
+        return map;
+    }
+
     /**
      * Harta calatoriei in curs: verde = plecarea, linia = pe unde a fost, albastru = unde e
      * masina acum, galben = opririle cu motorul oprit. Aceeasi harta ramane intre redesenari

@@ -115,7 +115,7 @@ final class UnitCard {
         }
     }
 
-    private static LinearLayout procRow(Context c, String name, String cpu, String mb, boolean header) {
+    static LinearLayout procRow(Context c, String name, String cpu, String mb, boolean header) {
         LinearLayout r = new LinearLayout(c);
         r.setPadding(0, dp(c, header ? 10 : 4), 0, 0);
         int size = header ? 11 : 14;

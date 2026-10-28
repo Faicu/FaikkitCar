@@ -70,6 +70,11 @@ final class Api {
         return new JSONArray(call("GET", "/api/unit/history?min=" + min, null, true));
     }
 
+    /** Semnalul mobil al navigatiei pe ultimele `days` zile (harta, benzile, caderile de internet). */
+    JSONObject signal(int days) throws Exception {
+        return new JSONObject(call("GET", "/api/unit/signal?days=" + days, null, true));
+    }
+
     JSONArray gaps() throws Exception {
         return new JSONArray(call("GET", "/api/trips/gaps", null, true));
     }

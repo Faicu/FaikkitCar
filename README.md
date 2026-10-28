@@ -46,7 +46,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
    (5 + 3 MHz), deci în afara orașelor pierde primul. Apoi, de comparat cu o cartelă Orange
    preplătită pe aceleași drumuri.
-2. **Instalează Panel 1.0.24** („Actualizează acum”, o singură apăsare,
+2. **Instalează Panel 1.0.26** (semnalul mobil pe fila Navigație; „Actualizează acum”, o singură apăsare,
    apoi confirmarea; ~30 s până pornește versiunea nouă).
 3. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
    regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
@@ -118,7 +118,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu real |
 | Acum: navigația pe scurt | ✅ | Un rând în primul card: „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele (memorie sub 600 / 300 MB, swap plin, peste 70 / 80 °C, procesorul peste 75% în medie pe 3 min, un proces care ține ocupat un nucleu, sub 1 GB spațiu); atins, duce la fila Navigație |
-| Navigație: semnal mobil | 🧪 | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile; doar pe site, de la FaikkitCar 1.1.64 |
+| Navigație: semnal mobil | 🧪 | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile, pe site și în Panel; de la FaikkitCar 1.1.64 (primele puncte venite pe 28.10: Digi pe B8 900) |
 | Navigație | ✅ | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări (confirmat pe navigație pe 22.10, prin somn și repornire) |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |

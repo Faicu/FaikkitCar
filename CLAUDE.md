@@ -137,8 +137,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   mobile, 2 Wi-Fi), `rat` (lte/nr/3g/2g/„-”), `ch` (EARFCN…), `sig` (dBm, RSRP la 4G), `op`
   (MCC+MNC, 22605 Digi); din `getAllCellInfo` (doar permisiunea de locație). Serverul
   (`signal.ts`, pur + `signal.test.ts`): banda din canal, harta pe pătrate de ~200 m, căderile
-  de internet; `GET /api/unit/signal?days=`, site `SignalCard.tsx` pe fila Navigație (Panel-ul
-  încă nu). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  de internet; `GET /api/unit/signal?days=`, site `SignalCard.tsx` pe fila Navigație, Panel
+  `renderSignal` + `MapBox.signal` (pătratele desenate direct pe canvas, harta păstrată între redesenări).
+  Confirmat pe Teyes 28.10: Digi pe EARFCN 3650 (B8 900). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

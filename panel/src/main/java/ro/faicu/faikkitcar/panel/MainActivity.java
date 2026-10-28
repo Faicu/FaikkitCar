@@ -85,6 +85,7 @@ public class MainActivity extends Activity {
         resumed = true;
         for (MapView m : maps) m.onResume();
         if (liveMap != null) liveMap.map.onResume();
+        if (signalMap != null) signalMap.onResume();
         if (content != null) load(false);
     }
 
@@ -96,6 +97,7 @@ public class MainActivity extends Activity {
         stopLive();
         for (MapView m : maps) m.onPause();
         if (liveMap != null) liveMap.map.onPause();
+        if (signalMap != null) signalMap.onPause();
     }
 
     @Override
@@ -409,7 +411,7 @@ public class MainActivity extends Activity {
         String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|"
                 + (newerApk != null) + "|"
                 + (tab == NOW ? live + "|" + suggestions
-                        : tab == UNIT ? live + "|" + unitHistoryAt
+                        : tab == UNIT ? live + "|" + unitHistoryAt + "|" + signalAt + "|" + signalDays
                         : tab == TRIPS ? trips + "|" + pointsFor
                         : tab == COSTS ? stats + "|" + fuel
                         : car + "|" + places + "|" + service + "|" + log);
@@ -599,10 +601,160 @@ public class MainActivity extends Activity {
         JSONObject unit = live.optJSONObject("unit");
         if (unit == null) {
             Ui.hint(this, Ui.card(this, content), "Nicio măsurare încă: apare de la FaikkitCar 1.1.62, cât navigația e trează.");
+        } else {
+            UnitCard.render(this, content, unit, live.optJSONObject("unitHealth"), unitHistory);
+            loadUnitHistory();
+        }
+        renderSignal();
+        loadSignal();
+    }
+
+    // Semnalul mobil al navigatiei (ca SignalCard.tsx pe site), cerut la cel mult un minut.
+    private static final int[] SIGNAL_DAYS = {7, 30, 90};
+    private static final String[] SIGNAL_LEVELS = {"good", "fair", "weak", "none"};
+    private static final String[] SIGNAL_LABELS = {"bun", "mediu", "slab", "fără rețea"};
+    private JSONObject signal;
+    private int signalDays = 30;
+    private int signalLoadedDays;
+    private long signalAt;
+    private boolean signalBusy;
+    private MapView signalMap;
+    private JSONObject signalMapFor;
+
+    private static String pct(double x) {
+        return Math.round(x * 100) + "%";
+    }
+
+    private void renderSignal() {
+        LinearLayout card = Ui.card(this, content);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        head.addView(Ui.text(this, "Semnal mobil", 17, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        for (int d : SIGNAL_DAYS) {
+            TextView p = Ui.text(this, d + " zile", 12, d == signalDays ? Ui.ACCENT : Ui.MUTED, d == signalDays);
+            if (d == signalDays) p.setBackground(Ui.round(this, 0x2E38BDF8, 99));
+            p.setPadding(dp(this, 8), dp(this, 3), dp(this, 8), dp(this, 3));
+            p.setOnClickListener(v -> {
+                if (signalDays == d) return;
+                signalDays = d;
+                loadSignal();
+                render(); // „Se incarca...” pentru perioada noua
+            });
+            head.addView(p);
+        }
+        card.addView(head);
+        JSONObject s = signal != null && signalLoadedDays == signalDays ? signal : null;
+        if (s == null) {
+            Ui.hint(this, card, "Se încarcă...");
             return;
         }
-        UnitCard.render(this, content, unit, live.optJSONObject("unitHealth"), unitHistory);
-        loadUnitHistory();
+        if (s.optInt("points") == 0) {
+            Ui.hint(this, card, "Nicio măsurare încă: apare de la FaikkitCar 1.1.64, pe drumurile făcute de atunci.");
+            return;
+        }
+        double off = s.optDouble("offline", 0);
+        List<String> ops = new ArrayList<>();
+        JSONArray opArr = s.optJSONArray("ops");
+        for (int i = 0; opArr != null && i < opArr.length(); i++) ops.add(opArr.optJSONObject(i).optString("op"));
+        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder();
+        if (off > 0) {
+            sb.append("Fără internet ");
+            int from = sb.length();
+            sb.append(pct(off));
+            sb.setSpan(new android.text.style.ForegroundColorSpan(Ui.BAD), from, sb.length(), 0);
+            sb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), from, sb.length(), 0);
+            sb.append(" din timpul de drum");
+        } else {
+            sb.append("Internet tot timpul");
+        }
+        if (!ops.isEmpty()) {
+            int from = sb.length();
+            sb.append(" · ").append(String.join(", ", ops));
+            sb.setSpan(new android.text.style.ForegroundColorSpan(Ui.MUTED), from, sb.length(), 0);
+        }
+        TextView line = Ui.text(this, "", 14, Ui.TEXT, false);
+        line.setText(sb);
+        line.setPadding(0, dp(this, 8), 0, dp(this, 8));
+        card.addView(line);
+
+        JSONObject lv = s.optJSONObject("levels");
+        double[] values = new double[4];
+        int[] colors = new int[4];
+        String[] legend = new String[4];
+        for (int i = 0; i < 4; i++) {
+            values[i] = lv == null ? 0 : lv.optDouble(SIGNAL_LEVELS[i], 0);
+            colors[i] = MapBox.signalColor(SIGNAL_LEVELS[i]);
+            legend[i] = SIGNAL_LABELS[i] + " " + pct(values[i]);
+        }
+        card.addView(Ui.stackedBar(this, values, colors, legend));
+
+        // Aceeasi harta intre redesenari (fila se redeseneaza la fiecare stare live), refacuta
+        // doar la date noi, ca zoom-ul ales sa ramana.
+        if (signalMap == null || signalMapFor != s) {
+            if (signalMap != null) signalMap.onDetach();
+            signalMap = MapBox.signal(this, s.optJSONArray("cells"), s.optJSONArray("zones"));
+            signalMapFor = s;
+        }
+        if (signalMap != null) {
+            if (signalMap.getParent() != null) ((ViewGroup) signalMap.getParent()).removeView(signalMap);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(this, 300));
+            lp.topMargin = dp(this, 10);
+            card.addView(signalMap, lp);
+        }
+
+        JSONArray bands = s.optJSONArray("bands");
+        if (bands != null && bands.length() > 0) {
+            card.addView(UnitCard.procRow(this, "Banda", "timp", "semnal", true));
+            for (int i = 0; i < bands.length(); i++) {
+                JSONObject b = bands.optJSONObject(i);
+                card.addView(UnitCard.procRow(this, b.optString("band"), pct(b.optDouble("share")),
+                        b.isNull("sig") ? "—" : b.optInt("sig") + " dBm", false));
+            }
+        }
+
+        JSONArray zones = s.optJSONArray("zones");
+        if (zones != null && zones.length() > 0) {
+            TextView t = Ui.text(this, "Căderi de internet (cele mai recente)", 11, Ui.MUTED, false);
+            t.setPadding(0, dp(this, 10), 0, 0);
+            card.addView(t);
+            for (int i = 0; i < Math.min(8, zones.length()); i++) {
+                JSONObject z = zones.optJSONObject(i);
+                String at = z.optString("at");
+                double km = z.optDouble("km", 0);
+                card.addView(UnitCard.procRow(this, Fmt.day(at) + " " + Fmt.hm(at),
+                        Fmt.shortDuration(z.optDouble("minutes")),
+                        km > 0 ? Fmt.num(km, 1) + " km" : "", false));
+                if (!z.isNull("band")) {
+                    TextView b = Ui.text(this, "după " + z.optString("band"), 11, Ui.MUTED, false);
+                    card.addView(b);
+                }
+            }
+        }
+    }
+
+    private void loadSignal() {
+        boolean fresh = signalLoadedDays == signalDays && System.currentTimeMillis() - signalAt < 60_000;
+        if (signalBusy || fresh) return;
+        signalBusy = true;
+        int days = signalDays;
+        io.execute(() -> {
+            JSONObject got = null;
+            try {
+                got = api.signal(days);
+            } catch (Exception ignored) {
+            }
+            JSONObject r = got;
+            ui.post(() -> {
+                signalBusy = false;
+                signalAt = System.currentTimeMillis();
+                if (r != null) {
+                    signal = r;
+                    signalLoadedDays = days;
+                }
+                render();
+                if (signalDays != days) loadSignal();
+            });
+        });
     }
 
     // Istoricul performantei navigatiei (graficele de pe Acum), cerut la cel mult un minut.
