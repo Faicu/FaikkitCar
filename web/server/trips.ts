@@ -49,6 +49,7 @@ export interface IncomingPoint {
   ch?: number | null; // EARFCN / NR-ARFCN / UARFCN / ARFCN
   sig?: number | null; // dBm (RSRP la 4G/5G)
   op?: string | null; // MCC+MNC, ex. 22605 = Digi
+  ca?: number | null; // vechimea citirii celulei, s (1.1.65+)
 }
 
 export interface TripPoint {
@@ -102,8 +103,8 @@ export function insertPoints(points: IncomingPoint[]): number {
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO trip_point
        (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
-        ac, fan, belt, hb, door, rev, net, rat, ch, sig, op)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ac, fan, belt, hb, door, rev, net, rat, ch, sig, op, cell_age)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -140,6 +141,7 @@ export function insertPoints(points: IncomingPoint[]): number {
         num(p.ch),
         num(p.sig),
         str(p.op),
+        num(p.ca),
       );
       added += Number(r.changes);
     }

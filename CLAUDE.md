@@ -139,7 +139,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (`signal.ts`, pur + `signal.test.ts`): banda din canal, harta pe pătrate de ~200 m, căderile
   de internet; `GET /api/unit/signal?days=`, site `SignalCard.tsx` pe fila Navigație, Panel
   `renderSignal` + `MapBox.signal` (pătratele desenate direct pe canvas, harta păstrată între redesenări).
-  Confirmat pe Teyes 28.10: Digi pe EARFCN 3650 (B8 900). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  Confirmat pe Teyes 28.10: Digi pe EARFCN 3650 (B8 900).
+  29.10: `getAllCellInfo` a dat 19 min aceeași celulă (EARFCN 525, −117 dBm) în mers = copie veche;
+  din 1.1.65 `requestCellInfoUpdate` la fiecare punct, puterea din `getSignalStrength`, `ca` = vechimea
+  citirii (coloana `cell_age`). Cele 134 de puncte înghețate: câmpurile de semnal golite (copie în
+  `/root/backups/faikkitcar-semnal-inghetat-20261029.json`). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

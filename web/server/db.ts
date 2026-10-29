@@ -208,6 +208,8 @@ export function getDb(): DatabaseSync {
     ["ch", "INTEGER"],
     ["sig", "INTEGER"],
     ["op", "TEXT"],
+    // Vechimea citirii celulei în secunde (1.1.65+): pe Teyes getAllCellInfo dădea o copie veche.
+    ["cell_age", "INTEGER"],
   ]) {
     if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
   }
