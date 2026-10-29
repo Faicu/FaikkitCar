@@ -145,7 +145,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   29.10: `getAllCellInfo` a dat 19 min aceeași celulă (EARFCN 525, −117 dBm) în mers = copie veche;
   din 1.1.65 `requestCellInfoUpdate` la fiecare punct, puterea din `getSignalStrength`, `ca` = vechimea
   citirii (coloana `cell_age`). Cele 134 de puncte înghețate: câmpurile de semnal golite (copie în
-  `/root/backups/faikkitcar-semnal-inghetat-20261029.json`). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  `/root/backups/faikkitcar-semnal-inghetat-20261029.json`). Confirmat cu 1.1.66 (29.10): `ca` 5 s în mers, semnal variabil.
+  Panel: harta semnalului are `setDestroyMode(false)` (fără ea rămânea goală după prima redesenare, 1.0.27). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

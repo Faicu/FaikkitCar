@@ -142,6 +142,9 @@ final class MapBox {
     static MapView signal(Context c, JSONArray cells, JSONArray zones) {
         if (cells == null || cells.length() == 0) return null;
         MapView map = base(c);
+        // Harta e mutata intre redesenari: fara asta, osmdroid o distruge cand iese din ecran
+        // si ramane goala (onDetach il face MainActivity cand o inlocuieste).
+        map.setDestroyMode(false);
         int n = cells.length();
         double[] lat = new double[n], lon = new double[n];
         int[] color = new int[n];
