@@ -13,6 +13,7 @@ import android.net.Network;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
 
@@ -123,6 +124,11 @@ public class WelcomeService extends Service {
         TripRecorder.check(this);
     }
 
+    // Trezirea vazuta cu ecranul stins, redata doar daca ecranul se aprinde in scurt timp.
+    private String pendingWake;
+    private long pendingWakeAt;
+    private static final long PENDING_WAKE_MS = 60_000;
+
     // Caz 3: procesul a supravietuit, dar unitatea a fost in hibernare.
     private final Runnable tick = new Runnable() {
         @Override
@@ -132,7 +138,16 @@ public class WelcomeService extends Service {
             lastTick = now;
 
             if (gap > thresholdMs()) {
-                onWake("trezire din hibernare, " + gap / 1000 + " s");
+                String reason = "trezire din hibernare, " + gap / 1000 + " s";
+                // Navigatia se mai trezeste singura dupa ACC OFF, cu ecranul stins (28.10 14:09):
+                // nu e o pornire. La ACC ON ecranul se aprinde in 1-2 s, deci asteptam ecranul.
+                if (getSystemService(PowerManager.class).isInteractive()) {
+                    onWake(reason);
+                } else {
+                    pendingWake = reason;
+                    pendingWakeAt = now;
+                    Prefs.log(WelcomeService.this, "TREZIRE: " + reason + " → astept ecranul aprins");
+                }
             } else if (gap > LOG_GAP_MS) {
                 Prefs.log(WelcomeService.this, "Pauza " + gap / 1000 + " s (sub prag)");
             }
@@ -168,6 +183,10 @@ public class WelcomeService extends Service {
             Prefs.log(c, Intent.ACTION_SCREEN_ON.equals(action) ? "Ecran aprins" : "Utilizator prezent");
             handler.removeCallbacks(tick);
             tick.run();
+            if (pendingWake != null) {
+                if (SystemClock.elapsedRealtime() - pendingWakeAt < PENDING_WAKE_MS) onWake(pendingWake + ", ecran aprins");
+                pendingWake = null;
+            }
         }
     };
 

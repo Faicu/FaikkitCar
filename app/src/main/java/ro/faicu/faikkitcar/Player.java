@@ -16,6 +16,9 @@ import java.io.File;
 /** Reda sunetul de bun venit. Cere "focus" audio: radioul/muzica se opresc si revin dupa. */
 final class Player {
     private static long lastPlay = -100_000;
+    // Programarea curenta: una noua o inlocuieste pe cea veche, inca nepornita.
+    private static int scheduled;
+    private static final long STALE_MS = 30_000;
     // Referinta statica: altfel MediaPlayer poate fi colectat de GC in timpul redarii.
     private static MediaPlayer current;
     private static AudioFocusRequest currentFocus;
@@ -37,9 +40,23 @@ final class Player {
      */
     static boolean play(Context ctx, File f, long delayMs, boolean force) {
         if (!force && playedRecently()) return false;
-        lastPlay = SystemClock.elapsedRealtime();
+        long at = SystemClock.elapsedRealtime();
+        lastPlay = at;
+        int gen = ++scheduled;
         Context c = ctx.getApplicationContext();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> start(c, f), delayMs);
+        // postDelayed numara doar timpul treaz: daca navigatia adoarme inainte, sunetul ar porni
+        // abia la trezirea urmatoare, peste o redare noua (24.10 si 29.10: de doua ori). Il
+        // anulam daca intre timp a venit alta programare sau a trecut mult mai mult (somn).
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            long late = SystemClock.elapsedRealtime() - at - delayMs;
+            if (gen != scheduled) return;
+            if (late > STALE_MS) {
+                Prefs.log(c, "Redare anulata: programata acum " + (late + delayMs) / 1000
+                        + " s, navigatia a dormit intre timp");
+                return;
+            }
+            start(c, f);
+        }, delayMs);
         return true;
     }
 

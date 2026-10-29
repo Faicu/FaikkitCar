@@ -40,7 +40,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **Instalează FaikkitCar 1.1.65** în mașină (Setări → actualizare): semnalul mobil al
+1. **Instalează FaikkitCar 1.1.66** în mașină (și sunetul de bun venit nu se mai dublează) (Setări → actualizare): semnalul mobil al
    cartelei Digi pe fiecare punct de traseu. După câteva drumuri, fila Navigație → „Semnal
    mobil” arată pe hartă unde cade internetul și pe ce bandă. Benzile Teyes (B1, B3, B7, B8,
    B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
