@@ -98,12 +98,18 @@ export function operatorName(op: string | null): string | null {
   return op === null ? null : (OPERATORS[op] ?? op);
 }
 
-/** Puterea pe scurt: la 4G/5G e RSRP (bun ≥ −95, slab < −110), la 2G/3G e RSSI. */
+/** Puterea pe scurt: la 4G/5G e RSRP (bun ≥ −95, slab < −110), la 3G e RSSI; 2G = fără internet. */
 export function signalLevel(rat: string | null, sig: number | null): SignalLevel {
-  if (rat === "-") return "none";
+  // Pe 2G (GPRS, „G” pe navigație) nu se încarcă nimic, chiar dacă Android zice că are internet.
+  if (rat === "-" || rat === "2g") return "none";
   if (sig === null) return rat === null ? "none" : "fair";
   const [good, weak] = rat === "lte" || rat === "nr" ? [-95, -110] : [-85, -100];
   return sig >= good ? "good" : sig >= weak ? "fair" : "weak";
+}
+
+/** Fără internet folosibil: Android zice că nu are, sau e doar pe 2G. */
+export function isOffline(r: Pick<SignalRow, "net" | "rat">): boolean {
+  return r.net === 0 || r.rat === "2g";
 }
 
 const RANK: Record<SignalLevel, number> = { good: 0, fair: 1, weak: 2, none: 3 };
@@ -142,7 +148,7 @@ export function summarizeSignal(rows: SignalRow[], since: string): SignalSummary
   let offline = 0;
   for (const r of rows) {
     levels[signalLevel(r.rat, r.sig)]++;
-    if (r.net === 0) offline++;
+    if (isOffline(r)) offline++;
     const band = bandOf(r.rat, r.ch);
     if (band) {
       bandCount.set(band, (bandCount.get(band) ?? 0) + 1);
@@ -165,7 +171,7 @@ export function summarizeSignal(rows: SignalRow[], since: string): SignalSummary
 
   const cells: SignalCell[] = [...grid.values()].map((list) => {
     const sig = median(list.map((r) => r.sig).filter((s): s is number => s !== null));
-    const off = list.filter((r) => r.net === 0).length / list.length;
+    const off = list.filter(isOffline).length / list.length;
     const rat = mostCommon(list.map((r) => r.rat));
     let level = signalLevel(rat, sig);
     if (off >= 0.5) level = "none";
@@ -217,7 +223,7 @@ export function summarizeSignal(rows: SignalRow[], since: string): SignalSummary
   for (let i = 0; i < n; i++) {
     const r = rows[i];
     if (start >= 0 && r.t - rows[i - 1].t > ZONE_GAP_MS) close(i - 1);
-    if (r.net === 0) {
+    if (isOffline(r)) {
       if (start < 0) start = i;
     } else close(i - 1);
   }

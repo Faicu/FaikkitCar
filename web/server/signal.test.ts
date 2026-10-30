@@ -38,7 +38,8 @@ describe("operatorName / signalLevel", () => {
     expect(signalLevel("lte", -100)).toBe("fair");
     expect(signalLevel("lte", -118)).toBe("weak");
     expect(signalLevel("-", null)).toBe("none");
-    expect(signalLevel("2g", -80)).toBe("good");
+    expect(signalLevel("2g", -80)).toBe("none");
+    expect(signalLevel("3g", -80)).toBe("good");
   });
 });
 
@@ -63,6 +64,21 @@ describe("summarizeSignal", () => {
     expect(s.bands[0]).toEqual({ band: "B20 800", share: 2 / 7, sig: -90 });
     expect(s.ops).toEqual([{ op: "Digi", share: 3 / 7 }]);
     expect(s.cells.some((c) => c.level === "none")).toBe(true);
+  });
+  it("2G (GPRS) contează ca fără internet, chiar dacă Android zice că are", () => {
+    const rows = [
+      row(0),
+      row(1, { rat: "2g", ch: 30, sig: -85 }),
+      row(2, { rat: "2g", ch: 30, sig: -85 }),
+      row(3, { rat: "2g", ch: 30, sig: -85 }),
+      row(4, { rat: "2g", ch: 30, sig: -85 }),
+      row(5),
+    ];
+    const s = summarizeSignal(rows, "x");
+    expect(s.offline).toBeCloseTo(4 / 6);
+    expect(s.zones).toHaveLength(1);
+    expect(s.zones[0].band).toBe("B20 800");
+    expect(s.bands.find((b) => b.band === "2G")?.share).toBeCloseTo(4 / 6);
   });
   it("ignoră căderile scurte și le taie la pauzele lungi", () => {
     const rows = [

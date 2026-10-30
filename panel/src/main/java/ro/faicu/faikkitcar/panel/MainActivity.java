@@ -613,7 +613,7 @@ public class MainActivity extends Activity {
     // Semnalul mobil al navigatiei (ca SignalCard.tsx pe site), cerut la cel mult un minut.
     private static final int[] SIGNAL_DAYS = {7, 30, 90};
     private static final String[] SIGNAL_LEVELS = {"good", "fair", "weak", "none"};
-    private static final String[] SIGNAL_LABELS = {"bun", "mediu", "slab", "fără rețea"};
+    private static final String[] SIGNAL_LABELS = {"bun", "mediu", "slab", "fără internet"};
     private JSONObject signal;
     private int signalDays = 30;
     private int signalLoadedDays;

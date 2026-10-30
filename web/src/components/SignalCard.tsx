@@ -11,7 +11,7 @@ const COLORS: Record<SignalSummary["cells"][number]["level"], string> = {
   weak: "#f97316",
   none: "#ef4444",
 };
-const LABELS = { good: "bun", fair: "mediu", weak: "slab", none: "fără rețea" } as const;
+const LABELS = { good: "bun", fair: "mediu", weak: "slab", none: "fără internet" } as const;
 const PERIODS = [7, 30, 90];
 
 function pct(x: number): string {
