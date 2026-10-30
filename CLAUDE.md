@@ -146,7 +146,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   din 1.1.65 `requestCellInfoUpdate` la fiecare punct, puterea din `getSignalStrength`, `ca` = vechimea
   citirii (coloana `cell_age`). Cele 134 de puncte înghețate: câmpurile de semnal golite (copie în
   `/root/backups/faikkitcar-semnal-inghetat-20261029.json`). Confirmat cu 1.1.66 (29.10): `ca` 5 s în mers, semnal variabil.
-  Panel: harta semnalului are `setDestroyMode(false)` (fără ea rămânea goală după prima redesenare, 1.0.27). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  Panel: harta semnalului are `setDestroyMode(false)` (fără ea rămânea goală după prima redesenare, 1.0.27).
+  30.10: utilizatorul vede „G” când pică internetul = modemul coboară pe 2G (GPRS); `signal.ts` socotește
+  2G drept fără internet. 1.1.67: Setări → Sistem arată tipul de rețea preferat (`preferred_network_mode`)
+  și butonul „Informatii telefon” (`com.android.settings/.RadioInfo`, testat în emulatorul Android 10)
+  pentru „LTE only”. Pe drumurile din oraș 29–30.10: niciodată fără internet, ~−100 dBm medie. Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

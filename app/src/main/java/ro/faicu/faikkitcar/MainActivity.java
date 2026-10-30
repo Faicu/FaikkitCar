@@ -816,6 +816,17 @@ public class MainActivity extends Activity {
                 runOnUiThread(this::refresh);
             }).start();
         });
+        // Pe drumuri cu 4G slab, modemul coboara pe 2G („G”), unde nu se incarca nimic. Cu „LTE only”
+        // ramane pe 4G. Setarile Teyes nu au mereu optiunea; ecranul ascuns „Informatii telefon” o are.
+        Ui.hint(this, sys, "Retea mobila, tipul preferat: " + networkMode()
+                + ". Pentru internet fara caderi pe 2G alege „LTE only” in ecranul de mai jos");
+        Ui.addButton(this, sys, "Informatii telefon (tipul de retea)", Ui.SECONDARY, v -> {
+            try {
+                startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.RadioInfo"));
+            } catch (RuntimeException e) {
+                toast("Ecranul nu se poate deschide: " + e.getMessage());
+            }
+        });
         Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
             WelcomeService.start(this);
             toast("Serviciul ruleaza");
@@ -823,6 +834,29 @@ public class MainActivity extends Activity {
         });
 
         buildProbe(col);
+    }
+
+    /** Tipul de retea preferat al modemului (Settings.Global, valorile RILConstants). */
+    private String networkMode() {
+        String raw = null;
+        for (String key : new String[] {"preferred_network_mode", "preferred_network_mode1"}) {
+            String v = android.provider.Settings.Global.getString(getContentResolver(), key);
+            if (v != null && !v.isEmpty()) {
+                raw = v.split(",")[0].trim();
+                break;
+            }
+        }
+        if (raw == null) return "necunoscut";
+        switch (raw) {
+            case "0": return "3G/2G (" + raw + ")";
+            case "1": return "doar 2G (" + raw + ")";
+            case "3": return "2G/3G (" + raw + ")";
+            case "9": return "4G/3G/2G automat (" + raw + ")";
+            case "11": return "doar 4G, LTE only (" + raw + ")";
+            case "12": return "4G/3G (" + raw + ")";
+            case "26": case "33": return "5G/4G/3G/2G automat (" + raw + ")";
+            default: return "cod " + raw;
+        }
     }
 
     /** Rand cu titlu, explicatie si comutator. */
