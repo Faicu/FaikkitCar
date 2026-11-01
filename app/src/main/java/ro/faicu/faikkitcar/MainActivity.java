@@ -820,12 +820,13 @@ public class MainActivity extends Activity {
 
         LinearLayout sys = Ui.card(this, col);
         Ui.title(this, sys, "Sistem");
-        toggle(sys, "Actualizare la pornire", "Versiunea noua se descarca singura si, la ~1 minut dupa pornirea "
-                + "masinii, Android iti cere o singura atingere: Instalati", Prefs.autoUpdateEnabled(this),
+        toggle(sys, "Actualizare automata", "Versiunea noua se descarca singura; Android iti cere o singura "
+                + "atingere (Instalati) la ~1 minut dupa pornirea masinii sau imediat ce apare, daca e contactul pus",
+                Prefs.autoUpdateEnabled(this),
                 on -> Prefs.setAutoUpdateEnabled(this, on));
         Ui.hint(this, sys, "Afisare peste alte aplicatii: " + (Updater.canShowLater(this)
-                ? "data (ok): confirmarea actualizarii apare la ~1 minut dupa pornire"
-                : "NU. Fara ea, confirmarea apare imediat la pornire, nu dupa ~1 minut"));
+                ? "data (ok)"
+                : "NU. Fara ea, confirmarea apare doar imediat la pornire"));
         if (!Updater.canShowLater(this)) {
             Ui.addButton(this, sys, "Afisare peste alte aplicatii", Ui.SECONDARY, v -> {
                 try {
@@ -839,10 +840,13 @@ public class MainActivity extends Activity {
         Ui.hint(this, sys, "Acces la notificari: " + (KeepAliveListener.granted(this)
                 ? "dat (ok): prioritate mai mare, repornire de catre sistem"
                 : "NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie (notificarile nu se citesc)"));
-        Ui.addButton(this, sys, "Acces la notificari", Ui.SECONDARY, v -> startActivity(
-                new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+        // Butoanele apar doar cand e ceva de rezolvat (cererea utilizatorului, 01.11).
+        if (!KeepAliveListener.granted(this)) {
+            Ui.addButton(this, sys, "Acces la notificari", Ui.SECONDARY, v -> startActivity(
+                    new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+        }
         Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
-        Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
+        if (!batteryOk()) Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
         toggle(sys, "Comenzi de la distanta (teste)", "Lasa serverul sa ruleze comenzi pe navigatie, "
                 + "fara root, pentru diagnostic. Porneste-l doar cand facem teste; fiecare comanda apare in jurnal",
                 Prefs.remoteCmdEnabled(this), on -> {
@@ -854,12 +858,17 @@ public class MainActivity extends Activity {
         String mode = CellSignal.networkMode(this);
         Ui.hint(this, sys, "Retea mobila, tipul preferat: " + mode + (mode.contains("LTE only") ? " (ok)"
                 : ". Pentru internet fara caderi pe 2G alege „LTE only” in ecranul de mai jos"));
-        Ui.addButton(this, sys, "Informatii telefon (tipul de retea)", Ui.SECONDARY, v -> CellSignal.openRadioInfo(this));
-        Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
-            WelcomeService.start(this);
-            toast("Serviciul ruleaza");
-            ui.postDelayed(this::refresh, 800);
-        });
+        if (!mode.contains("LTE only")) {
+            Ui.addButton(this, sys, "Informatii telefon (tipul de retea)", Ui.SECONDARY, v -> CellSignal.openRadioInfo(this));
+        }
+        if (!serviceRunning()) {
+            Ui.hint(this, sys, "Serviciul: OPRIT");
+            Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
+                WelcomeService.start(this);
+                toast("Serviciul ruleaza");
+                ui.postDelayed(this::refresh, 800);
+            });
+        }
 
         buildProbe(col);
     }
