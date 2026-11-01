@@ -46,6 +46,11 @@ final class Greeting {
         return r.title + " în curând.";
     }
 
+    /** Modemul a revenit pe automat (dupa somn, 01.11): pe 2G nu merge internetul. */
+    static String networkMode() {
+        return "Atenție! Rețeaua mobilă a revenit pe automat. Pune din nou doar 4G, de pe ecranul aplicației.";
+    }
+
     static String doorOpen(List<Integer> open) {
         List<String> names = new ArrayList<>();
         for (int i : open) names.add(CanLink.DOORS[i]);

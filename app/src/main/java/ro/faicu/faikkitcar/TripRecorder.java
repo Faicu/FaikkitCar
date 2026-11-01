@@ -311,7 +311,15 @@ final class TripRecorder implements LocationListener {
         if (moving) movingMs += SAMPLE_MS;
         if (!greeted && movingMs >= GREET_AFTER_MS) {
             greeted = true;
-            if (Prefs.greetEnabled(c)) Speaker.say(c, Greeting.salute(c, can.temp()), false);
+            // „LTE only” se pierde uneori dupa somn (01.11): o spunem odata cu salutul.
+            boolean netWarn = CellSignal.modeCode >= 0 && CellSignal.modeCode != CellSignal.LTE_ONLY;
+            if (Prefs.greetEnabled(c)) {
+                String text = Greeting.salute(c, can.temp());
+                Speaker.say(c, netWarn ? text + " " + Greeting.networkMode() : text, false);
+            } else if (netWarn) {
+                Speaker.say(c, Greeting.networkMode(), true);
+            }
+            if (netWarn) Prefs.log(c, "Retea mobila: avertizare vorbita, tipul " + CellSignal.modeCode);
         }
 
         java.util.List<Integer> open = can.openDoors();

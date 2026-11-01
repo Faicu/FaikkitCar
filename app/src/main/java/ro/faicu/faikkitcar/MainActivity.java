@@ -356,6 +356,14 @@ public class MainActivity extends Activity {
             warn.addView(Ui.text(this, "Optimizarea bateriei e activa", 17, Ui.WARN, true));
             Ui.addButton(this, warn, "Dezactiveaza optimizarea", Ui.SECONDARY, v -> askBattery());
         }
+        CellSignal.networkMode(this); // actualizeaza modeCode
+        if (CellSignal.modeCode >= 0 && CellSignal.modeCode != CellSignal.LTE_ONLY) {
+            LinearLayout warn = Ui.card(this, col);
+            warn.addView(Ui.text(this, "Reteaua mobila nu e pe LTE only", 17, Ui.WARN, true));
+            Ui.hint(this, warn, "Pe automat coboara pe 2G („G”), unde nu se incarca nimic. In ecranul care se "
+                    + "deschide alege „LTE only” la tipul preferat de retea");
+            Ui.addButton(this, warn, "Pune LTE only", Ui.PRIMARY, v -> CellSignal.openRadioInfo(this));
+        }
         if (Prefs.tripsEnabled(this) && !TripRecorder.hasPermission(this)) {
             LinearLayout warn = Ui.card(this, col);
             warn.addView(Ui.text(this, "Calatoriile nu au GPS", 17, Ui.WARN, true));
@@ -821,13 +829,7 @@ public class MainActivity extends Activity {
         String mode = CellSignal.networkMode(this);
         Ui.hint(this, sys, "Retea mobila, tipul preferat: " + mode + (mode.contains("LTE only") ? " (ok)"
                 : ". Pentru internet fara caderi pe 2G alege „LTE only” in ecranul de mai jos"));
-        Ui.addButton(this, sys, "Informatii telefon (tipul de retea)", Ui.SECONDARY, v -> {
-            try {
-                startActivity(new Intent().setClassName("com.android.settings", "com.android.settings.RadioInfo"));
-            } catch (RuntimeException e) {
-                toast("Ecranul nu se poate deschide: " + e.getMessage());
-            }
-        });
+        Ui.addButton(this, sys, "Informatii telefon (tipul de retea)", Ui.SECONDARY, v -> CellSignal.openRadioInfo(this));
         Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
             WelcomeService.start(this);
             toast("Serviciul ruleaza");

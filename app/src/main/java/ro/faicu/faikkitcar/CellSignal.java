@@ -128,6 +128,7 @@ final class CellSignal {
         }
     }
 
+    static final int LTE_ONLY = 11;
     // Codul tipului de retea de la ultima citire (-1 = necunoscut), trimis cu starea live (UnitStats).
     static volatile int modeCode = -1;
     // Ultimul tip de retea scris in jurnal: il notam la pornire si la fiecare schimbare.
@@ -183,6 +184,17 @@ final class CellSignal {
                 Prefs.log(c, "Retea mobila: tipul preferat " + mode);
             }
         } catch (RuntimeException ignored) {
+        }
+    }
+
+    /** Ecranul ascuns „Informatii telefon” (RadioInfo), singurul unde se poate alege „LTE only”. */
+    static void openRadioInfo(android.app.Activity a) {
+        try {
+            a.startActivity(new android.content.Intent().setClassName("com.android.settings",
+                    "com.android.settings.RadioInfo"));
+        } catch (RuntimeException e) {
+            android.widget.Toast.makeText(a, "Ecranul nu se poate deschide: " + e.getMessage(),
+                    android.widget.Toast.LENGTH_LONG).show();
         }
     }
 
