@@ -152,6 +152,7 @@ public class WelcomeService extends Service {
                 Prefs.log(WelcomeService.this, "Pauza " + gap / 1000 + " s (sub prag)");
             }
             sleptAtTick = sleptSec();
+            CellSignal.checkMode(WelcomeService.this);
             // Scriem pe disc doar la ~15 s, ca sa nu uzam memoria interna.
             if (++count % 3 == 0 || gap > TICK_MS * 2) {
                 Prefs.setLastAlive(WelcomeService.this, System.currentTimeMillis());

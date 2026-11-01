@@ -46,14 +46,6 @@ final class CellSignal {
     static void put(Context c, JSONObject p) throws JSONException {
         p.put("net", online(c));
         try {
-            String mode = networkMode(c);
-            if (!mode.equals(loggedMode)) {
-                loggedMode = mode;
-                Prefs.log(c, "Retea mobila: tipul preferat " + mode);
-            }
-        } catch (RuntimeException ignored) {
-        }
-        try {
             TelephonyManager tm = (TelephonyManager) c.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm == null) return;
             if (Build.VERSION.SDK_INT >= 29) {
@@ -171,6 +163,21 @@ final class CellSignal {
             default: name = "cod";
         }
         return name + " (" + raw + (key.equals("preferred_network_mode") ? ", general" : ", cartela " + sub) + ")";
+    }
+
+    /**
+     * Scrie in jurnal tipul de retea la pornire si cand se schimba. Apelat din tick (5 s, cat
+     * navigatia e treaza): pe 01.11 „LTE only” a revenit singur pe automat, intre 19:05 si 21:40.
+     */
+    static void checkMode(Context c) {
+        try {
+            String mode = networkMode(c);
+            if (!mode.equals(loggedMode)) {
+                loggedMode = mode;
+                Prefs.log(c, "Retea mobila: tipul preferat " + mode);
+            }
+        } catch (RuntimeException ignored) {
+        }
     }
 
     /** 0 = fara internet, 1 = internet pe date mobile, 2 = internet pe Wi-Fi (hotspot). */
