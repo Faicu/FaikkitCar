@@ -157,6 +157,15 @@ final class Prefs {
         sp(c).edit().putBoolean("door_alert", on).apply();
     }
 
+    /** Avertizarea vorbita cand reteaua mobila nu mai e pe „LTE only” (dupa somn, 01.11). */
+    static boolean netAlertEnabled(Context c) {
+        return sp(c).getBoolean("net_alert", true);
+    }
+
+    static void setNetAlertEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("net_alert", on).apply();
+    }
+
     /** Comenzile shell de pe server (RemoteCmd), pentru teste; implicit oprite. */
     static boolean remoteCmdEnabled(Context c) {
         return sp(c).getBoolean("remote_cmd", false);

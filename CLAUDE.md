@@ -166,7 +166,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   starea live (`u.nm` → `live.unit.netMode`, `net-mode.ts`), afișat pe site/Panel în cardul Navigația;
   `unitHealth` avertizează când nu e 11. 1.1.71: la salutul de 30 s, dacă nu e 11, se adaugă „Atenție! Rețeaua mobilă
   a revenit pe automat…” (și separat dacă salutul e oprit); pe Acasă cardul „Reteaua mobila nu e pe LTE only”
-  cu butonul „Pune LTE only” (`CellSignal.openRadioInfo`). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  cu butonul „Pune LTE only” (`CellSignal.openRadioInfo`). Comutator în Setări → In mers: „Avertizare retea
+  mobila” (`Prefs.netAlertEnabled`, implicit pornit, 1.1.73). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

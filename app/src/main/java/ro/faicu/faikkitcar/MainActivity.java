@@ -811,6 +811,10 @@ public class MainActivity extends Activity {
         Ui.divider(this, voice);
         toggle(voice, "Avertizare usa deschisa", "Cand masina porneste din loc cu o usa sau portbagajul deschis",
                 Prefs.doorAlertEnabled(this), on -> Prefs.setDoorAlertEnabled(this, on));
+        Ui.divider(this, voice);
+        toggle(voice, "Avertizare retea mobila", "La 30 s de mers, daca reteaua nu mai e pe LTE only "
+                + "(poate cobori pe 2G, fara internet)", Prefs.netAlertEnabled(this),
+                on -> Prefs.setNetAlertEnabled(this, on));
         Ui.addButton(this, voice, "Asculta salutul acum", Ui.SECONDARY,
                 v -> Speaker.say(this, Greeting.salute(this, CanLink.get(this).temp()), false));
 
