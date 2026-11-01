@@ -120,7 +120,34 @@ final class Updater {
         }
     }
 
-    /** La ACC ON: daca e o versiune descarcata si n-am intrebat de curand, cere confirmarea. */
+    // Fereastra apare la atat dupa pornire: motorul se incalzeste, aplicatiile au pornit deja
+    // (cererea utilizatorului, 01.11). Fara „Afisare peste alte aplicatii”, Android 10 o lasa
+    // doar imediat dupa autostart, deci atunci o deschidem pe loc.
+    private static final long OFFER_DELAY_MS = 60_000;
+    private static final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static Runnable pendingOffer;
+
+    /** „Afisare peste alte aplicatii” data: putem deschide fereastra oricand, nu doar la autostart. */
+    static boolean canShowLater(Context c) {
+        return Settings.canDrawOverlays(c);
+    }
+
+    /** La ACC ON (autostart): propunerea, la ~1 min sau imediat daca nu avem voie mai tarziu. */
+    static void scheduleOffer(Context ctx) {
+        Context c = ctx.getApplicationContext();
+        if (!canShowLater(c)) {
+            offerAtStart(c);
+            return;
+        }
+        if (pendingOffer != null) main.removeCallbacks(pendingOffer);
+        pendingOffer = () -> {
+            pendingOffer = null;
+            offerAtStart(c);
+        };
+        main.postDelayed(pendingOffer, OFFER_DELAY_MS);
+    }
+
+    /** Daca e o versiune descarcata si n-am intrebat de curand, cere confirmarea. */
     static void offerAtStart(Context ctx) {
         Context c = ctx.getApplicationContext();
         if (!Prefs.autoUpdateEnabled(c) || !c.getPackageManager().canRequestPackageInstalls()) return;

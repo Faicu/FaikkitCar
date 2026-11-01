@@ -820,9 +820,22 @@ public class MainActivity extends Activity {
 
         LinearLayout sys = Ui.card(this, col);
         Ui.title(this, sys, "Sistem");
-        toggle(sys, "Actualizare la pornire", "Versiunea noua se descarca singura si, la pornirea masinii, "
-                + "Android iti cere o singura atingere: Instalati", Prefs.autoUpdateEnabled(this),
+        toggle(sys, "Actualizare la pornire", "Versiunea noua se descarca singura si, la ~1 minut dupa pornirea "
+                + "masinii, Android iti cere o singura atingere: Instalati", Prefs.autoUpdateEnabled(this),
                 on -> Prefs.setAutoUpdateEnabled(this, on));
+        Ui.hint(this, sys, "Afisare peste alte aplicatii: " + (Updater.canShowLater(this)
+                ? "data (ok): confirmarea actualizarii apare la ~1 minut dupa pornire"
+                : "NU. Fara ea, confirmarea apare imediat la pornire, nu dupa ~1 minut"));
+        if (!Updater.canShowLater(this)) {
+            Ui.addButton(this, sys, "Afisare peste alte aplicatii", Ui.SECONDARY, v -> {
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:" + getPackageName())));
+                } catch (RuntimeException e) {
+                    toast("Ecranul nu se poate deschide: " + e.getMessage());
+                }
+            });
+        }
         Ui.hint(this, sys, "Acces la notificari: " + (KeepAliveListener.granted(this)
                 ? "dat (ok): prioritate mai mare, repornire de catre sistem"
                 : "NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie (notificarile nu se citesc)"));

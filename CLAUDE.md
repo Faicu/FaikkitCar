@@ -102,8 +102,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   vorbire (1.1.56). Utilizatorul a dezactivat aplicația Google și TXZ, nu motorul de voce.
 - `VwStatus` (`/api/car/status`, `summary`, `route`), `Updater` (actualizare din aplicație prin
   `PackageInstaller`, merge; din 1.1.74 descarcă în avans versiunea nouă în `filesDir/update.apk`, din firul
-  `Uploader`, și o propune la ACC ON din `StartActivity`: o atingere, „Instalați”; testat în emulatorul
-  Android 10; „Anulare” = nu mai întreabă 6 h; comutator Setări → Sistem „Actualizare la pornire”), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
+  `Uploader`, și o propune la ~1 min după ACC ON (`StartActivity` → `scheduleOffer`, cererea utilizatorului:
+  încălzește motorul înainte să plece; și în mers e în regulă): o atingere, „Instalați”. La 1 min cere
+  „Afișare peste alte aplicații” (SYSTEM_ALERT_WINDOW; fără ea, imediat la autostart); testat în emulatorul
+  Android 10, fereastra apare peste altă aplicație; „Anulare” = nu mai întreabă 6 h; comutator Setări → Sistem „Actualizare la pornire”), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
   trimite `CAN MARK <text> | schimbări`; lista `KNOWN` din `MainActivity` ascunde codurile
   știute, dar nu c10/c13/c27/c28 și cadrul 0x21).
 - Memoria (20.10, cu comenzile): navigația are 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili;

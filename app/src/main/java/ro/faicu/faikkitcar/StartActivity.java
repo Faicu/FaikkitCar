@@ -14,9 +14,9 @@ public class StartActivity extends Activity {
         super.onCreate(b);
         Prefs.log(this, "Pornit din autostart");
         WelcomeService.startAccOn(this);
-        // Masina sta pe loc: o versiune noua descarcata se propune acum (o atingere). Pornita
-        // de aici, fereastra de confirmare are voie sa apara (aplicatia tocmai a fost vizibila).
-        Updater.offerAtStart(this);
+        // O versiune noua descarcata se propune la ~1 min (o atingere); fara „Afisare peste alte
+        // aplicatii”, imediat (Android 10 permite fereastra doar cat aplicatia tocmai a fost vizibila).
+        Updater.scheduleOffer(this);
         finish();
     }
 }
