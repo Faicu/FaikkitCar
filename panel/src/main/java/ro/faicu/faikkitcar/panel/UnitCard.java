@@ -94,6 +94,7 @@ final class UnitCard {
         if (!u.isNull("appMb")) facts.add("FaikkitCar " + u.optInt("appMb") + " MB"
                 + (u.isNull("appAdj") ? "" : ", adj " + u.optInt("appAdj")));
         if (!u.isNull("diskGb")) facts.add("liber " + Fmt.num(u.optDouble("diskGb"), 1) + " GB");
+        if (u.has("netMode") && !u.isNull("netMode")) facts.add("rețea mobilă: " + netMode(u.optInt("netMode")));
         if (!facts.isEmpty()) {
             TextView f = Ui.text(c, String.join(" · ", facts), 12, Ui.MUTED, false);
             f.setPadding(0, dp(c, 8), 0, 0);
@@ -112,6 +113,20 @@ final class UnitCard {
         for (JSONObject p : list) {
             card.addView(procRow(c, p.optString("label", p.optString("name")),
                     p.isNull("cpu") ? "—" : Fmt.num(p.optDouble("cpu"), 1) + "%", p.optInt("mb") + " MB", false));
+        }
+    }
+
+    /** Tipul de retea preferat pe inteles, ca netModeLabel din unit.ts. */
+    static String netMode(int code) {
+        switch (code) {
+            case 0: return "3G/2G";
+            case 1: return "doar 2G";
+            case 3: return "2G/3G";
+            case 9: return "4G/3G/2G automat";
+            case 11: return "doar 4G (LTE only)";
+            case 12: return "4G/3G";
+            case 26: case 33: return "5G/4G/3G/2G automat";
+            default: return "cod " + code;
         }
     }
 

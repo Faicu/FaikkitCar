@@ -128,6 +128,8 @@ final class CellSignal {
         }
     }
 
+    // Codul tipului de retea de la ultima citire (-1 = necunoscut), trimis cu starea live (UnitStats).
+    static volatile int modeCode = -1;
     // Ultimul tip de retea scris in jurnal: il notam la pornire si la fiecare schimbare.
     private static String loggedMode;
 
@@ -151,6 +153,10 @@ final class CellSignal {
             }
         }
         if (raw == null) return "necunoscut";
+        try {
+            modeCode = Integer.parseInt(raw);
+        } catch (NumberFormatException ignored) {
+        }
         String name;
         switch (raw) {
             case "0": name = "3G/2G"; break;

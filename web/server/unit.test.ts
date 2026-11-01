@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { procLabel, unitHealth, type UnitStats } from "./unit.ts";
+import { netModeLabel, procLabel, unitHealth, type UnitStats } from "./unit.ts";
 
 const NOW = Date.parse("2026-10-22T14:16:20Z");
 
@@ -24,6 +24,22 @@ function unit(over: Partial<UnitStats> = {}): UnitStats {
     ...over,
   };
 }
+
+describe("tipul de rețea", () => {
+  it("LTE only e în regulă, automatul e semnalat", () => {
+    expect(unitHealth(unit({ netMode: 11 }), 25, NOW)?.level).toBe("ok");
+    expect(unitHealth(unit({ netMode: 9 }), 25, NOW)).toEqual({
+      level: "warn",
+      text: "rețeaua mobilă pe 4G/3G/2G automat, nu LTE only",
+    });
+    expect(unitHealth(unit({ netMode: null }), 25, NOW)?.level).toBe("ok");
+  });
+  it("numele", () => {
+    expect(netModeLabel(11)).toBe("doar 4G (LTE only)");
+    expect(netModeLabel(7)).toBe("cod 7");
+    expect(netModeLabel(null)).toBeNull();
+  });
+});
 
 describe("unitHealth", () => {
   it("merge bine, cu memoria, procesorul (media) și temperatura", () => {

@@ -68,6 +68,8 @@ final class UnitStats {
             if (adj != null) u.put("adj", Integer.parseInt(adj.trim()));
             StatFs fs = new StatFs(Environment.getDataDirectory().getPath());
             u.put("disk", Math.round(fs.getAvailableBytes() / 1e8) / 10.0); // GB
+            // Tipul de retea preferat al modemului (11 = LTE only), citit in tick (CellSignal).
+            if (CellSignal.modeCode >= 0) u.put("nm", CellSignal.modeCode);
             long now = SystemClock.elapsedRealtime();
             if (cpu != null && (topAt == 0 || now - topAt >= TOP_EVERY_MS)) {
                 JSONArray top = top(cpu[0]);

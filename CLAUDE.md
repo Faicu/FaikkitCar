@@ -162,7 +162,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   ceva îl reface între timp, probabil trezirea din somn (`sprd_networkcontrol`, `ro.telephony.default_network=9`).
   1.1.69: verificarea în tick (5 s), ca jurnalul să arate momentul exact. Dacă se confirmă: o aplicație
   nu-l poate seta (MODIFY_PHONE_STATE); variantă posibilă, un AccessibilityService care alege „LTE only”
-  în RadioInfo. Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  în RadioInfo. Oprirea scurtă (4 min 45 s, 01.11) nu l-a schimbat. 1.1.70: codul trimis în
+  starea live (`u.nm` → `live.unit.netMode`, `net-mode.ts`), afișat pe site/Panel în cardul Navigația;
+  `unitHealth` avertizează când nu e 11. Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Cpu } from "lucide-react";
 
 import { api, duration, num, relativeTime, type Live, type UnitPoint, type UnitStats } from "../api";
+import { netModeLabel } from "../../server/net-mode.ts";
 
 // Fără măsurare nouă atâta timp, navigația doarme (sau aplicația nu rulează).
 const STALE_MS = 90_000;
@@ -25,6 +26,8 @@ export function UnitCard({ unit, health }: { unit: UnitStats | null; health: Liv
   if (unit.load !== null) facts.push(`încărcare ${num(unit.load, 1)}${unit.cores ? ` (${unit.cores} nuclee)` : ""}`);
   if (unit.appMb !== null) facts.push(`FaikkitCar ${unit.appMb} MB${unit.appAdj !== null ? `, adj ${unit.appAdj}` : ""}`);
   if (unit.diskGb !== null) facts.push(`liber ${num(unit.diskGb, 1)} GB`);
+  const net = netModeLabel(unit.netMode);
+  if (net) facts.push(`rețea mobilă: ${net}`);
   return (
     <div className="space-y-3 rounded-2xl glass-card p-4">
       <div className="flex items-center gap-2">

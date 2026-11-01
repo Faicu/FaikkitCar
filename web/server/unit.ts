@@ -7,6 +7,9 @@
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
+import { netModeLabel } from "./net-mode.ts";
+
+export { netModeLabel };
 
 export interface UnitProc {
   name: string;
@@ -30,6 +33,7 @@ export interface UnitStats {
   appMb: number | null; // memoria proprie a FaikkitCar
   appAdj: number | null; // oom_score_adj al FaikkitCar (mai mare = omorât mai devreme)
   diskGb: number | null; // liber în /data
+  netMode?: number | null; // tipul de rețea preferat al modemului (RILConstants, 11 = LTE only), 1.1.70+
   procs: UnitProc[] | null; // null = nemăsurate în trimiterea asta
 }
 
@@ -111,6 +115,7 @@ export function saveUnit(u: unknown): void {
     appMb: num(x.am),
     appAdj: num(x.adj),
     diskGb: num(x.disk),
+    netMode: num(x.nm),
     procs: lastProcs,
   };
   if (now.getTime() - lastSavedAt < HISTORY_EVERY_MS) return;
@@ -162,6 +167,10 @@ export function unitHealth(u: UnitStats | null, cpuAvg: number | null, now = Dat
     }
   }
   if (u.diskGb !== null && u.diskGb < 1) warn.push(`spațiu puțin (${fmt(u.diskGb, 1)}\u00a0GB)`);
+  // Utilizatorul a pus „LTE only” (01.11): pe automat modemul coboară pe 2G, unde nu merge internetul.
+  if (u.netMode !== null && u.netMode !== undefined && u.netMode !== 11) {
+    warn.push(`rețeaua mobilă pe ${netModeLabel(u.netMode)}, nu LTE only`);
+  }
   if (bad.length + warn.length > 0) {
     return { level: bad.length > 0 ? "bad" : "warn", text: [...bad, ...warn].join(" · ") };
   }
