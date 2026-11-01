@@ -117,6 +117,26 @@ public class MainActivity extends Activity {
             bar.addView(t, tlp);
         }
         bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        // Verificarea actualizarii, la indemana din orice fila (inainte in Setari → Sistem).
+        TextView check = Ui.text(this, "↻ Actualizari", 15, Ui.ACCENT, true);
+        check.setGravity(Gravity.CENTER);
+        check.setPadding(dp(this, 14), dp(this, 9), dp(this, 14), dp(this, 9));
+        check.setOnClickListener(v -> {
+            v.setEnabled(false);
+            ((TextView) v).setText("↻ Verific...");
+            new Thread(() -> {
+                boolean ok = VwStatus.refresh(this);
+                runOnUiThread(() -> {
+                    v.setEnabled(true);
+                    ((TextView) v).setText("↻ Actualizari");
+                    boolean newer = ok && VwStatus.newerApk(this) != null;
+                    toast(!ok ? "Serverul nu raspunde" : newer ? "Exista o versiune noua, vezi Acasa" : "Ai ultima versiune");
+                    if (newer) showTab(0, false);
+                    else refresh();
+                });
+            }).start();
+        });
+        bar.addView(check);
         TextView version = Ui.text(this, "v" + BuildConfig.VERSION_NAME, 13, Ui.MUTED, false);
         version.setPadding(dp(this, 8), 0, dp(this, 10), 0);
         bar.addView(version);
@@ -796,14 +816,6 @@ public class MainActivity extends Activity {
 
         LinearLayout sys = Ui.card(this, col);
         Ui.title(this, sys, "Sistem");
-        Ui.addButton(this, sys, "Verifica actualizari", Ui.SECONDARY, v -> new Thread(() -> {
-            boolean ok = VwStatus.refresh(this);
-            runOnUiThread(() -> {
-                toast(!ok ? "Serverul nu raspunde" : VwStatus.newerApk(this) != null
-                        ? "Exista o versiune noua, vezi Acasa" : "Ai ultima versiune");
-                refresh();
-            });
-        }).start());
         Ui.hint(this, sys, "Acces la notificari: " + (KeepAliveListener.granted(this)
                 ? "dat (ok): prioritate mai mare, repornire de catre sistem"
                 : "NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie (notificarile nu se citesc)"));
@@ -817,13 +829,6 @@ public class MainActivity extends Activity {
                     Prefs.setRemoteCmdEnabled(this, on);
                     Prefs.log(this, "Comenzi de la distanta: " + (on ? "pornite" : "oprite"));
                 });
-        Ui.addButton(this, sys, "Test Bluetooth (adaptor OBD)", Ui.SECONDARY, v -> {
-            toast("Caut dispozitive Bluetooth, ~25 s; rezultatul apare in Jurnal");
-            new Thread(() -> {
-                Prefs.log(this, BleProbe.run(this));
-                runOnUiThread(this::refresh);
-            }).start();
-        });
         // Pe drumuri cu 4G slab, modemul coboara pe 2G („G”), unde nu se incarca nimic. Cu „LTE only”
         // ramane pe 4G. Setarile Teyes nu au mereu optiunea; ecranul ascuns „Informatii telefon” o are.
         String mode = CellSignal.networkMode(this);

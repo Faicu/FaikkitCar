@@ -124,8 +124,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 - `BleProbe` (22.10): test pentru un adaptor OBD2 fără fire. Bluetooth-ul Teyes (telefonul) e un modul separat
   (`sys.fyt.bluetooth_type=7`, `/dev/BT_serial`, `com.syu.bt`), invizibil pentru aplicații; procesorul are și
   cipul lui (`wcnd`, stiva Android). Testul raportează adaptorul Android, scanează BLE 10 s și clasic 12 s
-  (îl pornește și îl oprește la loc dacă era oprit). Setări → Sistem → „Test Bluetooth (adaptor OBD)” sau
-  comanda internă `@bluetooth` prin `car-cmd.ts` (`--timeout 60`). Navigația are și SIM cu LTE.
+  (îl pornește și îl oprește la loc dacă era oprit). Doar comanda internă `@bluetooth` prin `car-cmd.ts`
+  (`--timeout 60`); butonul din Setări scos în 1.1.72, la cererea utilizatorului. Navigația are și SIM cu LTE.
   Rezultat 22.10: Bluetooth-ul Android e pornit (nume „FAImobil”), BLE merge (a găsit `LEDCAR-01`, −43 dBm),
   deci un adaptor OBD2 BLE se poate citi direct din aplicație; ales vLinker MC+.
 - `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
@@ -171,7 +171,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o
   tragi, apoi „Urmărește mașina”; aceeași MapView mutată între redesenări,
-  `setDestroyMode(false)`) și alături doar ce nu arată bordul (cererea utilizatorului): viteza mare,
+  `setDestroyMode(false)`; „↻ Actualizari” în bara de jos din 1.1.72, scos din Setări) și alături doar ce nu arată bordul (cererea utilizatorului): viteza mare,
   starea („In mers”, „Oprit in trafic · 45 s”, „Parcat, motor pornit”…), bateria doar în afara
   limitelor, costul / litrii / traficul călătoriei în curs (sau ultima pe scurt), „Azi”, apoi
   actualizarea, mentenanța scadentă și setările lipsă. Turația, temperatura, clima, rezervorul,
