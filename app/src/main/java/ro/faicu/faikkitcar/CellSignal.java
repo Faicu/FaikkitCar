@@ -46,6 +46,14 @@ final class CellSignal {
     static void put(Context c, JSONObject p) throws JSONException {
         p.put("net", online(c));
         try {
+            String mode = networkMode(c);
+            if (!mode.equals(loggedMode)) {
+                loggedMode = mode;
+                Prefs.log(c, "Retea mobila: tipul preferat " + mode);
+            }
+        } catch (RuntimeException ignored) {
+        }
+        try {
             TelephonyManager tm = (TelephonyManager) c.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm == null) return;
             if (Build.VERSION.SDK_INT >= 29) {
@@ -126,6 +134,43 @@ final class CellSignal {
         } catch (RuntimeException ignored) {
             // Fara permisiune sau ROM-ul nu raporteaza celulele: punctul ramane doar cu „net”.
         }
+    }
+
+    // Ultimul tip de retea scris in jurnal: il notam la pornire si la fiecare schimbare.
+    private static String loggedMode;
+
+    /**
+     * Tipul de retea preferat (valorile RILConstants). Android 10 il tine pe cartela, in
+     * preferred_network_mode<subId>: acolo scrie „Informatii telefon”. Cheia fara subId ramane
+     * pe valoarea implicita a ROM-ului (9 pe Teyes, 01.11, cu LTE only pus).
+     */
+    static String networkMode(Context c) {
+        android.content.ContentResolver cr = c.getContentResolver();
+        int sub = android.telephony.SubscriptionManager.getDefaultDataSubscriptionId();
+        String raw = null;
+        String key = null;
+        for (String k : new String[] {sub >= 0 ? "preferred_network_mode" + sub : null, "preferred_network_mode"}) {
+            if (k == null) continue;
+            String v = android.provider.Settings.Global.getString(cr, k);
+            if (v != null && !v.trim().isEmpty()) {
+                raw = v.split(",")[0].trim();
+                key = k;
+                break;
+            }
+        }
+        if (raw == null) return "necunoscut";
+        String name;
+        switch (raw) {
+            case "0": name = "3G/2G"; break;
+            case "1": name = "doar 2G"; break;
+            case "3": name = "2G/3G"; break;
+            case "9": name = "4G/3G/2G automat"; break;
+            case "11": name = "doar 4G, LTE only"; break;
+            case "12": name = "4G/3G"; break;
+            case "26": case "33": name = "5G/4G/3G/2G automat"; break;
+            default: name = "cod";
+        }
+        return name + " (" + raw + (key.equals("preferred_network_mode") ? ", general" : ", cartela " + sub) + ")";
     }
 
     /** 0 = fara internet, 1 = internet pe date mobile, 2 = internet pe Wi-Fi (hotspot). */

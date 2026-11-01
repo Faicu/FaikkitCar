@@ -154,7 +154,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   01.11, 18:46: utilizatorul a pus „LTE only” din butonul „Informatii telefon” (meniul Teyes de rețea
   mobilă are doar „LTE (recomandat)”/3G/2G, adică automat). Înainte: un 2G prins pe 31.10 08:11 (GSM
   ARFCN 16, ~5 s, după LTE −123 dBm); după: niciun 2G. Netestat: dacă setarea rămâne după o repornire.
-  2G rămâne în monitorizare ca semnal că setarea s-a pierdut. Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  2G rămâne în monitorizare ca semnal că setarea s-a pierdut. A rămas după repornire (01.11). Setarea e pe cartelă:
+  `preferred_network_mode<subId>` (`preferred_network_mode` general rămâne 9 pe Teyes); 1.1.68 o citește de
+  acolo și scrie „Retea mobila: tipul preferat …” în jurnal la pornire și la schimbare. Comenzile de la
+  distanță nu pot citi setările (`settings`/`content` cer permisiuni de shell). Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o
