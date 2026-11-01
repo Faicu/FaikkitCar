@@ -11,6 +11,7 @@ import android.provider.Settings;
 
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -66,18 +67,112 @@ final class Updater {
         }).start();
     }
 
+    private static HttpURLConnection openDownload() throws java.io.IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(VwStatus.BASE + "/api/car/apk/download").openConnection();
+        conn.setConnectTimeout(15_000);
+        conn.setReadTimeout(60_000);
+        conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
+        return conn;
+    }
+
+    // ---------------------------------------------------------------- la pornirea masinii
+    // Versiunea noua se descarca in fundal (prefetch, cand vine starea de pe server) si se
+    // propune la ACC ON (StartActivity): masina sta pe loc, iar dupa somn internetul abia se
+    // reconecteaza, deci instalam din fisier. Android 10 cere o atingere; la „Anulare” nu mai
+    // intrebam pentru aceeasi versiune atatea ore (cardul de pe Acasa ramane).
+    private static final long ASK_AGAIN_MS = 6 * 3_600_000L;
+    private static volatile boolean prefetching;
+
+    private static File prefetched(Context c) {
+        return new File(c.getFilesDir(), "update.apk");
+    }
+
+    /** Descarca in avans versiunea noua (din firul trimiterii). Blocant. */
+    static void prefetch(Context c) {
+        JSONObject apk = VwStatus.newerApk(c);
+        File f = prefetched(c);
+        if (apk == null) {
+            if (f.exists() && Prefs.prefetchedCode(c) <= BuildConfig.VERSION_CODE) f.delete();
+            return;
+        }
+        int code = apk.optInt("versionCode");
+        if (prefetching || (f.exists() && Prefs.prefetchedCode(c) == code)) return;
+        prefetching = true;
+        HttpURLConnection conn = null;
+        File tmp = new File(c.getFilesDir(), "update.apk.part");
+        try {
+            conn = openDownload();
+            if (conn.getResponseCode() != 200) return;
+            try (InputStream in = conn.getInputStream(); OutputStream out = new java.io.FileOutputStream(tmp)) {
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            if (tmp.renameTo(f)) {
+                Prefs.setPrefetchedCode(c, code);
+                Prefs.log(c, "Actualizare: " + apk.optString("versionName") + " descarcata, o propun la pornirea masinii");
+            }
+        } catch (Exception e) {
+            tmp.delete();
+        } finally {
+            prefetching = false;
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /** La ACC ON: daca e o versiune descarcata si n-am intrebat de curand, cere confirmarea. */
+    static void offerAtStart(Context ctx) {
+        Context c = ctx.getApplicationContext();
+        if (!Prefs.autoUpdateEnabled(c) || !c.getPackageManager().canRequestPackageInstalls()) return;
+        File f = prefetched(c);
+        int code = Prefs.prefetchedCode(c);
+        if (!f.exists() || code <= BuildConfig.VERSION_CODE || busy(c)) return;
+        if (Prefs.offeredCode(c) == code && System.currentTimeMillis() - Prefs.offeredAt(c) < ASK_AGAIN_MS) return;
+        Prefs.setOffered(c, code, System.currentTimeMillis());
+        downloading = true;
+        new Thread(() -> {
+            String error;
+            try {
+                Prefs.log(c, "Actualizare: propun versiunea " + code + " la pornire");
+                error = commit(c, () -> new java.io.FileInputStream(f));
+            } finally {
+                downloading = false;
+            }
+            if (error != null) Prefs.log(c, "Actualizare: " + error);
+        }).start();
+    }
+
+    interface Source {
+        InputStream open() throws Exception;
+    }
+
     private static String install(Context c) {
         JSONObject apk = VwStatus.newerApk(c);
         if (apk == null) return "nicio versiune noua";
+        File f = prefetched(c);
+        if (f.exists() && Prefs.prefetchedCode(c) == apk.optInt("versionCode")) {
+            Prefs.log(c, "Actualizare: instalez " + apk.optString("versionName") + " (descarcata deja)");
+            return commit(c, () -> new java.io.FileInputStream(f));
+        }
         Prefs.log(c, "Actualizare: descarc " + apk.optString("versionName"));
-        PackageInstaller pi = c.getPackageManager().getPackageInstaller();
-        HttpURLConnection conn = null;
+        HttpURLConnection[] conn = new HttpURLConnection[1];
         try {
-            conn = (HttpURLConnection) new URL(VwStatus.BASE + "/api/car/apk/download").openConnection();
-            conn.setConnectTimeout(15_000);
-            conn.setReadTimeout(60_000);
-            conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
-            if (conn.getResponseCode() != 200) return "descarcare esuata, HTTP " + conn.getResponseCode();
+            return commit(c, () -> {
+                conn[0] = openDownload();
+                if (conn[0].getResponseCode() != 200) {
+                    throw new java.io.IOException("descarcare esuata, HTTP " + conn[0].getResponseCode());
+                }
+                return conn[0].getInputStream();
+            });
+        } finally {
+            if (conn[0] != null) conn[0].disconnect();
+        }
+    }
+
+    /** Scrie APK-ul intr-o sesiune PackageInstaller si o trimite; null = trimisa. */
+    private static String commit(Context c, Source source) {
+        PackageInstaller pi = c.getPackageManager().getPackageInstaller();
+        try {
             PackageInstaller.SessionParams params =
                     new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
             params.setAppPackageName(c.getPackageName());
@@ -91,7 +186,7 @@ final class Updater {
             }
             int id = pi.createSession(params);
             try (PackageInstaller.Session session = pi.openSession(id)) {
-                try (InputStream in = conn.getInputStream();
+                try (InputStream in = source.open();
                      OutputStream out = session.openWrite("FaikkitCar.apk", 0, -1)) {
                     byte[] buf = new byte[65536];
                     int n;
@@ -114,8 +209,6 @@ final class Updater {
             return null;
         } catch (Exception e) {
             return "eroare " + e;
-        } finally {
-            if (conn != null) conn.disconnect();
         }
     }
 

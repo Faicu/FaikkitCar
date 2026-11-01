@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Aici nu scriem cu Prefs.log: fiecare linie noua ar intra din nou in coada.
  */
 final class Uploader {
-    private static final String URL_LOG = "https://car.faicu.ro/api/car/log";
-    private static final String URL_TRIP = "https://car.faicu.ro/api/car/trip";
+    private static final String URL_LOG = VwStatus.BASE + "/api/car/log";
+    private static final String URL_TRIP = VwStatus.BASE + "/api/car/trip";
     private static final int POINT_BATCH = 300;
     private static final int POINT_CHUNK = 3000;
     private static final int BATCH = 100;
@@ -85,6 +85,8 @@ final class Uploader {
         }
         // Avem internet: reimprospatam si starea (mentenanta, versiunea noua).
         VwStatus.refreshIfOld(c);
+        // Versiunea noua, descarcata in avans: se propune la urmatoarea pornire a masinii.
+        if (Prefs.autoUpdateEnabled(c)) Updater.prefetch(c);
     }
 
     /** Intoarce null la succes, altfel motivul. */

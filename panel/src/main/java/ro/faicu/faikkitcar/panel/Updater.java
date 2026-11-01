@@ -17,8 +17,10 @@ import java.net.HttpURLConnection;
 
 /**
  * Actualizarea din aplicatie, ca la FaikkitCar din masina: ultimul APK Panel de pe
- * car.faicu.ro (incarcat de CI), instalat prin PackageInstaller; Android cere o confirmare.
- * Prima data trebuie permisa instalarea din FaikkitCar Panel ("surse necunoscute").
+ * car.faicu.ro (incarcat de CI), instalat prin PackageInstaller. Prima data trebuie permisa
+ * instalarea din FaikkitCar Panel ("surse necunoscute"). De la Android 12, daca versiunea de
+ * acum a fost instalata tot de Panel, instalarea merge fara confirmare: atunci se face singura
+ * (auto), la deschiderea aplicatiei si zilnic in fundal (AutoUpdateJob).
  */
 final class Updater {
     private Updater() {}
@@ -31,6 +33,31 @@ final class Updater {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // O incercare automata pe versiune la cel mult atatea ore (daca Android tot cere confirmare).
+    private static final long AUTO_RETRY_MS = 6 * 3_600_000L;
+
+    /** Se poate instala fara confirmare: Android 12+ si permisiunea de instalare data. */
+    static boolean silentPossible(Context c) {
+        return android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls();
+    }
+
+    /**
+     * Actualizarea automata: daca e o versiune noua si se poate fara confirmare, o instaleaza.
+     * Blocant (din fir separat). Intoarce true daca a trimis-o la instalare.
+     */
+    static boolean auto(Context c) {
+        if (!silentPossible(c)) return false;
+        JSONObject apk = newer(c);
+        if (apk == null) return false;
+        android.content.SharedPreferences sp = c.getSharedPreferences("update", Context.MODE_PRIVATE);
+        int code = apk.optInt("versionCode");
+        if (sp.getInt("tried", 0) == code && System.currentTimeMillis() - sp.getLong("triedAt", 0) < AUTO_RETRY_MS) {
+            return false;
+        }
+        sp.edit().putInt("tried", code).putLong("triedAt", System.currentTimeMillis()).apply();
+        return install(c) == null;
     }
 
     /** Porneste actualizarea in fundal; onDone primeste pe firul UI eroarea (null = trimisa la instalare). */
@@ -57,6 +84,9 @@ final class Updater {
             PackageInstaller.SessionParams params =
                     new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
             params.setAppPackageName(c.getPackageName());
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+            }
             int id = pi.createSession(params);
             try (PackageInstaller.Session session = pi.openSession(id)) {
                 try (InputStream in = conn.getInputStream();

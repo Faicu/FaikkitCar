@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * in coada: o stare veche nu mai conteaza, deci la eroare se pierde si o inlocuieste urmatoarea.
  */
 final class LiveState {
-    private static final String URL_STATE = "https://car.faicu.ro/api/car/state";
+    private static final String URL_STATE = VwStatus.BASE + "/api/car/state";
     private static final long ENGINE_MS = 4_500; // practic la fiecare esantion de 5 s
     private static final long CONTACT_MS = 15_000;
     private static final long IDLE_MS = 60_000;

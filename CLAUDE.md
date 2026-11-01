@@ -63,7 +63,9 @@ activă, separată. Remote Control: `claude.service` (sursa în
 - Test fără mașină (12.10): copie a bazei cu `VACUUM INTO` într-un dosar temporar, al doilea server
   cu `FAIKKITCAR_DATA_DIR=<dosar> PORT=3999`, punctele unui drum mutate în prezent și stări
   trimise la 5 s la `/api/car/state`; APK-uri de test cu `https://car.faicu.ro` înlocuit cu
-  `http://10.0.2.2:3999` + `usesCleartextTraffic` (apoi totul revenit; nu trimit la serverul real).
+  `http://10.0.2.2:3999` + `usesCleartextTraffic` (apoi totul revenit; nu trimit la serverul real). În aplicația
+  din mașină adresa e doar în `VwStatus.BASE` (din 01.11, după ce un APK de test cu doar ea schimbată a trimis
+  26 de rânduri de jurnal la serverul real; scoase, copie în `/root/backups/faikkitcar-log-emulator-20261101.json`).
   Nu folosi `pkill -f` cu un tipar din propria comandă (omoară shell-ul).
 
 ## Aplicația din mașină (`app/`)
@@ -99,7 +101,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   deschisă la ≥ 5 km/h (mereu vocea locală). TextToSpeech se eliberează la 30 s după ultima
   vorbire (1.1.56). Utilizatorul a dezactivat aplicația Google și TXZ, nu motorul de voce.
 - `VwStatus` (`/api/car/status`, `summary`, `route`), `Updater` (actualizare din aplicație prin
-  `PackageInstaller`, merge), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
+  `PackageInstaller`, merge; din 1.1.74 descarcă în avans versiunea nouă în `filesDir/update.apk`, din firul
+  `Uploader`, și o propune la ACC ON din `StartActivity`: o atingere, „Instalați”; testat în emulatorul
+  Android 10; „Anulare” = nu mai întreabă 6 h; comutator Setări → Sistem „Actualizare la pornire”), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
   trimite `CAN MARK <text> | schimbări`; lista `KNOWN` din `MainActivity` ascunde codurile
   știute, dar nu c10/c13/c27/c28 și cadrul 0x21).
 - Memoria (20.10, cu comenzile): navigația are 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili;
@@ -269,7 +273,9 @@ token Bearer (`Store`); `Api` = aceleași rute ca site-ul. File jos: Acum (long 
 separat, `startLive`; harta live `MapBox.LiveRoute`, aceeași MapView mutată, `render()` așteaptă
 cât e atinsă), Călătorii (listă + detalii: `tripSummary`, harta, opririle, `tripSections`,
 combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Același aspect ca site-ul. Actualizare din aplicație (`Updater`,
-`/api/panel/apk`).
+`/api/panel/apk`); din 1.0.30 automată, fără confirmare (Android 12+, `setRequireUserAction`,
+`UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
+Android 14 (Android permite una la 30 s pe aplicație).
 
 ## Build și publicare
 

@@ -820,6 +820,9 @@ public class MainActivity extends Activity {
 
         LinearLayout sys = Ui.card(this, col);
         Ui.title(this, sys, "Sistem");
+        toggle(sys, "Actualizare la pornire", "Versiunea noua se descarca singura si, la pornirea masinii, "
+                + "Android iti cere o singura atingere: Instalati", Prefs.autoUpdateEnabled(this),
+                on -> Prefs.setAutoUpdateEnabled(this, on));
         Ui.hint(this, sys, "Acces la notificari: " + (KeepAliveListener.granted(this)
                 ? "dat (ok): prioritate mai mare, repornire de catre sistem"
                 : "NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie (notificarile nu se citesc)"));

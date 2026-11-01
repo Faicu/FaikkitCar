@@ -73,6 +73,7 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         MapBox.init(this);
         api = new Api(this);
+        AutoUpdateJob.schedule(this);
         getWindow().setStatusBarColor(Ui.BG);
         getWindow().setNavigationBarColor(Ui.BG);
         if (Store.token(this).isEmpty()) showLogin();
@@ -255,6 +256,8 @@ public class MainActivity extends Activity {
                 if (forTab == NOW) {
                     // Starea vine pe firul ei (startLive); aici actualizarea si propunerile.
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
+                    // Android 12+: se instaleaza singura; cardul arata „Se instalează automat...”.
+                    if (apk != null && Updater.auto(this)) autoInstalling = true;
                     JSONArray sg = api.suggestions();
                     ui.post(() -> {
                         newerApk = apk;
@@ -446,10 +449,16 @@ public class MainActivity extends Activity {
         super.onBackPressed();
     }
 
+    private boolean autoInstalling; // actualizarea automata a fost trimisa la instalare
+
     private void renderUpdate() {
         if (newerApk == null) return;
         LinearLayout up = Ui.card(this, content);
         up.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 18, Ui.ACCENT, true));
+        if (autoInstalling) {
+            Ui.hint(this, up, "Se instalează automat, fără confirmare. Aplicația se va închide; deschide-o din nou peste câteva secunde.");
+            return;
+        }
         Ui.hint(this, up, "Se descarcă de pe car.faicu.ro; Android îți cere o confirmare.");
         Ui.addButton(this, up, "Actualizează acum", Ui.PRIMARY, v -> {
             toast("Descarc actualizarea...");

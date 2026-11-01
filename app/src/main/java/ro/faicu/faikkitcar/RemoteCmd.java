@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * una, cu limita de timp si de iesire, si trimitem rezultatul. Fiecare comanda intra si in jurnal.
  */
 final class RemoteCmd {
-    private static final String BASE = "https://car.faicu.ro/api/car/cmd";
+    private static final String BASE = VwStatus.BASE + "/api/car/cmd";
     private static final int MAX_OUTPUT = 256 * 1024;
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean busy = new AtomicBoolean();

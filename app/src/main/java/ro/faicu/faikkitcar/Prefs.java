@@ -157,6 +157,37 @@ final class Prefs {
         sp(c).edit().putBoolean("door_alert", on).apply();
     }
 
+    /** Propunerea actualizarii la pornirea masinii (Updater.offerAtStart). */
+    static boolean autoUpdateEnabled(Context c) {
+        return sp(c).getBoolean("auto_update", true);
+    }
+
+    static void setAutoUpdateEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("auto_update", on).apply();
+    }
+
+    /** versionCode-ul APK-ului descarcat in avans (filesDir/update.apk). */
+    static int prefetchedCode(Context c) {
+        return sp(c).getInt("prefetched_code", 0);
+    }
+
+    static void setPrefetchedCode(Context c, int code) {
+        sp(c).edit().putInt("prefetched_code", code).apply();
+    }
+
+    /** Ultima versiune propusa la pornire si cand. */
+    static int offeredCode(Context c) {
+        return sp(c).getInt("offered_code", 0);
+    }
+
+    static long offeredAt(Context c) {
+        return sp(c).getLong("offered_at", 0);
+    }
+
+    static void setOffered(Context c, int code, long at) {
+        sp(c).edit().putInt("offered_code", code).putLong("offered_at", at).apply();
+    }
+
     /** Avertizarea vorbita cand reteaua mobila nu mai e pe „LTE only” (dupa somn, 01.11). */
     static boolean netAlertEnabled(Context c) {
         return sp(c).getBoolean("net_alert", true);
