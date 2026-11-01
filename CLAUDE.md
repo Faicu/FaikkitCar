@@ -65,7 +65,9 @@ activă, separată. Remote Control: `claude.service` (sursa în
   trimise la 5 s la `/api/car/state`; APK-uri de test cu `https://car.faicu.ro` înlocuit cu
   `http://10.0.2.2:3999` + `usesCleartextTraffic` (apoi totul revenit; nu trimit la serverul real). În aplicația
   din mașină adresa e doar în `VwStatus.BASE` (din 01.11, după ce un APK de test cu doar ea schimbată a trimis
-  26 de rânduri de jurnal la serverul real; scoase, copie în `/root/backups/faikkitcar-log-emulator-20261101.json`).
+  26 de rânduri de jurnal la serverul real; scoase, copie în `/root/backups/faikkitcar-log-emulator-20261101.json`;
+  încă 6 la următoarea pornire a emulatorului, `…20261101b.json`). Un APK de test rămas în emulator pornește la
+  boot și trimite: după test, dezinstalează-l sau lasă doar unul cu adresa de test.
   Nu folosi `pkill -f` cu un tipar din propria comandă (omoară shell-ul).
 
 ## Aplicația din mașină (`app/`)
