@@ -150,7 +150,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   30.10: utilizatorul vede „G” când pică internetul = modemul coboară pe 2G (GPRS); `signal.ts` socotește
   2G drept fără internet. 1.1.67: Setări → Sistem arată tipul de rețea preferat (`preferred_network_mode`)
   și butonul „Informatii telefon” (`com.android.settings/.RadioInfo`, testat în emulatorul Android 10)
-  pentru „LTE only”. Pe drumurile din oraș 29–30.10: niciodată fără internet, ~−100 dBm medie. Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
+  pentru „LTE only”. Pe drumurile din oraș 29–30.10: niciodată fără internet, ~−100 dBm medie.
+  01.11, 18:46: utilizatorul a pus „LTE only” din butonul „Informatii telefon” (meniul Teyes de rețea
+  mobilă are doar „LTE (recomandat)”/3G/2G, adică automat). Înainte: un 2G prins pe 31.10 08:11 (GSM
+  ARFCN 16, ~5 s, după LTE −123 dBm); după: niciun 2G. Netestat: dacă setarea rămâne după o repornire.
+  2G rămâne în monitorizare ca semnal că setarea s-a pierdut. Modemul Teyes are toate benzile 4G din România; Digi e slab pe 800/900 MHz.
 - Ecranul (din 12.10, 1.1.47): bara de file jos, compactă (iconiță, Acasă / Sunete / Setări /
   Jurnal, versiunea, starea serviciului). Acasă: harta mare (`RouteMap`, osmdroid; călătoria în
   curs sau ultima, verde = plecare, albastru = mașina, galben = opriri; urmărește mașina până o
