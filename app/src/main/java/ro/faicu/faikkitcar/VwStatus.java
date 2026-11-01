@@ -22,7 +22,7 @@ import java.util.List;
 final class VwStatus {
     // Singura adresa a serverului in aplicatie: un APK de test o schimba doar aici.
     static final String BASE = "https://car.faicu.ro";
-    private static final long MAX_AGE_MS = 30 * 60_000L;
+    private static final long MAX_AGE_MS = 10 * 60_000; // versiunea noua ajunge si in mers (01.11)
 
     private VwStatus() {}
 

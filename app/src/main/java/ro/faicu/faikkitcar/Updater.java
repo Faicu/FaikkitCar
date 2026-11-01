@@ -110,7 +110,12 @@ final class Updater {
             }
             if (tmp.renameTo(f)) {
                 Prefs.setPrefetchedCode(c, code);
-                Prefs.log(c, "Actualizare: " + apk.optString("versionName") + " descarcata, o propun la pornirea masinii");
+                // Cu contactul pus (si in mers, cererea utilizatorului, 01.11) o propunem acum;
+                // altfel la ~1 min dupa urmatoarea pornire.
+                boolean now = CanLink.get(c).contact() && canShowLater(c);
+                Prefs.log(c, "Actualizare: " + apk.optString("versionName") + " descarcata, o propun "
+                        + (now ? "acum" : "la pornirea masinii"));
+                if (now) main.post(() -> offerAtStart(c));
             }
         } catch (Exception e) {
             tmp.delete();
@@ -147,7 +152,10 @@ final class Updater {
         main.postDelayed(pendingOffer, OFFER_DELAY_MS);
     }
 
-    /** Daca e o versiune descarcata si n-am intrebat de curand, cere confirmarea. */
+    /**
+     * Daca e o versiune descarcata si n-am intrebat de curand, cere confirmarea. La ~1 min dupa
+     * pornire (scheduleOffer) sau imediat ce s-a descarcat cu contactul pus (prefetch).
+     */
     static void offerAtStart(Context ctx) {
         Context c = ctx.getApplicationContext();
         if (!Prefs.autoUpdateEnabled(c) || !c.getPackageManager().canRequestPackageInstalls()) return;
