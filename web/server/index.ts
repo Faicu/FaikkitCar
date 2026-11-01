@@ -110,7 +110,8 @@ app.post("/api/car/state", async (c) => {
   const p = await json<IncomingState & { u?: unknown }>(c, 16 * 1024);
   saveUnit(p.u);
   // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
-  return c.json({ ok: true, state: saveState(p), cmd: pendingCmdCount() });
+  // `apk` = ultima versiune publicată: aplicația o descarcă și cere confirmarea în câteva secunde.
+  return c.json({ ok: true, state: saveState(p), cmd: pendingCmdCount(), apk: readApkInfo("car")?.versionCode ?? 0 });
 });
 
 app.get("/api/car/cmd", (c) => {

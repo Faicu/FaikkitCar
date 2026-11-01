@@ -87,6 +87,22 @@ final class Updater {
         return new File(c.getFilesDir(), "update.apk");
     }
 
+    private static long serverCheckAt;
+
+    /**
+     * Raspunsul la starea live (la 5 s cu motorul pornit) spune ultima versiune publicata: daca
+     * e noua si n-o avem descarcata, reimprospatam starea si o descarcam acum, nu peste 10 min.
+     * Din firul LiveState (blocant); cel mult o incercare pe minut.
+     */
+    static void onServerVersion(Context c, int code) {
+        if (code <= BuildConfig.VERSION_CODE || code == Prefs.prefetchedCode(c) || prefetching) return;
+        if (!Prefs.autoUpdateEnabled(c)) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (serverCheckAt != 0 && now - serverCheckAt < 60_000) return;
+        serverCheckAt = now;
+        if (VwStatus.refresh(c)) prefetch(c);
+    }
+
     /** Descarca in avans versiunea noua (din firul trimiterii). Blocant. */
     static void prefetch(Context c) {
         JSONObject apk = VwStatus.newerApk(c);

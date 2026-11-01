@@ -52,15 +52,17 @@ final class LiveState {
         lastSentAt = now;
         EXEC.execute(() -> {
             try {
-                if (post(state)) RemoteCmd.poll(c);
+                JSONObject resp = post(state);
+                if (resp != null && resp.optInt("cmd", 0) > 0) RemoteCmd.poll(c);
+                if (resp != null) Updater.onServerVersion(c, resp.optInt("apk", 0));
             } finally {
                 busy.set(false);
             }
         });
     }
 
-    /** Trimite starea; true = serverul are comenzi in asteptare (RemoteCmd). */
-    private static boolean post(JSONObject state) {
+    /** Trimite starea; intoarce raspunsul serverului (cmd, apk) sau null. */
+    private static JSONObject post(JSONObject state) {
         HttpURLConnection conn = null;
         try {
             state.put("u", UnitStats.sample()); // performanta navigatiei (Panel, site)
@@ -85,11 +87,11 @@ final class LiveState {
                 int n;
                 while ((n = in.read(buf)) > 0) if (resp.size() < 64 * 1024) resp.write(buf, 0, n);
             }
-            return new JSONObject(resp.toString("UTF-8")).optInt("cmd", 0) > 0;
+            return new JSONObject(resp.toString("UTF-8"));
         } catch (Exception e) {
             Log.w("FaikkitCar", "Trimitere stare esuata", e);
             if (conn != null) conn.disconnect();
-            return false;
+            return null;
         }
     }
 }
