@@ -313,7 +313,9 @@ confirmare e refuzată („INSTALL_FAILED_ABORTED: Permission denied”, și dup
 cere mereu confirmarea, iar din 1.0.34 o încercare automată eșuată (`silentRefused`) arată butonul și nu se mai repetă.
 Din 1.0.35: automat doar dacă instalatorul versiunii de acum e Panel însuși (`Updater.installer`; 1.0.32 a fost instalat
 din browser), refuzul ține minte instalatorul (`silentRefusedBy`); altfel, la deschidere pornește singură instalarea
-cu confirmare (o dată pe versiune la 6 h). Netestat dacă HyperOS permite vreodată fără confirmare.
+cu confirmare (o dată pe versiune la 6 h). Confirmat 02.11 (1.0.35 → 1.0.36, instalată din Panel): la revenirea în
+aplicație apare singură scanarea Play Protect, apoi „Instalează”, apoi scanarea de securitate Xiaomi; după ea
+Panel se redeschide singur pe versiunea nouă. Fără nicio atingere nu se poate pe acest telefon (HyperOS).
 
 ## Build și publicare
 
