@@ -261,7 +261,14 @@ public class MainActivity extends Activity {
                     // Starea vine pe firul ei (startLive); aici actualizarea si propunerile.
                     JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     // Android 12+: se instaleaza singura; cardul arata „Se instalează automat...”.
-                    if (apk != null && Updater.auto(this)) autoInstalling = true;
+                    if (apk != null && Updater.auto(this)) {
+                        autoInstalling = true;
+                    } else if (apk != null && !Updater.silentPossible(this) && Updater.promptDue(this, apk.optInt("versionCode"))) {
+                        // Fara instalare automata: confirmarea apare singura (ramane „Instalează”).
+                        ui.post(() -> Updater.start(this, error -> {
+                            if (error != null) toast("Actualizare eșuată: " + error);
+                        }));
+                    }
                     JSONArray sg = api.suggestions();
                     ui.post(() -> {
                         newerApk = apk;
@@ -475,7 +482,9 @@ public class MainActivity extends Activity {
             Ui.hint(this, up, "Se instalează automat, fără confirmare. Aplicația se va închide; deschide-o din nou peste câteva secunde.");
             return;
         }
-        Ui.hint(this, up, "Se descarcă de pe car.faicu.ro; Android îți cere o confirmare.");
+        // Instalatorul versiunii de acum: doar daca e Panel insusi se poate fara confirmare.
+        Ui.hint(this, up, "Se descarcă de pe car.faicu.ro; Android îți cere o confirmare. (Versiunea de acum instalată de "
+                + Updater.installer(this) + ".)");
         Ui.addButton(this, up, "Actualizează acum", Ui.PRIMARY, v -> {
             toast("Descarc actualizarea...");
             Updater.start(this, error -> {

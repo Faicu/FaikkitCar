@@ -311,6 +311,9 @@ combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Ac
 Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără
 confirmare e refuzată („INSTALL_FAILED_ABORTED: Permission denied”, și după Play Protect): din 1.0.32 butonul
 cere mereu confirmarea, iar din 1.0.34 o încercare automată eșuată (`silentRefused`) arată butonul și nu se mai repetă.
+Din 1.0.35: automat doar dacă instalatorul versiunii de acum e Panel însuși (`Updater.installer`; 1.0.32 a fost instalat
+din browser), refuzul ține minte instalatorul (`silentRefusedBy`); altfel, la deschidere pornește singură instalarea
+cu confirmare (o dată pe versiune la 6 h). Netestat dacă HyperOS permite vreodată fără confirmare.
 
 ## Build și publicare
 

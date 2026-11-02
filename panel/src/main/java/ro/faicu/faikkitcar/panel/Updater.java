@@ -41,12 +41,45 @@ final class Updater {
     /** Se poate instala fara confirmare: Android 12+ si permisiunea de instalare data. */
     static boolean silentPossible(Context c) {
         return android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls()
-                && !silentRefused(c);
+                && c.getPackageName().equals(installer(c)) && !silentRefused(c);
     }
 
-    /** O instalare fara confirmare a esuat pe acest telefon: de acum doar cu butonul. */
+    /**
+     * Cine a instalat versiunea de acum. Android da instalarea fara confirmare doar aceluia: dupa
+     * o instalare din browser (1.0.32, 02.11) Panel nu mai poate, pana la o instalare facuta tot de el.
+     */
+    static String installer(Context c) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                return c.getPackageManager().getInstallSourceInfo(c.getPackageName()).getInstallingPackageName();
+            }
+            return c.getPackageManager().getInstallerPackageName(c.getPackageName());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * O instalare fara confirmare a esuat cu acelasi instalator ca acum: nu o mai incercam (doar
+     * daca s-a schimbat instalatorul, ex. dupa o instalare din buton).
+     */
     static boolean silentRefused(Context c) {
-        return c.getSharedPreferences("update", Context.MODE_PRIVATE).getBoolean("silentRefused", false);
+        String by = c.getSharedPreferences("update", Context.MODE_PRIVATE).getString("silentRefusedBy", null);
+        return by != null && by.equals(String.valueOf(installer(c)));
+    }
+
+    /**
+     * Fara instalare automata: la deschiderea aplicatiei pornim direct instalarea cu confirmare
+     * (ramane doar „Instalează”), o data pe versiune la cel mult 6 ore.
+     */
+    static boolean promptDue(Context c, int versionCode) {
+        android.content.SharedPreferences sp = c.getSharedPreferences("update", Context.MODE_PRIVATE);
+        if (sp.getInt("prompted", 0) == versionCode
+                && System.currentTimeMillis() - sp.getLong("promptedAt", 0) < AUTO_RETRY_MS) {
+            return false;
+        }
+        sp.edit().putInt("prompted", versionCode).putLong("promptedAt", System.currentTimeMillis()).apply();
+        return true;
     }
 
     /**
@@ -141,10 +174,12 @@ final class Updater {
             if (status != PackageInstaller.STATUS_SUCCESS && intent.getBooleanExtra("silent", false)) {
                 // Refuzata fara confirmare: de acum doar cu butonul (cardul „Versiune noua”).
                 // (02.11: dupa scanarea Play Protect si „Instalează”, cardul ramanea pe „Se instalează automat”.)
-                c.getSharedPreferences("update", Context.MODE_PRIVATE).edit().putBoolean("silentRefused", true).apply();
+                c.getSharedPreferences("update", Context.MODE_PRIVATE).edit()
+                        .putString("silentRefusedBy", String.valueOf(installer(c))).apply();
                 android.widget.Toast.makeText(c, "Actualizarea automată n-a mers ("
                         + intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-                        + "); apasă „Actualizează acum”.", android.widget.Toast.LENGTH_LONG).show();
+                        + ", instalator " + installer(c) + "); apasă „Actualizează acum”.",
+                        android.widget.Toast.LENGTH_LONG).show();
                 return;
             }
             if (status != PackageInstaller.STATUS_SUCCESS) {
