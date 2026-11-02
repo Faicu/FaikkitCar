@@ -429,7 +429,7 @@ public class MainActivity extends Activity {
             return;
         }
         String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|"
-                + (newerApk != null) + "|"
+                + (newerApk != null) + "|" + Updater.silentRefused(this) + "|"
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == UNIT ? live + "|" + unitHistoryAt + "|" + signalAt + "|" + signalDays
                         : tab == TRIPS ? trips + "|" + pointsFor
@@ -471,7 +471,7 @@ public class MainActivity extends Activity {
         if (newerApk == null) return;
         LinearLayout up = Ui.card(this, content);
         up.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 18, Ui.ACCENT, true));
-        if (autoInstalling) {
+        if (autoInstalling && !Updater.silentRefused(this)) {
             Ui.hint(this, up, "Se instalează automat, fără confirmare. Aplicația se va închide; deschide-o din nou peste câteva secunde.");
             return;
         }

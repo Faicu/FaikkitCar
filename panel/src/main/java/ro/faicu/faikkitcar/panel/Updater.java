@@ -41,7 +41,12 @@ final class Updater {
     /** Se poate instala fara confirmare: Android 12+ si permisiunea de instalare data. */
     static boolean silentPossible(Context c) {
         return android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls()
-                && !c.getSharedPreferences("update", Context.MODE_PRIVATE).getBoolean("silentRefused", false);
+                && !silentRefused(c);
+    }
+
+    /** O instalare fara confirmare a esuat pe acest telefon: de acum doar cu butonul. */
+    static boolean silentRefused(Context c) {
+        return c.getSharedPreferences("update", Context.MODE_PRIVATE).getBoolean("silentRefused", false);
     }
 
     /**
@@ -135,7 +140,11 @@ final class Updater {
             }
             if (status != PackageInstaller.STATUS_SUCCESS && intent.getBooleanExtra("silent", false)) {
                 // Refuzata fara confirmare: de acum doar cu butonul (cardul „Versiune noua”).
+                // (02.11: dupa scanarea Play Protect si „Instalează”, cardul ramanea pe „Se instalează automat”.)
                 c.getSharedPreferences("update", Context.MODE_PRIVATE).edit().putBoolean("silentRefused", true).apply();
+                android.widget.Toast.makeText(c, "Actualizarea automată n-a mers ("
+                        + intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+                        + "); apasă „Actualizează acum”.", android.widget.Toast.LENGTH_LONG).show();
                 return;
             }
             if (status != PackageInstaller.STATUS_SUCCESS) {
