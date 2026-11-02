@@ -845,6 +845,18 @@ public class MainActivity extends Activity {
             Ui.addButton(this, sys, "Acces la notificari", Ui.SECONDARY, v -> startActivity(
                     new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
         }
+        Ui.hint(this, sys, "Acces la datele de utilizare: " + (Music.usageGranted(this)
+                ? "dat (ok): dupa o piesa pornita din Panel revine aplicatia de dinainte (Waze)"
+                : "NU. Da-l ca dupa o piesa pornita din Panel sa revina aplicatia de dinainte (Waze), nu ecranul principal"));
+        if (!Music.usageGranted(this)) {
+            Ui.addButton(this, sys, "Acces la datele de utilizare", Ui.SECONDARY, v -> {
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS));
+                } catch (Exception e) {
+                    toast("Ecranul nu se poate deschide: " + e.getMessage());
+                }
+            });
+        }
         Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
         if (!batteryOk()) Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
         toggle(sys, "Comenzi de la distanta (teste)", "Lasa serverul sa ruleze comenzi pe navigatie, "

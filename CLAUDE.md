@@ -167,6 +167,10 @@ Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigaț
   Teste în mașină 02.11 (seara): cardul apare, comenzile aproape instant; după o piesă din căutare YouTube Music
   rămânea în față (revenirea nu mergea). Din 1.1.85: revine și dacă m0 c138 n-a raportat schimbarea și scrie în
   jurnal „Muzica: piesa din Panel; …” (ce era în față, ce a făcut). La pornire c138 = `com.android.launcher8`.
+  1.1.85 (02.11): tot ecranul principal, nu Waze: m0 c138 NU e aplicația din față (cu Waze în față raporta
+  launcher8; YouTube Music îl schimbă). Din 1.1.86: aplicația din față din datele de utilizare (`Music.foreground`,
+  `UsageEvents` MOVE_TO_FOREGROUND, permisiunea PACKAGE_USAGE_STATS dată din Setări → Sistem „Acces la datele de
+  utilizare”), revenirea cu `getLaunchIntentForPackage` (aduce Waze cum era). Netestat dacă Teyes are ecranul.
 - Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
   privitorul (`markViewer`), răspunsul la `/api/car/state` are `fast` (privitor în ultimele 30 s), `LiveState.fast()`
   20 s după ultimul `fast`, `TripRecorder.liveTick` trimite la 1 s (fără puncte noi). Panel păstrează harta parcării.

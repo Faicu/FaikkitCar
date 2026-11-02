@@ -368,31 +368,75 @@ final class Music {
         if (!id.matches("[A-Za-z0-9_-]{6,64}")) return;
         String url = id.length() == 11 ? "https://music.youtube.com/watch?v=" + id
                 : "https://music.youtube.com/playlist?list=" + id;
-        String[] before = topCmp;
+        // Aplicatia din fata: din datele de utilizare (sigur), altfel din MainServer (m0 c138, care
+        // insa nu e aplicatia din fata: cu Waze in fata raporta ecranul principal, 02.11).
+        String[] fromUsage = foreground(c);
+        String[] before = fromUsage != null ? fromUsage : topCmp;
         c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(YTM)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        // YouTube Music iese in fata; daca inainte era alta aplicatie (harta, ecranul principal),
-        // o aducem inapoi dupa ce a pornit piesa. 02.11: nu revenea; jurnalul arata acum de ce.
         String was = before == null ? "necunoscut" : before[0];
-        if (before == null || before.length < 2 || before[1] == null || YTM.equals(before[0])) {
-            Prefs.log(c, "Muzica: piesa din Panel; in fata era " + was + ", nu revin");
+        String src = fromUsage != null ? "date de utilizare" : "MainServer, fara acces la datele de utilizare";
+        if (before == null || YTM.equals(before[0])) {
+            Prefs.log(c, "Muzica: piesa din Panel; in fata era " + was + " (" + src + "), nu revin");
             return;
         }
         h.postDelayed(() -> {
-            String now = top;
+            String[] cur = foreground(c);
+            String now = cur != null ? cur[0] : top;
             // Alta aplicatie decat YouTube Music si cea de dinainte = utilizatorul a schimbat-o el.
             if (!YTM.equals(now) && !before[0].equals(now)) {
                 Prefs.log(c, "Muzica: piesa din Panel; acum in fata " + now + ", nu revin la " + was);
                 return;
             }
             try {
-                c.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(new ComponentName(before[0], before[1]))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
-                Prefs.log(c, "Muzica: piesa din Panel; revin la " + before[0] + " (in fata: " + now + ")");
+                // Intentia de lansare aduce sarcina existenta in fata asa cum era (Waze cu traseul);
+                // ecranul principal n-are una, deci prin componenta.
+                Intent back = c.getPackageManager().getLaunchIntentForPackage(before[0]);
+                if (back == null && before.length > 1 && before[1] != null) {
+                    back = new Intent(Intent.ACTION_MAIN).setComponent(new ComponentName(before[0], before[1]));
+                }
+                if (back == null) {
+                    Prefs.log(c, "Muzica: nu pot reveni la " + was + " (fara activitate de pornire)");
+                    return;
+                }
+                c.startActivity(back.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                Prefs.log(c, "Muzica: piesa din Panel; revin la " + was + " (" + src + "; in fata: " + now + ")");
             } catch (Exception e) {
-                Prefs.log(c, "Muzica: revenirea la " + before[0] + " a esuat: " + e);
+                Prefs.log(c, "Muzica: revenirea la " + was + " a esuat: " + e);
             }
         }, 7_000);
+    }
+
+    /** Accesul la datele de utilizare (Setari → Sistem): fara el nu stim sigur aplicatia din fata. */
+    static boolean usageGranted(Context c) {
+        android.app.AppOpsManager ops = c.getSystemService(android.app.AppOpsManager.class);
+        return ops != null && ops.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(), c.getPackageName()) == android.app.AppOpsManager.MODE_ALLOWED;
+    }
+
+    /**
+     * Ultima activitate ajunsa in fata (pachet, clasa), din evenimentele de utilizare ale ultimei
+     * ore, fara noi si fara bara de sistem; null fara acces.
+     */
+    static String[] foreground(Context c) {
+        if (!usageGranted(c)) return null;
+        try {
+            android.app.usage.UsageStatsManager usm = c.getSystemService(android.app.usage.UsageStatsManager.class);
+            long now = System.currentTimeMillis();
+            android.app.usage.UsageEvents ev = usm.queryEvents(now - 3_600_000, now);
+            android.app.usage.UsageEvents.Event e = new android.app.usage.UsageEvents.Event();
+            String[] last = null;
+            while (ev.hasNextEvent()) {
+                ev.getNextEvent(e);
+                if (e.getEventType() != android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) continue;
+                String p = e.getPackageName();
+                if (p == null || p.equals(c.getPackageName()) || p.equals("com.android.systemui")) continue;
+                last = new String[] {p, e.getClassName()};
+            }
+            return last;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private static String request(String method, String url, String body, int readMs) throws Exception {

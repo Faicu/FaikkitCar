@@ -8,6 +8,10 @@
     <!-- „Afisare peste alte aplicatii”: Android 10 lasa atunci aplicatia sa deschida singura
          fereastra de instalare la ~1 min dupa pornirea masinii (Updater.offerAtStart). -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Aplicatia din fata (revenirea dupa o piesa pornita din Panel); o da utilizatorul din setari. -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:ignore="ProtectedPermissions" />
     <!-- Calatoriile: pozitia GPS, din serviciul foreground (tip "location"). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
