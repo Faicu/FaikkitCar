@@ -146,7 +146,16 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   Rezultat 02.11 (1.1.80, YouTube Music): sesiunea se vede (titlu, artist, album, durata, poziția, coperta ca
   bitmap, fără URI; acțiuni 0x27afb7); `next`/`pause`/`play` merg imediat, `key next` merge (1–2 s „pauza” cât se
   încarcă); `search` nu face nimic; `setStreamVolume` e ignorat (rămâne 25/25: volumul îl ține Teyes, `com.syu.ms`).
+  Căutarea (02.11): MediaBrowser refuzat (YouTube Music acceptă doar Android Auto etc.), `MEDIA_PLAY_FROM_SEARCH`
+  nu schimbă piesa, dar `ACTION_VIEW` `https://music.youtube.com/watch?v=<id>` cu `setPackage` o pornește
+  (`MusicServiceDeepLinkActivity`, ~6 s; avem „peste alte aplicații”). ID-urile vin de pe server: `POST
+  https://music.youtube.com/youtubei/v1/search` (client `WEB_REMIX`, fără cheie; `params` pentru doar piese).
+  Volumul: `adjustStreamVolume` ignorat și el; `@syu watch` caută codul în modulele MainServer (SOUND = 4;
+  m4 c1 = [10] la abonare, dar `get` dă nimic).
   Planul: starea muzicii în starea live, comenzile prin long polling (sub 1 s), cardul „Muzică” în Panel.
+- `SyuProbe` (02.11): `@syu watch <s> [module]` (abonare la codurile 0..199, valorile inițiale și apoi doar
+  valorile noi), `@syu get <m> <cod>`, `@syu cmd <m> <cod> [int...]` (`Syu.cmd`/`get`/`unregister`).
+  Când navigația nu e accesibilă prin `car-cmd.ts` (limita de login), comenzile se pot pune direct în `car_cmd`.
 - `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
   `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie

@@ -8,9 +8,11 @@ import android.os.SystemClock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -81,9 +83,9 @@ final class SyuProbe {
     private static String watch(IBinder toolkit, int seconds, String modules) throws Exception {
         StringBuilder sb = new StringBuilder();
         long start = SystemClock.elapsedRealtime();
-        // Primele 1,5 s = valorile initiale trimise la abonare; dupa = doar valorile schimbate.
+        // Primele 1,5 s = valorile initiale trimise la abonare; dupa = doar valorile noi.
         Map<String, String> initial = new LinkedHashMap<>();
-        Map<String, String> last = new LinkedHashMap<>();
+        Set<String> seen = new HashSet<>();
         List<String> changes = new ArrayList<>();
         List<Object[]> subs = new ArrayList<>();
         for (String ms : modules.split(",")) {
@@ -102,9 +104,12 @@ final class SyuProbe {
                     String key = "m" + mod + " c" + code;
                     long t = SystemClock.elapsedRealtime() - start;
                     synchronized (initial) {
-                        String prev = last.put(key, v);
-                        if (t < 1_500 && prev == null) initial.put(key, v);
-                        else if (!v.equals(prev) && changes.size() < 300) {
+                        // La abonare unele coduri vin ca serie indexata ([i, valoare]); raportam doar
+                        // perechile cod–valoare nevazute inca, dupa primele 1,5 s.
+                        boolean fresh = seen.add(key + "=" + v);
+                        if (t < 1_500) {
+                            if (!initial.containsKey(key)) initial.put(key, v);
+                        } else if (fresh && changes.size() < 300) {
                             changes.add(String.format("%.1f s %s = %s", t / 1000.0, key, v));
                         }
                     }
