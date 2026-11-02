@@ -172,6 +172,10 @@ Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigaț
   `UsageEvents` MOVE_TO_FOREGROUND, permisiunea PACKAGE_USAGE_STATS dată din Setări → Sistem „Acces la datele de
   utilizare”), revenirea cu `getLaunchIntentForPackage` (aduce Waze cum era); merge pe Teyes (02.11). Din 1.1.87
   revine imediat ce YouTube Music e în față și cântă piesa nouă (verificat la 300 ms, cel mult 7 s; jurnalul scrie după cât).
+  02.11: prima piesă după actualizarea aplicației s-a pierdut (comanda dată cererii rămase deschise a procesului
+  vechi). Din 1.1.88 comenzile se confirmă: `GET /api/car/music/wait?ack=<ultima primită>&epoch=<al serverului>`
+  → `{epoch, cmds}`; serverul le ține până la confirmare (cel mult 20 s) și le retrimite; mașina sare peste id-urile
+  deja făcute. Fără `ack` (aplicația veche), răspunsul rămâne lista simplă. Testat pe un server pe 3999.
 - Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
   privitorul (`markViewer`), răspunsul la `/api/car/state` are `fast` (privitor în ultimele 30 s), `LiveState.fast()`
   20 s după ultimul `fast`, `TripRecorder.liveTick` trimite la 1 s (fără puncte noi). Panel păstrează harta parcării.

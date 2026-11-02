@@ -295,6 +295,10 @@ final class Music {
         return pm != null && pm.isInteractive();
     }
 
+    // Ultima comanda primita si pornirea serverului care a numerotat-o (doar firul pollLoop).
+    private int lastCmd;
+    private long epoch;
+
     private void pollLoop() {
         long backoff = 2_000;
         while (true) {
@@ -303,10 +307,21 @@ final class Music {
                     Thread.sleep(10_000);
                     continue;
                 }
-                JSONArray cmds = new JSONArray(request("GET", URL_WAIT, null, 40_000));
+                // Confirmam ultima comanda primita: serverul o tine pana atunci si o retrimite
+                // daca s-a pierdut (ex. pe cererea ramasa deschisa a procesului de dinainte).
+                JSONObject r = new JSONObject(request("GET", URL_WAIT + "?ack=" + lastCmd + "&epoch=" + epoch, null, 40_000));
                 backoff = 2_000;
-                for (int i = 0; i < cmds.length(); i++) {
+                long ep = r.optLong("epoch");
+                if (ep != epoch) {
+                    epoch = ep; // serverul a repornit: numerotarea o ia de la capat
+                    lastCmd = 0;
+                }
+                JSONArray cmds = r.optJSONArray("cmds");
+                for (int i = 0; cmds != null && i < cmds.length(); i++) {
                     JSONObject o = cmds.getJSONObject(i);
+                    int id = o.optInt("id");
+                    if (id <= lastCmd) continue; // deja facuta
+                    lastCmd = id;
                     h.post(() -> run(o.optString("action"), o.opt("value")));
                 }
             } catch (InterruptedException e) {

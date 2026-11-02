@@ -136,11 +136,20 @@ export function queueMusic(p: unknown): number {
   return cmdSeq;
 }
 
-/** Cererea mașinii: comenzile noi, sau așteaptă una cel mult 25 s. */
-export async function takeMusic(): Promise<MusicCmd[]> {
+/** Pornirea serverului: numerotarea comenzilor o ia de la capăt, deci confirmările vechi nu mai contează. */
+export const MUSIC_EPOCH = Date.now();
+
+/**
+ * Cererea mașinii: comenzile neconfirmate, sau așteaptă una cel mult 25 s. Cu `ack` (ultima
+ * comandă primită de mașină, în același `epoch`), cele până la ea se scot; restul rămân până la
+ * confirmare (02.11: prima comandă după o actualizare a aplicației plecase pe cererea rămasă
+ * deschisă a procesului vechi și se pierduse). Fără `ack` (aplicația veche), se scot la trimitere.
+ */
+export async function takeMusic(ack?: number, epoch?: number): Promise<MusicCmd[]> {
+  const confirmed = ack !== undefined && epoch === MUSIC_EPOCH ? ack : 0;
   const fresh = () => {
     const cut = Date.now() - CMD_TTL_MS;
-    queue = queue.filter((q) => q.at >= cut);
+    queue = queue.filter((q) => q.at >= cut && q.id > confirmed);
     return queue.length > 0;
   };
   if (!fresh()) {
@@ -156,7 +165,7 @@ export async function takeMusic(): Promise<MusicCmd[]> {
     fresh();
   }
   const out = queue.map(({ id, action, value }) => ({ id, action, value }));
-  queue = [];
+  if (ack === undefined) queue = [];
   return out;
 }
 

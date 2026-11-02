@@ -66,7 +66,7 @@ import {
   saveService,
   type ServiceInput,
 } from "./service.ts";
-import { queueMusic, readArt, readMusic, saveMusic, searchSongs, takeMusic, waitMusic } from "./music.ts";
+import { MUSIC_EPOCH, queueMusic, readArt, readMusic, saveMusic, searchSongs, takeMusic, waitMusic } from "./music.ts";
 import { readSignal } from "./signal.ts";
 import { readStats } from "./stats.ts";
 import { dismissSuggestion, readSuggestions } from "./suggestions.ts";
@@ -139,9 +139,13 @@ app.post("/api/car/music", async (c) => {
   return c.json({ ok: true });
 });
 
+// Cu ?ack=<ultima comandă primită>&epoch=<al serverului>: comenzile rămân până la confirmare.
 app.get("/api/car/music/wait", async (c) => {
   requireCarToken(c);
-  return c.json(await takeMusic());
+  const ack = c.req.query("ack");
+  if (ack === undefined) return c.json(await takeMusic());
+  const cmds = await takeMusic(Number(ack) || 0, Number(c.req.query("epoch")) || 0);
+  return c.json({ epoch: MUSIC_EPOCH, cmds });
 });
 
 app.get("/api/car/cmd", (c) => {
