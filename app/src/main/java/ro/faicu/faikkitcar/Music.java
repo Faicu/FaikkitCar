@@ -380,9 +380,20 @@ final class Music {
             Prefs.log(c, "Muzica: piesa din Panel; in fata era " + was + " (" + src + "), nu revin");
             return;
         }
-        h.postDelayed(() -> {
+        // Revenim imediat ce YouTube Music e in fata si canta piesa noua (verificat la 300 ms);
+        // cel mult dupa 7 s (02.11: asteptam mereu 7 s, desi piesa pornea in ~2 s).
+        long started = SystemClock.elapsedRealtime();
+        String titleBefore = title();
+        Runnable[] step = new Runnable[1];
+        step[0] = () -> {
+            long waited = SystemClock.elapsedRealtime() - started;
             String[] cur = foreground(c);
             String now = cur != null ? cur[0] : top;
+            boolean started2 = YTM.equals(now) && playing() && !title().isEmpty() && !title().equals(titleBefore);
+            if (!started2 && waited < 7_000) {
+                h.postDelayed(step[0], 300);
+                return;
+            }
             // Alta aplicatie decat YouTube Music si cea de dinainte = utilizatorul a schimbat-o el.
             if (!YTM.equals(now) && !before[0].equals(now)) {
                 Prefs.log(c, "Muzica: piesa din Panel; acum in fata " + now + ", nu revin la " + was);
@@ -400,11 +411,25 @@ final class Music {
                     return;
                 }
                 c.startActivity(back.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                Prefs.log(c, "Muzica: piesa din Panel; revin la " + was + " (" + src + "; in fata: " + now + ")");
+                Prefs.log(c, "Muzica: piesa din Panel; revin la " + was + " dupa "
+                        + String.format(java.util.Locale.ROOT, "%.1f", waited / 1000.0) + " s ("
+                        + (started2 ? "piesa pornita" : "limita de 7 s") + "; " + src + ")");
             } catch (Exception e) {
                 Prefs.log(c, "Muzica: revenirea la " + was + " a esuat: " + e);
             }
-        }, 7_000);
+        };
+        h.postDelayed(step[0], 300);
+    }
+
+    /** Titlul piesei de acum ("" fara sesiune). */
+    private String title() {
+        MediaMetadata m = mc != null ? mc.getMetadata() : null;
+        return m == null ? "" : nz(m.getString(MediaMetadata.METADATA_KEY_TITLE));
+    }
+
+    private boolean playing() {
+        PlaybackState st = mc != null ? mc.getPlaybackState() : null;
+        return st != null && st.getState() == PlaybackState.STATE_PLAYING;
     }
 
     /** Accesul la datele de utilizare (Setari → Sistem): fara el nu stim sigur aplicatia din fata. */

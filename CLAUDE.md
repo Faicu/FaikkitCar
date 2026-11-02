@@ -170,7 +170,8 @@ Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigaț
   1.1.85 (02.11): tot ecranul principal, nu Waze: m0 c138 NU e aplicația din față (cu Waze în față raporta
   launcher8; YouTube Music îl schimbă). Din 1.1.86: aplicația din față din datele de utilizare (`Music.foreground`,
   `UsageEvents` MOVE_TO_FOREGROUND, permisiunea PACKAGE_USAGE_STATS dată din Setări → Sistem „Acces la datele de
-  utilizare”), revenirea cu `getLaunchIntentForPackage` (aduce Waze cum era). Netestat dacă Teyes are ecranul.
+  utilizare”), revenirea cu `getLaunchIntentForPackage` (aduce Waze cum era); merge pe Teyes (02.11). Din 1.1.87
+  revine imediat ce YouTube Music e în față și cântă piesa nouă (verificat la 300 ms, cel mult 7 s; jurnalul scrie după cât).
 - Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
   privitorul (`markViewer`), răspunsul la `/api/car/state` are `fast` (privitor în ultimele 30 s), `LiveState.fast()`
   20 s după ultimul `fast`, `TripRecorder.liveTick` trimite la 1 s (fără puncte noi). Panel păstrează harta parcării.
