@@ -629,20 +629,17 @@ public class MainActivity extends Activity {
         card.addView(row);
         JSONObject d = live.optJSONObject("data");
         if (d != null) {
-            // Bordul: viteza (arcul mare) si turatia (arcul mic), apoi bateria si temperatura afara.
-            if (!d.isNull("speed") || !d.isNull("rpm")) {
+            // Bordul: viteza (arcul mare), turatia (arcul mic), iar bateria si temperatura afara
+            // mici, in colturile de jos (ocupau un rand intreg, 02.11).
+            if (!d.isNull("speed") || !d.isNull("rpm") || !d.isNull("volt") || !d.isNull("temp")) {
                 SpeedGauge g = new SpeedGauge(this);
-                g.set(d.isNull("speed") ? Double.NaN : d.optDouble("speed"), d.isNull("rpm") ? Double.NaN : d.optDouble("rpm"));
+                g.set(d.isNull("speed") ? Double.NaN : d.optDouble("speed"), d.isNull("rpm") ? Double.NaN : d.optDouble("rpm"),
+                        d.isNull("volt") ? null : Fmt.num(d.optDouble("volt"), 1) + " V",
+                        d.isNull("temp") ? null : Fmt.num(d.optDouble("temp"), 1) + " °C");
                 LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-1, -2);
                 glp.topMargin = dp(this, 8);
                 card.addView(g, glp);
             }
-            LinearLayout kpis = Ui.kpiRow(this,
-                    Ui.kpi(this, d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 1), "V", "baterie"),
-                    Ui.kpi(this, d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1), "°C", "afară"));
-            LinearLayout.LayoutParams klp = new LinearLayout.LayoutParams(-1, -2);
-            klp.topMargin = dp(this, 8);
-            card.addView(kpis, klp);
             JSONObject cl = d.optJSONObject("climate");
             if (cl != null) {
                 TextView line = Ui.text(this, "Climatronic  " + climateLine(cl), 14, Ui.TEXT, false);
@@ -660,8 +657,14 @@ public class MainActivity extends Activity {
             card.addView(line);
         }
 
-        // Rezervorul si, cu masina pe loc, unde e parcata (cu harta): in acelasi card cu starea.
+        // Muzica imediat sub bord (cererea utilizatorului, 02.11).
+        if (music != null && music.visible()) music.attach(content);
+
+        // Rezervorul si, cu masina pe loc, unde e parcata (cu harta): un card sub muzica.
         JSONObject trip = live.optJSONObject("trip");
+        if (live.optJSONObject("tank") != null || (live.optJSONObject("position") != null && trip == null)) {
+            card = Ui.card(this, content);
+        }
         JSONObject tank = live.optJSONObject("tank");
         if (tank != null) {
             JSONObject range = live.optJSONObject("range");
@@ -693,8 +696,6 @@ public class MainActivity extends Activity {
             card.addView(frame, mlp);
         }
 
-        if (music != null && music.visible()) music.attach(content);
-
         if (trip != null) {
             tripSummary(trip, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
             renderLiveMap();
@@ -703,11 +704,15 @@ public class MainActivity extends Activity {
 
     /** Rand cu iconita, text si explicatie (in cardul de stare), cu un link optional in dreapta. */
     private void infoRow(LinearLayout card, int icon, String text, String hint, String link, Runnable onLink) {
-        View line = new View(this);
-        line.setBackgroundColor(Ui.LINE);
-        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, Math.max(1, dp(this, 1) / 2));
-        llp.topMargin = dp(this, 14);
-        card.addView(line, llp);
+        // Separator doar intre randuri, nu deasupra primului din card.
+        boolean first = card.getChildCount() == 0;
+        if (!first) {
+            View line = new View(this);
+            line.setBackgroundColor(Ui.LINE);
+            LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, Math.max(1, dp(this, 1) / 2));
+            llp.topMargin = dp(this, 14);
+            card.addView(line, llp);
+        }
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         Icon ic = new Icon(this, icon);
@@ -727,7 +732,7 @@ public class MainActivity extends Activity {
             row.addView(l);
         }
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
-        rlp.topMargin = dp(this, 12);
+        rlp.topMargin = first ? 0 : dp(this, 12);
         card.addView(row, rlp);
     }
 

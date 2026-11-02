@@ -21,6 +21,7 @@ final class SpeedGauge extends View {
     private final RectF r = new RectF();
     private final float d;
     private double kmh = Double.NaN, rpm = Double.NaN;
+    private String volt, temp; // „14,2 V”, „9,5 °C”: mici, in colturile de jos
 
     SpeedGauge(Context c) {
         super(c);
@@ -40,9 +41,11 @@ final class SpeedGauge extends View {
         small.setTextSize(13 * sp);
     }
 
-    void set(double kmh, double rpm) {
+    void set(double kmh, double rpm, String volt, String temp) {
         this.kmh = kmh;
         this.rpm = rpm;
+        this.volt = volt;
+        this.temp = temp;
         invalidate();
     }
 
@@ -78,5 +81,26 @@ final class SpeedGauge extends View {
         c.drawText(Double.isNaN(kmh) ? "—" : String.valueOf(Math.round(kmh)), cx, cy + 14 * d, big);
         c.drawText("km/h", cx, cy + 36 * d, small);
         if (!Double.isNaN(rpm)) c.drawText(Math.round(rpm) + " rpm", cx, cy + rad * 0.86f, small);
+        // Bateria (stanga) si temperatura afara (dreapta), in colturile de jos, langa capetele arcului.
+        float by = getHeight() - 22 * d;
+        corner(c, volt, "baterie", 4 * d, by, Paint.Align.LEFT);
+        corner(c, temp, "afară", getWidth() - 4 * d, by, Paint.Align.RIGHT);
+    }
+
+    private void corner(Canvas c, String value, String label, float x, float y, Paint.Align align) {
+        if (value == null) return;
+        value(c, value, x, y, align);
+        small.setTextAlign(align);
+        c.drawText(label, x, y + 17 * d, small);
+        small.setTextAlign(Paint.Align.CENTER);
+    }
+
+    private void value(Canvas c, String text, float x, float y, Paint.Align align) {
+        float size = big.getTextSize();
+        big.setTextSize(size * 0.33f);
+        big.setTextAlign(align);
+        c.drawText(text, x, y, big);
+        big.setTextAlign(Paint.Align.CENTER);
+        big.setTextSize(size);
     }
 }
