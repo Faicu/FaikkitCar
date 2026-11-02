@@ -150,8 +150,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   nu schimbă piesa, dar `ACTION_VIEW` `https://music.youtube.com/watch?v=<id>` cu `setPackage` o pornește
   (`MusicServiceDeepLinkActivity`, ~6 s; avem „peste alte aplicații”). ID-urile vin de pe server: `POST
   https://music.youtube.com/youtubei/v1/search` (client `WEB_REMIX`, fără cheie; `params` pentru doar piese).
-  Volumul: `adjustStreamVolume` ignorat și el; `@syu watch` caută codul în modulele MainServer (SOUND = 4;
-  m4 c1 = [10] la abonare, dar `get` dă nimic).
+  Volumul (02.11, confirmat): Android îl ignoră (`setStreamVolume`/`adjustStreamVolume`, rămâne 25/25); Teyes îl
+  ține în modulul SOUND (4): update m4 c2 = [volumul] (și m4 c67 = [0, volumul]), comanda `cmd(4, 0, [v])` îl
+  pune (5 → 4 → 7 → 6, confirmat de m4 c2). `cmd(4, 2, …)` și `cmd(4, 67, …)` nu fac nimic. Maximul netestat.
+  m0 c138 = aplicația din prim-plan (`[pachet, activitate]`), m0 c146 / c115 variază singure.
   Planul: starea muzicii în starea live, comenzile prin long polling (sub 1 s), cardul „Muzică” în Panel.
 - `SyuProbe` (02.11): `@syu watch <s> [module]` (abonare la codurile 0..199, valorile inițiale și apoi doar
   valorile noi), `@syu get <m> <cod>`, `@syu cmd <m> <cod> [int...]` (`Syu.cmd`/`get`/`unregister`).
