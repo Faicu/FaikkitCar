@@ -308,7 +308,9 @@ cât e atinsă), Călătorii (listă + detalii: `tripSummary`, harta, opririle, 
 combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Același aspect ca site-ul. Actualizare din aplicație (`Updater`,
 `/api/panel/apk`); din 1.0.30 automată, fără confirmare (Android 12+, `setRequireUserAction`,
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
-Android 14 (Android permite una la 30 s pe aplicație).
+Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără
+confirmare e refuzată („INSTALL_FAILED_ABORTED: Permission denied”, și după Play Protect): din 1.0.32 butonul
+cere mereu confirmarea, iar din 1.0.34 o încercare automată eșuată (`silentRefused`) arată butonul și nu se mai repetă.
 
 ## Build și publicare
 
