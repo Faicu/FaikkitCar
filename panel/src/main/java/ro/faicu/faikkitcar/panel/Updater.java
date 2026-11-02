@@ -40,7 +40,8 @@ final class Updater {
 
     /** Se poate instala fara confirmare: Android 12+ si permisiunea de instalare data. */
     static boolean silentPossible(Context c) {
-        return android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls();
+        return android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls()
+                && !c.getSharedPreferences("update", Context.MODE_PRIVATE).getBoolean("silentRefused", false);
     }
 
     /**
@@ -57,7 +58,7 @@ final class Updater {
             return false;
         }
         sp.edit().putInt("tried", code).putLong("triedAt", System.currentTimeMillis()).apply();
-        return install(c) == null;
+        return install(c, true) == null;
     }
 
     /** Porneste actualizarea in fundal; onDone primeste pe firul UI eroarea (null = trimisa la instalare). */
@@ -69,12 +70,17 @@ final class Updater {
         }
         Context c = a.getApplicationContext();
         new Thread(() -> {
-            String error = install(c);
+            String error = install(c, false);
             a.runOnUiThread(() -> onDone.accept(error));
         }).start();
     }
 
-    private static String install(Context c) {
+    /**
+     * silent = fara confirmare (doar actualizarea automata). Butonul cere mereu confirmarea:
+     * pe telefonul utilizatorului (02.11, Panel 1.0.30) sistemul refuza instalarea fara confirmare
+     * cu „INSTALL_FAILED_ABORTED: Permission denied”, deci si butonul cadea.
+     */
+    private static String install(Context c, boolean silent) {
         if (newer(c) == null) return "nicio versiune nouă";
         PackageInstaller pi = c.getPackageManager().getPackageInstaller();
         HttpURLConnection conn = null;
@@ -84,7 +90,7 @@ final class Updater {
             PackageInstaller.SessionParams params =
                     new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
             params.setAppPackageName(c.getPackageName());
-            if (android.os.Build.VERSION.SDK_INT >= 31) {
+            if (silent && android.os.Build.VERSION.SDK_INT >= 31) {
                 params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
             }
             int id = pi.createSession(params);
@@ -100,7 +106,7 @@ final class Updater {
                     session.abandon();
                     throw e;
                 }
-                Intent done = new Intent(c, Result.class);
+                Intent done = new Intent(c, Result.class).putExtra("silent", silent);
                 PendingIntent pending = PendingIntent.getBroadcast(c, id, done,
                         PendingIntent.FLAG_UPDATE_CURRENT
                                 | (android.os.Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
@@ -125,6 +131,11 @@ final class Updater {
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     c.startActivity(confirm);
                 }
+                return;
+            }
+            if (status != PackageInstaller.STATUS_SUCCESS && intent.getBooleanExtra("silent", false)) {
+                // Refuzata fara confirmare: de acum doar cu butonul (cardul „Versiune noua”).
+                c.getSharedPreferences("update", Context.MODE_PRIVATE).edit().putBoolean("silentRefused", true).apply();
                 return;
             }
             if (status != PackageInstaller.STATUS_SUCCESS) {
