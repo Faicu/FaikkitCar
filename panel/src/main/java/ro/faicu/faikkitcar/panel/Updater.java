@@ -182,7 +182,8 @@ final class Updater {
                         android.widget.Toast.LENGTH_LONG).show();
                 return;
             }
-            if (status != PackageInstaller.STATUS_SUCCESS) {
+            // „Anulează” la confirmare (STATUS_FAILURE_ABORTED) nu e o eroare de aratat.
+            if (status != PackageInstaller.STATUS_SUCCESS && status != PackageInstaller.STATUS_FAILURE_ABORTED) {
                 android.widget.Toast.makeText(c, "Actualizare eșuată: "
                         + intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE),
                         android.widget.Toast.LENGTH_LONG).show();

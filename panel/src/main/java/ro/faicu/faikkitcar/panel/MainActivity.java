@@ -123,6 +123,7 @@ public class MainActivity extends Activity {
 
     // ---------------------------------------------------------------- login
 
+    /** Autentificarea: sigla, numele, doua campuri rotunjite si butonul, centrate pe ecran. */
     private void showLogin() {
         content = null;
         ScrollView sv = new ScrollView(this);
@@ -130,18 +131,26 @@ public class MainActivity extends Activity {
         sv.setFillViewport(true);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setGravity(Gravity.CENTER_VERTICAL);
-        int p = dp(this, 20);
+        col.setGravity(Gravity.CENTER);
+        int p = dp(this, 28);
         col.setPadding(p, p, p, p);
         sv.addView(col);
 
-        LinearLayout card = Ui.card(this, col);
-        card.addView(Ui.text(this, "FaikkitCar Panel", 24, Ui.TEXT, true));
-        Ui.hint(this, card, "Intră cu contul de pe car.faicu.ro.");
-        EditText user = Ui.labeled(this, card, "Utilizator", "", InputType.TYPE_CLASS_TEXT);
-        EditText pass = Ui.labeled(this, card, "Parolă", "",
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        Ui.addButton(this, card, "Intră", Ui.PRIMARY, v -> {
+        android.widget.ImageView logo = new android.widget.ImageView(this);
+        logo.setImageResource(R.drawable.logo);
+        col.addView(logo, new LinearLayout.LayoutParams(dp(this, 88), dp(this, 88)));
+        TextView name = Ui.text(this, "FaikkitCar", 28, Ui.TEXT, true);
+        name.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(-2, -2);
+        nlp.topMargin = dp(this, 16);
+        col.addView(name, nlp);
+        TextView sub = Ui.text(this, "FAImobil · intră cu contul de pe car.faicu.ro", 14, Ui.MUTED, false);
+        sub.setGravity(Gravity.CENTER);
+        col.addView(sub);
+
+        EditText user = loginField(col, "Utilizator", InputType.TYPE_CLASS_TEXT, 32);
+        EditText pass = loginField(col, "Parolă", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD, 10);
+        android.widget.Button go = Ui.button(this, "Intră", Ui.PRIMARY, v -> {
             v.setEnabled(false);
             String u = user.getText().toString().trim(), pw = pass.getText().toString();
             io.execute(() -> {
@@ -153,7 +162,37 @@ public class MainActivity extends Activity {
                 });
             });
         });
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, dp(this, 54));
+        blp.topMargin = dp(this, 20);
+        col.addView(go, blp);
+        pass.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_GO);
+        pass.setOnEditorActionListener((v, id, ev) -> {
+            go.performClick();
+            return true;
+        });
         setContentView(sv);
+    }
+
+    /** Camp rotunjit pe toata latimea (ca bara de cautare), cu textul ca indiciu. */
+    private EditText loginField(LinearLayout col, String hint, int type, int topDp) {
+        EditText e = new EditText(this);
+        e.setHint(hint);
+        e.setHintTextColor(Ui.MUTED);
+        e.setTextColor(Ui.TEXT);
+        e.setTextSize(17);
+        e.setSingleLine(true);
+        e.setInputType(type);
+        e.setTypeface(android.graphics.Typeface.DEFAULT); // parola altfel iese monospatiata
+        android.graphics.drawable.GradientDrawable bg = Ui.round(this, Ui.CARD2, 16);
+        bg.setStroke(dp(this, 1), Ui.CARD2);
+        e.setBackground(bg);
+        e.setOnFocusChangeListener((v, has) -> bg.setStroke(dp(this, 1), has ? Ui.ACCENT : Ui.CARD2));
+        int ph = dp(this, 18);
+        e.setPadding(ph, dp(this, 15), ph, dp(this, 15));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = dp(this, topDp);
+        col.addView(e, lp);
+        return e;
     }
 
     private void logout() {
@@ -590,14 +629,19 @@ public class MainActivity extends Activity {
         card.addView(row);
         JSONObject d = live.optJSONObject("data");
         if (d != null) {
-            // Unitatile in eticheta: patru casute inguste, iar „1846 rpm” nu incapea pe un rand.
+            // Bordul: viteza (arcul mare) si turatia (arcul mic), apoi bateria si temperatura afara.
+            if (!d.isNull("speed") || !d.isNull("rpm")) {
+                SpeedGauge g = new SpeedGauge(this);
+                g.set(d.isNull("speed") ? Double.NaN : d.optDouble("speed"), d.isNull("rpm") ? Double.NaN : d.optDouble("rpm"));
+                LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-1, -2);
+                glp.topMargin = dp(this, 8);
+                card.addView(g, glp);
+            }
             LinearLayout kpis = Ui.kpiRow(this,
-                    Ui.kpi(this, d.isNull("speed") ? "—" : String.valueOf(Math.round(d.optDouble("speed"))), "", "viteză, km/h"),
-                    Ui.kpi(this, d.isNull("rpm") ? "—" : String.valueOf(d.optInt("rpm")), "", "turație, rpm"),
-                    Ui.kpi(this, d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 1), "", "baterie, V"),
-                    Ui.kpi(this, d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1), "", "afară, °C"));
+                    Ui.kpi(this, d.isNull("volt") ? "—" : Fmt.num(d.optDouble("volt"), 1), "V", "baterie"),
+                    Ui.kpi(this, d.isNull("temp") ? "—" : Fmt.num(d.optDouble("temp"), 1), "°C", "afară"));
             LinearLayout.LayoutParams klp = new LinearLayout.LayoutParams(-1, -2);
-            klp.topMargin = dp(this, 12);
+            klp.topMargin = dp(this, 8);
             card.addView(kpis, klp);
             JSONObject cl = d.optJSONObject("climate");
             if (cl != null) {
