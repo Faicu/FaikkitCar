@@ -165,7 +165,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după ultima tastă, tastatura deschisă).
 Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigația cu `CAR_TOKEN`, răspunde la comenzi).
   Teste în mașină 02.11 (seara): cardul apare, comenzile aproape instant; după o piesă din căutare YouTube Music
-  rămânea în față (revenirea nu mergea). Din 1.1.84: revine și dacă m0 c138 n-a raportat schimbarea și scrie în
+  rămânea în față (revenirea nu mergea). Din 1.1.85: revine și dacă m0 c138 n-a raportat schimbarea și scrie în
   jurnal „Muzica: piesa din Panel; …” (ce era în față, ce a făcut). La pornire c138 = `com.android.launcher8`.
 - Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
   privitorul (`markViewer`), răspunsul la `/api/car/state` are `fast` (privitor în ultimele 30 s), `LiveState.fast()`
