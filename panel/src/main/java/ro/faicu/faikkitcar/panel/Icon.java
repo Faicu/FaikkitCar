@@ -13,7 +13,8 @@ import android.view.View;
  */
 final class Icon extends View {
     // 0–4 = filele (in ordinea din MainActivity.TABS)
-    static final int SEARCH = 5, PREV = 6, NEXT = 7, PLAY = 8, PAUSE = 9, VOL_LOW = 10, VOL_HIGH = 11;
+    static final int SEARCH = 5, PREV = 6, NEXT = 7, PLAY = 8, PAUSE = 9, VOL_LOW = 10, VOL_HIGH = 11,
+            REFRESH = 12, CLOSE = 13, PIN = 14, MORE = 4, FUEL = 2;
 
     private int kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -117,6 +118,25 @@ final class Icon extends View {
                 fillPath(c, new float[] {3, 9.5f, 3, 14.5f, 7, 14.5f, 12, 19, 12, 5, 7, 9.5f});
                 c.drawArc(arc(12, 12, 3.5f), -45, 90, false, p);
                 if (kind == VOL_HIGH) c.drawArc(arc(12, 12, 7.5f), -50, 100, false, p);
+                break;
+            case REFRESH: // sageata in cerc
+                c.drawArc(arc(12, 12, 7.5f), -60, 300, false, p);
+                fillPath(c, new float[] {15.5f, 2.5f, 20.5f, 5.6f, 15.8f, 8.6f});
+                break;
+            case PIN: // locul pe harta
+                path.reset();
+                path.moveTo(12, 21);
+                path.cubicTo(7, 15.5f, 5, 12.5f, 5, 9.5f);
+                path.cubicTo(5, 5.5f, 8.2f, 3, 12, 3);
+                path.cubicTo(15.8f, 3, 19, 5.5f, 19, 9.5f);
+                path.cubicTo(19, 12.5f, 17, 15.5f, 12, 21);
+                path.close();
+                c.drawPath(path, p);
+                c.drawCircle(12, 9.5f, 2.5f, p);
+                break;
+            case CLOSE:
+                c.drawLine(6.5f, 6.5f, 17.5f, 17.5f, p);
+                c.drawLine(17.5f, 6.5f, 6.5f, 17.5f, p);
                 break;
             default: // Mai mult: trei puncte
                 fillCircle(c, 5, 12, 1.8f);

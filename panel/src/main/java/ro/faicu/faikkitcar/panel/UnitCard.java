@@ -65,7 +65,7 @@ final class UnitCard {
         boolean awake = System.currentTimeMillis() - Fmt.millis(at) < STALE_MS;
         LinearLayout card = Ui.card(c, content);
         LinearLayout head = new LinearLayout(c);
-        head.addView(Ui.text(c, "Navigația", 17, awake ? Ui.TEXT : Ui.MUTED, true), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(Ui.text(c, "Navigația", 18, awake ? Ui.TEXT : Ui.MUTED, true), new LinearLayout.LayoutParams(0, -2, 1));
         head.addView(Ui.text(c, awake ? "trează · acum" : "doarme · ultima măsurare " + Fmt.ago(at), 12, Ui.MUTED, false));
         card.addView(head);
         if (health != null) {

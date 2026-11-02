@@ -308,7 +308,10 @@ token Bearer (`Store`); `Api` = aceleași rute ca site-ul. File jos: Acum (long 
 separat, `startLive`; harta live `MapBox.LiveRoute`, aceeași MapView mutată, `render()` așteaptă
 cât e atinsă), Călătorii (listă + detalii: `tripSummary`, harta, opririle, `tripSections`,
 combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Același aspect ca site-ul. Actualizare din aplicație (`Updater`,
-`/api/panel/apk`); din 1.0.30 automată, fără confirmare (Android 12+, `setRequireUserAction`,
+`/api/panel/apk`). Design (1.0.39): iconițele desenate din cod (`Icon`, aceeași grilă 24×24: filele, muzica,
+„⋯”, reîmprospătarea), barele `Slider`, titlurile de card 18 sp (`Ui.title`/`Ui.section`), acțiunile de pe
+rânduri în meniul „⋯” (`rowMenu`; atingerea rândului = Modifică), fără emoji; versiunea nouă = bandă subțire.
+Din 1.0.30 actualizarea e automată, fără confirmare (Android 12+, `setRequireUserAction`,
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
 Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără
 confirmare e refuzată („INSTALL_FAILED_ABORTED: Permission denied”, și după Play Protect): din 1.0.32 butonul

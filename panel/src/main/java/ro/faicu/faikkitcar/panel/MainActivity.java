@@ -187,10 +187,14 @@ public class MainActivity extends Activity {
         titles.addView(Ui.text(this, "FaikkitCar", 22, Ui.TEXT, true));
         titles.addView(Ui.text(this, "FAImobil · v" + BuildConfig.VERSION_NAME, 13, Ui.MUTED, false));
         head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView refresh = Ui.text(this, "↻", 24, Ui.ACCENT, false);
-        refresh.setPadding(p, p / 2, p, p / 2);
+        android.widget.FrameLayout refresh = new android.widget.FrameLayout(this);
+        refresh.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x33FFFFFF), null, Ui.round(this, 0xFFFFFFFF, 22)));
+        Icon ri = new Icon(this, Icon.REFRESH);
+        ri.setColor(Ui.MUTED);
+        refresh.addView(ri, new android.widget.FrameLayout.LayoutParams(dp(this, 22), dp(this, 22), Gravity.CENTER));
         refresh.setOnClickListener(v -> load(true));
-        head.addView(refresh);
+        head.addView(refresh, new LinearLayout.LayoutParams(dp(this, 44), dp(this, 44)));
         root.addView(head);
 
         LinearLayout bar = new LinearLayout(this);
@@ -488,25 +492,34 @@ public class MainActivity extends Activity {
 
     private boolean autoInstalling; // actualizarea automata a fost trimisa la instalare
 
+    /** Versiunea noua: o banda subtire sus (instalarea porneste oricum singura la deschidere). */
     private void renderUpdate() {
         if (newerApk == null) return;
-        LinearLayout up = Ui.card(this, content);
-        up.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 18, Ui.ACCENT, true));
-        if (autoInstalling && !Updater.silentRefused(this)) {
-            Ui.hint(this, up, "Se instalează automat, fără confirmare. Aplicația se va închide; deschide-o din nou peste câteva secunde.");
-            return;
-        }
-        // Doar daca Panel a instalat versiunea de acum se poate fara confirmare (Updater.installer).
-        Ui.hint(this, up, getPackageName().equals(Updater.installer(this))
-                ? "Se descarcă de pe car.faicu.ro; apasă „Instalează” la confirmare."
-                : "Se descarcă de pe car.faicu.ro; apasă „Instalează” la confirmare. După ce o instalezi de aici, "
-                        + "următoarele încearcă să se instaleze singure.");
-        Ui.addButton(this, up, "Actualizează acum", Ui.PRIMARY, v -> {
-            toast("Descarc actualizarea...");
-            Updater.start(this, error -> {
-                if (error != null) toast("Actualizare eșuată: " + error);
+        LinearLayout band = new LinearLayout(this);
+        band.setGravity(Gravity.CENTER_VERTICAL);
+        band.setBackground(Ui.round(this, 0x2638BDF8, 16));
+        band.setPadding(dp(this, 16), dp(this, 6), dp(this, 6), dp(this, 6));
+        boolean auto = autoInstalling && !Updater.silentRefused(this);
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 15, Ui.ACCENT, true));
+        if (auto) texts.addView(Ui.text(this, "Se instalează; aplicația se va redeschide.", 12, Ui.MUTED, false));
+        band.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+        if (!auto) {
+            android.widget.Button b = Ui.button(this, "Instalează", Ui.PRIMARY, v -> {
+                toast("Descarc actualizarea...");
+                Updater.start(this, error -> {
+                    if (error != null) toast("Actualizare eșuată: " + error);
+                });
             });
-        });
+            b.setTextSize(14);
+            b.setMinHeight(dp(this, 40));
+            b.setMinimumHeight(dp(this, 40));
+            band.addView(b, new LinearLayout.LayoutParams(-2, dp(this, 40)));
+        }
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.bottomMargin = dp(this, 14);
+        content.addView(band, lp);
     }
 
     private static String stateLabel(String state) {
@@ -585,7 +598,7 @@ public class MainActivity extends Activity {
             card.addView(kpis, klp);
             JSONObject cl = d.optJSONObject("climate");
             if (cl != null) {
-                TextView line = Ui.text(this, "❄ Climatronic  " + climateLine(cl), 14, Ui.TEXT, false);
+                TextView line = Ui.text(this, "Climatronic  " + climateLine(cl), 14, Ui.TEXT, false);
                 line.setPadding(0, dp(this, 10), 0, 0);
                 card.addView(line);
             }
@@ -600,49 +613,75 @@ public class MainActivity extends Activity {
             card.addView(line);
         }
 
+        // Rezervorul si, cu masina pe loc, unde e parcata (cu harta): in acelasi card cu starea.
+        JSONObject trip = live.optJSONObject("trip");
+        JSONObject tank = live.optJSONObject("tank");
+        if (tank != null) {
+            JSONObject range = live.optJSONObject("range");
+            infoRow(card, Icon.FUEL, Fmt.num(tank.optDouble("liters"), 0) + " L"
+                    + (range == null ? "" : " · ≈ " + range.optInt("km") + " km autonomie"),
+                    (range == null ? "" : "la " + Fmt.num(range.optDouble("lPer100"), 1) + " L/100 "
+                            + (range.optBoolean("real") ? "(real, din rezervor)" : "(estimat din drumuri)") + " · ")
+                            + "citit " + Fmt.ago(tank.optString("at")), null, null);
+        }
+        JSONObject pos = live.optJSONObject("position");
+        // In timpul calatoriei, masina se vede pe harta calatoriei, mai jos.
+        if (pos != null && trip == null) {
+            String parked = pos.isNull("place") ? "Parcată aici" : "Parcată la " + pos.optString("place");
+            double lat = pos.optDouble("lat"), lon = pos.optDouble("lon");
+            infoRow(card, Icon.PIN, "driving".equals(state) ? "Mașina e aici" : parked,
+                    "ultima poziție: " + Fmt.day(pos.optString("t")) + ", " + Fmt.hm(pos.optString("t"))
+                            + " (" + Fmt.ago(pos.optString("t")) + ")",
+                    "Google Maps", () -> startActivity(new Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon))));
+            MapView map = MapBox.position(this, lat, lon);
+            maps.add(map);
+            // Harta in card, cu colturi rotunjite.
+            android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+            frame.setBackground(Ui.round(this, Ui.CARD2, 14));
+            frame.setClipToOutline(true);
+            frame.addView(map, new android.widget.FrameLayout.LayoutParams(-1, -1));
+            LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-1, dp(this, 200));
+            mlp.topMargin = dp(this, 12);
+            card.addView(frame, mlp);
+        }
+
         if (music != null && music.visible()) music.attach(content);
 
-        JSONObject trip = live.optJSONObject("trip");
         if (trip != null) {
             tripSummary(trip, "Călătoria în curs · de " + Fmt.duration(trip.optDouble("durationMin")));
             renderLiveMap();
         }
+    }
 
-        JSONObject tank = live.optJSONObject("tank");
-        if (tank != null) {
-            JSONObject range = live.optJSONObject("range");
-            LinearLayout fc = Ui.card(this, content);
-            fc.addView(Ui.text(this, "⛽ " + Fmt.num(tank.optDouble("liters"), 0) + " L"
-                    + (range == null ? "" : " · ≈ " + range.optInt("km") + " km autonomie"), 17, Ui.TEXT, true));
-            Ui.hint(this, fc, (range == null ? "" : "la " + Fmt.num(range.optDouble("lPer100"), 1) + " L/100 "
-                    + (range.optBoolean("real") ? "(real, din rezervor)" : "(estimat din drumuri)") + ", până la gol · ")
-                    + "citit " + Fmt.ago(tank.optString("at")));
+    /** Rand cu iconita, text si explicatie (in cardul de stare), cu un link optional in dreapta. */
+    private void infoRow(LinearLayout card, int icon, String text, String hint, String link, Runnable onLink) {
+        View line = new View(this);
+        line.setBackgroundColor(Ui.LINE);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, Math.max(1, dp(this, 1) / 2));
+        llp.topMargin = dp(this, 14);
+        card.addView(line, llp);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        Icon ic = new Icon(this, icon);
+        ic.setColor(Ui.MUTED);
+        LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(this, 22), dp(this, 22));
+        ilp.rightMargin = dp(this, 12);
+        row.addView(ic, ilp);
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.addView(Ui.text(this, text, 16, Ui.TEXT, true));
+        if (hint != null && !hint.isEmpty()) texts.addView(Ui.text(this, hint, 13, Ui.MUTED, false));
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+        if (link != null) {
+            TextView l = Ui.text(this, link, 14, Ui.ACCENT, true);
+            l.setPadding(dp(this, 10), dp(this, 8), 0, dp(this, 8));
+            l.setOnClickListener(v -> onLink.run());
+            row.addView(l);
         }
-
-        JSONObject pos = live.optJSONObject("position");
-        // In timpul calatoriei, masina se vede pe harta de mai sus.
-        if (pos != null && trip == null) {
-            LinearLayout pc = Ui.card(this, content);
-            LinearLayout prow = new LinearLayout(this);
-            prow.setGravity(Gravity.CENTER_VERTICAL);
-            LinearLayout pt = new LinearLayout(this);
-            pt.setOrientation(LinearLayout.VERTICAL);
-            String parked = pos.isNull("place") ? "Mașina e parcată aici"
-                    : "Mașina e parcată la " + pos.optString("place");
-            pt.addView(Ui.text(this, "driving".equals(state) ? "Mașina e aici" : parked, 17, Ui.TEXT, true));
-            pt.addView(Ui.text(this, "ultima poziție: " + Fmt.day(pos.optString("t")) + ", "
-                    + Fmt.hm(pos.optString("t")) + " (" + Fmt.ago(pos.optString("t")) + ")", 13, Ui.MUTED, false));
-            prow.addView(pt, new LinearLayout.LayoutParams(0, -2, 1));
-            double lat = pos.optDouble("lat"), lon = pos.optDouble("lon");
-            TextView gm = Ui.text(this, "Google Maps", 15, Ui.ACCENT, true);
-            gm.setPadding(dp(this, 10), dp(this, 8), 0, dp(this, 8));
-            gm.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW,
-                    Uri.parse("https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon))));
-            prow.addView(gm);
-            pc.addView(prow);
-            addMap(content, MapBox.position(this, lat, lon), 220);
-        }
-
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+        rlp.topMargin = dp(this, 12);
+        card.addView(row, rlp);
     }
 
     /** Fila Navigatie: performanta navigatiei Teyes, din aceeasi stare live ca Acum. */
@@ -682,7 +721,7 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Semnal mobil", 17, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(Ui.text(this, "Semnal mobil", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
         for (int d : SIGNAL_DAYS) {
             TextView p = Ui.text(this, d + " zile", 12, d == signalDays ? Ui.ACCENT : Ui.MUTED, d == signalDays);
             if (d == signalDays) p.setBackground(Ui.round(this, 0x2E38BDF8, 99));
@@ -866,9 +905,9 @@ public class MainActivity extends Activity {
             JSONObject s = suggestions.optJSONObject(i);
             boolean refuel = "refuel".equals(s.optString("kind"));
             String text = refuel
-                    ? "⛽ Ai alimentat pe " + Fmt.day(s.optString("at")) + ", " + Fmt.hm(s.optString("at"))
+                    ? "Ai alimentat pe " + Fmt.day(s.optString("at")) + ", " + Fmt.hm(s.optString("at"))
                             + "? Rezervorul a crescut cu ~" + Fmt.num(s.optDouble("liters"), 0) + " L."
-                    : "📍 Parchezi des aici" + (s.isNull("label") ? "" : ": " + s.optString("label"))
+                    : "Parchezi des aici" + (s.isNull("label") ? "" : ": " + s.optString("label"))
                             + " (" + s.optInt("visits") + " ori). Îl salvezi ca loc?";
             TextView t = Ui.text(this, text, 15, Ui.TEXT, false);
             t.setPadding(0, dp(this, 10), 0, 0);
@@ -1061,13 +1100,13 @@ public class MainActivity extends Activity {
         if (saveEnd || saveStart) {
             LinearLayout sp = Ui.card(this, content);
             if (saveEnd) {
-                TextView b = Ui.text(this, "📍 Salvează sosirea ca loc", 15, Ui.ACCENT, true);
+                TextView b = Ui.text(this, "+ Salvează sosirea ca loc", 15, Ui.ACCENT, true);
                 b.setPadding(0, dp(this, 6), 0, dp(this, 6));
                 b.setOnClickListener(v -> openPlaceEditor(null, "", endPos.optDouble(0), endPos.optDouble(1), 100));
                 sp.addView(b);
             }
             if (saveStart) {
-                TextView b = Ui.text(this, "📍 Salvează plecarea ca loc", 15, Ui.ACCENT, true);
+                TextView b = Ui.text(this, "+ Salvează plecarea ca loc", 15, Ui.ACCENT, true);
                 b.setPadding(0, dp(this, 6), 0, dp(this, 6));
                 b.setOnClickListener(v -> openPlaceEditor(null, "", startPos.optDouble(0), startPos.optDouble(1), 100));
                 sp.addView(b);
@@ -1161,7 +1200,7 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Călătorii", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(Ui.text(this, "Călătorii", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
         if (idle > 0) {
             boolean hide = Store.hideIdle(this);
             TextView toggle = Ui.text(this, (hide ? "Arată pornirile pe loc (" : "Ascunde pornirile pe loc (")
@@ -1299,11 +1338,10 @@ public class MainActivity extends Activity {
     private void renderMonthReport(JSONArray months) {
         if (months == null || months.length() == 0) return;
         JSONObject cur = months.optJSONObject(0), prev = months.optJSONObject(1);
-        LinearLayout card = Ui.section(this, content, "Raportul lunii");
-        card.addView(Ui.text(this, Fmt.month(cur.optString("month")), 19, Ui.TEXT, true));
+        LinearLayout card = Ui.section(this, content, "Raportul lunii · " + Fmt.month(cur.optString("month")));
         if (prev != null) {
             card.addView(Ui.text(this, "față de " + Fmt.month(prev.optString("month")).toLowerCase(new java.util.Locale("ro", "RO"))
-                    + " (întreagă)", 12, Ui.MUTED, false));
+                    + " (întreagă)", 13, Ui.MUTED, false));
         }
         List<View> cells = new ArrayList<>();
         cells.add(reportCell("Distanță", Fmt.num(cur.optDouble("km"), 1) + " km", cur, prev, "km", false));
@@ -1554,7 +1592,7 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "🔧 Jurnal de service", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(Ui.text(this, "Jurnal de service", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
         TextView add = Ui.text(this, "+ Adaugă", 15, Ui.ACCENT, true);
         add.setOnClickListener(v -> serviceDialog(null));
         head.addView(add);
@@ -1573,18 +1611,24 @@ public class MainActivity extends Activity {
             LinearLayout top = new LinearLayout(this);
             top.addView(Ui.text(this, e.optString("title"), 16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
             if (!e.isNull("cost")) {
-                TextView tc = Ui.text(this, Fmt.lei(e.optDouble("cost")), 16, Ui.TEXT, true);
+                TextView tc = Ui.text(this, Fmt.lei(e.optDouble("cost")), 16, Ui.ACCENT, true);
                 tc.setPadding(dp(this, 8), 0, 0, 0);
                 top.addView(tc);
             }
+            top.addView(rowMenu(new String[] {"Modifică", "Șterge"}, new Runnable[] {() -> serviceDialog(e),
+                    () -> confirm("Ștergi „" + e.optString("title") + "” cu tot cu fișiere?",
+                            () -> mutate(() -> api.deleteService(e.optInt("id")), "Șters"))}));
             row.addView(top);
+            // Data, kilometrajul si service-ul pe un rand, ca la celelalte liste.
             String when = LocalDate.parse(e.optString("date")).format(java.time.format.DateTimeFormatter
                     .ofPattern("EEEE, d MMMM yyyy", new java.util.Locale("ro", "RO")));
-            TextView wt = Ui.text(this, "📅 " + when, 14, Ui.TEXT, false);
-            wt.setPadding(0, dp(this, 6), 0, 0);
+            List<String> meta = new ArrayList<>();
+            meta.add(Character.toUpperCase(when.charAt(0)) + when.substring(1));
+            if (!e.isNull("odo")) meta.add(Fmt.km(e.optLong("odo")));
+            if (!e.isNull("shop")) meta.add(e.optString("shop"));
+            TextView wt = Ui.text(this, String.join(" · ", meta), 13, Ui.MUTED, false);
+            wt.setPadding(0, dp(this, 2), 0, 0);
             row.addView(wt);
-            if (!e.isNull("odo")) row.addView(Ui.text(this, "🛣 " + Fmt.km(e.optLong("odo")), 14, Ui.TEXT, false));
-            if (!e.isNull("shop")) row.addView(Ui.text(this, "📍 " + e.optString("shop"), 14, Ui.TEXT, false));
             serviceItems(row, e);
             if (!e.isNull("notes")) {
                 TextView nt = Ui.text(this, e.optString("notes"), 13, Ui.MUTED, false);
@@ -1594,14 +1638,12 @@ public class MainActivity extends Activity {
             JSONArray files = e.optJSONArray("files");
             for (int k = 0; files != null && k < files.length(); k++) {
                 JSONObject f = files.optJSONObject(k);
-                TextView ft = Ui.text(this, "📎 " + f.optString("name"), 14, Ui.ACCENT, false);
+                TextView ft = Ui.text(this, f.optString("name"), 14, Ui.ACCENT, false);
                 ft.setPadding(0, dp(this, 6), 0, 0);
                 ft.setOnClickListener(v -> showServiceFile(f));
                 row.addView(ft);
             }
-            row.addView(actions(new String[] {"Modifică", "Șterge"}, new int[] {Ui.ACCENT, Ui.BAD},
-                    new Runnable[] {() -> serviceDialog(e), () -> confirm("Ștergi „" + e.optString("title")
-                            + "” cu tot cu fișiere?", () -> mutate(() -> api.deleteService(e.optInt("id")), "Șters"))}));
+
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);
@@ -1703,7 +1745,7 @@ public class MainActivity extends Activity {
         JSONArray files = e == null ? null : e.optJSONArray("files");
         for (int k = 0; files != null && k < files.length(); k++) {
             JSONObject f = files.optJSONObject(k);
-            TextView ft = Ui.text(this, "📎 " + f.optString("name") + "   ✕ șterge", 14, Ui.BAD, false);
+            TextView ft = Ui.text(this, "" + f.optString("name") + "   ✕ șterge", 14, Ui.BAD, false);
             ft.setPadding(0, dp(this, 6), 0, 0);
             ft.setOnClickListener(v -> confirm("Ștergi fișierul?", () -> {
                 ft.setVisibility(View.GONE);
@@ -1711,7 +1753,7 @@ public class MainActivity extends Activity {
             }));
             form.addView(ft);
         }
-        TextView attach = Ui.text(this, "📎 Atașează bon / poză", 15, Ui.ACCENT, true);
+        TextView attach = Ui.text(this, "+ Atașează bon / poză", 15, Ui.ACCENT, true);
         attach.setPadding(0, dp(this, 12), 0, dp(this, 4));
         attach.setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_GET_CONTENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE)
@@ -1813,7 +1855,7 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Locuri salvate", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(Ui.text(this, "Locuri salvate", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
         TextView add = Ui.text(this, "+ Adaugă", 15, Ui.ACCENT, true);
         JSONObject pos = car.optJSONObject("position");
         add.setOnClickListener(v -> openPlaceEditor(null, "",
@@ -1844,20 +1886,15 @@ public class MainActivity extends Activity {
             texts.addView(Ui.text(this, (total > 1 ? "poziția " + nth + " · " : "")
                     + "rază " + p.optInt("radius") + " m", 12, Ui.MUTED, false));
             row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView more = Ui.text(this, "+ Poziție", 14, Ui.ACCENT, true);
-            more.setOnClickListener(v -> openPlaceEditor(null, p.optString("name"),
-                    pos == null ? null : pos.optDouble("lat"), pos == null ? null : pos.optDouble("lon"),
-                    p.optInt("radius", 100), true));
-            row.addView(more);
-            TextView edit = Ui.text(this, "Modifică", 14, Ui.ACCENT, true);
-            edit.setPadding(dp(this, 10), 0, dp(this, 10), 0);
-            edit.setOnClickListener(v -> openPlaceEditor(p.optInt("id"), p.optString("name"),
-                    p.optDouble("lat"), p.optDouble("lon"), p.optInt("radius", 100)));
-            row.addView(edit);
-            TextView del = Ui.text(this, "Șterge", 14, Ui.BAD, true);
-            del.setOnClickListener(v -> confirm("Ștergi „" + p.optString("name") + "”?",
-                    () -> mutate(() -> api.deletePlace(p.optInt("id")), "Loc șters")));
-            row.addView(del);
+            Runnable edit = () -> openPlaceEditor(p.optInt("id"), p.optString("name"),
+                    p.optDouble("lat"), p.optDouble("lon"), p.optInt("radius", 100));
+            row.setOnClickListener(v -> edit.run());
+            row.addView(rowMenu(new String[] {"Modifică", "Adaugă o poziție", "Șterge"}, new Runnable[] {edit,
+                    () -> openPlaceEditor(null, p.optString("name"),
+                            pos == null ? null : pos.optDouble("lat"), pos == null ? null : pos.optDouble("lon"),
+                            p.optInt("radius", 100), true),
+                    () -> confirm("Ștergi „" + p.optString("name") + "”?",
+                            () -> mutate(() -> api.deletePlace(p.optInt("id")), "Loc șters"))}));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);
@@ -2054,7 +2091,7 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, content);
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Alimentări", 19, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(Ui.text(this, "Alimentări", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
         TextView add = Ui.text(this, "+ Adaugă", 15, Ui.ACCENT, true);
         add.setOnClickListener(v -> refuelDialog(null));
         head.addView(add);
@@ -2099,6 +2136,10 @@ public class MainActivity extends Activity {
                 top.addView(Ui.text(this, Fmt.fixed(r.optDouble("liters") * r.optDouble("price"), 2) + " lei",
                         15, Ui.ACCENT, true));
             }
+            top.setGravity(Gravity.CENTER_VERTICAL);
+            top.addView(rowMenu(new String[] {"Modifică", "Șterge"}, new Runnable[] {() -> refuelDialog(r),
+                    () -> confirm("Ștergi alimentarea?",
+                            () -> mutate(() -> api.deleteRefuel(r.optInt("id")), "Alimentare ștearsă"))}));
             row.addView(top);
             List<String> parts = new ArrayList<>();
             if (!r.isNull("price")) parts.add(Fmt.fixed(r.optDouble("price"), 2) + " lei/L");
@@ -2106,9 +2147,7 @@ public class MainActivity extends Activity {
             if (!r.isNull("lPer100")) parts.add(Fmt.num(r.optDouble("lPer100"), 1) + " L/100 km de la plinul anterior");
             if (!r.isNull("note")) parts.add(r.optString("note"));
             if (!parts.isEmpty()) row.addView(Ui.text(this, String.join(" · ", parts), 13, Ui.MUTED, false));
-            row.addView(actions(new String[] {"Editează", "Șterge"}, new int[] {Ui.ACCENT, Ui.BAD},
-                    new Runnable[] {() -> refuelDialog(r), () -> confirm("Ștergi alimentarea?",
-                            () -> mutate(() -> api.deleteRefuel(r.optInt("id")), "Alimentare ștearsă"))}));
+            row.setOnClickListener(v -> refuelDialog(r));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);
@@ -2179,7 +2218,7 @@ public class MainActivity extends Activity {
         head.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
-        titles.addView(Ui.text(this, "Mentenanță", 19, Ui.TEXT, true));
+        titles.addView(Ui.text(this, "Mentenanță", 18, Ui.TEXT, true));
         titles.addView(Ui.text(this, "Kilometraj: " + (car.isNull("odometer") ? "necunoscut încă"
                 : Fmt.km(car.optLong("odometer"))), 13, Ui.MUTED, false));
         head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
@@ -2206,14 +2245,22 @@ public class MainActivity extends Activity {
             boolean overdue = r.optBoolean("overdue"), soon = r.optBoolean("soon");
             top.addView(Ui.pill(this, overdue ? "depășit" : soon ? "în curând" : "ok",
                     overdue ? Ui.BAD : soon ? Ui.WARN : Ui.MUTED));
+            int id = r.optInt("id");
+            top.addView(rowMenu(new String[] {"Făcut azi", "Modifică", "Șterge"}, new Runnable[] {
+                    () -> mutate(() -> api.reminderDone(id), "Marcat ca făcut azi"),
+                    () -> reminderDialog(r),
+                    () -> confirm("Ștergi „" + r.optString("title") + "”?",
+                            () -> mutate(() -> api.deleteReminder(id), "Șters"))}));
             row.addView(top);
             row.addView(Ui.text(this, describe(r), 13, Ui.MUTED, false));
-            int id = r.optInt("id");
-            row.addView(actions(new String[] {"Făcut azi", "Editează", "Șterge"}, new int[] {Ui.OK, Ui.ACCENT, Ui.BAD},
-                    new Runnable[] {() -> mutate(() -> api.reminderDone(id), "Marcat ca făcut azi"),
-                            () -> reminderDialog(r),
-                            () -> confirm("Ștergi „" + r.optString("title") + "”?",
-                                    () -> mutate(() -> api.deleteReminder(id), "Șters"))}));
+            row.setOnClickListener(v -> reminderDialog(r));
+            // Scadent sau aproape: „Făcut azi” la vedere, nu doar in meniu.
+            if (overdue || soon) {
+                TextView done = Ui.text(this, "Făcut azi", 14, Ui.OK, true);
+                done.setPadding(0, dp(this, 8), 0, dp(this, 2));
+                done.setOnClickListener(v -> mutate(() -> api.reminderDone(id), "Marcat ca făcut azi"));
+                row.addView(done);
+            }
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
             card.addView(row, lp);
@@ -2257,7 +2304,7 @@ public class MainActivity extends Activity {
             }
             form.addView(presets, 0);
         }
-        showForm(r == null ? "Mentenanță nouă" : "Editează", form, () -> {
+        showForm(r == null ? "Mentenanță nouă" : "Modifică", form, () -> {
             JSONObject o = new JSONObject();
             if (r != null) o.put("id", r.optInt("id"));
             o.put("title", text(title));
@@ -2405,6 +2452,30 @@ public class MainActivity extends Activity {
             row.addView(t);
         }
         return row;
+    }
+
+    /**
+     * Butonul „⋯” al unui rand: meniul cu actiunile lui (Modifica, Sterge...), in loc de un
+     * sir de linkuri colorate. Atingerea randului face de obicei prima actiune.
+     */
+    private View rowMenu(String[] labels, Runnable[] actions) {
+        android.widget.FrameLayout f = new android.widget.FrameLayout(this);
+        f.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x33FFFFFF), null, Ui.round(this, 0xFFFFFFFF, 18)));
+        Icon dots = new Icon(this, Icon.MORE);
+        dots.setColor(Ui.MUTED);
+        f.addView(dots, new android.widget.FrameLayout.LayoutParams(dp(this, 20), dp(this, 20), Gravity.CENTER));
+        f.setOnClickListener(v -> {
+            android.widget.PopupMenu m = new android.widget.PopupMenu(this, v, Gravity.END);
+            for (int i = 0; i < labels.length; i++) m.getMenu().add(0, i, i, labels[i]);
+            m.setOnMenuItemClickListener(item -> {
+                actions[item.getItemId()].run();
+                return true;
+            });
+            m.show();
+        });
+        f.setLayoutParams(new LinearLayout.LayoutParams(dp(this, 36), dp(this, 36)));
+        return f;
     }
 
     private void confirm(String message, Runnable yes) {

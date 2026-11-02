@@ -1,6 +1,5 @@
 package ro.faicu.faikkitcar.panel;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Handler;
@@ -329,29 +328,68 @@ final class MusicCard {
 
     // ------------------------------------------------------------ cautarea
 
+    /**
+     * Cautarea: un panou sus, fara titlu (tastatura e jos): bara rotunjita cu lupa, textul si „×”,
+     * rezultatele dedesubt, pe masura ce scrii. Se inchide cu „inapoi” sau atingand in afara lui.
+     */
     private void openSearch() {
-        LinearLayout box = new LinearLayout(c);
-        box.setOrientation(LinearLayout.VERTICAL);
-        int p = dp(c, 20);
-        box.setPadding(p, dp(c, 8), p, p);
-        LinearLayout row = new LinearLayout(c);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        android.app.Dialog dialog = new android.app.Dialog(c);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        android.app.Dialog[] d = {dialog};
+
+        LinearLayout sheet = new LinearLayout(c);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable sbg = new android.graphics.drawable.GradientDrawable();
+        sbg.setColor(Ui.CARD);
+        float r = dp(c, 24);
+        sbg.setCornerRadii(new float[] {0, 0, 0, 0, r, r, r, r});
+        sheet.setBackground(sbg);
+        int p = dp(c, 16);
+        sheet.setPadding(p, dp(c, 14), p, p);
+
+        // Bara: lupa, campul, „×”; marginea se coloreaza cat scrii.
+        LinearLayout pill = new LinearLayout(c);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        android.graphics.drawable.GradientDrawable pbg = Ui.round(c, Ui.CARD2, 26);
+        pbg.setStroke(dp(c, 1), Ui.ACCENT);
+        pill.setBackground(pbg);
+        pill.setPadding(dp(c, 16), 0, dp(c, 6), 0);
+        Icon lens = new Icon(c, Icon.SEARCH);
+        lens.setColor(Ui.MUTED);
+        pill.addView(lens, new LinearLayout.LayoutParams(dp(c, 20), dp(c, 20)));
         EditText q = new EditText(c);
-        q.setHint("Artist, piesă...");
+        q.setHint("Piesă, artist, album");
         q.setHintTextColor(Ui.MUTED);
         q.setTextColor(Ui.TEXT);
         q.setTextSize(17);
         q.setSingleLine(true);
+        q.setBackground(null);
         q.setInputType(InputType.TYPE_CLASS_TEXT);
         q.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        q.setBackground(Ui.round(c, Ui.CARD2, 12));
-        q.setPadding(dp(c, 14), dp(c, 12), dp(c, 14), dp(c, 12));
-        row.addView(q, new LinearLayout.LayoutParams(0, -2, 1));
+        q.setPadding(dp(c, 12), dp(c, 14), dp(c, 4), dp(c, 14));
+        pill.addView(q, new LinearLayout.LayoutParams(0, -2, 1));
+        View clear = iconButton(Icon.CLOSE, 40, 18, 0, Ui.MUTED, v -> q.setText(""));
+        clear.setVisibility(View.INVISIBLE);
+        pill.addView(clear, new LinearLayout.LayoutParams(dp(c, 40), dp(c, 40)));
+        q.setOnFocusChangeListener((v, has) -> pbg.setStroke(dp(c, 1), has ? Ui.ACCENT : Ui.CARD2));
+        sheet.addView(pill);
+
         LinearLayout results = new LinearLayout(c);
         results.setOrientation(LinearLayout.VERTICAL);
-        AlertDialog[] d = new AlertDialog[1];
+        int maxH = Math.round(c.getResources().getDisplayMetrics().heightPixels * 0.55f);
+        ScrollView sv = new ScrollView(c) {
+            @Override
+            protected void onMeasure(int w, int h) {
+                super.onMeasure(w, MeasureSpec.makeMeasureSpec(maxH, MeasureSpec.AT_MOST));
+            }
+        };
+        sv.addView(results);
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+        rlp.topMargin = dp(c, 6);
+        sheet.addView(sv, rlp);
+
         android.view.inputmethod.InputMethodManager imm = c.getSystemService(android.view.inputmethod.InputMethodManager.class);
-        // Cautarea pornește singura la 400 ms dupa ultima tasta; tasta „Caută” ascunde tastatura.
+        // Cautarea porneste singura la 400 ms dupa ultima tasta; tasta „Caută” ascunde tastatura.
         Runnable go = () -> search(q.getText().toString().trim(), results, d);
         q.addTextChangedListener(new android.text.TextWatcher() {
             @Override
@@ -362,8 +400,14 @@ final class MusicCard {
 
             @Override
             public void afterTextChanged(android.text.Editable e) {
+                clear.setVisibility(e.length() > 0 ? View.VISIBLE : View.INVISIBLE);
                 ui.removeCallbacks(go);
-                if (e.toString().trim().length() >= 2) ui.postDelayed(go, 400);
+                if (e.toString().trim().length() >= 2) {
+                    ui.postDelayed(go, 400);
+                } else {
+                    searchSeq++;
+                    results.removeAllViews();
+                }
             }
         });
         q.setOnEditorActionListener((v, id, ev) -> {
@@ -375,35 +419,33 @@ final class MusicCard {
             }
             return false;
         });
-        box.addView(row);
-        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
-        rlp.topMargin = dp(c, 8);
-        box.addView(results, rlp);
-        ScrollView sv = new ScrollView(c);
-        sv.addView(box);
-        d[0] = new AlertDialog.Builder(c, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Pune o piesă în mașină")
-                .setView(sv)
-                .setNegativeButton("Închide", null)
-                .create();
-        // Tastatura deschisa de la inceput (pe telefon nu aparea cu SOFT_INPUT_STATE_VISIBLE singur).
-        if (d[0].getWindow() != null) {
-            d[0].getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+
+        dialog.setContentView(sheet);
+        dialog.setCanceledOnTouchOutside(true);
+        android.view.Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+            w.setLayout(-1, -2);
+            w.setGravity(Gravity.TOP);
+            w.setDimAmount(0.6f);
+            w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            // Tastatura deschisa de la inceput (pe telefon nu aparea cu SOFT_INPUT_STATE_VISIBLE singur).
+            w.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
                     | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
-        d[0].setOnShowListener(x -> {
+        dialog.setOnShowListener(x -> {
             q.requestFocus();
             q.postDelayed(() -> {
                 if (imm != null) imm.showSoftInput(q, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
             }, 150);
         });
-        d[0].setOnDismissListener(x -> ui.removeCallbacks(go));
-        d[0].show();
+        dialog.setOnDismissListener(x -> ui.removeCallbacks(go));
+        dialog.show();
     }
 
     private int searchSeq; // doar raspunsul la ultima cautare se afiseaza
 
-    private void search(String query, LinearLayout results, AlertDialog[] d) {
+    private void search(String query, LinearLayout results, android.app.Dialog[] d) {
         if (query.isEmpty()) return;
         int seq = ++searchSeq;
         if (results.getChildCount() == 0) Ui.hint(c, results, "Caut...");
@@ -423,7 +465,7 @@ final class MusicCard {
         });
     }
 
-    private void showHits(JSONArray hits, LinearLayout results, AlertDialog[] d) {
+    private void showHits(JSONArray hits, LinearLayout results, android.app.Dialog[] d) {
         results.removeAllViews();
         if (hits.length() == 0) {
             Ui.hint(c, results, "Nimic găsit.");

@@ -71,8 +71,9 @@ final class Ui {
         return card;
     }
 
+    /** Titlul unui card: acelasi peste tot (18 sp, alb, semi-bold). */
     static TextView title(Context c, LinearLayout parent, String s) {
-        TextView t = text(c, s, 19, TEXT, true);
+        TextView t = text(c, s, 18, TEXT, true);
         parent.addView(t);
         return t;
     }
@@ -304,12 +305,10 @@ final class Ui {
         return box;
     }
 
-    /** Un card cu titlu mic, cu majuscule (sectiunile din detaliile calatoriei). */
+    /** Un card cu titlu, in acelasi stil ca toate titlurile de card (title). */
     static LinearLayout section(Context c, LinearLayout parent, String title) {
         LinearLayout card = card(c, parent);
-        TextView t = text(c, title.toUpperCase(new java.util.Locale("ro", "RO")), 12, MUTED, true);
-        t.setLetterSpacing(0.08f);
-        card.addView(t);
+        title(c, card, title);
         return card;
     }
 }
