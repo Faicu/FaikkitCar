@@ -4,6 +4,7 @@ import { Fuel } from "lucide-react";
 import { toast } from "sonner";
 
 import { api, type FuelSummary, type RefuelInput } from "../api";
+import { RowMenu } from "./RowMenu";
 
 // Jurnalul de alimentări: consumul real între două plinuri și calibrarea estimării
 // de combustibil pe călătorie (server/fuel-model.ts).
@@ -75,6 +76,17 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
     });
   }
 
+  // Atingerea rândului (sau „⋯” → Modifică) deschide formularul alimentării.
+  const edit = (r: FuelSummary["refuels"][number]) =>
+    setForm({
+      id: r.id,
+      at: toLocal(r.at),
+      liters: String(r.liters),
+      price: r.price !== null ? String(r.price) : "",
+      odo: r.odo !== null ? String(r.odo) : "",
+      full: r.full,
+      note: r.note ?? "",
+    });
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between rounded-2xl glass-card p-4">
@@ -185,14 +197,22 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
       )}
 
       {fuel.refuels.map((r) => (
-        <div key={r.id} className="rounded-2xl glass-card p-3">
+        <div key={r.id} onClick={() => edit(r)} className="cursor-pointer rounded-2xl glass-card glass-card-hover p-3">
           <div className="flex items-center justify-between">
             <span className="font-semibold">
               {new Date(r.at).toLocaleDateString("ro-RO", { day: "2-digit", month: "short" })} ·{" "}
               {fmt(r.liters, 2)} L{r.full ? " · plin" : ""}
             </span>
-            <span className="text-sm text-sky-400">
-              {r.price !== null ? `${fmt(r.liters * r.price, 2)} lei` : ""}
+            <span className="flex items-center gap-1">
+              <span className="text-sm text-sky-400">
+                {r.price !== null ? `${fmt(r.liters * r.price, 2)} lei` : ""}
+              </span>
+              <RowMenu
+                actions={[
+                  { label: "Modifică", run: () => edit(r) },
+                  { label: "Șterge", danger: true, run: () => confirm("Ștergi alimentarea?") && remove.mutate(r.id) },
+                ]}
+              />
             </span>
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -205,34 +225,6 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
               .filter(Boolean)
               .join(" · ")}
           </p>
-          <div className="mt-2 flex gap-1 text-xs">
-            <button
-              type="button"
-              onClick={() =>
-                setForm({
-                  id: r.id,
-                  at: toLocal(r.at),
-                  liters: String(r.liters),
-                  price: r.price !== null ? String(r.price) : "",
-                  odo: r.odo !== null ? String(r.odo) : "",
-                  full: r.full,
-                  note: r.note ?? "",
-                })
-              }
-              className="rounded-lg px-2 py-1 text-sky-400 hover:bg-sky-500/10"
-            >
-              Editează
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm("Ștergi alimentarea?")) remove.mutate(r.id);
-              }}
-              className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-500/10"
-            >
-              Șterge
-            </button>
-          </div>
         </div>
       ))}
     </div>

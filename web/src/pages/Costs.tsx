@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
-import { Stat } from "../components/Cells";
+import { Info, Stat } from "../components/Cells";
 import { FuelLog } from "../components/FuelLog";
 import {
   api,
@@ -259,47 +260,76 @@ function change(cur: number | null, prev: number | null | undefined): number | n
 }
 
 /** Lunile, cu bare pentru km și lei (scara = luna cea mai mare). */
+/**
+ * Pe luni, ca în Panel: bare verticale (km sau lei, la alegere), lunile de la stânga (vechi) la
+ * dreapta; luna aleasă e plină, cu valoarea deasupra, și detaliile ei dedesubt.
+ */
 function Monthly({ months }: { months: MonthStats[] }) {
-  const maxKm = Math.max(1, ...months.map((m) => m.km));
-  const maxLei = Math.max(1, ...months.map((m) => m.cost ?? 0));
+  const [byLei, setByLei] = useState(false);
+  const ordered = [...months].reverse();
+  const [pick, setPick] = useState(ordered.length - 1);
+  const values = ordered.map((m) => (byLei ? (m.cost ?? 0) : m.km));
+  const max = Math.max(1, ...values);
+  const m = ordered[Math.min(pick, ordered.length - 1)];
+  const color = byLei ? "bg-amber-400" : "bg-sky-400";
   return (
-    <div className="space-y-2 rounded-2xl glass-card p-4">
-      <h2 className="font-semibold">Pe luni</h2>
-      {months.map((m) => (
-        <div key={m.month} className="space-y-1 border-t border-border/30 pt-2 first:border-0 first:pt-0">
-          <div className="flex items-baseline justify-between">
-            <span className="font-medium">{monthName(m.month)}</span>
-            <span className="text-xs text-muted-foreground">
-              {m.trips} călătorii · {duration(m.minutes)}
-            </span>
-          </div>
-          <Bar value={m.km} max={maxKm} color="bg-sky-400" label={`${num(m.km)} km`} />
-          <Bar
-            value={m.cost ?? 0}
-            max={maxLei}
-            color="bg-amber-400"
-            label={m.cost !== null ? `${lei(m.cost)} (est.)` : "—"}
-          />
-          <p className="text-xs text-muted-foreground">
-            ≈ {liters(m.liters)}
-            {m.lPer100 !== null ? ` · ${num(m.lPer100)} L/100 km` : ""}
-            {m.refuelLiters > 0
-              ? ` · alimentat ${liters(m.refuelLiters)}${m.refuelLei !== null ? ` (${lei(m.refuelLei)})` : ""}`
-              : ""}
-          </p>
+    <div className="rounded-2xl glass-card p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold">Pe luni</h2>
+        <div className="flex gap-1 text-sm">
+          {[false, true].map((v) => (
+            <button
+              key={String(v)}
+              onClick={() => setByLei(v)}
+              className={`rounded-full px-3 py-1 ${byLei === v ? "bg-sky-500/15 text-sky-400" : "text-muted-foreground"}`}
+            >
+              {v ? "lei" : "km"}
+            </button>
+          ))}
         </div>
-      ))}
-    </div>
-  );
-}
-
-function Bar({ value, max, color, label }: { value: number; max: number; color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${(value / max) * 100}%` }} />
       </div>
-      <span className="w-28 text-right text-xs tabular-nums">{label}</span>
+      <div className="mt-4 flex h-40 items-end gap-1">
+        {ordered.map((mm, i) => (
+          <button
+            key={mm.month}
+            onClick={() => setPick(i)}
+            className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
+          >
+            {i === pick && (
+              <span className="mb-1 whitespace-nowrap text-xs font-semibold">
+                {byLei ? (mm.cost !== null ? lei(mm.cost) : "—") : `${num(mm.km, 0)} km`}
+              </span>
+            )}
+            <div
+              className={`w-full max-w-9 rounded-md ${color} ${i === pick ? "" : "opacity-30"}`}
+              style={{ height: `${Math.max(2, (values[i] / max) * 100)}%` }}
+            />
+            <span className={`mt-1 text-[11px] ${i === pick ? "" : "text-muted-foreground"}`}>
+              {new Date(`${mm.month}-01T12:00:00`).toLocaleDateString("ro-RO", { month: "short" })}
+            </span>
+          </button>
+        ))}
+      </div>
+      {m && (
+        <div className="mt-3">
+          <p className="font-medium">{monthName(m.month)}</p>
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            <Info label="Distanță" value={`${num(m.km)} km`} />
+            <Info label="Cost (est.)" value={m.cost !== null ? lei(m.cost) : "—"} />
+            <Info label="Călătorii" value={`${m.trips} · ${duration(m.minutes)}`} />
+            <Info label="Combustibil" value={`≈ ${liters(m.liters)}`} />
+            <Info label="Consum" value={m.lPer100 !== null ? `${num(m.lPer100)} L/100` : "—"} />
+            <Info
+              label="Alimentat"
+              value={
+                m.refuelLiters > 0
+                  ? `${liters(m.refuelLiters)}${m.refuelLei !== null ? ` · ${lei(m.refuelLei)}` : ""}`
+                  : "—"
+              }
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

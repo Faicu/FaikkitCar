@@ -3,6 +3,7 @@ import { AlertTriangle, ChevronRight, Cpu, Fuel, Navigation, Wind } from "lucide
 
 import { CarPosition } from "../components/CarPosition";
 import { LiveTripMap } from "../components/LiveTripMap";
+import { MusicCard } from "../components/MusicCard";
 import { Suggestions } from "../components/Suggestions";
 import { TripSummary } from "../components/TripView";
 import { api, duration, num, relativeTime, shortDuration, Unauthorized, type Live } from "../api";
@@ -65,6 +66,8 @@ export function NowPage() {
         {d && <CarDetails d={d} />}
         {live.unitHealth && <UnitHealthLine health={live.unitHealth} />}
       </div>
+
+      <MusicCard />
 
       {live.trip && (
         <TripSummary

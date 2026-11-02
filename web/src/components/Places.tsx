@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, MapPinPlus, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { MapPin, Plus, Search } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
 
 import { api, type GeocodeResult, type Place } from "../api";
+import { RowMenu } from "./RowMenu";
 
 /** Ce se editează: un loc existent sau unul nou, cu o poziție de pornire (opțională). */
 export interface PlaceDraft {
@@ -28,6 +29,7 @@ const DEFAULT_CENTER: [number, number] = [44.4268, 26.1025];
 export function Places() {
   const { data: places } = useQuery({ queryKey: ["places"], queryFn: api.places });
   const { data: car } = useQuery({ queryKey: ["car"], queryFn: api.car });
+  const qc = useQueryClient();
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const pos = car?.position;
   return (
@@ -60,25 +62,20 @@ export function Places() {
               {positionLabel(all, i)}· {p.radius} m
             </span>
           </span>
-          <button
-            type="button"
-            title="Încă o poziție pentru acest loc"
-            onClick={() =>
-              setDraft({ name: p.name, extra: true, lat: pos?.lat ?? null, lon: pos?.lon ?? null, radius: p.radius })
-            }
-            className="rounded-lg p-1.5 text-sky-400 hover:bg-sky-500/10"
-          >
-            <MapPinPlus className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            title="Modifică"
-            onClick={() => setDraft({ id: p.id, name: p.name, lat: p.lat, lon: p.lon, radius: p.radius })}
-            className="rounded-lg p-1.5 text-sky-400 hover:bg-sky-500/10"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <DeletePlace place={p} />
+          <RowMenu
+            actions={[
+              {
+                label: "Modifică",
+                run: () => setDraft({ id: p.id, name: p.name, lat: p.lat, lon: p.lon, radius: p.radius }),
+              },
+              {
+                label: "Adaugă o poziție",
+                run: () =>
+                  setDraft({ name: p.name, extra: true, lat: pos?.lat ?? null, lon: pos?.lon ?? null, radius: p.radius }),
+              },
+              { label: "Șterge", danger: true, run: () => void deletePlace(p, () => qc.invalidateQueries()) },
+            ]}
+          />
         </div>
       ))}
     </div>
@@ -92,27 +89,15 @@ function positionLabel(all: Place[], i: number): string {
   return `poziția ${same.indexOf(all[i]) + 1} `;
 }
 
-function DeletePlace({ place }: { place: Place }) {
-  const qc = useQueryClient();
-  return (
-    <button
-      type="button"
-      title="Șterge"
-      onClick={async () => {
-        if (!confirm(`Ștergi „${place.name}”?`)) return;
-        try {
-          await api.deletePlace(place.id);
-          await qc.invalidateQueries();
-          toast.success("Loc șters");
-        } catch (e) {
-          toast.error((e as Error).message);
-        }
-      }}
-      className="rounded-lg p-1.5 text-red-400 hover:bg-red-500/10"
-    >
-      <Trash2 className="h-4 w-4" />
-    </button>
-  );
+async function deletePlace(place: Place, refresh: () => Promise<unknown>) {
+  if (!confirm(`Ștergi „${place.name}”?`)) return;
+  try {
+    await api.deletePlace(place.id);
+    await refresh();
+    toast.success("Loc șters");
+  } catch (e) {
+    toast.error((e as Error).message);
+  }
 }
 
 /** Numele, căutarea adresei, harta cu pinul (atinge harta sau trage pinul) și raza. */

@@ -74,17 +74,16 @@ function Login({ onDone }: { onDone: () => void }) {
     }
   }
   return (
-    <form onSubmit={submit} className="mx-auto mt-24 max-w-sm space-y-3 rounded-2xl glass-card p-6">
-      <div className="flex items-center gap-2">
-        <img src="/logo.png" alt="" className="h-8 w-8" />
-        <h1 className="text-xl font-semibold">FaikkitCar</h1>
-      </div>
+    <form onSubmit={submit} className="mx-auto mt-20 flex max-w-sm flex-col items-center px-6">
+      <img src="/logo.png" alt="" className="h-22 w-22 rounded-3xl" />
+      <h1 className="mt-4 text-3xl font-semibold">FaikkitCar</h1>
+      <p className="text-sm text-muted-foreground">FAImobil · intră cu contul tău</p>
       <input
         autoComplete="username"
         placeholder="Utilizator"
         value={user}
         onChange={(e) => setUser(e.target.value)}
-        className="w-full rounded-lg border border-border/40 bg-background/40 px-3 py-2"
+        className="mt-8 w-full rounded-2xl border border-transparent bg-white/[0.06] px-4 py-3.5 outline-none placeholder:text-muted-foreground focus:border-sky-400"
       />
       <input
         type="password"
@@ -92,12 +91,12 @@ function Login({ onDone }: { onDone: () => void }) {
         placeholder="Parolă"
         value={pass}
         onChange={(e) => setPass(e.target.value)}
-        className="w-full rounded-lg border border-border/40 bg-background/40 px-3 py-2"
+        className="mt-2.5 w-full rounded-2xl border border-transparent bg-white/[0.06] px-4 py-3.5 outline-none placeholder:text-muted-foreground focus:border-sky-400"
       />
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       <button
         disabled={busy || !user || !pass}
-        className="w-full rounded-lg bg-sky-500 px-3 py-2 font-semibold text-slate-950 disabled:opacity-40"
+        className="mt-5 w-full rounded-2xl bg-sky-400 px-4 py-3.5 font-semibold text-slate-950 hover:bg-sky-300 disabled:opacity-40"
       >
         Intră
       </button>

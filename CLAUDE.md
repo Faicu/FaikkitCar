@@ -314,6 +314,12 @@ rânduri în meniul „⋯” (`rowMenu`; atingerea rândului = Modifică), făr
 1.0.40: miniaturile traseelor în listă (`RouteThumb`, din `GET /api/trips/shapes` = `readTripShapes`, ≤ 32 de
 puncte pe călătorie, `shapeOf` testat), „Pe luni” cu bare verticale (`BarChart`, km/lei, luna aleasă dedesubt),
 detaliile călătoriei într-un card cu grupe (`group`), graficele navigației pe rânduri late cu axa timpului.
+1.0.41: bordul pe Acum (`SpeedGauge`: viteza pe arcul mare, turația pe cel mic), autentificarea refăcută.
+Site-ul (02.11), la fel: `MusicCard.tsx` pe Acum, `RouteThumb.tsx` + zilele în lista de călătorii, „Pe luni” cu
+bare verticale (`Costs.tsx`), acțiunile în „⋯” (`RowMenu.tsx`: alimentări, mentenanță, locuri), autentificarea.
+Pe server nu e browser pentru teste; site-ul se poate vedea în Chrome din emulator, dar NU tasta date de
+autentificare acolo cu `adb input` fără să verifici întâi că un câmp are focus (02.11: textul a ajuns în bara de
+adrese și s-a trimis la Google ca o căutare).
 Din 1.0.30 actualizarea e automată, fără confirmare (Android 12+, `setRequireUserAction`,
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
 Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără

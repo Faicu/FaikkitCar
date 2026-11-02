@@ -7,6 +7,7 @@ import type { Position, Reminder, ReminderInput } from "../server/car.ts";
 import type { FuelSummary, RefuelInput } from "../server/fuel.ts";
 import type { Live, LiveRoute } from "../server/live.ts";
 import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
+import type { MusicAction, MusicView, SongHit } from "../server/music.ts";
 import type { ServiceEntry, ServiceInput, ServiceItem } from "../server/service.ts";
 import type { Commute } from "../server/commute.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
@@ -47,6 +48,19 @@ export const api = {
       undefined,
       signal,
     ),
+  // Muzica de pe navigație; cu `after` (seq), răspunsul vine la o schimbare (cel mult 25 s).
+  music: (after?: number | null, signal?: AbortSignal) =>
+    call<{ seq: number; music: MusicView | null }>(
+      "GET",
+      after === null || after === undefined ? "/api/music" : `/api/music?after=${after}`,
+      undefined,
+      signal,
+    ),
+  musicCmd: (action: MusicAction, value?: number | string) =>
+    call<{ id: number }>("POST", "/api/music", value === undefined ? { action } : { action, value }),
+  musicSearch: (q: string, signal?: AbortSignal) =>
+    call<SongHit[]>("GET", `/api/music/search?q=${encodeURIComponent(q)}`, undefined, signal),
+  tripShapes: () => call<Record<string, Array<[number, number]>>>("GET", "/api/trips/shapes"),
   stats: () => call<Stats>("GET", "/api/stats"),
   trips: () => call<Trip[]>("GET", "/api/trips"),
   gaps: () => call<Gap[]>("GET", "/api/trips/gaps"),

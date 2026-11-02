@@ -4,6 +4,7 @@ import { ArrowLeft, CircleOff, Combine, MapPin, Split } from "lucide-react";
 import { toast } from "sonner";
 
 import { PlaceEditor, type PlaceDraft } from "../components/Places";
+import { RouteThumb } from "../components/RouteThumb";
 import { TripSummary, TripSections } from "../components/TripView";
 import { TripMap } from "../components/TripMap";
 import {
@@ -59,6 +60,7 @@ export function TripsPage() {
   const { data, isLoading } = useQuery({ queryKey: ["trips"], queryFn: api.trips, ...LIVE });
   const all = data ?? [];
   const { data: gaps } = useQuery({ queryKey: ["gaps"], queryFn: api.gaps, ...LIVE });
+  const { data: shapes } = useQuery({ queryKey: ["tripShapes"], queryFn: api.tripShapes, ...LIVE });
   const [hideIdle, setHideIdle] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   useEffect(() => {
@@ -127,13 +129,49 @@ export function TripsPage() {
         </div>
       )}
       {trips.map((t, i) => (
-        <TripRow
-          key={t.start}
-          trip={t}
-          gaps={gapsBefore(gaps ?? [], t, trips[i - 1])}
-          onOpen={setSelected}
-        />
+        <div key={t.start} className="space-y-2">
+          {(i === 0 || dayKey(trips[i - 1].start) !== dayKey(t.start)) && (
+            <DayHeader trips={trips} start={t.start} />
+          )}
+          <TripRow
+            trip={t}
+            shape={shapes?.[t.start]}
+            gaps={gapsBefore(gaps ?? [], t, trips[i - 1])}
+            onOpen={setSelected}
+          />
+        </div>
       ))}
+    </div>
+  );
+}
+
+/** Ziua locală a unei ore ISO, pentru grupare. */
+function dayKey(iso: string): string {
+  return new Date(iso).toLocaleDateString("sv-SE");
+}
+
+/** „Azi”, „Ieri”, altfel „Sâmbătă, 31 oct.”. */
+function dayTitle(iso: string): string {
+  const k = dayKey(iso);
+  const now = new Date();
+  if (k === now.toLocaleDateString("sv-SE")) return "Azi";
+  if (k === new Date(now.getTime() - 86_400_000).toLocaleDateString("sv-SE")) return "Ieri";
+  const s = new Date(iso).toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "short" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Antetul unei zile: numele și totalurile ei (km, lei). */
+function DayHeader({ trips, start }: { trips: Trip[]; start: string }) {
+  const k = dayKey(start);
+  const same = trips.filter((t) => dayKey(t.start) === k);
+  const km = same.reduce((a, t) => a + t.distanceKm, 0);
+  const cost = same.reduce((a, t) => a + (t.cost ?? 0), 0);
+  return (
+    <div className="flex items-baseline justify-between px-1 pt-3">
+      <span className="font-semibold">{dayTitle(start)}</span>
+      <span className="text-xs text-muted-foreground">
+        {num(km)} km{cost > 0 ? ` · ${lei(cost)}` : ""}
+      </span>
     </div>
   );
 }
@@ -145,10 +183,12 @@ function gapsBefore(gaps: Gap[], trip: Trip, newer: Trip | undefined): Gap[] {
 
 function TripRow({
   trip: t,
+  shape,
   gaps,
   onOpen,
 }: {
   trip: Trip;
+  shape: Array<[number, number]> | undefined;
   gaps: Gap[];
   onOpen: (start: string) => void;
 }) {
@@ -164,23 +204,26 @@ function TripRow({
           onOpen(t.start);
           scrollTo(0, 0);
         }}
-        className="block w-full rounded-2xl glass-card glass-card-hover press-tile p-3 text-left"
+        className="flex w-full items-center gap-3 rounded-2xl glass-card glass-card-hover press-tile p-3 text-left"
       >
-        <div className="flex items-center justify-between">
-          <span className="font-semibold">
-            {day(t.start)} · {hm(t.start)}–{hm(t.end)}
-          </span>
-          <span className="text-sm text-sky-400">{t.distanceKm} km</span>
+        {shape && shape.length >= 2 && <RouteThumb shape={shape} />}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">
+              {hm(t.start)}–{hm(t.end)}
+            </span>
+            <span className="text-sm text-sky-400">{t.distanceKm} km</span>
+          </div>
+          {route(t) && <p className="text-sm text-sky-300">{route(t)}</p>}
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t.idle ? "pe loc · " : ""}
+            {t.parts > 1 ? `${t.parts} părți, oprire ${duration(t.stopMin)} · ` : ""}
+            {duration(t.durationMin)}
+            {t.avgSpeed !== null ? ` · medie ${t.avgSpeed} km/h` : ""}
+            {t.maxSpeed !== null ? ` · max ${t.maxSpeed} km/h` : ""}
+            {fuelLine(t)}
+          </p>
         </div>
-        {route(t) && <p className="text-sm text-sky-300">{route(t)}</p>}
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {t.idle ? "pe loc · " : ""}
-          {t.parts > 1 ? `${t.parts} părți, oprire ${duration(t.stopMin)} · ` : ""}
-          {duration(t.durationMin)}
-          {t.avgSpeed !== null ? ` · medie ${t.avgSpeed} km/h` : ""}
-          {t.maxSpeed !== null ? ` · max ${t.maxSpeed} km/h` : ""}
-          {fuelLine(t)}
-        </p>
       </button>
     </>
   );

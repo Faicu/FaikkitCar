@@ -4,6 +4,7 @@ import { Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { api, type Reminder, type ReminderInput } from "../api";
+import { RowMenu } from "./RowMenu";
 
 // Mentenanța Golf-ului după kilometraj și/sau dată. Aplicația de pe navigație o citește
 // prin /api/car/status și o anunță în salutul vorbit.
@@ -185,41 +186,44 @@ export function Maintenance({
       )}
 
       {reminders.map((r) => (
-        <div key={r.id} className="rounded-2xl glass-card p-3">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold">{r.title}</span>
+        <div
+          key={r.id}
+          onClick={() => setForm({ ...r })}
+          className="cursor-pointer rounded-2xl glass-card glass-card-hover p-3"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex-1 font-semibold">{r.title}</span>
             <span
               className={`text-xs ${r.overdue ? "text-red-400" : r.soon ? "text-amber-400" : "text-muted-foreground"}`}
             >
               {r.overdue ? "depășit" : r.soon ? "în curând" : "ok"}
             </span>
+            <RowMenu
+              actions={[
+                { label: "Făcut azi", run: () => done.mutate(r.id) },
+                { label: "Modifică", run: () => setForm({ ...r }) },
+                {
+                  label: "Șterge",
+                  danger: true,
+                  run: () => confirm(`Ștergi „${r.title}”?`) && remove.mutate(r.id),
+                },
+              ]}
+            />
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{describe(r)}</p>
-          <div className="mt-2 flex gap-1 text-xs">
+          {/* Scadent sau aproape: „Făcut azi” la vedere, nu doar în meniu. */}
+          {(r.overdue || r.soon) && (
             <button
               type="button"
-              onClick={() => done.mutate(r.id)}
-              className="rounded-lg px-2 py-1 text-emerald-400 hover:bg-emerald-500/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                done.mutate(r.id);
+              }}
+              className="mt-2 rounded-lg px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10"
             >
               Făcut azi
             </button>
-            <button
-              type="button"
-              onClick={() => setForm({ ...r })}
-              className="rounded-lg px-2 py-1 text-sky-400 hover:bg-sky-500/10"
-            >
-              Editează
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm(`Ștergi „${r.title}”?`)) remove.mutate(r.id);
-              }}
-              className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-500/10"
-            >
-              Șterge
-            </button>
-          </div>
+          )}
         </div>
       ))}
     </div>

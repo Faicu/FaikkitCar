@@ -59,3 +59,51 @@ body {
     background-position: -200% 0;
   }
 }
+
+/* Barele din cardul de muzică (derularea, volumul): pistă subțire, partea plină albastră. */
+.music-range {
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.music-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(to right, #38bdf8 var(--fill), rgb(255 255 255 / 12%) var(--fill));
+}
+.music-range::-moz-range-track {
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(to right, #38bdf8 var(--fill), rgb(255 255 255 / 12%) var(--fill));
+}
+.music-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 99px;
+  background: #38bdf8;
+}
+.music-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 99px;
+  background: #38bdf8;
+}
+.music-range-vol::-webkit-slider-runnable-track {
+  height: 6px;
+}
+.music-range-vol::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -11px;
+}
+.music-range-vol::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+}
+.music-range:disabled {
+  opacity: 0.4;
+}
