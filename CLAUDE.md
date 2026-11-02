@@ -110,7 +110,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   Android 10, fereastra apare peste altă aplicație; din 1.1.76 și imediat ce s-a descărcat, dacă
   contactul e pus, chiar în mers (cererea utilizatorului); starea de pe server la 10 min, nu 30; din
   1.1.78 răspunsul la `/api/car/state` are `apk` (ultima versiune), deci cu motorul pornit o vede în ~5 s
-  (`Updater.onServerVersion`, cel mult o dată pe minut); „Anulare” = nu mai întreabă 6 h; comutator Setări → Sistem „Actualizare la pornire”), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
+  (`Updater.onServerVersion`, cel mult o dată pe minut); 02.11: descărcată la 2 s după contact, a apărut
+  imediat, deci din 1.1.79 și propunerea de după descărcare așteaptă minutul de la ACC ON (`accOnAt`); „Anulare” = nu mai întreabă 6 h; comutator Setări → Sistem „Actualizare la pornire”), `CanProbe` (Setări → „Sonda CAN (avansat)”: 10 min, „Marchează”
   trimite `CAN MARK <text> | schimbări`; lista `KNOWN` din `MainActivity` ascunde codurile
   știute, dar nu c10/c13/c27/c28 și cadrul 0x21).
 - Memoria (20.10, cu comenzile): navigația are 4 GB, swap 2,2 GB plin, ~400–550 MB disponibili;
@@ -165,7 +166,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   01.11, 18:46: utilizatorul a pus „LTE only” din butonul „Informatii telefon” (meniul Teyes de rețea
   mobilă are doar „LTE (recomandat)”/3G/2G, adică automat). Înainte: un 2G prins pe 31.10 08:11 (GSM
   ARFCN 16, ~5 s, după LTE −123 dBm); după: niciun 2G. Netestat: dacă setarea rămâne după o repornire.
-  2G rămâne în monitorizare ca semnal că setarea s-a pierdut. A rămas după repornire (01.11). Setarea e pe cartelă:
+  2G rămâne în monitorizare ca semnal că setarea s-a pierdut. 02.11: a trecut somnul de 8,5 h (22:51–07:23). A rămas după repornire (01.11). Setarea e pe cartelă:
   `preferred_network_mode<subId>` (`preferred_network_mode` general rămâne 9 pe Teyes); 1.1.68 o citește de
   acolo și scrie „Retea mobila: tipul preferat …” în jurnal la pornire și la schimbare. Comenzile de la
   distanță nu pot citi setările (`settings`/`content` cer permisiuni de shell).

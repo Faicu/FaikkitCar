@@ -131,7 +131,13 @@ final class Updater {
                 boolean now = CanLink.get(c).contact() && canShowLater(c);
                 Prefs.log(c, "Actualizare: " + apk.optString("versionName") + " descarcata, o propun "
                         + (now ? "acum" : "la pornirea masinii"));
-                if (now) main.post(() -> offerAtStart(c));
+                // 02.11: descarcata la 2 s dupa contact, fereastra a aparut imediat; asteptam
+                // sa se implineasca minutul de la pornire.
+                if (now) {
+                    long wait = accOnAt == 0 ? 0
+                            : Math.max(0, accOnAt + OFFER_DELAY_MS - android.os.SystemClock.elapsedRealtime());
+                    main.postDelayed(() -> offerAtStart(c), wait);
+                }
             }
         } catch (Exception e) {
             tmp.delete();
@@ -147,6 +153,8 @@ final class Updater {
     private static final long OFFER_DELAY_MS = 60_000;
     private static final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
     private static Runnable pendingOffer;
+    // Cand a venit ultimul ACC ON (elapsedRealtime): in primul minut nu propunem nimic.
+    private static volatile long accOnAt;
 
     /** „Afisare peste alte aplicatii” data: putem deschide fereastra oricand, nu doar la autostart. */
     static boolean canShowLater(Context c) {
@@ -156,6 +164,7 @@ final class Updater {
     /** La ACC ON (autostart): propunerea, la ~1 min sau imediat daca nu avem voie mai tarziu. */
     static void scheduleOffer(Context ctx) {
         Context c = ctx.getApplicationContext();
+        accOnAt = android.os.SystemClock.elapsedRealtime();
         if (!canShowLater(c)) {
             offerAtStart(c);
             return;
