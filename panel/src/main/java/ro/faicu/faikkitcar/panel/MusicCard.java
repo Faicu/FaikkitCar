@@ -49,11 +49,14 @@ final class MusicCard {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService cmds = Executors.newSingleThreadExecutor();
     private final ExecutorService images = Executors.newSingleThreadExecutor();
+    private final ExecutorService searches = Executors.newSingleThreadExecutor();
     private final Map<String, Bitmap> artCache = new HashMap<>();
 
     private final ImageView art;
     private final TextView source, title, sub, pos, dur, volText;
-    private final SeekBar bar;
+    private final SeekBar bar, volBar;
+    private static final int VOL_MAX = 36; // treapta maxima pe navigatie
+    private long volSentAt;
     private final Button play;
 
     private JSONObject music;
@@ -165,18 +168,51 @@ final class MusicCard {
         clp.topMargin = dp(c, 8);
         view.addView(controls, clp);
 
+        // Volumul Teyes: bara (0–36, ca pe navigatie) intre „−” si „+”, eticheta deasupra.
+        volText = Ui.text(c, "", 14, Ui.MUTED, false);
+        LinearLayout.LayoutParams vtp = new LinearLayout.LayoutParams(-1, -2);
+        vtp.topMargin = dp(c, 12);
+        view.addView(volText, vtp);
         LinearLayout volRow = new LinearLayout(c);
         volRow.setGravity(Gravity.CENTER_VERTICAL);
         Button down = Ui.button(c, "−", Ui.SECONDARY, v -> setVol(vol - 1));
         Button up = Ui.button(c, "+", Ui.SECONDARY, v -> setVol(vol + 1));
-        volText = Ui.text(c, "", 16, Ui.TEXT, true);
-        volText.setGravity(Gravity.CENTER);
-        for (Button b : new Button[] {down, up}) b.setTextSize(22);
-        volRow.addView(down, new LinearLayout.LayoutParams(dp(c, 64), dp(c, 52)));
-        volRow.addView(volText, new LinearLayout.LayoutParams(0, -2, 1));
-        volRow.addView(up, new LinearLayout.LayoutParams(dp(c, 64), dp(c, 52)));
+        for (Button b : new Button[] {down, up}) {
+            b.setTextSize(22);
+            b.setPadding(0, 0, 0, 0);
+        }
+        volBar = new SeekBar(c);
+        volBar.setMax(VOL_MAX);
+        volBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar s, int v, boolean user) {
+                if (!user) return;
+                vol = v;
+                volSetAt = SystemClock.elapsedRealtime();
+                volText.setText("Volum " + v);
+                // Cat glisezi: cel mult o comanda la 300 ms (serverul pastreaza doar ultima).
+                if (volSetAt - volSentAt > 300) {
+                    volSentAt = volSetAt;
+                    send("vol", v);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar s) {
+                touching = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar s) {
+                touching = false;
+                setVol(s.getProgress());
+            }
+        });
+        volRow.addView(down, new LinearLayout.LayoutParams(dp(c, 48), dp(c, 48)));
+        volRow.addView(volBar, new LinearLayout.LayoutParams(0, -2, 1));
+        volRow.addView(up, new LinearLayout.LayoutParams(dp(c, 48), dp(c, 48)));
         LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(-1, -2);
-        vlp.topMargin = dp(c, 10);
+        vlp.topMargin = dp(c, 4);
         view.addView(volRow, vlp);
 
         Ui.addButton(c, view, "🔍 Caută o piesă", Ui.SECONDARY, v -> openSearch());
@@ -245,6 +281,8 @@ final class MusicCard {
         play.setText(music.optBoolean("playing") ? "❚❚" : "▶\uFE0E");
         source.setText(sourceLabel(music.optString("pkg")));
         volText.setText(vol >= 0 ? "Volum " + vol : "Volum —");
+        if (vol >= 0 && !touching) volBar.setProgress(vol);
+        volBar.setEnabled(vol >= 0);
         dur.setText(durationMs() > 0 ? Fmt.clock(durationMs()) : "");
         updatePosition();
         String artId = music.isNull("artId") ? "" : music.optString("artId");
@@ -292,9 +330,10 @@ final class MusicCard {
 
     private void setVol(int v) {
         if (vol < 0) return; // nu stim volumul de acum
-        vol = Math.max(0, Math.min(40, v));
-        volSetAt = SystemClock.elapsedRealtime();
+        vol = Math.max(0, Math.min(VOL_MAX, v));
+        volSetAt = volSentAt = SystemClock.elapsedRealtime();
         volText.setText("Volum " + vol);
+        volBar.setProgress(vol);
         send("vol", vol);
     }
 
@@ -331,18 +370,26 @@ final class MusicCard {
         LinearLayout results = new LinearLayout(c);
         results.setOrientation(LinearLayout.VERTICAL);
         AlertDialog[] d = new AlertDialog[1];
-        Runnable go = () -> {
-            // Tastatura ascunsa: rezultatele ocupa tot dialogul.
-            android.view.inputmethod.InputMethodManager imm = c.getSystemService(android.view.inputmethod.InputMethodManager.class);
-            if (imm != null) imm.hideSoftInputFromWindow(q.getWindowToken(), 0);
-            search(q.getText().toString().trim(), results, d);
-        };
-        Button b = Ui.button(c, "Caută", Ui.PRIMARY, v -> go.run());
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(c, 52));
-        lp.leftMargin = dp(c, 10);
-        row.addView(b, lp);
+        android.view.inputmethod.InputMethodManager imm = c.getSystemService(android.view.inputmethod.InputMethodManager.class);
+        // Cautarea pornește singura la 400 ms dupa ultima tasta; tasta „Caută” ascunde tastatura.
+        Runnable go = () -> search(q.getText().toString().trim(), results, d);
+        q.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence t, int a, int b, int n) {}
+
+            @Override
+            public void onTextChanged(CharSequence t, int a, int b, int n) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable e) {
+                ui.removeCallbacks(go);
+                if (e.toString().trim().length() >= 2) ui.postDelayed(go, 400);
+            }
+        });
         q.setOnEditorActionListener((v, id, ev) -> {
             if (id == EditorInfo.IME_ACTION_SEARCH || (ev != null && ev.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                ui.removeCallbacks(go);
+                if (imm != null) imm.hideSoftInputFromWindow(q.getWindowToken(), 0);
                 go.run();
                 return true;
             }
@@ -359,25 +406,36 @@ final class MusicCard {
                 .setView(sv)
                 .setNegativeButton("Închide", null)
                 .create();
+        // Tastatura deschisa de la inceput (pe telefon nu aparea cu SOFT_INPUT_STATE_VISIBLE singur).
+        if (d[0].getWindow() != null) {
+            d[0].getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                    | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        }
         d[0].setOnShowListener(x -> {
             q.requestFocus();
-            if (d[0].getWindow() != null) {
-                d[0].getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-            }
+            q.postDelayed(() -> {
+                if (imm != null) imm.showSoftInput(q, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            }, 150);
         });
+        d[0].setOnDismissListener(x -> ui.removeCallbacks(go));
         d[0].show();
     }
 
+    private int searchSeq; // doar raspunsul la ultima cautare se afiseaza
+
     private void search(String query, LinearLayout results, AlertDialog[] d) {
         if (query.isEmpty()) return;
-        results.removeAllViews();
-        Ui.hint(c, results, "Caut...");
-        cmds.execute(() -> {
+        int seq = ++searchSeq;
+        if (results.getChildCount() == 0) Ui.hint(c, results, "Caut...");
+        searches.execute(() -> {
             try {
                 JSONArray hits = api.musicSearch(query);
-                ui.post(() -> showHits(hits, results, d));
+                ui.post(() -> {
+                    if (seq == searchSeq) showHits(hits, results, d);
+                });
             } catch (Exception e) {
                 ui.post(() -> {
+                    if (seq != searchSeq) return;
                     results.removeAllViews();
                     Ui.hint(c, results, "Căutarea a eșuat: " + e.getMessage());
                 });

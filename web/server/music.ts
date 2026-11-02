@@ -123,7 +123,7 @@ export function queueMusic(p: unknown): number {
       throw new HTTPException(400, { message: "Valoare greșită" });
     }
     value = Math.round(o.value);
-    if (action === "vol" && value > 40) throw new HTTPException(400, { message: "Volum prea mare" });
+    if (action === "vol" && value > 36) throw new HTTPException(400, { message: "Volum prea mare" });
   } else if (action === "open") {
     if (typeof o.value !== "string" || !ID.test(o.value)) throw new HTTPException(400, { message: "Piesă greșită" });
     value = o.value;

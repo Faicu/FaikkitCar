@@ -326,7 +326,7 @@ final class Music {
         try {
             if (action.equals("vol")) {
                 if (sound != null && value instanceof Number) {
-                    Syu.cmd(sound, SOUND_SET_VOL, new int[] {Math.max(0, Math.min(40, ((Number) value).intValue()))}, null);
+                    Syu.cmd(sound, SOUND_SET_VOL, new int[] {Math.max(0, Math.min(36, ((Number) value).intValue()))}, null);
                 }
                 return;
             }

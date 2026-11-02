@@ -152,7 +152,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   https://music.youtube.com/youtubei/v1/search` (client `WEB_REMIX`, fără cheie; `params` pentru doar piese).
   Volumul (02.11, confirmat): Android îl ignoră (`setStreamVolume`/`adjustStreamVolume`, rămâne 25/25); Teyes îl
   ține în modulul SOUND (4): update m4 c2 = [volumul] (și m4 c67 = [0, volumul]), comanda `cmd(4, 0, [v])` îl
-  pune (5 → 4 → 7 → 6, confirmat de m4 c2). `cmd(4, 2, …)` și `cmd(4, 67, …)` nu fac nimic. Maximul netestat.
+  pune (5 → 4 → 7 → 6, confirmat de m4 c2). `cmd(4, 2, …)` și `cmd(4, 67, …)` nu fac nimic. Maximul e 36 (utilizatorul).
   m0 c138 = aplicația din prim-plan (`[pachet, activitate]`), m0 c146 / c115 variază singure.
   Făcut (02.11): `Music.java` (din `WelcomeService.onCreate`): sesiunea prin `addOnActiveSessionsChangedListener`
   (cea care redă, altfel prima), starea la `POST /api/car/music` la schimbare (300 ms) și la 30 s, coperta
@@ -161,7 +161,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   al listei; dacă YouTube Music a ieșit în față peste altă aplicație, după 7 s o aduce înapoi pe aceea.
   Server `music.ts` (totul în memorie; starea expiră la 75 s, comenzile la 20 s; `parseSongs` testat în
   `music.test.ts`): `GET /api/music?after=<seq>`, `POST /api/music {action, value}`, `/api/music/search?q=`,
-  `/api/music/art/:id`. Panel `MusicCard` (pe Acum, aceeași vedere între redesenări, firul lui de long polling).
+  `/api/music/art/:id`. Panel `MusicCard` (pe Acum, aceeași vedere între redesenări, firul lui de long polling;
+volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după ultima tastă, tastatura deschisă).
+Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigația cu `CAR_TOKEN`, răspunde la comenzi).
 - `SyuProbe` (02.11): `@syu watch <s> [module]` (abonare la codurile 0..199, valorile inițiale și apoi doar
   valorile noi), `@syu get <m> <cod>`, `@syu cmd <m> <cod> [int...]` (`Syu.cmd`/`get`/`unregister`).
   Când navigația nu e accesibilă prin `car-cmd.ts` (limita de login), comenzile se pot pune direct în `car_cmd`.
