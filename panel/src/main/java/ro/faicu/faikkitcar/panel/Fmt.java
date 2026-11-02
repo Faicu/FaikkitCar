@@ -59,6 +59,13 @@ final class Fmt {
         return sec % 60 != 0 ? sec / 60 + " min " + sec % 60 + " s" : sec / 60 + " min";
     }
 
+    /** Pozitia intr-o piesa: „3:07”, „1:02:05”. */
+    static String clock(long ms) {
+        long s = Math.max(0, ms / 1000);
+        return s >= 3600 ? String.format(java.util.Locale.ROOT, "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60)
+                : String.format(java.util.Locale.ROOT, "%d:%02d", s / 60, s % 60);
+    }
+
     static String duration(double min) {
         if (min < 60) return Math.round(min) + " min";
         return (int) (min / 60) + " h " + Math.round(min % 60) + " min";

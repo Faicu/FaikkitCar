@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
     private final TextView[] tabViews = new TextView[TABS.length];
     private final List<MapView> maps = new ArrayList<>();
     private MapBox.LiveRoute liveMap; // harta calatoriei in curs, pastrata intre redesenari
+    private MusicCard music; // muzica de pe navigatie, pastrata intre redesenari (fila Acum)
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
     private JSONArray trips, gaps, log, places, suggestions, service;
@@ -96,6 +97,7 @@ public class MainActivity extends Activity {
         resumed = false;
         ui.removeCallbacks(tick);
         stopLive();
+        if (music != null) music.stop();
         for (MapView m : maps) m.onPause();
         if (liveMap != null) liveMap.map.onPause();
         if (signalMap != null) signalMap.onPause();
@@ -249,6 +251,8 @@ public class MainActivity extends Activity {
         if (force) shown = "";
         if (tab == NOW || tab == UNIT) startLive(); // Navigatie: aceeasi stare live
         else stopLive();
+        if (tab == NOW) music().start();
+        else if (music != null) music.stop();
         int forTab = tab;
         String cat = logCat;
         io.execute(() -> {
@@ -355,6 +359,17 @@ public class MainActivity extends Activity {
         }, "live").start();
     }
 
+    private MusicCard music() {
+        if (music == null) {
+            music = new MusicCard(this, api);
+            music.onVisibility = () -> {
+                shown = "";
+                render();
+            };
+        }
+        return music;
+    }
+
     private MapBox.LiveRoute liveMap() {
         if (liveMap == null) {
             liveMap = new MapBox.LiveRoute(this);
@@ -400,6 +415,7 @@ public class MainActivity extends Activity {
         if (content == null) return;
         if (liveMap != null && liveMap.touching) return; // reluat la ridicarea degetului
         if (UnitCard.Spark.touching) return; // idem, graficele navigatiei
+        if (music != null && music.touching) return; // idem, derularea piesei
         if (placeDraft != null) {
             // Editorul de loc se construieste o singura data (nu la fiecare reimprospatare),
             // ca textul scris si pinul sa nu se piarda.
@@ -558,6 +574,8 @@ public class MainActivity extends Activity {
             line.setOnClickListener(v -> openTab(UNIT));
             card.addView(line);
         }
+
+        if (music != null && music.visible()) music.attach(content);
 
         JSONObject trip = live.optJSONObject("trip");
         if (trip != null) {

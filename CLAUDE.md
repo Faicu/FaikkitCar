@@ -32,7 +32,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
 - Node rulează direct `server/index.ts` (Hono, `node:sqlite`; tipurile TS se șterg, deci doar
   sintaxă ștergibilă și importuri cu `.ts`). Site: React + Vite + Tailwind în `web/src`, construit
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
-  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`, `signal.test.ts`), `npx tsc --noEmit`.
+  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`, `signal.test.ts`, `music.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
   utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
   APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
@@ -44,7 +44,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   `service`, `service_file`, `dismissed`, `car_cmd`, `unit_stat` (performanța navigației, 90 de zile). Coloane noi se adaugă prin migrare în `db.ts`.
   Jurnalul nu se șterge niciodată.
 - API mașină (Bearer `CAR_TOKEN`; APK-urile se încarcă cu `CI_TOKEN`): `POST /api/car/log`, `/api/car/trip`, `/api/car/state`,
-  `/api/car/tts`; `GET /api/car/status` (kilometraj, mentenanță, ultimul APK, locuri),
+  `/api/car/tts`, `/api/car/music`; `GET /api/car/music/wait`; `GET /api/car/status` (kilometraj, mentenanță, ultimul APK, locuri),
   `/api/car/summary` (ecranul Acasă), `/api/car/route?last=1&after=` (harta), `GET|POST
   /api/car/apk`, `/api/car/apk/download`.
 - API utilizator (cookie `fc_session` sau Bearer din `POST /api/login`): `/api/live` (long
@@ -52,7 +52,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
   `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log?cat=` (categoriile din
   `log-category.ts`, coloana `log.cat`; fără `cat` = evenimente, fără CAN și comenzi), `/api/cmd`
-  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/unit/signal?days=` (semnalul mobil), `/api/panel/apk…`.
+  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/unit/signal?days=` (semnalul mobil), `/api/music…` (muzica de pe navigație), `/api/panel/apk…`.
 - Service: `service.items` (JSON: `group`, `name`, `code`, `qty`, `price` pe tot rândul, cu TVA;
   reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
@@ -154,7 +154,14 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   ține în modulul SOUND (4): update m4 c2 = [volumul] (și m4 c67 = [0, volumul]), comanda `cmd(4, 0, [v])` îl
   pune (5 → 4 → 7 → 6, confirmat de m4 c2). `cmd(4, 2, …)` și `cmd(4, 67, …)` nu fac nimic. Maximul netestat.
   m0 c138 = aplicația din prim-plan (`[pachet, activitate]`), m0 c146 / c115 variază singure.
-  Planul: starea muzicii în starea live, comenzile prin long polling (sub 1 s), cardul „Muzică” în Panel.
+  Făcut (02.11): `Music.java` (din `WelcomeService.onCreate`): sesiunea prin `addOnActiveSessionsChangedListener`
+  (cea care redă, altfel prima), starea la `POST /api/car/music` la schimbare (300 ms) și la 30 s, coperta
+  JPEG 200 px în base64 doar la piesă nouă; volumul m4 c2, prim-planul m0 c138; comenzile prin `GET
+  /api/car/music/wait` (long polling 25 s, doar cu ecranul aprins). `open` = linkul piesei (11 caractere) sau
+  al listei; dacă YouTube Music a ieșit în față peste altă aplicație, după 7 s o aduce înapoi pe aceea.
+  Server `music.ts` (totul în memorie; starea expiră la 75 s, comenzile la 20 s; `parseSongs` testat în
+  `music.test.ts`): `GET /api/music?after=<seq>`, `POST /api/music {action, value}`, `/api/music/search?q=`,
+  `/api/music/art/:id`. Panel `MusicCard` (pe Acum, aceeași vedere între redesenări, firul lui de long polling).
 - `SyuProbe` (02.11): `@syu watch <s> [module]` (abonare la codurile 0..199, valorile inițiale și apoi doar
   valorile noi), `@syu get <m> <cod>`, `@syu cmd <m> <cod> [int...]` (`Syu.cmd`/`get`/`unregister`).
   Când navigația nu e accesibilă prin `car-cmd.ts` (limita de login), comenzile se pot pune direct în `car_cmd`.

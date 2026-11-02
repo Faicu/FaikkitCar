@@ -227,6 +227,40 @@ final class Api {
         call("POST", "/api/reminders/" + id + "/done", null, true);
     }
 
+    /** Muzica de pe navigatie {seq, music}; cu `after` (seq-ul avut), raspunde la o schimbare (≤ 25 s). */
+    JSONObject music(Integer after) throws Exception {
+        return new JSONObject(call("GET", after == null ? "/api/music" : "/api/music?after=" + after, null, true, 40_000));
+    }
+
+    /** O comanda pentru muzica (play, pause, toggle, next, prev, seek, vol, open). */
+    void musicCmd(String action, Object value) throws Exception {
+        JSONObject o = new JSONObject().put("action", action);
+        if (value != null) o.put("value", value);
+        call("POST", "/api/music", o, true);
+    }
+
+    /** Piesele gasite in YouTube Music: [{id, title, artist, album, duration, thumb}]. */
+    JSONArray musicSearch(String q) throws Exception {
+        return new JSONArray(call("GET", "/api/music/search?q=" + enc(q), null, true));
+    }
+
+    /** O imagine: coperta de pe server (cale relativa, cu token) sau o miniatura externa. */
+    android.graphics.Bitmap image(String pathOrUrl) throws Exception {
+        boolean ours = pathOrUrl.startsWith("/");
+        HttpURLConnection conn = (HttpURLConnection) new URL(ours ? BASE + pathOrUrl : pathOrUrl).openConnection();
+        try {
+            conn.setConnectTimeout(10_000);
+            conn.setReadTimeout(15_000);
+            if (ours) conn.setRequestProperty("Authorization", "Bearer " + Store.token(c));
+            if (conn.getResponseCode() != 200) return null;
+            try (InputStream in = conn.getInputStream()) {
+                return android.graphics.BitmapFactory.decodeStream(in);
+            }
+        } finally {
+            conn.disconnect();
+        }
+    }
+
     JSONObject panelApk() throws Exception {
         return new JSONObject(call("GET", "/api/panel/apk", null, true));
     }

@@ -40,10 +40,9 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **Muzica de pe telefon:** controlul YouTube Music de pe navigație din Panel (melodia, redare/pauză,
-   următoarea). Testul din 02.11 a mers: FaikkitCar vede melodia și o poate opri, porni și sări.
-   Volumul nu se poate schimba așa (îl ține Teyes), iar căutarea unei melodii nu merge. Urmează cardul
-   „Muzică” în Panel.
+1. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube
+   Music): coperta, redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care
+   o pornește în mașină. Cere FaikkitCar și Panel noi.
 2. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
    ca modemul să nu mai coboare pe 2G („G”), unde nu se încarcă nimic. De văzut dacă setarea rămâne
    după o repornire a navigației (în FaikkitCar, Setări → Sistem arată tipul) și, pe hartă (Navigație →
@@ -94,6 +93,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Ținută în viață | ✅ | Vezi [Ținerea în viață](#ținerea-în-viață-a-aplicației) |
 | Resurse puține în fundal | 🧪 | Harta și ecranul lucrează doar cât aplicația e deschisă; în fundal rămâne serviciul. Vocea locală se eliberează la 30 s după ce vorbește |
 | Linia „Teyes” în jurnal | 🧪 | La fiecare pornire a serviciului: listele Teyes, accesul la notificări, memoria liberă |
+| Muzica din Panel | 🧪 | YouTube Music de pe navigație comandat de pe telefon: piesa, redare/pauză, anterioara/următoarea, derularea, volumul Teyes, căutarea unei piese (pornește în mașină; harta revine în față) |
 | Comenzi de la distanță (teste) | 🧪 | Setări → Sistem, oprit implicit: serverul poate rula comenzi pe navigație (fără root); rezultatele sunt în jurnalul „Comenzi la distanță” |
 | Sonda CAN | ✅ | Setări → „avansat”: 10 minute, marcaje cu text, schimbările live |
 

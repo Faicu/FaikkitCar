@@ -56,6 +56,7 @@ import {
   saveService,
   type ServiceInput,
 } from "./service.ts";
+import { queueMusic, readArt, readMusic, saveMusic, searchSongs, takeMusic, waitMusic } from "./music.ts";
 import { readSignal } from "./signal.ts";
 import { readStats } from "./stats.ts";
 import { dismissSuggestion, readSuggestions } from "./suggestions.ts";
@@ -112,6 +113,18 @@ app.post("/api/car/state", async (c) => {
   // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
   // `apk` = ultima versiune publicată: aplicația o descarcă și cere confirmarea în câteva secunde.
   return c.json({ ok: true, state: saveState(p), cmd: pendingCmdCount(), apk: readApkInfo("car")?.versionCode ?? 0 });
+});
+
+// Muzica (music.ts): starea la fiecare schimbare, comenzile prin long polling (≤ 25 s).
+app.post("/api/car/music", async (c) => {
+  requireCarToken(c);
+  saveMusic(await json<unknown>(c, 256 * 1024));
+  return c.json({ ok: true });
+});
+
+app.get("/api/car/music/wait", async (c) => {
+  requireCarToken(c);
+  return c.json(await takeMusic());
 });
 
 app.get("/api/car/cmd", (c) => {
@@ -314,6 +327,31 @@ app.get("/api/live", async (c) => {
   const after = c.req.query("after");
   if (after) await waitForState(after, 25_000);
   return c.json(readLive());
+});
+
+// Muzica de pe navigație; cu ?after=<seq> răspunde abia la o schimbare (cel mult 25 s).
+app.get("/api/music", async (c) => {
+  requireUser(c);
+  const after = c.req.query("after");
+  if (after !== undefined && after !== "") await waitMusic(Number(after));
+  return c.json(readMusic());
+});
+
+app.post("/api/music", async (c) => {
+  requireUser(c);
+  return c.json({ id: queueMusic(await json<unknown>(c, 4096)) });
+});
+
+app.get("/api/music/search", async (c) => {
+  requireUser(c);
+  return c.json(await searchSongs(c.req.query("q") ?? ""));
+});
+
+app.get("/api/music/art/:id", (c) => {
+  requireUser(c);
+  const art = readArt(c.req.param("id"));
+  if (!art) throw new HTTPException(404, { message: "Fără copertă" });
+  return c.body(new Uint8Array(art), 200, { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=86400" });
 });
 
 // Performanța navigației pe ultimele ?min= minute (implicit 60, cel mult o zi): graficele.
