@@ -183,7 +183,7 @@ public class MainActivity extends Activity {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.addView(Ui.text(this, "FaikkitCar", 22, Ui.TEXT, true));
-        titles.addView(Ui.text(this, "Golf 6 · v" + BuildConfig.VERSION_NAME, 13, Ui.MUTED, false));
+        titles.addView(Ui.text(this, "FAImobil · v" + BuildConfig.VERSION_NAME, 13, Ui.MUTED, false));
         head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
         TextView refresh = Ui.text(this, "↻", 24, Ui.ACCENT, false);
         refresh.setPadding(p, p / 2, p, p / 2);
