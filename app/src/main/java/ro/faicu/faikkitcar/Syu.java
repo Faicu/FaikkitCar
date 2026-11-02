@@ -58,6 +58,57 @@ final class Syu {
         }
     }
 
+    /** Renuntarea la un cod (IRemoteModule.unregister = 4). */
+    static void unregister(IBinder module, Callback cb, int code) throws RemoteException {
+        Parcel d = Parcel.obtain();
+        try {
+            d.writeInterfaceToken(MODULE);
+            d.writeStrongBinder(cb);
+            d.writeInt(code);
+            module.transact(4, d, null, IBinder.FLAG_ONEWAY);
+        } finally {
+            d.recycle();
+        }
+    }
+
+    /** O comanda catre modul (IRemoteModule.cmd = 1, oneway). */
+    static void cmd(IBinder module, int code, int[] ints, String[] strs) throws RemoteException {
+        Parcel d = Parcel.obtain();
+        try {
+            d.writeInterfaceToken(MODULE);
+            d.writeInt(code);
+            d.writeIntArray(ints);
+            d.writeFloatArray(null);
+            d.writeStringArray(strs);
+            module.transact(1, d, null, IBinder.FLAG_ONEWAY);
+        } finally {
+            d.recycle();
+        }
+    }
+
+    /** Valoarea curenta a unui cod (IRemoteModule.get = 2), sau null. */
+    static int[] get(IBinder module, int code) throws RemoteException {
+        Parcel d = Parcel.obtain();
+        Parcel r = Parcel.obtain();
+        try {
+            d.writeInterfaceToken(MODULE);
+            d.writeInt(code);
+            d.writeIntArray(null);
+            d.writeFloatArray(null);
+            d.writeStringArray(null);
+            module.transact(2, d, r, 0);
+            r.readException();
+            if (r.readInt() == 0) return null;
+            int[] ints = r.createIntArray();
+            r.createFloatArray();
+            r.createStringArray();
+            return ints;
+        } finally {
+            d.recycle();
+            r.recycle();
+        }
+    }
+
     /** Callback-ul apelat de MainServer; ruleaza pe firele binder. */
     abstract static class Callback extends Binder {
         Callback() {
