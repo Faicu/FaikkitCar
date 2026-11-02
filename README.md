@@ -40,7 +40,10 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
+1. **Muzica de pe telefon:** controlul YouTube Music de pe navigație din Panel (melodia, redare/pauză,
+   următoarea, volumul). Întâi testul `@media` (comanda internă prin `car-cmd.ts`): vede FaikkitCar
+   sesiunea YouTube Music pe Teyes și o poate comanda? Apoi cardul „Muzică” în Panel.
+2. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
    ca modemul să nu mai coboare pe 2G („G”), unde nu se încarcă nimic. De văzut dacă setarea rămâne
    după o repornire a navigației (în FaikkitCar, Setări → Sistem arată tipul) și, pe hartă (Navigație →
    „Semnal mobil”), cum stă internetul pe porțiunile unde cădea. Semnalul mobil al
@@ -49,18 +52,18 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
    (5 + 3 MHz), deci în afara orașelor pierde primul. Apoi, de comparat cu o cartelă Orange
    preplătită pe aceleași drumuri.
-2. **Instalează Panel 1.0.26** (semnalul mobil pe fila Navigație; „Actualizează acum”, o singură apăsare,
+3. **Instalează Panel 1.0.26** (semnalul mobil pe fila Navigație; „Actualizează acum”, o singură apăsare,
    apoi confirmarea; ~30 s până pornește versiunea nouă).
-3. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
+4. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
    regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
    scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
    închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
-4. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
+5. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
-5. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
+6. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
    litru (după reducere). Plinurile (până se oprește pistolul) dau consumul exact.
-6. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
+7. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
    adaptor OBD2 pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
 
 ---

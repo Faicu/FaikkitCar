@@ -62,6 +62,12 @@ final class RemoteCmd {
                     new JSONObject().put("exitCode", 0).put("output", BleProbe.run(c)).toString());
             return;
         }
+        if (cmd.trim().equals("@media") || cmd.trim().startsWith("@media ")) {
+            // Comanda interna: sesiunile media cer API-ul Android (testul controlului muzicii).
+            request("POST", BASE + "/" + id, new JSONObject().put("exitCode", 0)
+                    .put("output", MediaProbe.run(c, cmd.trim().substring(6))).toString());
+            return;
+        }
         try {
             p = new ProcessBuilder("sh", "-c", cmd).redirectErrorStream(true).start();
             p.getOutputStream().close();
