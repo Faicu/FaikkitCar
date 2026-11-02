@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, canScale, findGaps, type PointRow } from "./trip-math.ts";
+import { analyze, canScale, findGaps, shapeOf, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -220,5 +220,16 @@ describe("findGaps", () => {
         trip("2026-10-20T08:00:00Z", "2026-10-20T08:10:00Z", 150, 151),
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("shapeOf", () => {
+  it("păstrează capetele și ia cel mult max puncte, rotunjite", () => {
+    const pts: Array<[number, number]> = Array.from({ length: 100 }, (_, i) => [44 + i / 1000 + 0.0000012, 26 + i / 1000]);
+    const s = shapeOf(pts, 10);
+    expect(s).toHaveLength(10);
+    expect(s[0]).toEqual([44, 26]);
+    expect(s[9]).toEqual([44.099, 26.099]);
+    expect(shapeOf(pts.slice(0, 3), 10)).toHaveLength(3);
   });
 });

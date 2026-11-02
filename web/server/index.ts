@@ -43,6 +43,7 @@ import {
   MAX_POINTS_PER_REQUEST,
   readTripPoints,
   readTrips,
+  readTripShapes,
   splitTrip,
   type IncomingPoint,
 } from "./trips.ts";
@@ -288,6 +289,12 @@ app.get("/api/me", (c) => c.json({ user: isUser(c) }));
 app.get("/api/trips", (c) => {
   requireUser(c);
   return c.json(applyFuel(readTrips()));
+});
+
+// Forma fiecărei călătorii (miniaturile din lista Panel-ului): {start: [[lat, lon], ...]}.
+app.get("/api/trips/shapes", (c) => {
+  requireUser(c);
+  return c.json(readTripShapes());
 });
 
 // Drumurile neînregistrate: kilometrajul a sărit între două călătorii (aplicația oprită).

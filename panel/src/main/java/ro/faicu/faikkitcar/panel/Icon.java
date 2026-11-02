@@ -14,7 +14,7 @@ import android.view.View;
 final class Icon extends View {
     // 0–4 = filele (in ordinea din MainActivity.TABS)
     static final int SEARCH = 5, PREV = 6, NEXT = 7, PLAY = 8, PAUSE = 9, VOL_LOW = 10, VOL_HIGH = 11,
-            REFRESH = 12, CLOSE = 13, PIN = 14, MORE = 4, FUEL = 2;
+            REFRESH = 12, CLOSE = 13, PIN = 14, GAUGE = 15, CAR = 16, MORE = 4, FUEL = 2;
 
     private int kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -133,6 +133,27 @@ final class Icon extends View {
                 path.close();
                 c.drawPath(path, p);
                 c.drawCircle(12, 9.5f, 2.5f, p);
+                break;
+            case GAUGE: // vitezometru
+                c.drawArc(arc(12, 14, 8.5f), 160, 220, false, p);
+                c.drawLine(12, 14, 16, 9.5f, p);
+                fillCircle(c, 12, 14, 1.8f);
+                break;
+            case CAR: // masina din fata
+                path.reset();
+                path.moveTo(4, 13);
+                path.lineTo(6, 7.5f);
+                path.quadTo(6.5f, 6, 8, 6);
+                path.lineTo(16, 6);
+                path.quadTo(17.5f, 6, 18, 7.5f);
+                path.lineTo(20, 13);
+                c.drawPath(path, p);
+                r.set(3, 12.5f, 21, 17.5f);
+                c.drawRoundRect(r, 2, 2, p);
+                c.drawLine(6, 17.5f, 6, 20, p);
+                c.drawLine(18, 17.5f, 18, 20, p);
+                fillCircle(c, 7, 15, 1.2f);
+                fillCircle(c, 17, 15, 1.2f);
                 break;
             case CLOSE:
                 c.drawLine(6.5f, 6.5f, 17.5f, 17.5f, p);

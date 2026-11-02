@@ -66,6 +66,11 @@ final class Fmt {
         return s.isEmpty() ? ym : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
+    /** Luna pe scurt, pentru grafice: „nov.”, „oct.”. */
+    static String shortMonth(String ym) {
+        return java.time.YearMonth.parse(ym).format(DateTimeFormatter.ofPattern("LLL", RO));
+    }
+
     /** Sub 10 minute, cu secunde („1 min 30 s”, „45 s”); altfel ca duration. */
     static String shortDuration(double min) {
         if (min >= 10) return duration(min);

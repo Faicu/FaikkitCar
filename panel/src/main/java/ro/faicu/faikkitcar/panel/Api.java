@@ -75,6 +75,11 @@ final class Api {
         return new JSONObject(call("GET", "/api/unit/signal?days=" + days, null, true));
     }
 
+    /** Forma fiecarei calatorii (miniaturile din lista): {start: [[lat, lon], ...]}. */
+    JSONObject tripShapes() throws Exception {
+        return new JSONObject(call("GET", "/api/trips/shapes", null, true));
+    }
+
     JSONArray gaps() throws Exception {
         return new JSONArray(call("GET", "/api/trips/gaps", null, true));
     }

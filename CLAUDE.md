@@ -49,7 +49,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   /api/car/apk`, `/api/car/apk/download`.
 - API utilizator (cookie `fc_session` sau Bearer din `POST /api/login`): `/api/live` (long
   polling cu `?after=`), `/api/live/route`, `/api/trips`, `/api/trips/points`, `/api/trips/join|split`,
-  `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
+  `/api/trips/shapes`, `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
   `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log?cat=` (categoriile din
   `log-category.ts`, coloana `log.cat`; fără `cat` = evenimente, fără CAN și comenzi), `/api/cmd`
   (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/unit/signal?days=` (semnalul mobil), `/api/music…` (muzica de pe navigație), `/api/panel/apk…`.
@@ -311,6 +311,9 @@ combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Ac
 `/api/panel/apk`). Design (1.0.39): iconițele desenate din cod (`Icon`, aceeași grilă 24×24: filele, muzica,
 „⋯”, reîmprospătarea), barele `Slider`, titlurile de card 18 sp (`Ui.title`/`Ui.section`), acțiunile de pe
 rânduri în meniul „⋯” (`rowMenu`; atingerea rândului = Modifică), fără emoji; versiunea nouă = bandă subțire.
+1.0.40: miniaturile traseelor în listă (`RouteThumb`, din `GET /api/trips/shapes` = `readTripShapes`, ≤ 32 de
+puncte pe călătorie, `shapeOf` testat), „Pe luni” cu bare verticale (`BarChart`, km/lei, luna aleasă dedesubt),
+detaliile călătoriei într-un card cu grupe (`group`), graficele navigației pe rânduri late cu axa timpului.
 Din 1.0.30 actualizarea e automată, fără confirmare (Android 12+, `setRequireUserAction`,
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
 Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără

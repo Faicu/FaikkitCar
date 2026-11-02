@@ -62,6 +62,7 @@ public class MainActivity extends Activity {
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
     private JSONArray trips, gaps, log, places, suggestions, service;
+    private JSONObject shapes; // forma calatoriilor (miniaturile din lista)
     private JSONObject live, car, fuel, stats, newerApk;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
@@ -300,9 +301,11 @@ public class MainActivity extends Activity {
                 } else if (forTab == TRIPS) {
                     JSONArray t = api.trips();
                     JSONArray g = gapsOrEmpty();
+                    JSONObject sh = shapesOrEmpty();
                     ui.post(() -> {
                         trips = t;
                         gaps = g;
+                        shapes = sh;
                         render();
                     });
                 } else if (forTab == COSTS) {
@@ -457,7 +460,7 @@ public class MainActivity extends Activity {
                 + (newerApk != null) + "|" + Updater.silentRefused(this) + "|"
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == UNIT ? live + "|" + unitHistoryAt + "|" + signalAt + "|" + signalDays
-                        : tab == TRIPS ? trips + "|" + pointsFor
+                        : tab == TRIPS ? trips + "|" + pointsFor + "|" + (shapes == null ? 0 : shapes.length())
                         : tab == COSTS ? stats + "|" + fuel
                         : car + "|" + places + "|" + service + "|" + log);
         if (state.equals(shown)) return;
@@ -1036,7 +1039,9 @@ public class MainActivity extends Activity {
 
     /** Detaliile pe teme: viteza, consumul, masina. Doar ce avem (drumurile vechi au mai putine). */
     private void tripSections(JSONObject t) {
-        LinearLayout speed = Ui.section(this, content, "Viteză");
+        // Viteza, consumul si masina: un singur card, trei grupe cu iconita si titlu mic.
+        LinearLayout card = Ui.card(this, content);
+        LinearLayout speed = group(card, Icon.GAUGE, "Viteză", true);
         List<View> sc = new ArrayList<>();
         sc.add(Ui.info(this, "Medie", kmh(t, "avgSpeed")));
         sc.add(Ui.info(this, "În mișcare", kmh(t, "movingAvgSpeed")));
@@ -1047,7 +1052,7 @@ public class MainActivity extends Activity {
         }
         speed.addView(Ui.grid(this, sc, 3));
 
-        LinearLayout fuelCard = Ui.section(this, content, "Consum");
+        LinearLayout fuelCard = group(card, Icon.FUEL, "Consum", false);
         List<View> fc = new ArrayList<>();
         fc.add(Ui.info(this, "Combustibil (est.)", t.isNull("fuelL") ? "—" : "≈ " + Fmt.liters(t.optDouble("fuelL"))));
         fc.add(Ui.info(this, "Consum (est.)", t.isNull("lPer100") ? "—" : Fmt.num(t.optDouble("lPer100"), 1) + " L/100"));
@@ -1058,7 +1063,7 @@ public class MainActivity extends Activity {
         }
         fuelCard.addView(Ui.grid(this, fc, 3));
 
-        LinearLayout car = Ui.section(this, content, "Mașina");
+        LinearLayout car = group(card, Icon.CAR, "Mașina", false);
         List<View> cc = new ArrayList<>();
         // Afara la plecare → la sosire, daca s-a schimbat.
         String temp = t.isNull("tempC") ? "—" : (!t.isNull("tempStartC") && t.optDouble("tempStartC") != t.optDouble("tempC")
@@ -1080,6 +1085,33 @@ public class MainActivity extends Activity {
                 : Fmt.num(run, 2) + " V" + (run < 13.5 || run > 14.9 ? " ⚠" : "")));
         cc.add(Ui.info(this, "Kilometraj", t.isNull("odoEnd") ? "—" : Fmt.km(t.optLong("odoEnd"))));
         car.addView(Ui.grid(this, cc, 3));
+    }
+
+    /** O grupa intr-un card: iconita si titlul mic, apoi continutul (separator intre grupe). */
+    private LinearLayout group(LinearLayout card, int icon, String title, boolean first) {
+        if (!first) {
+            View line = new View(this);
+            line.setBackgroundColor(Ui.LINE);
+            LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, Math.max(1, dp(this, 1) / 2));
+            llp.topMargin = dp(this, 14);
+            llp.bottomMargin = dp(this, 14);
+            card.addView(line, llp);
+        }
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        Icon ic = new Icon(this, icon);
+        ic.setColor(Ui.ACCENT);
+        LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(this, 20), dp(this, 20));
+        ilp.rightMargin = dp(this, 10);
+        head.addView(ic, ilp);
+        head.addView(Ui.text(this, title, 15, Ui.TEXT, true));
+        card.addView(head);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+        blp.topMargin = dp(this, 4);
+        card.addView(body, blp);
+        return body;
     }
 
     private void renderTrip(JSONObject t, JSONObject older, JSONObject newer) {
@@ -1241,11 +1273,21 @@ public class MainActivity extends Activity {
                 dlp.topMargin = dp(this, 18);
                 card.addView(dh, dlp);
             }
+            // Randul: miniatura traseului in stanga, textele in dreapta.
+            LinearLayout outer = new LinearLayout(this);
+            outer.setGravity(Gravity.CENTER_VERTICAL);
+            outer.setBackground(Ui.round(this, Ui.CARD2, 14));
+            int p = dp(this, 12);
+            outer.setPadding(p, p, p, p);
+            JSONArray shape = shapes == null ? null : shapes.optJSONArray(start);
+            if (shape != null && shape.length() >= 2) {
+                LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(this, 64), dp(this, 64));
+                tlp.rightMargin = dp(this, 12);
+                outer.addView(new RouteThumb(this, shape), tlp);
+            }
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.VERTICAL);
-            row.setBackground(Ui.round(this, Ui.CARD2, 14));
-            int p = dp(this, 12);
-            row.setPadding(p, p, p, p);
+            outer.addView(row, new LinearLayout.LayoutParams(0, -2, 1));
             LinearLayout top = new LinearLayout(this);
             top.addView(Ui.text(this, Fmt.hm(start) + "–" + Fmt.hm(t.optString("end")),
                     16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
@@ -1263,14 +1305,23 @@ public class MainActivity extends Activity {
             if (!t.isNull("fuelL")) sub.append(" · ≈ ").append(Fmt.liters(t.optDouble("fuelL")));
             if (!t.isNull("cost")) sub.append(" · ").append(Fmt.lei(t.optDouble("cost")));
             row.addView(Ui.text(this, sub.toString(), 13, Ui.MUTED, false));
-            row.setOnClickListener(v -> {
+            outer.setOnClickListener(v -> {
                 selected = start;
                 render();
                 scroll.post(() -> scroll.scrollTo(0, 0));
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
-            card.addView(row, lp);
+            card.addView(outer, lp);
+        }
+    }
+
+    /** Forma calatoriilor pentru miniaturi; fara ele (server vechi, eroare), lista merge la fel. */
+    private JSONObject shapesOrEmpty() {
+        try {
+            return api.tripShapes();
+        } catch (Exception e) {
+            return new JSONObject();
         }
     }
 
@@ -1526,58 +1577,84 @@ public class MainActivity extends Activity {
         }
     }
 
+    // Graficul pe luni: ce arata (km / lei) si luna aleasa, pastrate intre redesenari.
+    private boolean monthlyLei;
+    private int monthlyPick = -1;
+
+    /** Pe luni: bare verticale (km sau lei, la alegere), iar sub ele detaliile lunii alese. */
     private void renderMonthly(JSONArray months) {
         if (months == null || months.length() == 0) return;
-        double maxKm = 1, maxLei = 1;
-        for (int i = 0; i < months.length(); i++) {
-            JSONObject m = months.optJSONObject(i);
-            maxKm = Math.max(maxKm, m.optDouble("km"));
-            maxLei = Math.max(maxLei, m.optDouble("cost", 0));
-        }
+        int n = months.length();
         LinearLayout card = Ui.card(this, content);
-        Ui.title(this, card, "Pe luni");
-        for (int i = 0; i < months.length(); i++) {
-            JSONObject m = months.optJSONObject(i);
-            LinearLayout block = new LinearLayout(this);
-            block.setOrientation(LinearLayout.VERTICAL);
-            block.setPadding(0, dp(this, 8), 0, dp(this, 4));
-            LinearLayout top = new LinearLayout(this);
-            top.addView(Ui.text(this, Fmt.month(m.optString("month")), 16, Ui.TEXT, true),
-                    new LinearLayout.LayoutParams(0, -2, 1));
-            top.addView(Ui.text(this, m.optInt("trips") + " călătorii · " + Fmt.duration(m.optDouble("minutes")),
-                    13, Ui.MUTED, false));
-            block.addView(top);
-            block.addView(bar(m.optDouble("km") / maxKm, Ui.ACCENT, Fmt.num(m.optDouble("km"), 1) + " km"));
-            block.addView(bar(m.optDouble("cost", 0) / maxLei, Ui.WARN,
-                    m.isNull("cost") ? "—" : Fmt.lei(m.optDouble("cost")) + " (est.)"));
-            StringBuilder sub = new StringBuilder("≈ " + Fmt.liters(m.optDouble("liters")));
-            if (!m.isNull("lPer100")) sub.append(" · ").append(Fmt.num(m.optDouble("lPer100"), 1)).append(" L/100 km");
-            if (m.optDouble("refuelLiters") > 0) {
-                sub.append(" · alimentat ").append(Fmt.liters(m.optDouble("refuelLiters")));
-                if (!m.isNull("refuelLei")) sub.append(" (").append(Fmt.lei(m.optDouble("refuelLei"))).append(")");
-            }
-            block.addView(Ui.text(this, sub.toString(), 13, Ui.MUTED, false));
-            card.addView(block);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(Ui.text(this, "Pe luni", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView km = chip("km", !monthlyLei), lei = chip("lei", monthlyLei);
+        km.setOnClickListener(v -> {
+            monthlyLei = false;
+            shown = "";
+            render();
+        });
+        lei.setOnClickListener(v -> {
+            monthlyLei = true;
+            shown = "";
+            render();
+        });
+        head.addView(km);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-2, -2);
+        llp.leftMargin = dp(this, 6);
+        head.addView(lei, llp);
+        card.addView(head);
+
+        // Lunile vin cele mai noi primele; graficul le arata de la stanga (vechi) la dreapta.
+        double[] values = new double[n];
+        String[] labels = new String[n], texts = new String[n];
+        for (int i = 0; i < n; i++) {
+            JSONObject m = months.optJSONObject(n - 1 - i);
+            values[i] = monthlyLei ? m.optDouble("cost", 0) : m.optDouble("km", 0);
+            labels[i] = Fmt.shortMonth(m.optString("month"));
+            texts[i] = monthlyLei ? (m.isNull("cost") ? "—" : Fmt.lei(m.optDouble("cost"))) : Fmt.num(m.optDouble("km"), 0) + " km";
         }
+        if (monthlyPick < 0 || monthlyPick >= n) monthlyPick = n - 1;
+        BarChart chart = new BarChart(this);
+        chart.set(values, labels, texts, monthlyLei ? Ui.WARN : Ui.ACCENT, monthlyPick);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, -2);
+        clp.topMargin = dp(this, 14);
+        card.addView(chart, clp);
+
+        LinearLayout detail = new LinearLayout(this);
+        detail.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(-1, -2);
+        dlp.topMargin = dp(this, 12);
+        card.addView(detail, dlp);
+        Runnable fill = () -> {
+            detail.removeAllViews();
+            JSONObject m = months.optJSONObject(n - 1 - monthlyPick);
+            detail.addView(Ui.text(this, Fmt.month(m.optString("month")), 16, Ui.TEXT, true));
+            List<View> cells = new ArrayList<>();
+            cells.add(Ui.info(this, "Distanță", Fmt.num(m.optDouble("km"), 1) + " km"));
+            cells.add(Ui.info(this, "Cost (est.)", m.isNull("cost") ? "—" : Fmt.lei(m.optDouble("cost"))));
+            cells.add(Ui.info(this, "Călătorii", m.optInt("trips") + " · " + Fmt.duration(m.optDouble("minutes"))));
+            cells.add(Ui.info(this, "Combustibil", "≈ " + Fmt.liters(m.optDouble("liters"))));
+            cells.add(Ui.info(this, "Consum", m.isNull("lPer100") ? "—" : Fmt.num(m.optDouble("lPer100"), 1) + " L/100"));
+            cells.add(Ui.info(this, "Alimentat", m.optDouble("refuelLiters") > 0
+                    ? Fmt.liters(m.optDouble("refuelLiters")) + (m.isNull("refuelLei") ? "" : " · " + Fmt.lei(m.optDouble("refuelLei")))
+                    : "—"));
+            detail.addView(Ui.grid(this, cells, 3));
+        };
+        fill.run();
+        chart.onSelect = i -> {
+            monthlyPick = i;
+            fill.run();
+        };
     }
 
-    /** O bara orizontala (fractie 0..1) cu eticheta in dreapta. */
-    private View bar(double fraction, int color, String label) {
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(this, 3), 0, dp(this, 3));
-        LinearLayout track = new LinearLayout(this);
-        track.setBackground(Ui.round(this, Ui.CARD2, 5));
-        View fill = new View(this);
-        fill.setBackground(Ui.round(this, color, 5));
-        float f = (float) Math.max(0, Math.min(1, fraction));
-        track.setWeightSum(1);
-        track.addView(fill, new LinearLayout.LayoutParams(0, dp(this, 10), f));
-        row.addView(track, new LinearLayout.LayoutParams(0, dp(this, 10), 1));
-        TextView t = Ui.text(this, label, 13, Ui.TEXT, false);
-        t.setGravity(Gravity.END);
-        row.addView(t, new LinearLayout.LayoutParams(dp(this, 120), -2));
-        return row;
+    /** O eticheta-comutator mica (km / lei). */
+    private TextView chip(String text, boolean on) {
+        TextView t = Ui.text(this, text, 13, on ? Ui.ACCENT : Ui.MUTED, true);
+        t.setBackground(on ? Ui.round(this, 0x2638BDF8, 99) : null);
+        t.setPadding(dp(this, 12), dp(this, 5), dp(this, 12), dp(this, 5));
+        return t;
     }
 
     // ---------------------------------------------------------------- jurnal de service

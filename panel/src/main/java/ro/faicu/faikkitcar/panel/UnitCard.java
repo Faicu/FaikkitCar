@@ -74,13 +74,10 @@ final class UnitCard {
             card.addView(h);
         }
 
-        LinearLayout row = Ui.kpiRow(c,
-                spark(c, u, history, "cpu", "%", "procesor", 100),
-                spark(c, u, history, "memAvail", "MB", "RAM liber", u.isNull("memTotal") ? Double.NaN : u.optDouble("memTotal")),
-                spark(c, u, history, "temp", "°C", "temperatură", Double.NaN));
-        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
-        rlp.topMargin = dp(c, 10);
-        card.addView(row, rlp);
+        // Cate un rand pe valoare: cifra de acum in stanga, graficul ultimei ore in dreapta.
+        card.addView(spark(c, u, history, "cpu", "%", "procesor", 100));
+        card.addView(spark(c, u, history, "memAvail", "MB", "RAM liber", u.isNull("memTotal") ? Double.NaN : u.optDouble("memTotal")));
+        card.addView(spark(c, u, history, "temp", "°C", "temperatură", Double.NaN));
 
         List<String> facts = new ArrayList<>();
         if (!u.isNull("memTotal")) facts.add(Fmt.num(u.optDouble("memTotal") / 1024, 1) + " GB memorie");
@@ -148,25 +145,47 @@ final class UnitCard {
         return r;
     }
 
-    /** Casuta cu valoarea de acum si graficul ei pe ultima ora (atins = valoarea de atunci). */
+    /**
+     * Randul unei valori: cifra de acum si numele in stanga, graficul ultimei ore in dreapta, cu
+     * axa timpului dedesubt (atins = valoarea si ora de atunci, in stanga).
+     */
     private static LinearLayout spark(Context c, JSONObject u, JSONArray history, String key, String unit, String label,
                                       double max) {
         String now = u.isNull(key) ? "—" : Fmt.num(u.optDouble(key), 0);
+        LinearLayout row = new LinearLayout(c);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(c, 12), 0, 0);
         LinearLayout box = Ui.kpi(c, now, unit, label);
+        box.setBackground(null);
+        box.setPadding(0, 0, dp(c, 8), 0);
+        row.addView(box, new LinearLayout.LayoutParams(dp(c, 104), -2));
         TextView value = (TextView) box.getChildAt(0);
         CharSequence shown = value.getText();
         TextView name = (TextView) box.getChildAt(1);
         name.setSingleLine(true);
         Spark s = new Spark(c, history, key, max, u.isNull(key) ? Double.NaN : u.optDouble(key));
-        if (s.count() < 2) return box;
+        if (s.count() < 2) return row;
         s.onPick = (v, t) -> {
             value.setText(v == null ? shown : Fmt.num(v, 0) + " " + unit);
             name.setText(v == null ? label : "la " + Fmt.hm(java.time.Instant.ofEpochMilli(t).toString()));
         };
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(c, 36));
-        lp.topMargin = dp(c, 6);
-        box.addView(s, lp);
-        return box;
+        LinearLayout chart = new LinearLayout(c);
+        chart.setOrientation(LinearLayout.VERTICAL);
+        chart.addView(s, new LinearLayout.LayoutParams(-1, dp(c, 56)));
+        LinearLayout axis = new LinearLayout(c);
+        TextView from = Ui.text(c, "acum 1 h", 10, Ui.MUTED, false);
+        TextView mid = Ui.text(c, "30 min", 10, Ui.MUTED, false);
+        mid.setGravity(android.view.Gravity.CENTER);
+        TextView to = Ui.text(c, "acum", 10, Ui.MUTED, false);
+        to.setGravity(android.view.Gravity.END);
+        axis.addView(from, new LinearLayout.LayoutParams(0, -2, 1));
+        axis.addView(mid, new LinearLayout.LayoutParams(0, -2, 1));
+        axis.addView(to, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-1, -2);
+        alp.topMargin = dp(c, 2);
+        chart.addView(axis, alp);
+        row.addView(chart, new LinearLayout.LayoutParams(0, -2, 1));
+        return row;
     }
 
     interface Pick {
@@ -227,6 +246,15 @@ final class UnitCard {
             return ts.length;
         }
 
+        /** Inchide zona de sub o bucata de linie (de la ultimul punct, jos, inapoi la primul). */
+        private void closeArea(Path area, int from, int to) {
+            area.lineTo(x(ts[to]), getHeight());
+            area.lineTo(x(ts[from]), getHeight());
+            area.close();
+        }
+
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+
         private float x(long t) {
             return (float) ((t - start) / (double) (end - start) * getWidth());
         }
@@ -239,11 +267,29 @@ final class UnitCard {
         @Override
         protected void onDraw(Canvas canvas) {
             canvas.drawLine(0, getHeight() - 0.5f, getWidth(), getHeight() - 0.5f, base);
+            // Liniile de ghidaj la jumatate de ora (ca axa de dedesubt).
+            canvas.drawLine(getWidth() / 2f, 0, getWidth() / 2f, getHeight(), base);
             Path p = new Path();
+            Path area = new Path();
+            int segStart = 0;
             for (int i = 0; i < ts.length; i++) {
-                if (i == 0 || ts[i] - ts[i - 1] > GAP_MS) p.moveTo(x(ts[i]), y(vs[i]));
-                else p.lineTo(x(ts[i]), y(vs[i]));
+                boolean newSeg = i == 0 || ts[i] - ts[i - 1] > GAP_MS;
+                if (newSeg && i > 0) closeArea(area, segStart, i - 1);
+                if (newSeg) {
+                    segStart = i;
+                    p.moveTo(x(ts[i]), y(vs[i]));
+                    area.moveTo(x(ts[i]), y(vs[i]));
+                } else {
+                    p.lineTo(x(ts[i]), y(vs[i]));
+                    area.lineTo(x(ts[i]), y(vs[i]));
+                }
             }
+            if (ts.length > 0) closeArea(area, segStart, ts.length - 1);
+            if (fill.getShader() == null) {
+                fill.setShader(new android.graphics.LinearGradient(0, 0, 0, getHeight(),
+                        0x5538BDF8, 0x0038BDF8, android.graphics.Shader.TileMode.CLAMP));
+            }
+            canvas.drawPath(area, fill);
             canvas.drawPath(p, line);
             if (hover >= 0) canvas.drawLine(x(ts[hover]), 0, x(ts[hover]), getHeight(), cross);
         }

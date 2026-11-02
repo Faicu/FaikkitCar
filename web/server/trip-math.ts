@@ -416,3 +416,19 @@ export function findGaps(
   }
   return out;
 }
+
+/**
+ * Forma unui traseu pentru miniaturi: cel mult `max` puncte (primul, ultimul și cele dintre ele
+ * la pas egal), rotunjite la 5 zecimale (~1 m). Pur, testat.
+ */
+export function shapeOf(points: Array<[number, number]>, max = 32): Array<[number, number]> {
+  if (points.length <= max) return points.map(([a, b]) => [round5(a), round5(b)]);
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i < max; i++) {
+    const [a, b] = points[Math.round((i * (points.length - 1)) / (max - 1))];
+    out.push([round5(a), round5(b)]);
+  }
+  return out;
+}
+
+const round5 = (x: number) => Math.round(x * 1e5) / 1e5;
