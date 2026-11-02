@@ -102,7 +102,32 @@ final class TripRecorder implements LocationListener {
     private void start() {
         startGps();
         handler.postDelayed(sample, SAMPLE_MS);
+        handler.postDelayed(liveTick, 1_000);
     }
+
+    /**
+     * Cat cineva se uita la starea live (LiveState.fast), o trimitem si intre esantioane, la
+     * fiecare secunda: viteza si turatia din Panel nu mai raman ~5 s in urma. Fara puncte noi.
+     */
+    private final Runnable liveTick = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                if (LiveState.fast()) {
+                    long now = SystemClock.elapsedRealtime();
+                    Location loc = now - lastAt < LOCATION_FRESH_MS ? last : null;
+                    double gpsKmh = loc != null && loc.hasSpeed() ? loc.getSpeed() * 3.6 : Double.NaN;
+                    double canKmh = can.speed();
+                    int rpm = can.rpm();
+                    boolean moving = (!Double.isNaN(canKmh) && canKmh >= 1)
+                            || (Double.isNaN(canKmh) && !Double.isNaN(gpsKmh) && gpsKmh >= 3);
+                    sendState(loc, gpsKmh, canKmh, rpm, moving, rpm > 300);
+                }
+            } finally {
+                handler.postDelayed(this, 1_000);
+            }
+        }
+    };
 
     private void startGps() {
         if (gpsOn) return;
@@ -121,6 +146,7 @@ final class TripRecorder implements LocationListener {
 
     private void stop() {
         handler.removeCallbacks(sample);
+        handler.removeCallbacks(liveTick);
         if (gpsOn) {
             try {
                 c.getSystemService(LocationManager.class).removeUpdates(this);

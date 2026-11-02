@@ -170,6 +170,19 @@ function readRow(): Row | undefined {
 // Cererile care așteaptă o stare nouă (GET /api/live?after=…): eliberate la fiecare POST.
 const waiters = new Set<() => void>();
 
+// Ultima cerere a cuiva care se uită la starea live (Panel, site): cât e cineva acolo, mașina
+// trimite starea la fiecare secundă, nu la 5 s (bordul din Panel rămânea în urmă, 02.11).
+let viewerAt = 0;
+const VIEWER_MS = 30_000;
+
+export function markViewer(): void {
+  viewerAt = Date.now();
+}
+
+export function hasViewer(): boolean {
+  return Date.now() - viewerAt < VIEWER_MS;
+}
+
 /**
  * Așteaptă până vine de la mașină o stare mai nouă decât `after` (ISO), cel mult `ms`.
  * Așa site-ul și Panel-ul primesc starea imediat, fără să întrebe des.

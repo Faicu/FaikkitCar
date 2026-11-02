@@ -59,6 +59,10 @@ public class MainActivity extends Activity {
     private final List<MapView> maps = new ArrayList<>();
     private MapBox.LiveRoute liveMap; // harta calatoriei in curs, pastrata intre redesenari
     private MusicCard music; // muzica de pe navigatie, pastrata intre redesenari (fila Acum)
+    // Harta locului unde e parcata masina (fila Acum), pastrata intre redesenari.
+    private MapView parkedMap;
+    private android.widget.FrameLayout parkedFrame;
+    private String parkedKey;
 
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
     private JSONArray trips, gaps, log, places, suggestions, service;
@@ -90,6 +94,7 @@ public class MainActivity extends Activity {
         resumed = true;
         for (MapView m : maps) m.onResume();
         if (liveMap != null) liveMap.map.onResume();
+        if (parkedMap != null) parkedMap.onResume();
         if (signalMap != null) signalMap.onResume();
         if (content != null) load(false);
     }
@@ -103,6 +108,7 @@ public class MainActivity extends Activity {
         if (music != null) music.stop();
         for (MapView m : maps) m.onPause();
         if (liveMap != null) liveMap.map.onPause();
+        if (parkedMap != null) parkedMap.onPause();
         if (signalMap != null) signalMap.onPause();
     }
 
@@ -110,6 +116,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         if (signalMap != null) signalMap.onDetach();
+        if (parkedMap != null) parkedMap.onDetach();
         io.shutdownNow();
     }
 
@@ -684,16 +691,25 @@ public class MainActivity extends Activity {
                             + " (" + Fmt.ago(pos.optString("t")) + ")",
                     "Google Maps", () -> startActivity(new Intent(Intent.ACTION_VIEW,
                             Uri.parse("https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon))));
-            MapView map = MapBox.position(this, lat, lon);
-            maps.add(map);
-            // Harta in card, cu colturi rotunjite.
-            android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
-            frame.setBackground(Ui.round(this, Ui.CARD2, 14));
-            frame.setClipToOutline(true);
-            frame.addView(map, new android.widget.FrameLayout.LayoutParams(-1, -1));
+            // Harta in card, cu colturi rotunjite; aceeasi intre redesenari (starea vine si la
+            // fiecare secunda), refacuta doar cand se muta masina.
+            String key = lat + "," + lon;
+            if (!key.equals(parkedKey)) {
+                if (parkedMap != null) parkedMap.onDetach();
+                parkedMap = MapBox.position(this, lat, lon);
+                parkedMap.setDestroyMode(false);
+                parkedFrame = new android.widget.FrameLayout(this);
+                parkedFrame.setBackground(Ui.round(this, Ui.CARD2, 14));
+                parkedFrame.setClipToOutline(true);
+                parkedFrame.addView(parkedMap, new android.widget.FrameLayout.LayoutParams(-1, -1));
+                parkedKey = key;
+            }
+            if (parkedFrame.getParent() instanceof android.view.ViewGroup) {
+                ((android.view.ViewGroup) parkedFrame.getParent()).removeView(parkedFrame);
+            }
             LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-1, dp(this, 200));
             mlp.topMargin = dp(this, 12);
-            card.addView(frame, mlp);
+            card.addView(parkedFrame, mlp);
         }
 
         if (trip != null) {

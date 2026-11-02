@@ -164,6 +164,12 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `/api/music/art/:id`. Panel `MusicCard` (pe Acum, aceeași vedere între redesenări, firul lui de long polling;
 volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după ultima tastă, tastatura deschisă).
 Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigația cu `CAR_TOKEN`, răspunde la comenzi).
+  Teste în mașină 02.11 (seara): cardul apare, comenzile aproape instant; după o piesă din căutare YouTube Music
+  rămânea în față (revenirea nu mergea). Din 1.1.84: revine și dacă m0 c138 n-a raportat schimbarea și scrie în
+  jurnal „Muzica: piesa din Panel; …” (ce era în față, ce a făcut). La pornire c138 = `com.android.launcher8`.
+- Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
+  privitorul (`markViewer`), răspunsul la `/api/car/state` are `fast` (privitor în ultimele 30 s), `LiveState.fast()`
+  20 s după ultimul `fast`, `TripRecorder.liveTick` trimite la 1 s (fără puncte noi). Panel păstrează harta parcării.
 - `SyuProbe` (02.11): `@syu watch <s> [module]` (abonare la codurile 0..199, valorile inițiale și apoi doar
   valorile noi), `@syu get <m> <cod>`, `@syu cmd <m> <cod> [int...]` (`Syu.cmd`/`get`/`unregister`).
   Când navigația nu e accesibilă prin `car-cmd.ts` (limita de login), comenzile se pot pune direct în `car_cmd`.

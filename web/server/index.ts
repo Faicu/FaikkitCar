@@ -35,7 +35,16 @@ import {
 } from "./car.ts";
 import { pendingCmdCount, queueCmd, readCmd, readCmds, saveCmdResult, takeCmds } from "./cmd.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, readGapsWithFuel, saveRefuel, type RefuelInput } from "./fuel.ts";
-import { readCarSummary, readLive, readLiveRoute, saveState, waitForState, type IncomingState } from "./live.ts";
+import {
+  hasViewer,
+  markViewer,
+  readCarSummary,
+  readLive,
+  readLiveRoute,
+  saveState,
+  waitForState,
+  type IncomingState,
+} from "./live.ts";
 import { insertLines, MAX_LINES_PER_REQUEST, readLog, type IncomingLine } from "./log.ts";
 import {
   insertPoints,
@@ -113,7 +122,14 @@ app.post("/api/car/state", async (c) => {
   saveUnit(p.u);
   // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
   // `apk` = ultima versiune publicată: aplicația o descarcă și cere confirmarea în câteva secunde.
-  return c.json({ ok: true, state: saveState(p), cmd: pendingCmdCount(), apk: readApkInfo("car")?.versionCode ?? 0 });
+  // `fast` = cineva se uită acum la starea live: mașina trimite la fiecare secundă.
+  return c.json({
+    ok: true,
+    state: saveState(p),
+    cmd: pendingCmdCount(),
+    apk: readApkInfo("car")?.versionCode ?? 0,
+    fast: hasViewer(),
+  });
 });
 
 // Muzica (music.ts): starea la fiecare schimbare, comenzile prin long polling (≤ 25 s).
@@ -331,6 +347,7 @@ app.get("/api/trips/points", (c) => {
 // clientul întreabă din nou imediat și vede fiecare stare la ~1 s după ce o trimite mașina.
 app.get("/api/live", async (c) => {
   requireUser(c);
+  markViewer();
   const after = c.req.query("after");
   if (after) await waitForState(after, 25_000);
   return c.json(readLive());

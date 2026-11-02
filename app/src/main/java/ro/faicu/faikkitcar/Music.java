@@ -371,16 +371,26 @@ final class Music {
         String[] before = topCmp;
         c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(YTM)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        // YouTube Music iese in fata; daca inainte era alta aplicatie (harta), o aducem inapoi
-        // dupa ce a pornit piesa.
-        if (before == null || YTM.equals(before[0])) return;
+        // YouTube Music iese in fata; daca inainte era alta aplicatie (harta, ecranul principal),
+        // o aducem inapoi dupa ce a pornit piesa. 02.11: nu revenea; jurnalul arata acum de ce.
+        String was = before == null ? "necunoscut" : before[0];
+        if (before == null || before.length < 2 || before[1] == null || YTM.equals(before[0])) {
+            Prefs.log(c, "Muzica: piesa din Panel; in fata era " + was + ", nu revin");
+            return;
+        }
         h.postDelayed(() -> {
-            if (!YTM.equals(top)) return; // utilizatorul a schimbat deja aplicatia
+            String now = top;
+            // Alta aplicatie decat YouTube Music si cea de dinainte = utilizatorul a schimbat-o el.
+            if (!YTM.equals(now) && !before[0].equals(now)) {
+                Prefs.log(c, "Muzica: piesa din Panel; acum in fata " + now + ", nu revin la " + was);
+                return;
+            }
             try {
                 c.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(new ComponentName(before[0], before[1]))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                Prefs.log(c, "Muzica: piesa din Panel; revin la " + before[0] + " (in fata: " + now + ")");
             } catch (Exception e) {
-                Log.w("FaikkitCar", "Muzica: revenire la " + before[0], e);
+                Prefs.log(c, "Muzica: revenirea la " + before[0] + " a esuat: " + e);
             }
         }, 7_000);
     }
