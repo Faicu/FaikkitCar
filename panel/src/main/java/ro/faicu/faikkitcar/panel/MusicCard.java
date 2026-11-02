@@ -52,7 +52,7 @@ final class MusicCard {
     private final Map<String, Bitmap> artCache = new HashMap<>();
 
     private final ImageView art;
-    private final TextView title, sub, pos, dur, volText;
+    private final TextView source, title, sub, pos, dur, volText;
     private final SeekBar bar;
     private final Button play;
 
@@ -74,15 +74,23 @@ final class MusicCard {
 
         LinearLayout top = new LinearLayout(c);
         top.setGravity(Gravity.CENTER_VERTICAL);
+        // Coperta, cu o nota muzicala dedesubt cat nu e (sau nu s-a incarcat inca).
+        android.widget.FrameLayout artBox = new android.widget.FrameLayout(c);
+        artBox.setBackground(Ui.round(c, Ui.CARD2, 12));
+        artBox.setClipToOutline(true);
+        TextView note = Ui.text(c, "♪", 28, Ui.MUTED, false);
+        note.setGravity(Gravity.CENTER);
+        artBox.addView(note, new android.widget.FrameLayout.LayoutParams(-1, -1));
         art = new ImageView(c);
         art.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        art.setBackground(Ui.round(c, Ui.CARD2, 12));
-        art.setClipToOutline(true);
+        artBox.addView(art, new android.widget.FrameLayout.LayoutParams(-1, -1));
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(dp(c, 64), dp(c, 64));
         alp.rightMargin = dp(c, 14);
-        top.addView(art, alp);
+        top.addView(artBox, alp);
         LinearLayout texts = new LinearLayout(c);
         texts.setOrientation(LinearLayout.VERTICAL);
+        source = Ui.text(c, "", 12, Ui.MUTED, false);
+        texts.addView(source);
         title = Ui.text(c, "", 18, Ui.TEXT, true);
         title.setMaxLines(2);
         sub = Ui.text(c, "", 14, Ui.MUTED, false);
@@ -132,8 +140,8 @@ final class MusicCard {
 
         LinearLayout controls = new LinearLayout(c);
         controls.setGravity(Gravity.CENTER);
-        Button prev = Ui.button(c, "⏮", Ui.SECONDARY, v -> send("prev", null));
-        play = Ui.button(c, "⏯", Ui.PRIMARY, v -> {
+        Button prev = Ui.button(c, "⏮\uFE0E", Ui.SECONDARY, v -> send("prev", null));
+        play = Ui.button(c, "▶\uFE0E", Ui.PRIMARY, v -> {
             // Afisat imediat; starea reala vine de la masina in ~1 s.
             if (music != null) {
                 try {
@@ -146,7 +154,7 @@ final class MusicCard {
             }
             send("toggle", null);
         });
-        Button next = Ui.button(c, "⏭", Ui.SECONDARY, v -> send("next", null));
+        Button next = Ui.button(c, "⏭\uFE0E", Ui.SECONDARY, v -> send("next", null));
         for (Button b : new Button[] {prev, play, next}) {
             b.setTextSize(22);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(c, 56), 1);
@@ -233,7 +241,9 @@ final class MusicCard {
         title.setText(t.isEmpty() ? "Nimic de redat" : t);
         String artist = music.optString("artist"), album = music.optString("album");
         sub.setText(artist + (album.isEmpty() || album.equals(t) ? "" : (artist.isEmpty() ? "" : " · ") + album));
-        play.setText(music.optBoolean("playing") ? "⏸" : "▶");
+        // Fara varianta emoji (pe telefon ⏸ iesea portocaliu): bare si triunghi ca text.
+        play.setText(music.optBoolean("playing") ? "❚❚" : "▶\uFE0E");
+        source.setText(sourceLabel(music.optString("pkg")));
         volText.setText(vol >= 0 ? "Volum " + vol : "Volum —");
         dur.setText(durationMs() > 0 ? Fmt.clock(durationMs()) : "");
         updatePosition();
@@ -255,6 +265,11 @@ final class MusicCard {
                 }
             });
         }
+    }
+
+    private static String sourceLabel(String pkg) {
+        return "com.google.android.apps.youtube.music".equals(pkg) ? "YouTube Music pe navigație"
+                : "Muzica de pe navigație";
     }
 
     private long durationMs() {
@@ -316,7 +331,12 @@ final class MusicCard {
         LinearLayout results = new LinearLayout(c);
         results.setOrientation(LinearLayout.VERTICAL);
         AlertDialog[] d = new AlertDialog[1];
-        Runnable go = () -> search(q.getText().toString().trim(), results, d);
+        Runnable go = () -> {
+            // Tastatura ascunsa: rezultatele ocupa tot dialogul.
+            android.view.inputmethod.InputMethodManager imm = c.getSystemService(android.view.inputmethod.InputMethodManager.class);
+            if (imm != null) imm.hideSoftInputFromWindow(q.getWindowToken(), 0);
+            search(q.getText().toString().trim(), results, d);
+        };
         Button b = Ui.button(c, "Caută", Ui.PRIMARY, v -> go.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(c, 52));
         lp.leftMargin = dp(c, 10);

@@ -54,6 +54,8 @@ public class MainActivity extends Activity {
     private LinearLayout root, content;
     private ScrollView scroll;
     private final TextView[] tabViews = new TextView[TABS.length];
+    private final TabIcon[] tabIcons = new TabIcon[TABS.length];
+    private final LinearLayout[] tabCells = new LinearLayout[TABS.length];
     private final List<MapView> maps = new ArrayList<>();
     private MapBox.LiveRoute liveMap; // harta calatoriei in curs, pastrata intre redesenari
     private MusicCard music; // muzica de pe navigatie, pastrata intre redesenari (fila Acum)
@@ -197,13 +199,24 @@ public class MainActivity extends Activity {
         bar.setPadding(bp, bp, bp, bp);
         for (int i = 0; i < TABS.length; i++) {
             int index = i;
-            TextView t = Ui.text(this, TABS[i], 13, Ui.MUTED, true);
+            // Fila: iconita deasupra, eticheta dedesubt; fundalul (selectia) pe toata fila.
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER);
+            cell.setPadding(0, dp(this, 7), 0, dp(this, 6));
+            TabIcon icon = new TabIcon(this, i);
+            cell.addView(icon, new LinearLayout.LayoutParams(dp(this, 24), dp(this, 24)));
+            TextView t = Ui.text(this, TABS[i], 12, Ui.MUTED, true);
             t.setSingleLine(true);
             t.setGravity(Gravity.CENTER);
-            t.setPadding(0, dp(this, 10), 0, dp(this, 10));
-            t.setOnClickListener(v -> openTab(index));
+            LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-2, -2);
+            tlp.topMargin = dp(this, 3);
+            cell.addView(t, tlp);
+            cell.setOnClickListener(v -> openTab(index));
             tabViews[i] = t;
-            bar.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
+            tabIcons[i] = icon;
+            tabCells[i] = cell;
+            bar.addView(cell, new LinearLayout.LayoutParams(0, -2, 1));
         }
 
         scroll = new ScrollView(this);
@@ -240,7 +253,8 @@ public class MainActivity extends Activity {
         for (int i = 0; i < tabViews.length; i++) {
             boolean on = i == tab;
             tabViews[i].setTextColor(on ? Ui.ACCENT : Ui.MUTED);
-            tabViews[i].setBackground(on ? Ui.round(this, 0x2638BDF8, 12) : null);
+            tabIcons[i].setColor(on ? Ui.ACCENT : Ui.MUTED);
+            tabCells[i].setBackground(on ? Ui.round(this, 0x2638BDF8, 12) : null);
         }
     }
 
@@ -482,9 +496,11 @@ public class MainActivity extends Activity {
             Ui.hint(this, up, "Se instalează automat, fără confirmare. Aplicația se va închide; deschide-o din nou peste câteva secunde.");
             return;
         }
-        // Instalatorul versiunii de acum: doar daca e Panel insusi se poate fara confirmare.
-        Ui.hint(this, up, "Se descarcă de pe car.faicu.ro; Android îți cere o confirmare. (Versiunea de acum instalată de "
-                + Updater.installer(this) + ".)");
+        // Doar daca Panel a instalat versiunea de acum se poate fara confirmare (Updater.installer).
+        Ui.hint(this, up, getPackageName().equals(Updater.installer(this))
+                ? "Se descarcă de pe car.faicu.ro; apasă „Instalează” la confirmare."
+                : "Se descarcă de pe car.faicu.ro; apasă „Instalează” la confirmare. După ce o instalezi de aici, "
+                        + "următoarele încearcă să se instaleze singure.");
         Ui.addButton(this, up, "Actualizează acum", Ui.PRIMARY, v -> {
             toast("Descarc actualizarea...");
             Updater.start(this, error -> {
@@ -1161,18 +1177,38 @@ public class MainActivity extends Activity {
             Ui.hint(this, card, "Nicio călătorie încă. Aplicația FaikkitCar trimite traseul automat când mașina merge.");
             return;
         }
-        String newer = null;
+        // Totalurile pe zi, pentru antetele zilelor.
+        java.util.Map<String, double[]> perDay = new java.util.HashMap<>();
+        for (JSONObject t : list) {
+            double[] d = perDay.computeIfAbsent(Fmt.dayKey(t.optString("start")), k -> new double[2]);
+            d[0] += t.optDouble("distanceKm", 0);
+            if (!t.isNull("cost")) d[1] += t.optDouble("cost", 0);
+        }
+        String newer = null, lastDay = null;
         for (JSONObject t : list) {
             String start = t.optString("start");
             addGapRows(card, t.optString("end"), newer);
             newer = start;
+            String day = Fmt.dayKey(start);
+            if (!day.equals(lastDay)) {
+                lastDay = day;
+                double[] tot = perDay.get(day);
+                LinearLayout dh = new LinearLayout(this);
+                dh.setGravity(Gravity.BOTTOM);
+                dh.addView(Ui.text(this, Fmt.dayTitle(start), 15, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+                dh.addView(Ui.text(this, Fmt.num(tot[0], 1) + " km" + (tot[1] > 0 ? " · " + Fmt.lei(tot[1]) : ""),
+                        13, Ui.MUTED, false));
+                LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(-1, -2);
+                dlp.topMargin = dp(this, 18);
+                card.addView(dh, dlp);
+            }
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.VERTICAL);
             row.setBackground(Ui.round(this, Ui.CARD2, 14));
             int p = dp(this, 12);
             row.setPadding(p, p, p, p);
             LinearLayout top = new LinearLayout(this);
-            top.addView(Ui.text(this, Fmt.day(start) + " · " + Fmt.hm(start) + "–" + Fmt.hm(t.optString("end")),
+            top.addView(Ui.text(this, Fmt.hm(start) + "–" + Fmt.hm(t.optString("end")),
                     16, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
             top.addView(Ui.text(this, Fmt.num(t.optDouble("distanceKm"), 1) + " km", 15, Ui.ACCENT, true));
             row.addView(top);

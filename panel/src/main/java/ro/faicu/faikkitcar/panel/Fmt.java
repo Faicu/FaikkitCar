@@ -26,6 +26,21 @@ final class Fmt {
         return pattern(iso, "EEE, dd MMM");
     }
 
+    /** Ziua locala, pentru grupare: „2026-11-02”. */
+    static String dayKey(String iso) {
+        return pattern(iso, "yyyy-MM-dd");
+    }
+
+    /** Antetul unei zile in liste: „Azi”, „Ieri”, altfel „Sâmbătă, 31 oct.”. */
+    static String dayTitle(String iso) {
+        java.time.LocalDate d = Instant.parse(iso).atZone(ZONE).toLocalDate();
+        java.time.LocalDate today = java.time.LocalDate.now(ZONE);
+        if (d.equals(today)) return "Azi";
+        if (d.equals(today.minusDays(1))) return "Ieri";
+        String s = pattern(iso, d.getYear() == today.getYear() ? "EEEE, d MMM" : "EEEE, d MMM yyyy");
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
     static String hm(String iso) {
         return pattern(iso, "HH:mm");
     }
@@ -86,15 +101,15 @@ final class Fmt {
     }
 
     static String liters(double l) {
-        return num(l, l < 10 ? 2 : 1) + " L";
+        return num(l, l < 10 ? 2 : 1) + "\u00A0L"; // fara rupere intre numar si unitate
     }
 
     static String lei(double v) {
-        return num(v, v < 100 ? 2 : 0) + " lei";
+        return num(v, v < 100 ? 2 : 0) + "\u00A0lei";
     }
 
     static String km(long km) {
-        return num(km, 0) + " km";
+        return num(km, 0) + "\u00A0km";
     }
 
     /** „acum 5 min”, „acum 2 h”, „ieri”. */
