@@ -12,12 +12,10 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -53,11 +51,12 @@ final class MusicCard {
     private final Map<String, Bitmap> artCache = new HashMap<>();
 
     private final ImageView art;
-    private final TextView source, title, sub, pos, dur, volText;
-    private final SeekBar bar, volBar;
+    private final TextView title, sub, pos, dur;
+    private final Slider bar, volBar;
+    private final Icon playIcon;
+    private final View volDown, volUp;
     private static final int VOL_MAX = 36; // treapta maxima pe navigatie
     private long volSentAt;
-    private final Button play;
 
     private JSONObject music;
     private long receivedAt; // SystemClock.elapsedRealtime() la primire
@@ -73,13 +72,14 @@ final class MusicCard {
         view.setOrientation(LinearLayout.VERTICAL);
         view.setBackground(Ui.round(c, Ui.CARD, 20));
         int p = dp(c, 20);
-        view.setPadding(p, p, p, p);
+        view.setPadding(p, p, p, dp(c, 14));
 
+        // Sus: coperta, titlul cu artistul si lupa (cautarea).
         LinearLayout top = new LinearLayout(c);
         top.setGravity(Gravity.CENTER_VERTICAL);
         // Coperta, cu o nota muzicala dedesubt cat nu e (sau nu s-a incarcat inca).
         android.widget.FrameLayout artBox = new android.widget.FrameLayout(c);
-        artBox.setBackground(Ui.round(c, Ui.CARD2, 12));
+        artBox.setBackground(Ui.round(c, Ui.CARD2, 14));
         artBox.setClipToOutline(true);
         TextView note = Ui.text(c, "♪", 28, Ui.MUTED, false);
         note.setGravity(Gravity.CENTER);
@@ -87,64 +87,61 @@ final class MusicCard {
         art = new ImageView(c);
         art.setScaleType(ImageView.ScaleType.CENTER_CROP);
         artBox.addView(art, new android.widget.FrameLayout.LayoutParams(-1, -1));
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(dp(c, 64), dp(c, 64));
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(dp(c, 72), dp(c, 72));
         alp.rightMargin = dp(c, 14);
         top.addView(artBox, alp);
         LinearLayout texts = new LinearLayout(c);
         texts.setOrientation(LinearLayout.VERTICAL);
-        source = Ui.text(c, "", 12, Ui.MUTED, false);
-        texts.addView(source);
         title = Ui.text(c, "", 18, Ui.TEXT, true);
         title.setMaxLines(2);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
         sub = Ui.text(c, "", 14, Ui.MUTED, false);
-        sub.setMaxLines(2);
+        sub.setMaxLines(1);
+        sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
         texts.addView(title);
         texts.addView(sub);
         top.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+        View search = iconButton(Icon.SEARCH, 44, 22, Ui.CARD2, Ui.TEXT, v -> openSearch());
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(dp(c, 44), dp(c, 44));
+        slp.leftMargin = dp(c, 10);
+        top.addView(search, slp);
         view.addView(top);
 
-        bar = new SeekBar(c);
-        bar.setMax(1000);
-        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar s, int v, boolean user) {
-                if (user) pos.setText(Fmt.clock(v * durationMs() / 1000));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar s) {
-                touching = true;
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar s) {
-                touching = false;
-                long ms = s.getProgress() * durationMs() / 1000;
-                if (music != null) {
-                    try {
-                        music.put("posMs", ms).put("ageMs", 0);
-                        receivedAt = SystemClock.elapsedRealtime();
-                    } catch (Exception ignored) {
-                    }
-                }
-                send("seek", ms);
-            }
-        });
-        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
-        blp.topMargin = dp(c, 12);
-        view.addView(bar, blp);
-        LinearLayout times = new LinearLayout(c);
+        // Derularea: bara, pozitia si durata dedesubt.
         pos = Ui.text(c, "", 12, Ui.MUTED, false);
         dur = Ui.text(c, "", 12, Ui.MUTED, false);
         dur.setGravity(Gravity.END);
+        bar = new Slider(c, false);
+        bar.setMax(1000);
+        bar.listener = (v, done) -> {
+            touching = !done;
+            pos.setText(Fmt.clock(v * durationMs() / 1000));
+            if (!done) return;
+            long ms = v * durationMs() / 1000;
+            if (music != null) {
+                try {
+                    music.put("posMs", ms).put("ageMs", 0);
+                    receivedAt = SystemClock.elapsedRealtime();
+                } catch (Exception ignored) {
+                }
+            }
+            send("seek", ms);
+        };
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+        blp.topMargin = dp(c, 14);
+        view.addView(bar, blp);
+        LinearLayout times = new LinearLayout(c);
+        int ti = dp(c, 8); // aliniat cu capetele barei
+        times.setPadding(ti, 0, ti, 0);
         times.addView(pos, new LinearLayout.LayoutParams(0, -2, 1));
         times.addView(dur, new LinearLayout.LayoutParams(0, -2, 1));
         view.addView(times);
 
+        // Comenzile: anterioara, redare/pauza (mare, rotunda), urmatoarea.
         LinearLayout controls = new LinearLayout(c);
         controls.setGravity(Gravity.CENTER);
-        Button prev = Ui.button(c, "⏮\uFE0E", Ui.SECONDARY, v -> send("prev", null));
-        play = Ui.button(c, "▶\uFE0E", Ui.PRIMARY, v -> {
+        View prev = iconButton(Icon.PREV, 56, 28, 0, Ui.TEXT, v -> send("prev", null));
+        android.widget.FrameLayout play = (android.widget.FrameLayout) iconButton(Icon.PLAY, 68, 32, Ui.ACCENT, Ui.BG, v -> {
             // Afisat imediat; starea reala vine de la masina in ~1 s.
             if (music != null) {
                 try {
@@ -157,65 +154,54 @@ final class MusicCard {
             }
             send("toggle", null);
         });
-        Button next = Ui.button(c, "⏭\uFE0E", Ui.SECONDARY, v -> send("next", null));
-        for (Button b : new Button[] {prev, play, next}) {
-            b.setTextSize(22);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(c, 56), 1);
-            lp.leftMargin = lp.rightMargin = dp(c, 4);
-            controls.addView(b, lp);
-        }
+        playIcon = (Icon) play.getChildAt(0);
+        View next = iconButton(Icon.NEXT, 56, 28, 0, Ui.TEXT, v -> send("next", null));
+        controls.addView(prev, new LinearLayout.LayoutParams(dp(c, 56), dp(c, 56)));
+        LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(dp(c, 68), dp(c, 68));
+        plp.leftMargin = plp.rightMargin = dp(c, 28);
+        controls.addView(play, plp);
+        controls.addView(next, new LinearLayout.LayoutParams(dp(c, 56), dp(c, 56)));
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, -2);
-        clp.topMargin = dp(c, 8);
+        clp.topMargin = dp(c, 4);
         view.addView(controls, clp);
 
-        // Volumul Teyes: bara (0–36, ca pe navigatie) intre „−” si „+”, eticheta deasupra.
-        volText = Ui.text(c, "", 14, Ui.MUTED, false);
-        LinearLayout.LayoutParams vtp = new LinearLayout.LayoutParams(-1, -2);
-        vtp.topMargin = dp(c, 12);
-        view.addView(volText, vtp);
+        // Volumul Teyes: bara 0–36 (ca pe navigatie) cu valoarea in bulina; difuzoarele de la
+        // capete il coboara / urca cu o treapta.
         LinearLayout volRow = new LinearLayout(c);
         volRow.setGravity(Gravity.CENTER_VERTICAL);
-        Button down = Ui.button(c, "−", Ui.SECONDARY, v -> setVol(vol - 1));
-        Button up = Ui.button(c, "+", Ui.SECONDARY, v -> setVol(vol + 1));
-        for (Button b : new Button[] {down, up}) {
-            b.setTextSize(22);
-            b.setPadding(0, 0, 0, 0);
-        }
-        volBar = new SeekBar(c);
+        volDown = iconButton(Icon.VOL_LOW, 40, 22, 0, Ui.MUTED, v -> setVol(vol - 1));
+        volUp = iconButton(Icon.VOL_HIGH, 40, 22, 0, Ui.MUTED, v -> setVol(vol + 1));
+        volBar = new Slider(c, true);
         volBar.setMax(VOL_MAX);
-        volBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar s, int v, boolean user) {
-                if (!user) return;
-                vol = v;
-                volSetAt = SystemClock.elapsedRealtime();
-                volText.setText("Volum " + v);
-                // Cat glisezi: cel mult o comanda la 300 ms (serverul pastreaza doar ultima).
-                if (volSetAt - volSentAt > 300) {
-                    volSentAt = volSetAt;
-                    send("vol", v);
-                }
+        volBar.listener = (v, done) -> {
+            touching = !done;
+            vol = v;
+            volSetAt = SystemClock.elapsedRealtime();
+            // Cat glisezi: cel mult o comanda la 300 ms (serverul pastreaza doar ultima).
+            if (done || volSetAt - volSentAt > 300) {
+                volSentAt = volSetAt;
+                send("vol", v);
             }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar s) {
-                touching = true;
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar s) {
-                touching = false;
-                setVol(s.getProgress());
-            }
-        });
-        volRow.addView(down, new LinearLayout.LayoutParams(dp(c, 48), dp(c, 48)));
+        };
+        volRow.addView(volDown, new LinearLayout.LayoutParams(dp(c, 40), dp(c, 40)));
         volRow.addView(volBar, new LinearLayout.LayoutParams(0, -2, 1));
-        volRow.addView(up, new LinearLayout.LayoutParams(dp(c, 48), dp(c, 48)));
+        volRow.addView(volUp, new LinearLayout.LayoutParams(dp(c, 40), dp(c, 40)));
         LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(-1, -2);
-        vlp.topMargin = dp(c, 4);
+        vlp.topMargin = dp(c, 6);
         view.addView(volRow, vlp);
+    }
 
-        Ui.addButton(c, view, "🔍 Caută o piesă", Ui.SECONDARY, v -> openSearch());
+    /** Buton rotund cu o iconita in mijloc; bg = 0 inseamna fara fundal (doar efectul la atingere). */
+    private View iconButton(int kind, int sizeDp, int iconDp, int bg, int color, View.OnClickListener click) {
+        android.widget.FrameLayout f = new android.widget.FrameLayout(c);
+        android.graphics.drawable.GradientDrawable shape = Ui.round(c, bg == 0 ? 0xFFFFFFFF : bg, sizeDp / 2f);
+        f.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x33FFFFFF), bg == 0 ? null : shape, shape));
+        Icon icon = new Icon(c, kind);
+        icon.setColor(color);
+        f.addView(icon, new android.widget.FrameLayout.LayoutParams(dp(c, iconDp), dp(c, iconDp), Gravity.CENTER));
+        f.setOnClickListener(click);
+        return f;
     }
 
     boolean visible() {
@@ -277,12 +263,11 @@ final class MusicCard {
         title.setText(t.isEmpty() ? "Nimic de redat" : t);
         String artist = music.optString("artist"), album = music.optString("album");
         sub.setText(artist + (album.isEmpty() || album.equals(t) ? "" : (artist.isEmpty() ? "" : " · ") + album));
-        // Fara varianta emoji (pe telefon ⏸ iesea portocaliu): bare si triunghi ca text.
-        play.setText(music.optBoolean("playing") ? "❚❚" : "▶\uFE0E");
-        source.setText(sourceLabel(music.optString("pkg")));
-        volText.setText(vol >= 0 ? "Volum " + vol : "Volum —");
-        if (vol >= 0 && !touching) volBar.setProgress(vol);
+        playIcon.setKind(music.optBoolean("playing") ? Icon.PAUSE : Icon.PLAY);
+        if (vol >= 0) volBar.setValue(vol);
         volBar.setEnabled(vol >= 0);
+        volDown.setEnabled(vol >= 0);
+        volUp.setEnabled(vol >= 0);
         dur.setText(durationMs() > 0 ? Fmt.clock(durationMs()) : "");
         updatePosition();
         String artId = music.isNull("artId") ? "" : music.optString("artId");
@@ -305,11 +290,6 @@ final class MusicCard {
         }
     }
 
-    private static String sourceLabel(String pkg) {
-        return "com.google.android.apps.youtube.music".equals(pkg) ? "YouTube Music pe navigație"
-                : "Muzica de pe navigație";
-    }
-
     private long durationMs() {
         return music == null ? 0 : music.optLong("durationMs");
     }
@@ -324,16 +304,16 @@ final class MusicCard {
 
     private void updatePosition() {
         long p = positionMs(), d = durationMs();
+        if (bar.dragging()) return;
         pos.setText(Fmt.clock(p));
-        bar.setProgress(d > 0 ? (int) (p * 1000 / d) : 0);
+        bar.setValue(d > 0 ? (int) (p * 1000 / d) : 0);
     }
 
     private void setVol(int v) {
         if (vol < 0) return; // nu stim volumul de acum
         vol = Math.max(0, Math.min(VOL_MAX, v));
         volSetAt = volSentAt = SystemClock.elapsedRealtime();
-        volText.setText("Volum " + vol);
-        volBar.setProgress(vol);
+        volBar.setValue(vol);
         send("vol", vol);
     }
 

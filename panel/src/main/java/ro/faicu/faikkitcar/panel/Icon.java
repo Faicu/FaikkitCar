@@ -7,19 +7,31 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.view.View;
 
-/** Iconitele filelor de jos, desenate din cod (fara resurse): linii simple, in culoarea filei. */
-final class TabIcon extends View {
-    private final int kind;
+/**
+ * Iconitele aplicatiei, desenate din cod (fara resurse) pe o grila de 24 x 24: filele de jos si
+ * controalele muzicii. Linii simple sau forme pline, intr-o singura culoare.
+ */
+final class Icon extends View {
+    // 0–4 = filele (in ordinea din MainActivity.TABS)
+    static final int SEARCH = 5, PREV = 6, NEXT = 7, PLAY = 8, PAUSE = 9, VOL_LOW = 10, VOL_HIGH = 11;
+
+    private int kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     private final RectF r = new RectF();
 
-    TabIcon(Context c, int kind) {
+    Icon(Context c, int kind) {
         super(c);
         this.kind = kind;
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeCap(Paint.Cap.ROUND);
         p.setStrokeJoin(Paint.Join.ROUND);
+    }
+
+    void setKind(int kind) {
+        if (this.kind == kind) return;
+        this.kind = kind;
+        invalidate();
     }
 
     void setColor(int color) {
@@ -75,6 +87,37 @@ final class TabIcon extends View {
                 path.lineTo(16.5f, 8.5f);
                 c.drawPath(path, p);
                 break;
+            case SEARCH: // lupa
+                c.drawCircle(10.5f, 10.5f, 6, p);
+                c.drawLine(15, 15, 20, 20, p);
+                break;
+            case PREV:
+                fillPath(c, new float[] {18, 6, 18, 18, 9, 12});
+                p.setStrokeWidth(2.4f);
+                c.drawLine(7, 6.5f, 7, 17.5f, p);
+                break;
+            case NEXT:
+                fillPath(c, new float[] {6, 6, 6, 18, 15, 12});
+                p.setStrokeWidth(2.4f);
+                c.drawLine(17, 6.5f, 17, 17.5f, p);
+                break;
+            case PLAY:
+                fillPath(c, new float[] {8, 5, 8, 19, 19, 12});
+                break;
+            case PAUSE:
+                p.setStyle(Paint.Style.FILL);
+                r.set(6.5f, 5, 10.5f, 19);
+                c.drawRoundRect(r, 1, 1, p);
+                r.set(13.5f, 5, 17.5f, 19);
+                c.drawRoundRect(r, 1, 1, p);
+                p.setStyle(Paint.Style.STROKE);
+                break;
+            case VOL_LOW:
+            case VOL_HIGH: // difuzor, cu una sau doua unde
+                fillPath(c, new float[] {3, 9.5f, 3, 14.5f, 7, 14.5f, 12, 19, 12, 5, 7, 9.5f});
+                c.drawArc(arc(12, 12, 3.5f), -45, 90, false, p);
+                if (kind == VOL_HIGH) c.drawArc(arc(12, 12, 7.5f), -50, 100, false, p);
+                break;
             default: // Mai mult: trei puncte
                 fillCircle(c, 5, 12, 1.8f);
                 fillCircle(c, 12, 12, 1.8f);
@@ -87,6 +130,19 @@ final class TabIcon extends View {
     private RectF arc(float cx, float cy, float rad) {
         r.set(cx - rad, cy - rad, cx + rad, cy + rad);
         return r;
+    }
+
+    /** Poligon plin cu colturi usor rotunjite (perechi x, y). */
+    private void fillPath(Canvas c, float[] xy) {
+        path.reset();
+        path.moveTo(xy[0], xy[1]);
+        for (int i = 2; i < xy.length; i += 2) path.lineTo(xy[i], xy[i + 1]);
+        path.close();
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+        p.setStrokeWidth(1.2f);
+        c.drawPath(path, p);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(2f);
     }
 
     private void fillCircle(Canvas c, float x, float y, float rad) {

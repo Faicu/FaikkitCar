@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     private LinearLayout root, content;
     private ScrollView scroll;
     private final TextView[] tabViews = new TextView[TABS.length];
-    private final TabIcon[] tabIcons = new TabIcon[TABS.length];
+    private final Icon[] tabIcons = new Icon[TABS.length];
     private final LinearLayout[] tabCells = new LinearLayout[TABS.length];
     private final List<MapView> maps = new ArrayList<>();
     private MapBox.LiveRoute liveMap; // harta calatoriei in curs, pastrata intre redesenari
@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setGravity(Gravity.CENTER);
             cell.setPadding(0, dp(this, 7), 0, dp(this, 6));
-            TabIcon icon = new TabIcon(this, i);
+            Icon icon = new Icon(this, i);
             cell.addView(icon, new LinearLayout.LayoutParams(dp(this, 24), dp(this, 24)));
             TextView t = Ui.text(this, TABS[i], 12, Ui.MUTED, true);
             t.setSingleLine(true);
