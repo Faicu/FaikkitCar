@@ -41,8 +41,9 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 ## Ce urmează
 
 1. **Muzica de pe telefon:** controlul YouTube Music de pe navigație din Panel (melodia, redare/pauză,
-   următoarea, volumul). Întâi testul `@media` (comanda internă prin `car-cmd.ts`): vede FaikkitCar
-   sesiunea YouTube Music pe Teyes și o poate comanda? Apoi cardul „Muzică” în Panel.
+   următoarea). Testul din 02.11 a mers: FaikkitCar vede melodia și o poate opri, porni și sări.
+   Volumul nu se poate schimba așa (îl ține Teyes), iar căutarea unei melodii nu merge. Urmează cardul
+   „Muzică” în Panel.
 2. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
    ca modemul să nu mai coboare pe 2G („G”), unde nu se încarcă nimic. De văzut dacă setarea rămâne
    după o repornire a navigației (în FaikkitCar, Setări → Sistem arată tipul) și, pe hartă (Navigație →

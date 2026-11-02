@@ -143,7 +143,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
-  Planul, dacă merge: starea muzicii în starea live, comenzile prin long polling (sub 1 s), cardul „Muzică” în Panel.
+  Rezultat 02.11 (1.1.80, YouTube Music): sesiunea se vede (titlu, artist, album, durata, poziția, coperta ca
+  bitmap, fără URI; acțiuni 0x27afb7); `next`/`pause`/`play` merg imediat, `key next` merge (1–2 s „pauza” cât se
+  încarcă); `search` nu face nimic; `setStreamVolume` e ignorat (rămâne 25/25: volumul îl ține Teyes, `com.syu.ms`).
+  Planul: starea muzicii în starea live, comenzile prin long polling (sub 1 s), cardul „Muzică” în Panel.
 - `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
   `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie
