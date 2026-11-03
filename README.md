@@ -359,8 +359,6 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
   export JAVA_HOME=/root/android/jdk
   /root/android/gradle-8.7/bin/gradle :app:assembleDebug     # sau :panel:assembleDebug
   ```
-  Emulatoare (KVM): `/root/android/sdk/emulator/emulator -avd panel -no-window` (Android 14,
-  cu vocea Google) și `-avd car29` (Android 10, ca navigația).
 
 ---
 

@@ -60,14 +60,10 @@ activă, separată. Remote Control: `claude.service` (sursa în
   rezervorul, „Unde e mașina” când nu merge, rândul „Navigația” din `live.unitHealth`), Călătorii
   (`Trips.tsx` + `TripView.tsx`), Costuri (`Costs.tsx`), Navigație (`Unit.tsx` + `UnitCard.tsx`,
   aceeași stare live), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
-- Test fără mașină (12.10): copie a bazei cu `VACUUM INTO` într-un dosar temporar, al doilea server
-  cu `FAIKKITCAR_DATA_DIR=<dosar> PORT=3999`, punctele unui drum mutate în prezent și stări
-  trimise la 5 s la `/api/car/state`; APK-uri de test cu `https://car.faicu.ro` înlocuit cu
-  `http://10.0.2.2:3999` + `usesCleartextTraffic` (apoi totul revenit; nu trimit la serverul real). În aplicația
-  din mașină adresa e doar în `VwStatus.BASE` (din 01.11, după ce un APK de test cu doar ea schimbată a trimis
-  26 de rânduri de jurnal la serverul real; scoase, copie în `/root/backups/faikkitcar-log-emulator-20261101.json`;
-  încă 6 la următoarea pornire a emulatorului, `…20261101b.json`). Un APK de test rămas în emulator pornește la
-  boot și trimite: după test, dezinstalează-l sau lasă doar unul cu adresa de test.
+- Testarea (03.11, cererea utilizatorului): fără emulator și fără servere/simulatoare de test. Utilizatorul
+  testează efectiv aplicațiile, iar pe navigație se verifică prin comenzile la distanță (`car-cmd.ts`).
+  Emulatorul și imaginile lui au fost șterse; rămân doar uneltele de build. Verificări locale: `npx vitest run`,
+  `npx tsc --noEmit`, build-ul Gradle. În aplicația din mașină adresa serverului e doar în `VwStatus.BASE`.
   Nu folosi `pkill -f` cu un tipar din propria comandă (omoară shell-ul).
 
 ## Aplicația din mașină (`app/`)
@@ -163,7 +159,6 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `music.test.ts`): `GET /api/music?after=<seq>`, `POST /api/music {action, value}`, `/api/music/search?q=`,
   `/api/music/art/:id`. Panel `MusicCard` (pe Acum, aceeași vedere între redesenări, firul lui de long polling;
 volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după ultima tastă, tastatura deschisă).
-Test fără mașină: `/root/tools/musicsim.mjs <minute>` (se dă drept navigația cu `CAR_TOKEN`, răspunde la comenzi).
   Teste în mașină 02.11 (seara): cardul apare, comenzile aproape instant; după o piesă din căutare YouTube Music
   rămânea în față (revenirea nu mergea). Din 1.1.85: revine și dacă m0 c138 n-a raportat schimbarea și scrie în
   jurnal „Muzica: piesa din Panel; …” (ce era în față, ce a făcut). La pornire c138 = `com.android.launcher8`.
@@ -332,9 +327,6 @@ detaliile călătoriei într-un card cu grupe (`group`), graficele navigației p
 1.0.41: bordul pe Acum (`SpeedGauge`: viteza pe arcul mare, turația pe cel mic), autentificarea refăcută.
 Site-ul (02.11), la fel: `MusicCard.tsx` pe Acum, `RouteThumb.tsx` + zilele în lista de călătorii, „Pe luni” cu
 bare verticale (`Costs.tsx`), acțiunile în „⋯” (`RowMenu.tsx`: alimentări, mentenanță, locuri), autentificarea.
-Pe server nu e browser pentru teste; site-ul se poate vedea în Chrome din emulator, dar NU tasta date de
-autentificare acolo cu `adb input` fără să verifici întâi că un câmp are focus (02.11: textul a ajuns în bara de
-adrese și s-a trimis la Google ca o căutare).
 Din 1.0.30 actualizarea e automată, fără confirmare (Android 12+, `setRequireUserAction`,
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
 Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără
@@ -350,9 +342,7 @@ Panel se redeschide singur pe versiunea nouă. Fără nicio atingere nu se poate
 
 - Local: JDK 17, Gradle 8.7 și Android SDK 34 în `/root/android` (`local.properties` →
   `sdk.dir=/root/android/sdk`): `JAVA_HOME=/root/android/jdk /root/android/gradle-8.7/bin/gradle
-  :app:assembleDebug :panel:assembleDebug`. Emulator: AVD `panel` (`emulator -avd panel
-  -no-window`), test prin `adb`; ecran ca al navigației: `adb shell wm size 2000x1200`,
-  `wm density 300`.
+  :app:assembleDebug :panel:assembleDebug`.
 - CI: `.github/workflows/build.yml` (aplicația: la push pe main, nu pentru `web/**`, `deploy/**`,
   `*.md`; release `build-<N>`, `versionName` = `1.1.<N>`, publicat la `POST /api/car/apk`) și
   `panel.yml` (release `panel-<N>`, `1.0.<N>`, `POST /api/panel/apk`). `[skip ci]` în mesaj
