@@ -27,6 +27,7 @@ Starea de acum e în [`README.md`](README.md).
 | 29.10 | Sunetul de bun venit pornit de două ori la plecare (și pe 24.10): după ACC OFF navigația s-a trezit singură o clipă, cu ecranul stins (28.10 14:09), aplicația a programat sunetul la 8 s, dar navigația a adormit înainte; sunetul rămas a pornit dimineața, peste cel nou. Corectat în 1.1.66 |
 | 28.10 | Internetul din navigație (cartela Digi) cade pe unele drumuri. Nu sunt benzile: modemul Teyes are B1, B3, B7, B8, B20, B28A, B38, deci toate benzile 4G din România (fără B32, suplimentară). Digi are însă doar 5 MHz pe 800 MHz și 3 MHz pe 900 MHz (Orange și Vodafone câte 10 pe 800, Orange și 700 MHz) și a închis 3G-ul. De la 1.1.64 se înregistrează semnalul pe fiecare punct (harta pe fila Navigație) |
 | 21.10 | Aplicația a trecut prin somnul de 18 h; omorâtă la 2,5 min după plecare, „Acces la notificări” a repornit-o în ~7 s. Tapet static, dezactivate Google Maps, YouTube, Bunăstare, Chrome, Android Auto → ~1,1–1,7 GB disponibili. Frâna de mână raportată eliberată după repornirea navigației, până la prima mișcare (1.1.58); bitul 0x20 din 0x41/1 a stat 0 cu frâna trasă (nu se mai folosește). Actualizarea instalată de două ori la o a doua apăsare (1.1.57) |
+| 14.11 | Alimentare parțială (31 L, Petrom Virtuții): indicatorul 12 → 45 L. Între plinul din 20.10 și ea: 46,18 L pe 426 km = 10,8 L/100 (indicatorul la 12 L la ambele capete); în 01–20.10: ~26 L pe 249 km = 10,4 L/100 |
 
 ---
 
@@ -113,6 +114,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Build | Data | Ce a adus |
 |---|---|---|
+| — | 15.11 | Alimentările cer totalul plătit (prețul pe litru iese din el), „Plin” nebifat din start; consumul fiecărui interval dintre alimentări, prețul benzinei din rezervor, avertizare la o alimentare care nu se vede în rezervor; drumurile neînregistrate pe Costuri |
 | 25 | 27.10 | „+ Poziție” la locurile salvate: încă o poziție cu același nume (a doua parcare „Acasă”) |
 | 24 | 22.10 | Fila Navigație (performanța pe larg); pe Acum doar un rând cu starea pe scurt, care duce acolo |
 | 23 | 22.10 | Cardul „Navigația” pe fila Acum (grafice pe ultima oră, procesele); reparată căderea pe Android sub 13 (`URLEncoder.encode` cu `Charset`) |
@@ -132,6 +134,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 
 | Data | Ce s-a schimbat |
 |---|---|
+| 15.11 | Costul călătoriilor refăcut după verificarea pe 30.09–14.11 (679 km, 3 alimentări): factor pe fiecare interval dintre alimentări (înainte unul singur, 0,82, pentru tot; pe intervale ieșea 0,94 și 0,80), AC-ul după temperatura de afară (pe frig modelul punea 11 L de AC în 46 L), pornirea la rece, viteza CAN corectată și în model, prețul mediu al benzinei din rezervor (nu al ultimei alimentări), alimentările legate de salturile nivelului la ±12 h (înainte 3 h), drumurile neînregistrate pe lună; formularele cer totalul plătit. Pe datele de până acum: 67,8 → 70,0 L și 673 → 696 lei (real ≈ 70 L pe km înregistrați); drumurile scurte au urcat (sub 2 km: 16,8 → 21 L/100), cele lungi au coborât (peste 10 km: 9,4 → 8,7 L/100) |
 | 27.10 | Locurile cu mai multe poziții (rânduri `place` cu același nume; „acasa” se potrivește cu „Acasă”); pe site butonul „Încă o poziție” |
 | 22.10 | Starea pe scurt a navigației (`unitHealth`, `live.unitHealth`, testată în `unit.test.ts`), numele proceselor pe server (`label`); fila Navigație pe site |
 | 22.10 | Performanța navigației (`unit.ts`, tabela `unit_stat`, 90 de zile; `live.unit`, `/api/unit/history`); cardul „Navigația” pe Acum |

@@ -15,7 +15,7 @@
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → Mai mult, „Descarcă APK” |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
-| **Actualizat** | 22.10.2026 |
+| **Actualizat** | 15.11.2026 |
 
 Istoricul (versiuni, constatări datate, migrarea din FaikkitBox) e în [`ISTORIC.md`](ISTORIC.md);
 detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
@@ -33,8 +33,9 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
   o moarte în somnul lung.
 - ✅ Datele mașinii, călătoriile, salutul vorbit, actualizarea din aplicație, alimentările,
   jurnalul de service și Panel-ul merg.
-- ✅ **Consumul real** se ia din plinuri (plin → plin); indicatorul rezervorului nu e liniar
-  la capete.
+- 🧪 **Consumul și costul drumurilor:** fiecare interval dintre două alimentări are consumul
+  lui real (bonurile + nivelul rezervorului de dinaintea alimentării), iar costul se face cu
+  prețul mediu al benzinei din rezervor. Nu e nevoie de plin.
 - 🧪 Netestate încă în mașină: avertizarea de ușă deschisă, contactul pus cu motorul oprit,
   harta live pe drum.
 
@@ -61,8 +62,9 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 5. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
-6. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu prețul plătit efectiv pe
-   litru (după reducere). Plinurile (până se oprește pistolul) dau consumul exact.
+6. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu litrii și totalul plătit
+   (cel de pe bon, după reducere), la data și ora ei. „Plin” se bifează doar dacă pistolul
+   s-a oprit singur.
 7. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
    adaptor OBD2 pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
 
@@ -104,10 +106,10 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Datele CAN prin MainServer | ✅ | Vezi [Datele mașinii](#datele-mașinii-can) |
 | Înregistrarea călătoriilor | ✅ | Punct la 5 s în mers, 30 s pe loc cu motorul pornit, nimic cu motorul oprit |
 | GPS oprit cu motorul oprit | ✅ | După 1 min cu turația 0; pornit din nou la turație sau mers |
-| Drumuri neînregistrate | 🧪 | Kilometrajul sare cu ≥ 2 km între două călătorii → „Drum neînregistrat” în listă, cu km, litrii și costul estimate |
+| Drumuri neînregistrate | 🧪 | Kilometrajul sare cu ≥ 2 km între două călătorii → „Drum neînregistrat” în listă, cu km, litrii și costul estimate (consumul real al perioadei); pe Costuri apar separat, pe lună |
 | Nivelul combustibilului | ✅ | c104, în litri; cu motorul oprit decodorul trimite 0 (ignorat) |
-| Consum și cost pe călătorie | 🧪 | Estimare din model fizic, calibrată din plinuri (altfel din nivelul rezervorului); costul cu prețul ultimei alimentări |
-| Alimentări | ✅ | Pe site și în Panel; kilometrajul se completează automat |
+| Consum și cost pe călătorie | 🧪 | Estimare din model fizic (cu AC-ul după temperatura de afară și pornirea la rece), calibrată pe fiecare interval dintre alimentări; costul cu prețul mediu al benzinei din rezervor |
+| Alimentări | ✅ | Pe site și în Panel: litrii și totalul plătit (prețul pe litru iese din ele); kilometrajul se completează automat; avertizare dacă alimentarea nu se vede în rezervor la ora ei |
 | Mentenanță după km / dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe site sau în Panel; cele scadente apar pe navigație și în salut |
 | Salut vorbit după 30 s de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Vocea Piper „Mihai” de pe server; fără internet, vocea Google |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Vocea locală (fără întârziere) sau bip |
@@ -132,7 +134,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
 | Opriri în trafic vs. staționare | 🧪 | Vezi [Cum se calculează o călătorie](#cum-se-calculează-o-călătorie) |
 | Combinarea călătoriilor | 🧪 | „Combină cu precedenta / următoarea”, „Desparte”; opririle dintre părți apar pe hartă ca puncte galbene |
-| Costuri: 30 de zile, pe luni, raportul lunii | 🧪 | km, timp, trafic, litri, L/100, cost estimat și ce s-a dat la pompă; staționarea cu motorul pornit (timp, litri, lei); cea mai lungă călătorie, locurile cele mai dese |
+| Costuri: 30 de zile, pe luni, raportul lunii | 🧪 | km, timp, trafic, litri, L/100, cost estimat și ce s-a dat la pompă; staționarea cu motorul pornit (timp, litri, lei, cu AC-ul și încălzirea motorului); drumurile neînregistrate separat; cea mai lungă călătorie, locurile cele mai dese |
 | La serviciu (ture 12/24) | 🧪 | Următoarea tură (zi 08–20, noapte 20–08, liber, liber, dedus din drumuri) și ora până la care să pleci ca să ajungi cu 15 min înainte (drumul din zilele proaste, percentila 90) |
 | Drumurile tale | 🧪 | Între locuri salvate, de la 10 deplasări în 90 de zile: costul, durata medie fără staționări, timpul în trafic |
 | Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc”. Un loc poate avea mai multe poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui (site, Panel 1.0.25) |
@@ -267,8 +269,8 @@ Pe server (`web/server/trip-math.ts`), segment cu segment, din punctele trimise 
   deschisă, marșarierul, un loc salvat) = **staționare**.
 - **Viteza medie** e pe tot drumul fără opririle cu motorul oprit; **viteza în mișcare** doar
   pe timpul de deplasare. Mers + trafic + staționare + opriri = durata.
-- **Clima și centura:** cât a mers AC-ul (intră și în consum, ~0,4 L/h) și cât ai mers fără
-  centură.
+- **Clima și centura:** cât a mers AC-ul (intră și în consum, după temperatura de afară) și
+  cât ai mers fără centură.
 - **Bateria:** „la pornire” = căderea de la demaror (sub ~9,6 V = baterie slabă); „în mers” =
   încărcarea (normal 13,5–14,9 V).
 - **Locurile:** plecarea e locul unde a parcat ultima dată, chiar dacă GPS-ul prinde semnal
@@ -277,13 +279,25 @@ Pe server (`web/server/trip-math.ts`), segment cu segment, din punctele trimise 
 ## Consumul de combustibil
 
 - **Estimarea pe drum** (`web/server/fuel-model.ts`): model fizic al Golf-ului (accelerări,
-  aer, rulare, frecările motorului, mers în gol).
-- **Corecția:** estimarea e înmulțită cu raportul „real / estimat”. Realul vine întâi din
-  plinuri (plin → plin, litrii de pe bonuri), altfel din nivelul rezervorului (început −
-  sfârșit + alimentări, mediane pe 10 min, 90 de zile), de la ~8 L consumați. Drumurile
-  neînregistrate se iau în calcul din kilometraj, ca să nu umfle corecția.
+  aer, rulare, frecările motorului, mers în gol), plus:
+  - **AC-ul** după temperatura de afară: nimic sub 5 °C (climatronicul ține „AC” aprins tot
+    anul, dar compresorul nu lucrează pe frig), ~0,4 L/h la 25 °C, 0,6 L/h pe caniculă;
+  - **pornirea la rece**: ~0,08 L în plus la 20 °C, ~0,18 L la 0 °C, consumați în primele
+    minute de mers; motorul se răcește în câteva ore, deci un drum scurt după o oprire scurtă
+    nu mai plătește pornirea.
+- **Corecția:** estimarea e înmulțită cu raportul „real / estimat” al intervalului dintre
+  alimentări în care cade drumul. Realul unui interval = nivelul rezervorului de dinaintea
+  alimentării + litrii de pe bon − nivelul de dinaintea alimentării următoare (indicatorul nu
+  se folosește imediat după alimentare, unde minte); între două plinuri, direct litrii de pe
+  bonuri. Un interval se încheie de la 20 L consumați (alimentările mai dese se adună).
+  Drumurile de după ultima alimentare folosesc media ultimelor 3 intervale. Drumurile
+  neînregistrate se iau în calcul din kilometraj, ca să nu umfle corecția. Fără niciun
+  interval încheiat: nivelul rezervorului pe toată perioada, de la ~8 L consumați.
+- **Alimentările și rezervorul:** o alimentare din jurnal se leagă de saltul nivelului cel mai
+  apropiat (±12 h; până la 3 zile dacă litrii seamănă, cu avertizare că data pare greșită).
 - **Rezervorul de acum** = mediana ultimelor 10 minute, doar după ultima alimentare.
-- **Costul** = litrii estimați × prețul ultimei alimentări (cel plătit efectiv).
+- **Costul** = litrii estimați × prețul mediu al benzinei din rezervor la acel moment (ce
+  rămăsese, la prețul vechi, amestecat cu ce s-a pus, la prețul plătit efectiv).
 - **Mai precis** s-ar putea cu un adaptor OBD2 Bluetooth (presiune admisie + temperatură aer +
   turație), ~5% pe orice drum.
 

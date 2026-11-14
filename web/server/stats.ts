@@ -7,8 +7,8 @@
 
 import { commute, type Commute } from "./commute.ts";
 import { getDb, hourKey, memo } from "./db.ts";
-import { applyFuel } from "./fuel.ts";
-import { readTrips, type Trip } from "./trips.ts";
+import { applyFuel, readGapsWithFuel } from "./fuel.ts";
+import { readTrips, type Gap, type Trip } from "./trips.ts";
 
 export interface PeriodStats {
   trips: number; // fără pornirile pe loc
@@ -22,6 +22,11 @@ export interface PeriodStats {
   liters: number; // estimarea calibrată
   lPer100: number | null;
   cost: number | null;
+  // Drumurile neînregistrate (kilometrajul a sărit între două călătorii): separat, nu intră în
+  // totalurile de mai sus.
+  gapKm: number;
+  gapLiters: number;
+  gapCost: number | null;
   // Pentru raportul lunar: cea mai lungă călătorie și locurile unde a ajuns cel mai des.
   longest: { km: number; start: string; from: string | null; to: string | null } | null;
   topPlaces: Array<{ name: string; visits: number }>;
@@ -70,7 +75,9 @@ function round(n: number, digits: number): number {
   return Math.round(n * f) / f;
 }
 
-function sum(trips: Trip[]): PeriodStats {
+function sum(trips: Trip[], gaps: Gap[] = []): PeriodStats {
+  let gapCost: number | null = null;
+  for (const g of gaps) if (g.cost !== null) gapCost = (gapCost ?? 0) + g.cost;
   let km = 0;
   let minutes = 0;
   let trafficMin = 0;
@@ -104,6 +111,9 @@ function sum(trips: Trip[]): PeriodStats {
     liters: round(liters, 2),
     lPer100: km >= 1 ? round((liters / km) * 100, 1) : null,
     cost: cost === null ? null : round(cost, 2),
+    gapKm: gaps.reduce((s, g) => s + g.km, 0),
+    gapLiters: round(gaps.reduce((s, g) => s + (g.fuelL ?? 0), 0), 2),
+    gapCost: gapCost === null ? null : round(gapCost, 2),
     longest:
       longest && longest.distanceKm > 0
         ? { km: longest.distanceKm, start: longest.start, from: longest.fromPlace, to: longest.toPlace }
@@ -166,6 +176,12 @@ export const readStats = memo((): Stats => {
     const m = monthOf(t.start);
     byMonth.set(m, [...(byMonth.get(m) ?? []), t]);
   }
+  const gaps = readGapsWithFuel(MONTHS * 31);
+  const gapsByMonth = new Map<string, Gap[]>();
+  for (const g of gaps) {
+    const m = monthOf(g.before);
+    gapsByMonth.set(m, [...(gapsByMonth.get(m) ?? []), g]);
+  }
   const since = new Date(Date.now() - MONTHS * 31 * 86_400_000).toISOString();
   const refuels = getDb()
     .prepare(`SELECT at, liters, price FROM refuel WHERE at >= ?`)
@@ -190,11 +206,19 @@ export const readStats = memo((): Stats => {
       const p = pump.get(month);
       return {
         month,
-        ...sum(byMonth.get(month) ?? []),
+        ...sum(byMonth.get(month) ?? [], gapsByMonth.get(month) ?? []),
         refuelLiters: round(p?.liters ?? 0, 2),
         refuelLei: p?.lei == null ? null : round(p.lei, 2),
         serviceLei: serviceByMonth.has(month) ? round(serviceByMonth.get(month)!, 2) : null,
       };
     });
-  return { last30: sum(trips.filter((t) => t.start >= cutoff)), months, routes: routes(trips), commute: commute(trips) };
+  return {
+    last30: sum(
+      trips.filter((t) => t.start >= cutoff),
+      gaps.filter((g) => g.before >= cutoff),
+    ),
+    months,
+    routes: routes(trips),
+    commute: commute(trips),
+  };
 }, hourKey);

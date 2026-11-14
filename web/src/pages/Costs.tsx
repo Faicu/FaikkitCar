@@ -40,6 +40,11 @@ export function CostsPage() {
   );
 }
 
+/** Drumurile neînregistrate ale unei perioade (kilometrajul a sărit între două călătorii). */
+function gapText(s: PeriodStats): string {
+  return `${num(s.gapKm, 0)} km${s.gapCost !== null ? ` · ≈ ${lei(s.gapCost)}` : ""}`;
+}
+
 function Last30({ s }: { s: PeriodStats }) {
   return (
     <div className="space-y-2">
@@ -55,6 +60,11 @@ function Last30({ s }: { s: PeriodStats }) {
       {s.trafficMin > 0 && (
         <p className="px-1 text-xs text-muted-foreground">
           Din timpul la volan, {duration(s.trafficMin)} oprit în trafic.
+        </p>
+      )}
+      {s.gapKm > 0 && (
+        <p className="px-1 text-xs text-muted-foreground">
+          Pe lângă ele, drumuri neînregistrate: {gapText(s)}.
         </p>
       )}
     </div>
@@ -92,6 +102,9 @@ function MonthReport({ months }: { months: MonthStats[] }) {
       lowerIsBetter: true,
     },
   ];
+  if (cur.gapKm > 0) {
+    rows.push({ label: "Drumuri neînregistrate", value: gapText(cur), delta: null });
+  }
   if (cur.serviceLei !== null) {
     rows.push({ label: "Service", value: lei(cur.serviceLei), delta: null });
   }
@@ -327,6 +340,7 @@ function Monthly({ months }: { months: MonthStats[] }) {
                   : "—"
               }
             />
+            {m.gapKm > 0 && <Info label="Neînregistrat" value={gapText(m)} />}
           </div>
         </div>
       )}

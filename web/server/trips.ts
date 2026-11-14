@@ -8,6 +8,7 @@
 import { HTTPException } from "hono/http-exception";
 
 import { dataChanged, getDb, memo } from "./db.ts";
+import { coolDown } from "./fuel-model.ts";
 import { placeAt, readPlaces } from "./places.ts";
 import {
   analyze,
@@ -167,13 +168,14 @@ function analyzeCached(
   rows: PointRow[],
   scale: number,
   isPlace: (pos: [number, number]) => boolean,
+  cold: number,
 ): TripMetrics {
   // Locurile schimbă clasificarea opririlor, deci versiunea lor intră în cheie.
-  const key = `${rows[0].device_at}|${rows[rows.length - 1].device_at}|${rows.length}|${scale}|${placesKey}`;
+  const key = `${rows[0].device_at}|${rows[rows.length - 1].device_at}|${rows.length}|${scale}|${cold}|${placesKey}`;
   let m = summaries.get(key);
   if (!m) {
     if (summaries.size > 5_000) summaries.clear();
-    m = analyze(rows, scale, isPlace);
+    m = analyze(rows, scale, isPlace, cold);
     summaries.set(key, m);
   }
   return m;
@@ -225,8 +227,14 @@ const allTrips = memo((): Trip[] => {
   placesKey = JSON.stringify(places);
   const isPlace = (p: [number, number]) => placeAt(p, places) !== null;
   let parkedAt: [number, number] | null = null;
+  // Cât de rece e motorul la plecare: rece de tot la primul drum, apoi după cât a stat oprit.
+  let cold = 1;
+  let endedAt: number | null = null;
   return merged.map(({ rows: r, parts }) => {
-    const m = analyzeCached(r, scale, isPlace);
+    if (endedAt !== null) cold = coolDown(cold, (Date.parse(r[0].device_at) - endedAt) / 1000);
+    const m = analyzeCached(r, scale, isPlace, Math.round(cold * 100) / 100);
+    cold = m.coldEnd;
+    endedAt = Date.parse(m.end);
     // Unde a plecat: unde a parcat ultima dată, dacă primul fix e aproape (fix întârziat).
     const from =
       parkedAt && m.startPos && haversineKm(parkedAt, m.startPos) <= PARKED_MATCH_KM

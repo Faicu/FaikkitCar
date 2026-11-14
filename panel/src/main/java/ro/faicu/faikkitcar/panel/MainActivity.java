@@ -678,7 +678,7 @@ public class MainActivity extends Activity {
             infoRow(card, Icon.FUEL, Fmt.num(tank.optDouble("liters"), 0) + " L"
                     + (range == null ? "" : " · ≈ " + range.optInt("km") + " km autonomie"),
                     (range == null ? "" : "la " + Fmt.num(range.optDouble("lPer100"), 1) + " L/100 "
-                            + (range.optBoolean("real") ? "(real, din rezervor)" : "(estimat din drumuri)") + " · ")
+                            + (range.optBoolean("real") ? "(real)" : "(estimat din drumuri)") + " · ")
                             + "citit " + Fmt.ago(tank.optString("at")), null, null);
         }
         JSONObject pos = live.optJSONObject("position");
@@ -1470,6 +1470,7 @@ public class MainActivity extends Activity {
         cells.add(reportCell("Cost", cur.isNull("cost") ? "—" : Fmt.lei(cur.optDouble("cost")), cur, prev, "cost", true));
         cells.add(reportCell("Staționare (motor pornit)", Fmt.duration(cur.optDouble("standMin"))
                 + (cur.isNull("standCost") ? "" : " · " + Fmt.lei(cur.optDouble("standCost"))), cur, prev, "standMin", true));
+        if (cur.optDouble("gapKm", 0) > 0) cells.add(Ui.info(this, "Drumuri neînregistrate", gapText(cur)));
         if (!cur.isNull("serviceLei") && cur.has("serviceLei")) {
             cells.add(Ui.info(this, "Service", Fmt.lei(cur.optDouble("serviceLei"))));
         }
@@ -1640,6 +1641,15 @@ public class MainActivity extends Activity {
         if (s.optDouble("trafficMin") > 0) {
             Ui.hint(this, card, "Din timpul la volan, " + Fmt.duration(s.optDouble("trafficMin")) + " oprit în trafic.");
         }
+        if (s.optDouble("gapKm", 0) > 0) {
+            Ui.hint(this, card, "Pe lângă ele, drumuri neînregistrate: " + gapText(s) + ".");
+        }
+    }
+
+    /** Drumurile neinregistrate ale unei perioade (kilometrajul a sarit intre doua calatorii). */
+    private static String gapText(JSONObject s) {
+        return Fmt.num(s.optDouble("gapKm"), 0) + " km"
+                + (s.isNull("gapCost") ? "" : " · ≈ " + Fmt.lei(s.optDouble("gapCost")));
     }
 
     // Graficul pe luni: ce arata (km / lei) si luna aleasa, pastrate intre redesenari.
@@ -1705,6 +1715,7 @@ public class MainActivity extends Activity {
             cells.add(Ui.info(this, "Alimentat", m.optDouble("refuelLiters") > 0
                     ? Fmt.liters(m.optDouble("refuelLiters")) + (m.isNull("refuelLei") ? "" : " · " + Fmt.lei(m.optDouble("refuelLei")))
                     : "—"));
+            if (m.optDouble("gapKm", 0) > 0) cells.add(Ui.info(this, "Neînregistrat", gapText(m)));
             detail.addView(Ui.grid(this, cells, 3));
         };
         fill.run();
@@ -2254,14 +2265,17 @@ public class MainActivity extends Activity {
         String source = fuel.optString("source", "");
         s.append(" · ").append("level".equals(source) ? "estimare calibrată din rezervor (×"
                 + Fmt.fixed(fuel.optDouble("factor"), 2) + ")"
-                : "refuels".equals(source) ? "estimare calibrată din plinuri (×"
+                : "refuels".equals(source) ? "estimare calibrată din alimentări (×"
                         + Fmt.fixed(fuel.optDouble("factor"), 2) + ")"
                         : "estimare necalibrată");
+        if (!fuel.isNull("tankPrice")) {
+            s.append(" · benzina din rezervor ").append(Fmt.fixed(fuel.optDouble("tankPrice"), 2)).append(" lei/L");
+        }
         Ui.hint(this, card, s.toString());
 
         JSONArray list = fuel.optJSONArray("refuels");
         if (list == null || list.length() == 0) {
-            Ui.hint(this, card, "Nicio alimentare. Adaugă fiecare alimentare (cu prețul): din ea iese costul fiecărui drum.");
+            Ui.hint(this, card, "Nicio alimentare. Adaugă fiecare alimentare (litrii și totalul plătit): din ele ies consumul real și costul fiecărui drum.");
             return;
         }
         for (int i = 0; i < list.length(); i++) {
@@ -2286,9 +2300,19 @@ public class MainActivity extends Activity {
             List<String> parts = new ArrayList<>();
             if (!r.isNull("price")) parts.add(Fmt.fixed(r.optDouble("price"), 2) + " lei/L");
             if (!r.isNull("odo")) parts.add(Fmt.km(r.optLong("odo")));
-            if (!r.isNull("lPer100")) parts.add(Fmt.num(r.optDouble("lPer100"), 1) + " L/100 km de la plinul anterior");
+            if (!r.isNull("lPer100")) {
+                parts.add(Fmt.num(r.optDouble("lPer100"), 1) + " L/100 km"
+                        + (r.isNull("since") ? "" : " din " + Fmt.day(r.optString("since"))));
+            }
             if (!r.isNull("note")) parts.add(r.optString("note"));
             if (!parts.isEmpty()) row.addView(Ui.text(this, String.join(" · ", parts), 13, Ui.MUTED, false));
+            // Alimentarea nu se vede in nivelul rezervorului la ora ei: data sau ora sunt gresite.
+            if (r.has("seen") && !r.isNull("seen") && !r.optBoolean("seen")) {
+                row.addView(Ui.text(this, r.isNull("gaugeAt")
+                        ? "Nu se vede în rezervor la ora asta: verifică data și ora."
+                        : "Rezervorul a crescut pe " + Fmt.day(r.optString("gaugeAt")) + ", nu pe "
+                                + Fmt.day(r.optString("at")) + ": verifică data.", 13, Ui.WARN, false));
+            }
             row.setOnClickListener(v -> refuelDialog(r));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(this, 8);
@@ -2310,9 +2334,10 @@ public class MainActivity extends Activity {
         EditText when = Ui.labeled(this, form, "Data și ora (AAAA-LL-ZZ OO:MM)", at, InputType.TYPE_CLASS_TEXT);
         int dec = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
         EditText liters = Ui.labeled(this, form, "Litri", r == null ? "" : num(r, "liters"), dec);
-        String price = r != null && r.has("price") ? num(r, "price")
-                : fuel == null || fuel.isNull("lastPrice") ? "" : String.valueOf(fuel.optDouble("lastPrice"));
-        EditText priceField = Ui.labeled(this, form, "Preț (lei/L)", price, dec);
+        // Totalul platit (cel de pe bon, dupa reduceri); pretul pe litru iese din el.
+        String total = r != null && !r.isNull("price") && !r.isNull("liters")
+                ? String.format(java.util.Locale.US, "%.2f", r.optDouble("liters") * r.optDouble("price")) : "";
+        EditText totalField = Ui.labeled(this, form, "Total plătit (lei)", total, dec);
         EditText odo = Ui.labeled(this, form, "Kilometraj (gol = automat)", r == null ? "" : num(r, "odo"),
                 InputType.TYPE_CLASS_NUMBER);
         EditText note = Ui.labeled(this, form, "Notă (benzinărie...)", r == null ? "" : r.optString("note", ""),
@@ -2320,16 +2345,20 @@ public class MainActivity extends Activity {
         CheckBox full = new CheckBox(this);
         full.setText("Plin (până la oprirea pistolului)");
         full.setTextColor(Ui.TEXT);
-        full.setChecked(editing ? r.optBoolean("full") : r == null);
+        full.setChecked(editing && r.optBoolean("full"));
         form.addView(full);
-        Ui.hint(this, form, "Consumul real vine din nivelul rezervorului citit de la mașină; „Plin” ajută doar ca rezervă.");
+        Ui.hint(this, form, "Totalul e cel de pe bon, după reduceri. Consumul real iese din nivelul rezervorului de "
+                + "dinaintea fiecărei alimentări și din litrii de pe bon, deci nu e nevoie de plin.");
         showForm(editing ? "Editează alimentarea" : "Alimentare nouă", form, () -> {
             JSONObject o = new JSONObject();
             if (editing) o.put("id", r.optInt("id"));
             o.put("at", LocalDateTime.parse(when.getText().toString().trim(), LOCAL)
                     .atZone(ZoneId.systemDefault()).toInstant().toString());
-            o.put("liters", parse(liters));
-            o.put("price", text(priceField).isEmpty() ? JSONObject.NULL : parse(priceField));
+            double l = parse(liters);
+            o.put("liters", l);
+            // 4 zecimale, ca litri × pret sa dea totalul de pe bon.
+            o.put("price", text(totalField).isEmpty() || !(l > 0) ? JSONObject.NULL
+                    : Math.round(parse(totalField) / l * 10000) / 10000.0);
             o.put("odo", text(odo).isEmpty() ? JSONObject.NULL : parse(odo));
             o.put("full", full.isChecked());
             o.put("note", text(note).isEmpty() ? JSONObject.NULL : text(note));

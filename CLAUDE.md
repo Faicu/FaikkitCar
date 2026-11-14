@@ -283,24 +283,38 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   staționare + opriri = durata. Bateria: `crankVolt` (demarorul, din `trip_point.crank`; sub 9,6 V
   slabă), `runVolt` (mediana cu motorul pornit, normal 13,5–14,9 V).
 - Drumurile neînregistrate (`findGaps` în `trip-math.ts`, `readGaps`, `/api/trips/gaps`): kilometrajul
-  sare cu ≥ 2 km între două călătorii; litrii = km × consumul real mediu. Afișate în lista de
-  călătorii (site și Panel), nu intră în statistici.
+  sare cu ≥ 2 km între două călătorii; litrii = km × consumul real al intervalului dintre alimentări în
+  care cad (`lPer100At`), costul cu prețul benzinei din rezervor. Afișate în lista de călătorii (site și
+  Panel); în statistici doar separat (`gapKm`, `gapLiters`, `gapCost` pe lună și pe 30 de zile), nu în totaluri.
 - `trips.ts`: gruparea (pauze > 5 min), combinările (`trip_join`), locurile (`placeAt`), cache
   `memo` refăcut la `dataChanged()`. `live.ts`: starea live (fără stare 90 s = oprită, dar după mers /
   motor pornit „nosignal” = „Fără semnal” până la 1 h; călătoria în curs = ultima, terminată < 5 min
   înainte de acum sau, fără semnal, de ultima stare; „Oprit în trafic” calculat în `readLive`),
   `readLiveRoute`, `readCarSummary`.
-- Combustibilul: estimarea brută pe drum (`fuel-model.ts`, linia Willans + AC 0,4 L/h) × factorul
-  de calibrare. Factorul vine întâi din plinuri (plin → plin, ultimele 5 intervale, extins la km
-  de pe kilometraj; din 20.10, pentru că indicatorul nu e liniar la capete: plinul din 20.10 a
-  urcat indicatorul 11,5 → 52 L, adică +40,5, cu 46,18 L pe bon), altfel din nivelul rezervorului (`levelConsumption`, 90 de zile: nivelul de
-  la început − cel de la sfârșit + alimentările; mediane pe 10 min; o alimentare = salt ≥ 3 L, cu
-  litrii de pe bon dacă e în jurnal la ≤ 3 h), de la 8 L consumați; estimarea se extinde la km de
-  pe kilometraj, ca drumurile neînregistrate să nu umfle factorul. Altfel 1.
-  Verificat 12.10: 17 L pe 180 km = 9,4 L/100 real; drumurile dau 9,6 (factor 0,94). Costul =
-  litri × prețul ultimei alimentări (cel plătit efectiv, după reducere). Autonomia = litrii ÷
-  consumul real; rezervorul de acum = `currentLevel` (mediana pe 10 min, doar după ultimul salt).
-- Costuri (`stats.ts`): 30 de zile, pe luni, raportul lunii, „Drumurile tale” între locuri salvate
+- Combustibilul (refăcut 15.11, `fuel-model.ts` pur + `fuel-model.test.ts`; `fuel.ts` = `fuelState`, memo):
+  estimarea brută pe drum × factorul intervalului dintre alimentări în care a început drumul (`factorAt`).
+  Modelul: linia Willans (randament 0,31, `litersPerRev` 1,16e-5 ≈ 0,52 L/h la relanti, viteza CAN × `canScale`)
+  + AC după temperatura de afară (0,4 L/h × clamp((T − 5)/20, 0, 1,5); fără temperatură = 1) + pornirea la rece
+  (`coldStartLiters`: max(0,04, 0,08 + 0,005 × (20 − T)) L, se consumă cu τ 6 min de mers; `coolDown` τ 2,5 h,
+  starea `cold` dusă de la o călătorie la alta în `trips.ts`). Litrii staționării = `idleLiters` (cu AC și rece).
+  Calibrarea (`calibrate`): ancorele = salturile indicatorului (≥ 3 L, mediane pe 10 min) potrivite cu
+  alimentările din jurnal (`matchRefuels`: cea mai apropiată la ±12 h; apoi ±72 h dacă litrii diferă cu ≤ 8 L
+  = `late`, adică data scrisă greșit; `seen`/`gaugeAt` în `/api/fuel`, avertizare pe site și în Panel).
+  Consumat într-un interval = nivelul dinaintea alimentării + litrii de pe bon − nivelul dinaintea următoarei
+  (indicatorul nu se citește imediat după alimentare: nu e liniar la capete, plinul din 20.10 l-a urcat cu
+  40,5 L la 46,18 L pe bon); plin → plin = doar litrii de pe bon (`exact`). Intervalele se unesc până la ≥ 20 L;
+  cele închise își păstrează factorul, cel deschis ia media ponderată a ultimelor 3; factorul între 0,4 și 2,5;
+  estimarea se extinde la km de pe kilometraj (drumurile neînregistrate). Fără intervale: metoda veche pe
+  toată perioada (`levelConsumption`, de la 8 L, `source: "level"`), altfel 1. Nivelul se citește pe 400 de zile.
+  Costul = litri × prețul mediu al benzinei din rezervor la acel moment (`tankPrices`/`priceAt`: ce era în
+  rezervor la prețul vechi + bonul; `tankPrice` în `/api/fuel`). Formularele (site, Panel, propuneri) cer
+  litrii și totalul plătit; prețul pe litru = total / litri (4 zecimale); „Plin” nebifat din start.
+  Pe datele reale (15.11): 01.10 → 20.10 ≈ 26 L pe 249 km = 10,4 L/100, factor 1,01; 20.10 → 14.11 46,18 L
+  pe 426 km = 10,8 L/100, factor 0,96 (înainte un singur factor, 0,82, cu AC fix); drumurile înregistrate
+  67,8 → 70,0 L, 673 → 696 lei; cele scurte mai scumpe (sub 2 km 16,8 → 21 L/100), cele lungi mai ieftine
+  (peste 10 km 9,4 → 8,7). Autonomia = litrii ÷ consumul real; rezervorul de acum = `currentLevel` (mediana
+  pe 10 min, doar după ultimul salt). Alimentări: 01.10 (parțială, 16 L, id 1), 20.10 (plin, id 2), 14.11 (parțială, 31 L, id 3).
+- Costuri (`stats.ts`): 30 de zile, pe luni, raportul lunii (cu drumurile neînregistrate pe rând separat), „Drumurile tale” între locuri salvate
   (doar de la 10 deplasări în 90 de zile; durata = `arriveAt − departAt` fără opriri), staționarea pe lună.
 - Turele (`commute.ts`, 21.10): utilizatorul lucrează 12/24: zi 08–20, noapte 20–08, liber, liber.
   Drumurile Acasă → Serviciu se leagă de tura după sosire (−3 h … +1 h față de început), cele
@@ -337,6 +351,8 @@ din browser), refuzul ține minte instalatorul (`silentRefusedBy`); altfel, la d
 cu confirmare (o dată pe versiune la 6 h). Confirmat 02.11 (1.0.35 → 1.0.36, instalată din Panel): la revenirea în
 aplicație apare singură scanarea Play Protect, apoi „Instalează”, apoi scanarea de securitate Xiaomi; după ea
 Panel se redeschide singur pe versiunea nouă. Fără nicio atingere nu se poate pe acest telefon (HyperOS).
+15.11 (versiunea de după 1.0.41): formularul de alimentare cu totalul plătit, avertizarea alimentării nevăzute în
+rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (ca pe site); netestat pe telefon.
 
 ## Build și publicare
 

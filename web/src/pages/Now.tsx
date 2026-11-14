@@ -91,7 +91,7 @@ export function NowPage() {
             </p>
             <p className="text-xs text-muted-foreground">
               {live.range
-                ? `la ${num(live.range.lPer100)} L/100 ${live.range.real ? "(real, din rezervor)" : "(estimat din drumuri)"}, până la gol · `
+                ? `la ${num(live.range.lPer100)} L/100 ${live.range.real ? "(real)" : "(estimat din drumuri)"}, până la gol · `
                 : ""}
               citit {relativeTime(live.tank.at)}
             </p>

@@ -6,14 +6,15 @@ import { toast } from "sonner";
 import { api, type FuelSummary, type RefuelInput } from "../api";
 import { RowMenu } from "./RowMenu";
 
-// Jurnalul de alimentări: consumul real între două plinuri și calibrarea estimării
-// de combustibil pe călătorie (server/fuel-model.ts).
+// Jurnalul de alimentări: consumul real dintre alimentări și calibrarea estimării
+// de combustibil pe călătorie (server/fuel-model.ts). Se cere totalul plătit (cel de pe
+// bon, după reduceri); prețul pe litru iese din el.
 
 interface Form {
   id?: number;
   at: string; // datetime-local
   liters: string;
-  price: string;
+  total: string; // lei plătiți
   odo: string;
   full: boolean;
   note: string;
@@ -29,6 +30,10 @@ function toLocal(iso: string): string {
   const d = new Date(iso);
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 16);
+}
+
+function shortDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("ro-RO", { day: "2-digit", month: "short" });
 }
 
 function fmt(n: number, digits = 1): string {
@@ -60,8 +65,10 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
   });
 
   const liters = form ? Number(form.liters.replace(",", ".")) : NaN;
-  const price = form ? Number(form.price.replace(",", ".")) : NaN;
-  const total = Number.isFinite(liters) && Number.isFinite(price) ? liters * price : null;
+  const total = form ? Number(form.total.replace(",", ".")) : NaN;
+  // Prețul pe litru plătit efectiv (4 zecimale, ca litri × preț să dea totalul de pe bon).
+  const price =
+    form?.total.trim() && liters > 0 && total > 0 ? Math.round((total / liters) * 10000) / 10000 : null;
 
   function submit() {
     if (!form) return;
@@ -69,7 +76,7 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
       id: form.id,
       at: new Date(form.at).toISOString(),
       liters,
-      price: form.price.trim() ? price : null,
+      price,
       odo: form.odo.trim() ? Number(form.odo) : null,
       full: form.full,
       note: form.note.trim() || null,
@@ -82,7 +89,7 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
       id: r.id,
       at: toLocal(r.at),
       liters: String(r.liters),
-      price: r.price !== null ? String(r.price) : "",
+      total: r.price !== null ? (r.liters * r.price).toFixed(2) : "",
       odo: r.odo !== null ? String(r.odo) : "",
       full: r.full,
       note: r.note ?? "",
@@ -105,8 +112,9 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
               {fuel.source === "level"
                 ? `estimare calibrată din rezervor (×${fmt(fuel.factor, 2)})`
                 : fuel.source === "refuels"
-                  ? `estimare calibrată din plinuri (×${fmt(fuel.factor, 2)})`
+                  ? `estimare calibrată din alimentări (×${fmt(fuel.factor, 2)})`
                   : "estimare necalibrată"}
+              {fuel.tankPrice !== null ? ` · benzina din rezervor ${fmt(fuel.tankPrice, 2)} lei/L` : ""}
             </p>
           </div>
         </div>
@@ -119,9 +127,9 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
                 : {
                     at: localNow(),
                     liters: "",
-                    price: fuel.lastPrice !== null ? String(fuel.lastPrice) : "",
+                    total: "",
                     odo: "",
-                    full: true,
+                    full: false,
                     note: "",
                   },
             )
@@ -148,10 +156,10 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
               onChange={(v) => setForm({ ...form, liters: v })}
             />
             <Field
-              label="Preț (lei/L)"
+              label="Total plătit (lei)"
               type="number"
-              value={form.price}
-              onChange={(v) => setForm({ ...form, price: v })}
+              value={form.total}
+              onChange={(v) => setForm({ ...form, total: v })}
             />
             <Field
               label="Kilometraj (gol = automat)"
@@ -174,9 +182,10 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
             <span>Plin (până la oprirea pistolului)</span>
           </label>
           <p className="text-xs text-muted-foreground">
-            {total !== null ? `Total ${fmt(total, 2)} lei. ` : ""}
-            Consumul real vine din nivelul rezervorului citit de la mașină, deci nu e nevoie de
-            plin; „Plin” ajută doar ca rezervă.
+            {price !== null ? `${fmt(price, 3)} lei/L. ` : ""}
+            Totalul e cel de pe bon, după reduceri. Consumul real iese din nivelul rezervorului de
+            dinaintea fiecărei alimentări și din litrii de pe bon, deci nu e nevoie de plin; între
+            două plinuri se iau direct litrii de pe bonuri.
           </p>
           <button
             type="button"
@@ -191,8 +200,8 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
 
       {fuel.refuels.length === 0 && !form && (
         <p className="rounded-2xl glass-card p-4 text-sm text-muted-foreground">
-          Nicio alimentare. Adaugă fiecare alimentare (cu prețul): din ea iese costul fiecărui drum.
-          Consumul real vine din nivelul rezervorului citit de la mașină.
+          Nicio alimentare. Adaugă fiecare alimentare (litrii și totalul plătit): din ele ies
+          consumul real și costul fiecărui drum.
         </p>
       )}
 
@@ -200,7 +209,7 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
         <div key={r.id} onClick={() => edit(r)} className="cursor-pointer rounded-2xl glass-card glass-card-hover p-3">
           <div className="flex items-center justify-between">
             <span className="font-semibold">
-              {new Date(r.at).toLocaleDateString("ro-RO", { day: "2-digit", month: "short" })} ·{" "}
+              {shortDay(r.at)} ·{" "}
               {fmt(r.liters, 2)} L{r.full ? " · plin" : ""}
             </span>
             <span className="flex items-center gap-1">
@@ -219,12 +228,21 @@ export function FuelLog({ fuel }: { fuel: FuelSummary }) {
             {[
               r.price !== null ? `${fmt(r.price, 2)} lei/L` : null,
               r.odo !== null ? `${r.odo.toLocaleString("ro-RO")} km` : null,
-              r.lPer100 !== null ? `${fmt(r.lPer100)} L/100 km de la plinul anterior` : null,
+              r.lPer100 !== null
+                ? `${fmt(r.lPer100)} L/100 km${r.since ? ` din ${shortDay(r.since)}` : ""}`
+                : null,
               r.note,
             ]
               .filter(Boolean)
               .join(" · ")}
           </p>
+          {r.seen === false && (
+            <p className="mt-1 text-xs text-amber-400">
+              {r.gaugeAt
+                ? `Rezervorul a crescut pe ${shortDay(r.gaugeAt)}, nu pe ${shortDay(r.at)}: verifică data.`
+                : "Nu se vede în rezervor la ora asta: verifică data și ora."}
+            </p>
+          )}
         </div>
       ))}
     </div>

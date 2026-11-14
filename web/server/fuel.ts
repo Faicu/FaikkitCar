@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // Alimentările Golf-ului (tabela refuel) și combustibilul pe călătorie:
-// estimarea brută din fuel-model.ts × factorul din nivelul rezervorului (CAN c104)
-// sau, fără destule citiri, din intervalele plin → plin; costul cu prețul ultimei
-// alimentări. Server-only (node:sqlite).
+// estimarea brută din fuel-model.ts × factorul intervalului dintre alimentări în care
+// cade drumul (bonuri + nivelul rezervorului, CAN c104); costul cu prețul mediu al
+// benzinei din rezervor la acel moment. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
 import { HTTPException } from "hono/http-exception";
@@ -11,7 +11,13 @@ import { dataChanged, getDb, memo } from "./db.ts";
 import {
   calibrate,
   currentLevel,
+  factorAt,
+  levelRefills,
+  lPer100At,
+  matchRefuels,
   priceAt,
+  REFUEL_MATCH_MS,
+  tankPrices,
   type FuelInterval,
   type FuelRefuel,
   type LevelConsumption,
@@ -21,7 +27,12 @@ import { readGaps, readTripsSince, type Gap, type Trip } from "./trips.ts";
 
 export interface Refuel extends FuelRefuel {
   note: string | null;
-  lPer100: number | null; // consumul real până la acest plin, de la plinul anterior
+  lPer100: number | null; // consumul real al intervalului încheiat de această alimentare
+  since: string | null; // de când (începutul intervalului)
+  // Se vede în nivelul rezervorului la ora ei? false = nu (data sau ora greșite; `gaugeAt` =
+  // saltul care pare al ei), null = încă nu se poate ști (mașina n-a mai mers de atunci).
+  seen: boolean | null;
+  gaugeAt: string | null;
 }
 
 export interface RefuelInput {
@@ -38,15 +49,16 @@ export interface FuelSummary {
   refuels: Refuel[]; // cele mai noi primele
   factor: number;
   calibrated: boolean;
-  avgLPer100: number | null; // din nivelul rezervorului sau din plinuri
+  avgLPer100: number | null; // consumul real recent (ultimele intervale dintre alimentări)
   lastPrice: number | null;
+  tankPrice: number | null; // prețul mediu al benzinei din rezervor acum (cu el se socotesc drumurile)
   source: "level" | "refuels" | null;
   level: LevelConsumption | null;
   tank: { liters: number; at: string } | null; // ultimul nivel citit
 }
 
-/** Nivelul se folosește pe ultimele atâtea zile (consumul se schimbă cu anotimpul). */
-const LEVEL_DAYS = 90;
+/** Nivelul se citește pe tot istoricul călătoriilor (trips.ts), ca intervalele vechi să rămână. */
+const LEVEL_DAYS = 400;
 
 function readRefuels(): Array<FuelRefuel & { note: string | null }> {
   const rows = getDb()
@@ -76,28 +88,34 @@ function readLevels(): LevelReading[] {
 }
 
 /**
- * Alimentările, nivelurile și calibrarea, calculate o dată per versiune a datelor. Intră
- * călătoriile de la primul plin sau de la prima citire de nivel.
+ * Alimentările, nivelurile, calibrarea, prețurile din rezervor și potrivirea alimentărilor cu
+ * salturile nivelului, calculate o dată per versiune a datelor.
  */
-type FuelState = ReturnType<typeof fuelState>;
-
 export const fuelState = memo(() => {
   const refuels = readRefuels();
   const levels = readLevels();
-  const starts = [refuels.find((r) => r.full)?.at, levels[0]?.t].filter(
-    (x): x is string => x !== undefined,
-  );
-  const trips = starts.length ? readTripsSince(starts.sort()[0]) : [];
-  return { refuels, levels, cal: calibrate(refuels, trips, levels) };
+  const refills = levelRefills(levels);
+  return {
+    refuels,
+    levels,
+    refills,
+    match: matchRefuels(refills, refuels),
+    cal: calibrate(refuels, readTripsSince(""), levels),
+    prices: tankPrices(refuels, levels),
+  };
 });
 
-/** Completează litrii, consumul și costul călătoriilor (aceeași calibrare pentru toate). */
+/**
+ * Completează litrii, consumul și costul călătoriilor: fiecare cu factorul intervalului dintre
+ * alimentări în care a început și cu prețul benzinei din rezervor de atunci.
+ */
 export function applyFuel(trips: Trip[]): Trip[] {
-  const { refuels, cal } = fuelState();
+  const { prices, cal } = fuelState();
   return trips.map((t) => {
-    const fuelL = t.modelLiters * cal.factor;
-    const standL = t.standModelLiters * cal.factor;
-    const price = priceAt(refuels, t.start);
+    const factor = factorAt(cal, t.start);
+    const fuelL = t.modelLiters * factor;
+    const standL = t.standModelLiters * factor;
+    const price = priceAt(prices, t.start);
     return {
       ...t,
       fuelL: Math.round(fuelL * 100) / 100,
@@ -110,16 +128,16 @@ export function applyFuel(trips: Trip[]): Trip[] {
 }
 
 /**
- * Drumurile neînregistrate, cu litrii din consumul real mediu (nivel sau plinuri) și prețul de
- * atunci. Fără consum real încă, rămân fără litri.
+ * Drumurile neînregistrate, cu litrii din consumul real al perioadei lor (intervalul dintre
+ * alimentări) și prețul de atunci. Fără consum real încă, rămân fără litri.
  */
 export function readGapsWithFuel(days = 60): Gap[] {
-  const { refuels, cal } = fuelState();
-  const lPer100 = avgLPer100(cal);
+  const { prices, cal } = fuelState();
   return readGaps(days).map((g) => {
+    const lPer100 = lPer100At(cal, g.after);
     if (lPer100 === null) return g;
     const fuelL = (g.km * lPer100) / 100;
-    const price = priceAt(refuels, g.after);
+    const price = priceAt(prices, g.after);
     return {
       ...g,
       fuelL: Math.round(fuelL * 100) / 100,
@@ -128,30 +146,37 @@ export function readGapsWithFuel(days = 60): Gap[] {
   });
 }
 
-/** Consumul real mediu, din aceeași sursă ca factorul (plinurile au prioritate). */
-function avgLPer100(cal: FuelState["cal"]): number | null {
-  const withKm = cal.intervals.filter((i) => i.km !== null);
-  const km = withKm.reduce((s, i) => s + (i.km ?? 0), 0);
-  const fromRefuels = km > 0 ? (withKm.reduce((s, i) => s + i.liters, 0) / km) * 100 : null;
-  return cal.source === "refuels" ? fromRefuels : (cal.level?.lPer100 ?? fromRefuels);
-}
-
 export function readFuelSummary(): FuelSummary {
-  const { refuels, levels, cal } = fuelState();
+  const { refuels, levels, refills, match, cal, prices } = fuelState();
   const last = levels[levels.length - 1];
-  const byTo = new Map<number, FuelInterval>(cal.intervals.map((i) => [i.toId, i]));
+  const byTo = new Map<number, FuelInterval>();
+  for (const i of cal.intervals) if (i.toId !== null) byTo.set(i.toId, i);
   const priced = refuels.filter((r) => r.price !== null);
   return {
     refuels: refuels
-      .map((r) => ({
-        ...r,
-        lPer100: byTo.get(r.id)?.lPer100 ?? null,
-      }))
+      .map((r, k) => {
+        const jump = match.byRefuel[k] >= 0 ? refills[match.byRefuel[k]] : null;
+        const late = match.late.has(k);
+        // Fără salt: lipsește abia dacă mașina a mai mers după (altfel încă nu se poate ști).
+        const missing =
+          !jump &&
+          levels.length > 0 &&
+          levels[0].t <= r.at &&
+          Date.parse(last.t) > Date.parse(r.at) + REFUEL_MATCH_MS;
+        return {
+          ...r,
+          lPer100: byTo.get(r.id)?.lPer100 ?? null,
+          since: byTo.get(r.id)?.from ?? null,
+          seen: jump && !late ? true : late || missing ? false : null,
+          gaugeAt: late && jump ? jump.at : null,
+        };
+      })
       .reverse(),
     factor: cal.factor,
     calibrated: cal.calibrated,
-    avgLPer100: avgLPer100(cal),
+    avgLPer100: cal.lPer100,
     lastPrice: priced.length ? priced[priced.length - 1].price : null,
+    tankPrice: prices.length ? Math.round(prices[prices.length - 1].price * 1000) / 1000 : null,
     source: cal.source,
     level: cal.level,
     tank: last ? { liters: currentLevel(levels)!, at: last.t } : null,

@@ -8,7 +8,7 @@
 // Kilometrajul are rezoluție de 1 km, deci rămâne doar informativ.
 // ---------------------------------------------------------------------------
 
-import { estimateFuel, FUEL_MODEL } from "./fuel-model.ts";
+import { estimateFuel } from "./fuel-model.ts";
 
 export interface PointRow {
   device_at: string;
@@ -80,6 +80,7 @@ export interface TripMetrics {
   endPos: [number, number] | null;
   modelLiters: number; // estimarea brută, necalibrată (fuel-model.ts)
   standModelLiters: number; // din ea, partea arsă în staționare (încălzire, așteptat), brută
+  coldEnd: number; // cât de rece rămâne motorul la sosire (0 = cald, 1 = rece), pentru drumul următor
 }
 
 /** Peste atâtea ms fără puncte, motorul a fost oprit. */
@@ -161,15 +162,16 @@ export function canScale(rows: PointRow[]): number {
   return Math.min(1.05, Math.max(0.85, gps / can));
 }
 
-/** Toate valorile unei călătorii; `rows` crescător după timp, cel puțin un punct. */
 /**
  * Toate valorile unei călătorii; `rows` crescător după timp, cel puțin un punct. `isPlace`
- * spune dacă o poziție e într-un loc salvat (o oprire acolo e staționare, nu trafic).
+ * spune dacă o poziție e într-un loc salvat (o oprire acolo e staționare, nu trafic); `cold` =
+ * cât de rece e motorul la plecare (0 = cald, 1 = rece de tot), pentru pornirea la rece.
  */
 export function analyze(
   rows: PointRow[],
   scale = DEFAULT_CAN_SCALE,
   isPlace: (pos: [number, number]) => boolean = () => false,
+  cold = 0,
 ): TripMetrics {
   const t = rows.map((r) => Date.parse(r.device_at));
   let km = 0;
@@ -177,7 +179,6 @@ export function analyze(
   let stopMs = 0;
   const stops: TripStop[] = [];
   let lastPos: [number, number] | null = null;
-  let stillRevs = 0; // rotațiile motorului cât mașina stă (trafic + staționare)
   let acMs = 0;
   let noBeltMs = 0;
   let climateKnown = false;
@@ -207,7 +208,6 @@ export function analyze(
       const dt = t[i] - t[i - 1];
       const va = speedOf(a) ?? 0;
       const still = va < STILL_KMH && v < STILL_KMH;
-      if (dt <= POINT_GAP_MS && va < STILL_KMH && (a.rpm ?? 0) > 0) stillRevs += ((a.rpm ?? 0) / 60) * (dt / 1000);
       // Starea de la începutul segmentului ține tot segmentul (punctele vin la 5–30 s).
       if (dt <= POINT_GAP_MS) {
         if (a.ac !== null) climateKnown = true;
@@ -328,8 +328,16 @@ export function analyze(
   const temps = rows.map((r) => r.temp).filter((x): x is number => x !== null);
   const durationMs = t[t.length - 1] - t[0];
   const drivingMs = durationMs - stopMs; // fără opririle cu motorul oprit
+  // Viteza reală: vitezometrul (CAN) arată ~6% în plus, iar aerul merge cu viteza la cub.
   const fuel = estimateFuel(
-    rows.map((r, i) => ({ t: t[i], speed: speedOf(r), rpm: r.rpm, ac: r.ac === 1 })),
+    rows.map((r, i) => ({
+      t: t[i],
+      speed: r.can_speed !== null ? r.can_speed * scale : r.gps_speed,
+      rpm: r.rpm,
+      ac: r.ac === 1,
+      temp: r.temp,
+    })),
+    cold,
   );
   // Măsurarea din mașină are prioritate; altfel doar o cădere reală prinsă într-un punct. Și
   // măsurarea contează doar cu o cădere prinsă: 14,35 V pe 08.10 = fără citiri la demaror.
@@ -370,9 +378,10 @@ export function analyze(
     startPos,
     endPos,
     modelLiters: fuel.liters,
-    // Rotațiile pe loc, împărțite între trafic și staționare după timp.
-    standModelLiters:
-      trafficMs + standMs > 0 ? stillRevs * FUEL_MODEL.litersPerRev * (standMs / (trafficMs + standMs)) : 0,
+    // Litrii arși pe loc (relanti, AC, încălzirea motorului), împărțiți între trafic și
+    // staționare după timp.
+    standModelLiters: trafficMs + standMs > 0 ? fuel.idleLiters * (standMs / (trafficMs + standMs)) : 0,
+    coldEnd: fuel.coldEnd,
   };
 }
 

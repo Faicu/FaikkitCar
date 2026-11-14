@@ -39,18 +39,19 @@ const input = "w-24 rounded-lg border border-border/40 bg-background/40 px-2 py-
 function RefuelItem({ s }: { s: Extract<Suggestion, { kind: "refuel" }> }) {
   const qc = useQueryClient();
   const dismiss = useDismiss(s);
-  const { data: fuel } = useQuery({ queryKey: ["fuel"], queryFn: api.fuel });
   const [open, setOpen] = useState(false);
   const [liters, setLiters] = useState(String(s.liters));
-  const [price, setPrice] = useState("");
+  const [total, setTotal] = useState(""); // lei plătiți; prețul pe litru iese din el
   const [busy, setBusy] = useState(false);
   async function save() {
     setBusy(true);
     try {
+      const l = Number(liters.replace(",", "."));
+      const lei = Number(total.replace(",", "."));
       await api.saveRefuel({
         at: s.at,
-        liters: Number(liters.replace(",", ".")),
-        price: price.trim() ? Number(price.replace(",", ".")) : null,
+        liters: l,
+        price: total.trim() && lei > 0 ? Math.round((lei / l) * 10000) / 10000 : null,
         odo: null,
         full: false,
         note: null,
@@ -77,13 +78,8 @@ function RefuelItem({ s }: { s: Extract<Suggestion, { kind: "refuel" }> }) {
             Litri <input value={liters} onChange={(e) => setLiters(e.target.value)} className={input} />
           </label>
           <label className="text-xs text-muted-foreground">
-            Preț lei/L{" "}
-            <input
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder={fuel?.lastPrice != null ? String(fuel.lastPrice) : ""}
-              className={input}
-            />
+            Total plătit (lei){" "}
+            <input value={total} onChange={(e) => setTotal(e.target.value)} className={input} />
           </label>
           <button
             type="button"

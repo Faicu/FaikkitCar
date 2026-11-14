@@ -9,7 +9,6 @@ import { HTTPException } from "hono/http-exception";
 
 import { dataChanged, getDb } from "./db.ts";
 import { fuelState } from "./fuel.ts";
-import { levelRefills } from "./fuel-model.ts";
 import { meters, placeAt, readPlaces, reverseGeocode } from "./places.ts";
 import { readTrips } from "./trips.ts";
 
@@ -34,8 +33,6 @@ export interface PlaceSuggestion {
 
 export type Suggestion = RefuelSuggestion | PlaceSuggestion;
 
-/** O alimentare din jurnal se potrivește cu saltul nivelului la cel mult atâtea ore. */
-const REFUEL_MATCH_MS = 3 * 3_600_000;
 const PLACE_DAYS = 60;
 const PLACE_CLUSTER_M = 100;
 const PLACE_MIN_VISITS = 2;
@@ -54,9 +51,10 @@ function readDismissed(): Dismissed[] {
 }
 
 function refuelSuggestions(dismissed: Dismissed[]): RefuelSuggestion[] {
-  const { levels, refuels } = fuelState();
-  return levelRefills(levels)
-    .filter((j) => !refuels.some((r) => Math.abs(Date.parse(r.at) - Date.parse(j.at)) <= REFUEL_MATCH_MS))
+  // Aceeași potrivire ca la calibrare: salturile rămase fără o alimentare în jurnal.
+  const { refills, match } = fuelState();
+  return refills
+    .filter((_, i) => match.byRefill[i] < 0)
     .filter((j) => !dismissed.some((d) => d.kind === "refuel" && d.key === j.at))
     .map((j) => ({ kind: "refuel" as const, key: j.at, at: j.at, liters: j.liters, odo: j.odo }));
 }
