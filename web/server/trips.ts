@@ -19,6 +19,7 @@ import {
   haversineKm,
   pos,
   sameTrip,
+  viaPlaces,
   shapeOf,
   speedOf,
   type PointRow,
@@ -68,6 +69,7 @@ export interface TripPoint {
 export type { TripStop };
 
 export interface Trip extends TripMetrics {
+  via: string[]; // locurile salvate în care a oprit pe drum (Acasă → Academia → Acasă)
   bounds: string[]; // primul punct al fiecărei bucăți de după prima (pentru „Desparte”)
   parts: number; // bucăți unite (oprire cu motorul oprit sau combinate; 1 = una singură)
   fromPlace: string | null; // locurile salvate (places.ts) de la plecare și sosire
@@ -274,13 +276,17 @@ const allTrips = memo((): Trip[] => {
         ? parkedAt
         : m.startPos;
     parkedAt = m.endPos ?? parkedAt;
+    const stops = m.stops.map((s) => ({ ...s, place: placeAt(s.pos, places) }));
+    const fromPlace = placeAt(from, places);
+    const toPlace = placeAt(m.endPos, places);
     return {
       ...m,
       parts,
       bounds,
-      stops: m.stops.map((s) => ({ ...s, place: placeAt(s.pos, places) })),
-      fromPlace: placeAt(from, places),
-      toPlace: placeAt(m.endPos, places),
+      stops,
+      fromPlace,
+      toPlace,
+      via: viaPlaces(fromPlace, stops.map((s) => s.place), toPlace),
       idle: parts === 1 && m.distanceKm < IDLE_KM,
       fuelL: null,
       lPer100: null,

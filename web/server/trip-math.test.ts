@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, canScale, findGaps, sameTrip, shapeOf, type PointRow } from "./trip-math.ts";
+import { analyze, canScale, findGaps, sameTrip, shapeOf, viaPlaces, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -247,5 +247,16 @@ describe("sameTrip", () => {
     expect(sameTrip(23 * min, "other")).toBe(true); // Lidl, 15.11
     expect(sameTrip(170 * min, "other")).toBe(true); // service
     expect(sameTrip(181 * min, "other")).toBe(false);
+  });
+});
+
+describe("viaPlaces", () => {
+  it("opririle în locuri salvate, fără repetări și fără capete", () => {
+    expect(viaPlaces("Acasă", [null, "Academia de Poliție", "Academia de Poliție"], "Acasă")).toEqual([
+      "Academia de Poliție",
+    ]);
+    expect(viaPlaces("Serviciu", ["Serviciu", "Petrom Virtuții", "Acasă"], "Acasă")).toEqual(["Petrom Virtuții"]);
+    expect(viaPlaces(null, ["Lidl", null, "Lidl"], null)).toEqual(["Lidl"]);
+    expect(viaPlaces("Acasă", [], "Acasă")).toEqual([]);
   });
 });

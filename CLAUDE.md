@@ -291,7 +291,8 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   (16.11; 1 h lipea venirea de la tură de ieșirea de după, 07.10) sau ≤ 3 h în altă parte (`HOME`/`WORK` din `commute.ts`), fără GPS = despărțite; 15.11 utilizatorul:
   o ieșire Acasă → Lidl → bancă → schimb → Acasă e o singură călătorie; prima variantă, „≤ 90 min doar în locuri
   nesalvate”, despărțea la Lidl), combinările (`trip_join`), despărțirile utilizatorului
-  (`trip_split`: ora primului punct de după oprire; „Desparte” le scrie pe toate din `Trip.bounds`, „Combină” le șterge), locurile (`placeAt`), cache
+  (`trip_split`: ora primului punct de după oprire; „Desparte” le scrie pe toate din `Trip.bounds`, „Combină” le șterge), `Trip.via` (`viaPlaces`: locurile salvate ale opririlor, în titlu „Acasă → Academia → Acasă”,
+  `route()` pe site, `Fmt.route` în Panel), locurile (`placeAt`), cache
   `memo` refăcut la `dataChanged()`. `live.ts`: starea live (fără stare 90 s = oprită, dar după mers /
   motor pornit „nosignal” = „Fără semnal” până la 1 h; călătoria în curs = ultima, terminată < 5 min
   înainte de acum sau, fără semnal, de ultima stare; „Oprit în trafic” calculat în `readLive`),

@@ -122,6 +122,22 @@ export function sameTrip(gapMs: number, at: "base" | "other" | null): boolean {
   return gapMs <= (at === "other" ? ERRAND_STOP_MS : BASE_STOP_MS);
 }
 
+/**
+ * Locurile salvate în care ai oprit pe drum, în ordine (Acasă → Academia → Acasă): fără
+ * repetări una după alta și fără plecarea / sosirea însăși.
+ */
+export function viaPlaces(from: string | null, stops: Array<string | null>, to: string | null): string[] {
+  const via: string[] = [];
+  let prev = from;
+  for (const p of stops) {
+    if (p === null || p === prev) continue;
+    via.push(p);
+    prev = p;
+  }
+  if (via.length && via[via.length - 1] === to) via.pop();
+  return via;
+}
+
 export function pos(r: PointRow): [number, number] | null {
   if (r.lat === null || r.lon === null) return null;
   if (r.acc !== null && r.acc > MAX_ACC_M) return null;

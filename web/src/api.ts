@@ -180,7 +180,7 @@ export function esc(s: string): string {
 }
 
 /** „Acasă → Serviciu”, sau "" dacă niciun capăt nu e un loc salvat. */
-export function route(t: { fromPlace: string | null; toPlace: string | null }): string {
-  if (!t.fromPlace && !t.toPlace) return "";
-  return `${t.fromPlace ?? "…"} → ${t.toPlace ?? "…"}`;
+export function route(t: { fromPlace: string | null; toPlace: string | null; via?: string[] }): string {
+  if (!t.fromPlace && !t.toPlace && !t.via?.length) return "";
+  return [t.fromPlace ?? "…", ...(t.via ?? []), t.toPlace ?? "…"].join(" → ");
 }

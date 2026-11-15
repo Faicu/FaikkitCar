@@ -53,11 +53,14 @@ final class Fmt {
         return pattern(iso, "dd MMM yyyy");
     }
 
-    /** „Acasă → Serviciu”, sau "" daca niciun capat nu e un loc salvat. */
+    /** „Acasă → Academia → Acasă” (cu opririle in locuri salvate), sau "" fara niciun loc salvat. */
     static String route(org.json.JSONObject t) {
-        if (t.isNull("fromPlace") && t.isNull("toPlace")) return "";
-        return (t.isNull("fromPlace") ? "…" : t.optString("fromPlace")) + " → "
-                + (t.isNull("toPlace") ? "…" : t.optString("toPlace"));
+        org.json.JSONArray via = t.optJSONArray("via");
+        int n = via == null ? 0 : via.length();
+        if (t.isNull("fromPlace") && t.isNull("toPlace") && n == 0) return "";
+        StringBuilder sb = new StringBuilder(t.isNull("fromPlace") ? "…" : t.optString("fromPlace"));
+        for (int i = 0; i < n; i++) sb.append(" → ").append(via.optString(i));
+        return sb.append(" → ").append(t.isNull("toPlace") ? "…" : t.optString("toPlace")).toString();
     }
 
     /** „Octombrie 2026” din „2026-10”. */
