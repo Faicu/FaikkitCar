@@ -352,7 +352,7 @@ cu confirmare (o dată pe versiune la 6 h). Confirmat 02.11 (1.0.35 → 1.0.36, 
 aplicație apare singură scanarea Play Protect, apoi „Instalează”, apoi scanarea de securitate Xiaomi; după ea
 Panel se redeschide singur pe versiunea nouă. Fără nicio atingere nu se poate pe acest telefon (HyperOS).
 15.11 (versiunea de după 1.0.41): formularul de alimentare cu totalul plătit, avertizarea alimentării nevăzute în
-rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (ca pe site); netestat pe telefon.
+rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (ca pe site); confirmat pe telefon 15.11 (1.0.44).
 
 ## Build și publicare
 
