@@ -380,6 +380,7 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Contact pus cu motorul oprit: confirmat 15.11 (Panel 1.0.44 → „Doar contact”, 13,2 V, 0 rpm).
-- Netestat încă în mașină: avertizarea de ușă, harta live pe drum.
+- Avertizarea de ușă: confirmată 15.11 (ușa șoferului, vocea locală la ~1,7 s, cât pornește TextToSpeech).
+- Netestat încă în mașină: harta live pe drum.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
   adaptor OBD2 pentru consum instantaneu.

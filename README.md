@@ -37,7 +37,8 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
   lui real (bonurile + nivelul rezervorului de dinaintea alimentării), iar costul se face cu
   prețul mediu al benzinei din rezervor. Nu e nevoie de plin.
 - ✅ Contactul pus cu motorul oprit: Panel → Acum arată „Doar contact”, 0 rpm, bateria, clima.
-- 🧪 Netestate încă în mașină: avertizarea de ușă deschisă, harta live pe drum.
+- ✅ Avertizarea de ușă deschisă: „Atenție, ușa șoferului e deschisă!” la ~1,7 s după ce ușa e văzută în mers.
+- 🧪 Netestată încă în mașină: harta live pe drum.
 
 ## Ce urmează
 
@@ -112,7 +113,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Alimentări | ✅ | Pe site și în Panel: litrii și totalul plătit (prețul pe litru iese din ele); kilometrajul se completează automat; avertizare dacă alimentarea nu se vede în rezervor la ora ei |
 | Mentenanță după km / dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe site sau în Panel; cele scadente apar pe navigație și în salut |
 | Salut vorbit după 30 s de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Vocea Piper „Mihai” de pe server; fără internet, vocea Google |
-| Avertizare „ușă deschisă” în mers (≥ 5 km/h) | 🧪 | Vocea locală (fără întârziere) sau bip |
+| Avertizare „ușă deschisă” în mers (≥ 5 km/h) | ✅ | Vocea locală (fără întârziere) sau bip |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
 
