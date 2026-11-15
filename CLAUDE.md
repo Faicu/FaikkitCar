@@ -117,7 +117,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   notificări” → adj 100 și repornire de către sistem (emulator: 200 → 100, repornit în ~5 s).
   Pe Teyes, cu accesul dat (20.10), adj rămâne 200 (ROM-ul modifică OomAdjuster). Un `kill -9`
   cu navigația trează: serviciul repornit în ~1 s (START_STICKY). Netestat: moartea în somn
-  lung (dimineața 20.10) și cine ne repornește atunci. YouTube Music ~400 MB, Waze 300–500 MB:
+  lung (dimineața 20.10) și cine ne repornește atunci. 15.11 (2 zile de la boot, Waze pornit): 1,3 GB disponibili, swap 1,15 GB folosit din 2,25, noi ~180 MB;
+  `com.lsec.gesture` (gesturile) are ~23% CPU medie de la boot, cel mai mare consumator. YouTube Music ~400 MB, Waze 300–500 MB:
   cu ele, ~420 MB disponibili; tapetul animat e omorât primul.
 - `RemoteCmd` (20.10, 1.1.54): comenzi shell de pe server, doar cu Setări → Sistem → „Comenzi de
   la distanta (teste)” pornit (implicit oprit; utilizatorul îl pornește la teste). Serverul
