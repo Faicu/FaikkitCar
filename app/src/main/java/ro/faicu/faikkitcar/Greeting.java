@@ -14,9 +14,7 @@ final class Greeting {
     private Greeting() {}
 
     static String salute(Context c, double outsideTemp) {
-        int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        StringBuilder sb = new StringBuilder(h >= 5 && h < 11 ? "Bună dimineața!"
-                : h >= 11 && h < 18 ? "Bună ziua!" : h >= 18 && h < 23 ? "Bună seara!" : "Salut!");
+        StringBuilder sb = new StringBuilder(hello(Calendar.getInstance()));
         if (!Double.isNaN(outsideTemp)) sb.append(' ').append(temperature((int) Math.round(outsideTemp)));
         List<String> due = new ArrayList<>();
         for (VwStatus.Reminder r : VwStatus.reminders(c)) {
@@ -27,6 +25,36 @@ final class Greeting {
         if (!due.isEmpty()) sb.append(" Atenție: ").append(String.join(" ", due));
         sb.append(" Drum bun!");
         return sb.toString();
+    }
+
+    /** Bună seara de la apus (iarna e întuneric de la ~16:40), cel târziu de la 20:00. */
+    static String hello(Calendar now) {
+        double h = now.get(Calendar.HOUR_OF_DAY) + now.get(Calendar.MINUTE) / 60.0;
+        if (h >= 5 && h < 11) return "Bună dimineața!";
+        if (h >= 11 && h < Math.min(sunset(now), 20)) return "Bună ziua!";
+        if (h >= 11 && h < 23) return "Bună seara!";
+        return "Salut!";
+    }
+
+    // Bucuresti: masina sta in oras, iar o eroare de cateva minute la apus nu conteaza.
+    private static final double LAT = 44.44, LON = 26.05;
+
+    /** Ora apusului (ora locala, cu zecimale), formula NOAA simplificata. */
+    static double sunset(Calendar now) {
+        int day = now.get(Calendar.DAY_OF_YEAR);
+        double g = 2 * Math.PI / 365 * (day - 1);
+        double eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g)
+                - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+        double decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g)
+                - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g)
+                - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+        double lat = Math.toRadians(LAT);
+        double cosHa = Math.cos(Math.toRadians(90.833)) / (Math.cos(lat) * Math.cos(decl))
+                - Math.tan(lat) * Math.tan(decl);
+        double ha = Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, cosHa))));
+        double utcMin = 720 - 4 * (LON - ha) - eqTime;
+        double offsetMin = (now.get(Calendar.ZONE_OFFSET) + now.get(Calendar.DST_OFFSET)) / 60000.0;
+        return (utcMin + offsetMin) / 60;
     }
 
     private static String temperature(int t) {

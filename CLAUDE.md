@@ -94,7 +94,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   punct la 5 s în mers, 30 s pe loc cu motorul pornit, unul la oprire; GPS oprit după 1 min cu
   motorul oprit), `LiveState` (`/api/car/state`: 5 s cu motorul pornit, 15 s doar contact, 60 s
   fără, imediat la orice schimbare de detaliu). Contactul e dedus în `CanLink.contact()`.
-- `Speaker` + `Greeting`: salut după 30 s de mers (MP3 Piper de la `/api/car/tts`, altfel
+- `Speaker` + `Greeting`: salut după 30 s de mers („Bună seara” de la apus, calculat pentru București, cel târziu de la 20:00; 15.11 a zis „Bună ziua” pe întuneric la 17:23) (MP3 Piper de la `/api/car/tts`, altfel
   TextToSpeech local `ro-ro-x-vfv-local`, motorul `com.google.android.tts`), avertizare de ușă
   deschisă la ≥ 5 km/h (mereu vocea locală). TextToSpeech se eliberează la 30 s după ultima
   vorbire (1.1.56). Utilizatorul a dezactivat aplicația Google și TXZ, nu motorul de voce.

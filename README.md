@@ -112,7 +112,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Consum și cost pe călătorie | 🧪 | Estimare din model fizic (cu AC-ul după temperatura de afară și pornirea la rece), calibrată pe fiecare interval dintre alimentări; costul cu prețul mediu al benzinei din rezervor |
 | Alimentări | ✅ | Pe site și în Panel: litrii și totalul plătit (prețul pe litru iese din ele); kilometrajul se completează automat; avertizare dacă alimentarea nu se vede în rezervor la ora ei |
 | Mentenanță după km / dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe site sau în Panel; cele scadente apar pe navigație și în salut |
-| Salut vorbit după 30 s de mers | ✅ | Ora zilei, temperatura de afară, mentenanța scadentă. Vocea Piper „Mihai” de pe server; fără internet, vocea Google |
+| Salut vorbit după 30 s de mers | ✅ | Ora zilei („Bună seara” de la apus), temperatura de afară, mentenanța scadentă. Vocea Piper „Mihai” de pe server; fără internet, vocea Google |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | ✅ | Vocea locală (fără întârziere) sau bip |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
