@@ -255,7 +255,7 @@ motorul oprit, se ignoră ≤ 0; oscilează cu 1 L); c1–c5 uși (șofer, pasag
 portbagaj; 1 = deschis); c101 centura șoferului desfăcută (1, confirmat 12.10); c103 frâna de
 mână (0 = trasă, 1 = eliberată; sursa principală; după repornirea navigației vine 1 și cu frâna
 trasă până la prima schimbare, deci din 1.1.58 valoarea 1 contează doar după o schimbare în boot-ul
-curent); c11 AC; c49 AUTO; c21 ventilator (0 =
+curent; 15.11: tras/eliberat de 8 ori la rând, c103 a urmat fiecare mișcare, Panel corect, iar bitul 0x20 din 0x41/1 a rămas în urmă); c11 AC; c49 AUTO; c21 ventilator (0 =
 climatronic oprit); c27/c28 temperatura setată stânga/dreapta = 17,5 + v/2 °C (confirmat 12.10:
 11 = 23 °C, 7 = 21 °C; urmează și SYNC-ul, care n-are cod propriu); cadrul 0x21 = clima [5, 200,
 ventilator, stânga, dreapta, 0, sumă]; cadrul 0x14 al doilea octet = iluminarea bordului =

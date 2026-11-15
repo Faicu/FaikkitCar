@@ -244,7 +244,7 @@ Codurile renunțate sunt în [`ISTORIC.md`](ISTORIC.md#coduri-can-renunțate).
 | m7 c104 | Litrii din rezervor; 0 cu motorul oprit | oscilează cu 1 L |
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
-| m7 c103 | Frâna de mână (sursa principală; „eliberată” contează doar după o mișcare de la pornirea navigației) | 1 = eliberată, 0 = trasă |
+| m7 c103 | Frâna de mână (sursa principală; „eliberată” contează doar după o mișcare de la pornirea navigației; confirmat 15.11, 8 mișcări la rând) | 1 = eliberată, 0 = trasă |
 | m7 raw 0x24, bitul 0x02 | Frâna de mână trasă | 6 = trasă, 4 = eliberată |
 | m0 c68 | Marșarierul | [1, 1] = băgat |
 | m7 c21, c27/c28, c11, c49 | Clima: ventilatorul (0 = climatronic oprit), temperatura stânga/dreapta = 17,5 + v/2 °C, AC, AUTO | 3, 11 (= 23 °C), 1, 1 |
