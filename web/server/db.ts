@@ -107,6 +107,13 @@ export function getDb(): DatabaseSync {
 
     -- Călătorii combinate de utilizator (ex. dus-întors cu o oprire): bucățile care încep
     -- între start și end se arată ca una singură. Punctele rămân neschimbate.
+    -- Unde a despărțit utilizatorul o călătorie unită automat (opririle scurte sau în locuri
+    -- nesalvate, trip-math.ts sameTrip): ora primului punct de după oprire.
+    CREATE TABLE IF NOT EXISTS trip_split (
+      at TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS trip_join (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       start TEXT NOT NULL,

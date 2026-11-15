@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, canScale, findGaps, shapeOf, type PointRow } from "./trip-math.ts";
+import { analyze, canScale, findGaps, sameTrip, shapeOf, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -231,5 +231,20 @@ describe("shapeOf", () => {
     expect(s[0]).toEqual([44, 26]);
     expect(s[9]).toEqual([44.099, 26.099]);
     expect(shapeOf(pts.slice(0, 3), 10)).toHaveLength(3);
+  });
+});
+
+describe("sameTrip", () => {
+  const min = 60_000;
+  it("unește opririle scurte oriunde", () => {
+    expect(sameTrip(5.25 * min, true)).toBe(true); // Petrom, 14.11
+    expect(sameTrip(10 * min, null)).toBe(true);
+    expect(sameTrip(11 * min, true)).toBe(false);
+  });
+  it("unește opririle până la 90 min doar în locuri nesalvate", () => {
+    expect(sameTrip(83 * min, false)).toBe(true); // 11.10
+    expect(sameTrip(91 * min, false)).toBe(false);
+    expect(sameTrip(43 * min, true)).toBe(false); // Lidl
+    expect(sameTrip(30 * min, null)).toBe(false); // fără GPS
   });
 });

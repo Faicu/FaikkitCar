@@ -287,7 +287,10 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   sare cu ≥ 2 km între două călătorii; litrii = km × consumul real al intervalului dintre alimentări în
   care cad (`lPer100At`), costul cu prețul benzinei din rezervor. Afișate în lista de călătorii (site și
   Panel); în statistici doar separat (`gapKm`, `gapLiters`, `gapCost` pe lună și pe 30 de zile), nu în totaluri.
-- `trips.ts`: gruparea (pauze > 5 min), combinările (`trip_join`), locurile (`placeAt`), cache
+- `trips.ts`: gruparea (pauze > 5 min, apoi unite automat cu `sameTrip` din `trip-math.ts`: oprire ≤ 10 min oriunde
+  sau ≤ 90 min într-un loc nesalvat, fără GPS = despărțite; regula aleasă de utilizator pe 15.11 din combinările lui:
+  15 din 17 prinse, nu Frizerie 13 min și Secția 20), combinările (`trip_join`), despărțirile utilizatorului
+  (`trip_split`: ora primului punct de după oprire; „Desparte” le scrie pe toate din `Trip.bounds`, „Combină” le șterge), locurile (`placeAt`), cache
   `memo` refăcut la `dataChanged()`. `live.ts`: starea live (fără stare 90 s = oprită, dar după mers /
   motor pornit „nosignal” = „Fără semnal” până la 1 h; călătoria în curs = ultima, terminată < 5 min
   înainte de acum sau, fără semnal, de ultima stare; „Oprit în trafic” calculat în `readLive`),

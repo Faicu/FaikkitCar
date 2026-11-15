@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // Călătoriile mașinii (FaikkitCar): puncte de traseu cu GPS și date CAN, primite
 // prin POST /api/car/trip. O călătorie = puncte consecutive fără pauză mai lungă
-// de TRIP_GAP_MS (sau combinate de utilizator); valorile vin din trip-math.ts și se
+// de TRIP_GAP_MS, unite peste opririle scurte sau din locuri nesalvate (`sameTrip`) și
+// peste cele combinate de utilizator (despărțirile lui în `trip_split`); valorile vin din trip-math.ts și se
 // recalculează doar la date noi (memo din db.ts). Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
@@ -16,6 +17,7 @@ import {
   findGaps,
   haversineKm,
   pos,
+  sameTrip,
   shapeOf,
   speedOf,
   type PointRow,
@@ -65,7 +67,8 @@ export interface TripPoint {
 export type { TripStop };
 
 export interface Trip extends TripMetrics {
-  parts: number; // călătorii combinate de utilizator (1 = una singură)
+  bounds: string[]; // primul punct al fiecărei bucăți de după prima (pentru „Desparte”)
+  parts: number; // bucăți unite (oprire cu motorul oprit sau combinate; 1 = una singură)
   fromPlace: string | null; // locurile salvate (places.ts) de la plecare și sosire
   toPlace: string | null;
   idle: boolean; // pornire pe loc sau manevră (sub IDLE_KM): ascunsă la cerere
@@ -205,32 +208,57 @@ const allTrips = memo((): Trip[] => {
     cur.push(r);
   }
   if (cur.length) groups.push(cur);
-  // Apoi cele combinate de utilizator (tabela trip_join): bucățile consecutive care încep
-  // în același interval devin o singură călătorie.
+  // Apoi bucățile consecutive se unesc: cele combinate de utilizator (trip_join, care încep în
+  // același interval) și, dacă nu le-a despărțit el (trip_split), cele cu o oprire scurtă sau
+  // într-un loc nesalvat între ele.
+  const places = readPlaces();
+  placesKey = JSON.stringify(places);
+  const isPlace = (p: [number, number]) => placeAt(p, places) !== null;
   const joins = readJoins();
+  const splits = new Set(readSplits());
   const joinOf = (g: PointRow[]) =>
     joins.findIndex((j) => g[0].device_at >= j.start && g[0].device_at <= j.end);
-  const merged: Array<{ rows: PointRow[]; parts: number }> = [];
+  const lastFix = (g: PointRow[]) => {
+    for (let i = g.length - 1; i >= 0; i--) {
+      const p = pos(g[i]);
+      if (p) return p;
+    }
+    return null;
+  };
+  const firstFix = (g: PointRow[]) => {
+    for (const r of g) {
+      const p = pos(r);
+      if (p) return p;
+    }
+    return null;
+  };
+  const merged: Array<{ rows: PointRow[]; parts: number; bounds: string[] }> = [];
   let mergedJoin = -1;
   for (const g of groups.filter((g) => g.length >= 5)) {
     const j = joinOf(g);
     const last = merged[merged.length - 1];
-    if (last && j >= 0 && j === mergedJoin) {
+    let together = false;
+    if (last && j >= 0 && j === mergedJoin) together = true;
+    else if (last && !splits.has(g[0].device_at)) {
+      const prev = last.rows[last.rows.length - 1];
+      const gap = Date.parse(g[0].device_at) - Date.parse(prev.device_at);
+      const at = [lastFix(last.rows), firstFix(g)].filter((p) => p !== null);
+      together = sameTrip(gap, at.length ? at.some(isPlace) : null);
+    }
+    if (last && together) {
       last.rows = last.rows.concat(g);
       last.parts++;
+      last.bounds.push(g[0].device_at);
     } else {
-      merged.push({ rows: g, parts: 1 });
+      merged.push({ rows: g, parts: 1, bounds: [] });
     }
     mergedJoin = j;
   }
-  const places = readPlaces();
-  placesKey = JSON.stringify(places);
-  const isPlace = (p: [number, number]) => placeAt(p, places) !== null;
   let parkedAt: [number, number] | null = null;
   // Cât de rece e motorul la plecare: rece de tot la primul drum, apoi după cât a stat oprit.
   let cold = 1;
   let endedAt: number | null = null;
-  return merged.map(({ rows: r, parts }) => {
+  return merged.map(({ rows: r, parts, bounds }) => {
     if (endedAt !== null) cold = coolDown(cold, (Date.parse(r[0].device_at) - endedAt) / 1000);
     const m = analyzeCached(r, scale, isPlace, Math.round(cold * 100) / 100);
     cold = m.coldEnd;
@@ -244,6 +272,7 @@ const allTrips = memo((): Trip[] => {
     return {
       ...m,
       parts,
+      bounds,
       stops: m.stops.map((s) => ({ ...s, place: placeAt(s.pos, places) })),
       fromPlace: placeAt(from, places),
       toPlace: placeAt(m.endPos, places),
@@ -317,6 +346,7 @@ export function joinTrips(start: string, end: string): void {
   db.exec("BEGIN");
   try {
     for (const j of overlapping) db.prepare(`DELETE FROM trip_join WHERE id = ?`).run(j.id);
+    db.prepare(`DELETE FROM trip_split WHERE at BETWEEN ? AND ?`).run(from, to);
     db.prepare(`INSERT INTO trip_join (start, end, created_at) VALUES (?, ?, ?)`).run(
       from,
       to,
@@ -330,9 +360,26 @@ export function joinTrips(start: string, end: string): void {
   dataChanged();
 }
 
-/** Desparte la loc călătoria combinată care începe la `start`. */
+function readSplits(): string[] {
+  return (getDb().prepare(`SELECT at FROM trip_split`).all() as Array<{ at: string }>).map((r) => r.at);
+}
+
+/** Desparte la loc călătoria (combinată sau unită automat) care începe la `start`. */
 export function splitTrip(start: string): void {
-  getDb().prepare(`DELETE FROM trip_join WHERE start <= ? AND end >= ?`).run(start, start);
+  const trip = allTrips().find((t) => t.start === start);
+  const db = getDb();
+  db.exec("BEGIN");
+  try {
+    db.prepare(`DELETE FROM trip_join WHERE start <= ? AND end >= ?`).run(start, start);
+    const now = new Date().toISOString();
+    for (const at of trip?.bounds ?? []) {
+      db.prepare(`INSERT OR IGNORE INTO trip_split (at, created_at) VALUES (?, ?)`).run(at, now);
+    }
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
   dataChanged();
 }
 
