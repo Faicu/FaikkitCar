@@ -107,16 +107,17 @@ export const DEFAULT_CAN_SCALE = 0.95;
 
 /** O oprire cu motorul oprit de cel mult atât nu desparte călătoria, oriunde (benzinărie). */
 export const SHORT_STOP_MS = 10 * 60_000;
-/** Într-un loc nesalvat (la cineva, o comisie), oprirea poate fi mai lungă (15.11). */
-export const UNSAVED_STOP_MS = 90 * 60_000;
+/** O ieșire de acasă (Lidl, bancă, schimb valutar...) ține până te întorci (15.11), cel mult atât pe loc. */
+export const ERRAND_STOP_MS = 3 * 3_600_000;
 
 /**
  * Dacă două bucăți despărțite de o oprire cu motorul oprit rămân aceeași călătorie.
- * `atSavedPlace`: oprirea e într-un loc salvat; null = poziția necunoscută (fără GPS).
+ * `at`: „base” = Acasă sau Serviciu (acolo se termină drumul), „other” = în altă parte,
+ * null = poziția necunoscută (fără GPS).
  */
-export function sameTrip(gapMs: number, atSavedPlace: boolean | null): boolean {
+export function sameTrip(gapMs: number, at: "base" | "other" | null): boolean {
   if (gapMs <= SHORT_STOP_MS) return true;
-  return atSavedPlace === false && gapMs <= UNSAVED_STOP_MS;
+  return at === "other" && gapMs <= ERRAND_STOP_MS;
 }
 
 export function pos(r: PointRow): [number, number] | null {

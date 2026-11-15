@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Călătoriile mașinii (FaikkitCar): puncte de traseu cu GPS și date CAN, primite
 // prin POST /api/car/trip. O călătorie = puncte consecutive fără pauză mai lungă
-// de TRIP_GAP_MS, unite peste opririle scurte sau din locuri nesalvate (`sameTrip`) și
+// de TRIP_GAP_MS, unite peste opririle scurte sau din afara Acasă / Serviciu (`sameTrip`) și
 // peste cele combinate de utilizator (despărțirile lui în `trip_split`); valorile vin din trip-math.ts și se
 // recalculează doar la date noi (memo din db.ts). Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
@@ -9,6 +9,7 @@
 import { HTTPException } from "hono/http-exception";
 
 import { dataChanged, getDb, memo } from "./db.ts";
+import { HOME, WORK } from "./commute.ts";
 import { coolDown } from "./fuel-model.ts";
 import { placeAt, readPlaces } from "./places.ts";
 import {
@@ -210,7 +211,7 @@ const allTrips = memo((): Trip[] => {
   if (cur.length) groups.push(cur);
   // Apoi bucățile consecutive se unesc: cele combinate de utilizator (trip_join, care încep în
   // același interval) și, dacă nu le-a despărțit el (trip_split), cele cu o oprire scurtă sau
-  // într-un loc nesalvat între ele.
+  // în altă parte decât Acasă / Serviciu între ele (o ieșire cu mai multe opriri).
   const places = readPlaces();
   placesKey = JSON.stringify(places);
   const isPlace = (p: [number, number]) => placeAt(p, places) !== null;
@@ -243,7 +244,11 @@ const allTrips = memo((): Trip[] => {
       const prev = last.rows[last.rows.length - 1];
       const gap = Date.parse(g[0].device_at) - Date.parse(prev.device_at);
       const at = [lastFix(last.rows), firstFix(g)].filter((p) => p !== null);
-      together = sameTrip(gap, at.length ? at.some(isPlace) : null);
+      const isBase = (p: [number, number]) => {
+        const name = placeAt(p, places);
+        return name === HOME || name === WORK;
+      };
+      together = sameTrip(gap, at.length ? (at.some(isBase) ? "base" : "other") : null);
     }
     if (last && together) {
       last.rows = last.rows.concat(g);

@@ -134,7 +134,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
 | Opriri în trafic vs. staționare | 🧪 | Vezi [Cum se calculează o călătorie](#cum-se-calculează-o-călătorie) |
-| Combinarea călătoriilor | 🧪 | Automat peste opririle de ≤ 10 min oriunde și de ≤ 90 min în locuri nesalvate; „Combină cu precedenta / următoarea”, „Desparte” (ține minte despărțirea); opririle dintre părți apar pe hartă ca puncte galbene |
+| Combinarea călătoriilor | 🧪 | Automat peste opririle de ≤ 10 min oriunde și de ≤ 3 h în afara Acasă / Serviciu; „Combină cu precedenta / următoarea”, „Desparte” (ține minte despărțirea); opririle dintre părți apar pe hartă ca puncte galbene |
 | Costuri: 30 de zile, pe luni, raportul lunii | ✅ | km, timp, trafic, litri, L/100, cost estimat și ce s-a dat la pompă; staționarea cu motorul pornit (timp, litri, lei, cu AC-ul și încălzirea motorului); drumurile neînregistrate separat; cea mai lungă călătorie, locurile cele mai dese |
 | La serviciu (ture 12/24) | 🧪 | Următoarea tură (zi 08–20, noapte 20–08, liber, liber, dedus din drumuri) și ora până la care să pleci ca să ajungi cu 15 min înainte (drumul din zilele proaste, percentila 90) |
 | Drumurile tale | ✅ | Între locuri salvate, de la 10 deplasări în 90 de zile: costul, durata medie fără staționări, timpul în trafic |
@@ -264,8 +264,8 @@ Pe server (`web/server/trip-math.ts`), segment cu segment, din punctele trimise 
 - **Distanța:** din GPS cât timp are semnal bun; fără GPS (tunel, fix întârziat), din viteză.
   Pe loc, zgomotul GPS nu se adună. Se potrivește cu kilometrajul la ±1 km.
 - **Opririle cu motorul oprit** (pauză de peste 1 minut): la „Opriri”, cu loc și durată; nu
-  intră în viteza medie. Despart două călătorii doar peste 10 minute într-un loc salvat (Lidl,
-  Frizerie…) sau peste 90 de minute în altă parte; „Desparte” / „Combină” schimbă asta.
+  intră în viteza medie. O ieșire (Acasă → Lidl → bancă → Acasă) e o singură călătorie: despart
+  doar opririle de peste 10 minute Acasă sau la Serviciu (sau peste 3 h în altă parte); „Desparte” / „Combină” schimbă asta.
 - **Opririle cu motorul pornit:** între două porțiuni de mers și sub 5 minute = **în trafic**;
   la plecare, la sosire, mai lungi sau cu semne de parcare (frâna de mână trasă, o ușă
   deschisă, marșarierul, un loc salvat) = **staționare**.
