@@ -239,13 +239,14 @@ describe("sameTrip", () => {
   it("unește opririle scurte oriunde", () => {
     expect(sameTrip(5.25 * min, "other")).toBe(true); // Petrom, 14.11
     expect(sameTrip(8 * min, "base")).toBe(true);
-    expect(sameTrip(10 * min, null)).toBe(true);
+    expect(sameTrip(60 * min, "base")).toBe(true);
+    expect(sameTrip(60 * min, null)).toBe(true);
   });
   it("o ieșire ține până la Acasă / Serviciu", () => {
     expect(sameTrip(23 * min, "other")).toBe(true); // Lidl, 15.11
     expect(sameTrip(170 * min, "other")).toBe(true); // service
     expect(sameTrip(181 * min, "other")).toBe(false);
-    expect(sameTrip(11 * min, "base")).toBe(false);
-    expect(sameTrip(30 * min, null)).toBe(false); // fără GPS
+    expect(sameTrip(61 * min, "base")).toBe(false);
+    expect(sameTrip(61 * min, null)).toBe(false); // fără GPS
   });
 });

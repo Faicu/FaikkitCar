@@ -105,8 +105,8 @@ const CRANK_SEEN_V = 12;
 /** Scala CAN implicită (distanța GPS / viteza CAN integrată), cât nu avem destule date. */
 export const DEFAULT_CAN_SCALE = 0.95;
 
-/** O oprire cu motorul oprit de cel mult atât nu desparte călătoria, oriunde (benzinărie). */
-export const SHORT_STOP_MS = 10 * 60_000;
+/** O oprire cu motorul oprit de cel mult atât nu desparte călătoria, oriunde, nici acasă (16.11: 1 h). */
+export const SHORT_STOP_MS = 60 * 60_000;
 /** O ieșire de acasă (Lidl, bancă, schimb valutar...) ține până te întorci (15.11), cel mult atât pe loc. */
 export const ERRAND_STOP_MS = 3 * 3_600_000;
 
