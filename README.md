@@ -36,8 +36,8 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 - 🧪 **Consumul și costul drumurilor:** fiecare interval dintre două alimentări are consumul
   lui real (bonurile + nivelul rezervorului de dinaintea alimentării), iar costul se face cu
   prețul mediu al benzinei din rezervor. Nu e nevoie de plin.
-- 🧪 Netestate încă în mașină: avertizarea de ușă deschisă, contactul pus cu motorul oprit,
-  harta live pe drum.
+- ✅ Contactul pus cu motorul oprit: Panel → Acum arată „Doar contact”, 0 rpm, bateria, clima.
+- 🧪 Netestate încă în mașină: avertizarea de ușă deschisă, harta live pe drum.
 
 ## Ce urmează
 
