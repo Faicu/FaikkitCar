@@ -287,8 +287,8 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   sare cu ≥ 2 km între două călătorii; litrii = km × consumul real al intervalului dintre alimentări în
   care cad (`lPer100At`), costul cu prețul benzinei din rezervor. Afișate în lista de călătorii (site și
   Panel); în statistici doar separat (`gapKm`, `gapLiters`, `gapCost` pe lună și pe 30 de zile), nu în totaluri.
-- `trips.ts`: gruparea (pauze > 5 min, apoi unite automat cu `sameTrip` din `trip-math.ts`: oprire ≤ 1 h oriunde (16.11, înainte 10 min)
-  sau ≤ 3 h în afara Acasă / Serviciu (`HOME`/`WORK` din `commute.ts`), fără GPS = despărțite; 15.11 utilizatorul:
+- `trips.ts`: gruparea (pauze > 5 min, apoi unite automat cu `sameTrip` din `trip-math.ts`: oprire ≤ 30 min Acasă / la Serviciu
+  (16.11; 1 h lipea venirea de la tură de ieșirea de după, 07.10) sau ≤ 3 h în altă parte (`HOME`/`WORK` din `commute.ts`), fără GPS = despărțite; 15.11 utilizatorul:
   o ieșire Acasă → Lidl → bancă → schimb → Acasă e o singură călătorie; prima variantă, „≤ 90 min doar în locuri
   nesalvate”, despărțea la Lidl), combinările (`trip_join`), despărțirile utilizatorului
   (`trip_split`: ora primului punct de după oprire; „Desparte” le scrie pe toate din `Trip.bounds`, „Combină” le șterge), locurile (`placeAt`), cache

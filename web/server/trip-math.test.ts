@@ -236,17 +236,16 @@ describe("shapeOf", () => {
 
 describe("sameTrip", () => {
   const min = 60_000;
-  it("unește opririle scurte oriunde", () => {
-    expect(sameTrip(5.25 * min, "other")).toBe(true); // Petrom, 14.11
-    expect(sameTrip(8 * min, "base")).toBe(true);
-    expect(sameTrip(60 * min, "base")).toBe(true);
-    expect(sameTrip(60 * min, null)).toBe(true);
+  it("Acasă / la Serviciu încheie călătoria după 30 min", () => {
+    expect(sameTrip(25 * min, "base")).toBe(true);
+    expect(sameTrip(31 * min, "base")).toBe(false);
+    expect(sameTrip(52 * min, "base")).toBe(false); // venit de la tură, 07.10
+    expect(sameTrip(31 * min, null)).toBe(false); // fără GPS
   });
   it("o ieșire ține până la Acasă / Serviciu", () => {
+    expect(sameTrip(5.25 * min, "other")).toBe(true); // Petrom, 14.11
     expect(sameTrip(23 * min, "other")).toBe(true); // Lidl, 15.11
     expect(sameTrip(170 * min, "other")).toBe(true); // service
     expect(sameTrip(181 * min, "other")).toBe(false);
-    expect(sameTrip(61 * min, "base")).toBe(false);
-    expect(sameTrip(61 * min, null)).toBe(false); // fără GPS
   });
 });
