@@ -1531,14 +1531,22 @@ public class MainActivity extends Activity {
             box.setOrientation(LinearLayout.VERTICAL);
             box.setBackground(Ui.round(this, 0x2222C55E, 14));
             box.setPadding(p, p, p, p);
-            box.addView(Ui.text(this, "Următoarea tură: " + dayWord(nx.optString("start")) + ", "
+            String holiday = nx.isNull("holiday") ? "" : " (" + nx.optString("holiday") + ")";
+            box.addView(Ui.text(this, "Următoarea tură: " + dayWord(nx.optString("start")) + holiday + ", "
                     + nxShift.optString("name").replace("Tura de ", "") + " " + Fmt.hm(nx.optString("start")), 14, Ui.MUTED, false));
             JSONObject tw = nxShift.optJSONObject("toWork");
             if (!nx.isNull("leaveBy") && tw != null) {
                 String leave = nx.optString("leaveBy");
                 box.addView(Ui.text(this, "Pleacă până la " + Fmt.hm(leave), 22, Ui.OK, true));
-                String why = "ca să fii acolo cu " + margin + " min înainte (drumul: ~" + Fmt.duration(tw.optDouble("driveMin"))
-                        + ", în zilele proaste " + Fmt.duration(tw.optDouble("safeMin")) + ")";
+                // Cifrele folosite pentru ora de plecare (ale felului de zi, dacă are destule drumuri).
+                String kind = !nx.optBoolean("byDay") ? ""
+                        : "work".equals(nx.optString("dayType")) ? " în zilele lucrătoare"
+                        : nx.isNull("holiday") ? " în weekend" : " în zilele libere" + holiday;
+                int n = nx.optInt("trips");
+                String why = "ca să fii acolo cu " + margin + " min înainte (drumul" + kind + ": ~"
+                        + Fmt.duration(nx.optDouble("driveMin", tw.optDouble("driveMin")))
+                        + ", în zilele proaste " + Fmt.duration(nx.optDouble("safeMin", tw.optDouble("safeMin")))
+                        + (n > 0 && n < 3 ? ", din " + n + " drumuri" : "") + ")";
                 long warm = Math.round(tw.optDouble("warmupMin"));
                 if (warm >= 1) {
                     why += "; cu încălzirea de ~" + warm + " min, pornește motorul la "
@@ -1562,7 +1570,17 @@ public class MainActivity extends Activity {
             row.addView(top);
             JSONObject tw = s.optJSONObject("toWork");
             if (tw != null) {
-                if (!tw.isNull("leaveBy")) {
+                JSONObject byDay = tw.optJSONObject("byDay");
+                JSONObject dw = byDay == null ? null : byDay.optJSONObject("work");
+                JSONObject df = byDay == null ? null : byDay.optJSONObject("free");
+                if (dw != null || df != null) {
+                    for (JSONObject d : new JSONObject[] {dw, df}) {
+                        if (d == null) continue;
+                        row.addView(Ui.text(this, (d == dw ? "Zile lucrătoare" : "Weekend și sărbători") + ": pleacă până la "
+                                + d.optString("leaveBy") + " (drum ~" + Fmt.duration(d.optDouble("driveMin")) + ", cel mult "
+                                + Fmt.duration(d.optDouble("safeMin")) + ", " + d.optInt("trips") + " drumuri)", 14, Ui.OK, false));
+                    }
+                } else if (!tw.isNull("leaveBy")) {
                     row.addView(Ui.text(this, "Pleacă până la " + tw.optString("leaveBy") + " (drum ~"
                             + Fmt.duration(tw.optDouble("driveMin")) + ", cel mult " + Fmt.duration(tw.optDouble("safeMin")) + ")",
                             14, Ui.OK, false));

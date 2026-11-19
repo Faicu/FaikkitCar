@@ -2,7 +2,9 @@
 // Drumul la serviciu, pe ture de 12/24: zi (08:00–20:00), noapte (20:00–08:00), liber, liber.
 // Din drumurile Acasă → Serviciu și înapoi: cât durează pe fiecare tură, până la ce minut
 // trebuie să pleci ca să ajungi cu cel puțin 15 minute înainte și care e următoarea tură.
-// Pur (fără bază de date), testat în commute.test.ts.
+// Dimineața drumul diferă mult între zilele lucrătoare și weekend / sărbători (19.11: 12–35 min
+// față de 5–7 min), deci ora de plecare a unei ture ține cont și de ziua ei. Doar drumurile
+// directe (fără opriri pe drum: alimentare, magazin, service). Pur, testat în commute.test.ts.
 // ---------------------------------------------------------------------------
 
 import type { Trip } from "./trips.ts";
@@ -26,6 +28,18 @@ const TO_WORK_WINDOW = [-180, 60];
 const FROM_WORK_WINDOW = [-60, 180];
 /** Sub atâtea drumuri pe o tură nu se dă o oră de plecare. */
 const MIN_TRIPS = 3;
+/** De la atâtea drumuri în același fel de zi (lucrătoare / liberă) ora ține cont de el. */
+const DAY_MIN_TRIPS = 2;
+
+export type DayType = "work" | "free";
+
+/** Drumurile spre serviciu ale unei ture într-un fel de zi. */
+export interface DayCommute {
+  trips: number;
+  driveMin: number;
+  safeMin: number;
+  leaveBy: string;
+}
 
 export interface ShiftCommute {
   name: string;
@@ -41,10 +55,12 @@ export interface ShiftCommute {
     warmupMin: number; // cât stai cu motorul pornit înainte să pleci (mediana)
     tight: number; // ajuns cu mai puțin de MARGIN_MIN înainte (inclusiv întârzierile)
     late: number; // ajuns după începerea turei
+    // Pe zile lucrătoare și libere (weekend, sărbători legale); null sub DAY_MIN_TRIPS drumuri.
+    byDay: Record<DayType, DayCommute | null>;
   } | null;
   fromWork: {
     trips: number;
-    driveMin: number;
+    driveMin: number; // doar mersul și traficul (fără așteptatul cu motorul pornit pe drum)
     usualLeave: string;
     usualArrive: string;
   } | null;
@@ -56,7 +72,19 @@ export interface Commute {
   marginMin: number;
   shifts: ShiftCommute[];
   // Turele următoare (din ciclul dedus din drumuri), cu ora până la care să pleci.
-  next: Array<{ shift: string; start: string; leaveBy: string | null }>;
+  // `driveMin`/`safeMin`/`trips` sunt cele folosite pentru `leaveBy` (ale felului de zi, dacă
+  // are destule drumuri, altfel ale turei); `holiday` = numele sărbătorii legale.
+  next: Array<{
+    shift: string;
+    start: string;
+    leaveBy: string | null;
+    dayType: DayType;
+    holiday: string | null;
+    byDay: boolean; // ora ține de felul zilei (altfel de toate drumurile turei)
+    trips: number;
+    driveMin: number | null;
+    safeMin: number | null;
+  }>;
 }
 
 const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -102,6 +130,51 @@ const median = (xs: number[]) => {
 const p90 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.9) - 1];
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
+/** Paștele ortodox (Meeus, calendarul iulian + 13 zile, valabil 1900–2099), ca zi de la 1970. */
+function orthodoxEaster(year: number): number {
+  const a = year % 4;
+  const b = year % 7;
+  const c = year % 19;
+  const d = (19 * c + 15) % 30;
+  const e = (2 * a + 4 * b - d + 34) % 7;
+  const month = Math.floor((d + e + 114) / 31);
+  const day = ((d + e + 114) % 31) + 1;
+  return Date.UTC(year, month - 1, day) / 86_400_000 + 13;
+}
+
+const FIXED_HOLIDAYS: Record<string, string> = {
+  "01-01": "Anul Nou",
+  "01-02": "Anul Nou",
+  "01-06": "Boboteaza",
+  "01-07": "Sf. Ioan",
+  "01-24": "Unirea Principatelor",
+  "05-01": "1 Mai",
+  "06-01": "Ziua Copilului",
+  "08-15": "Adormirea Maicii Domnului",
+  "11-30": "Sf. Andrei",
+  "12-01": "Ziua Națională",
+  "12-25": "Crăciunul",
+  "12-26": "Crăciunul",
+};
+
+/** Sărbătoarea legală din ziua `day` (zile de la 1970), dacă e. */
+export function holidayOf(day: number): string | null {
+  const d = new Date(day * 86_400_000);
+  const key = `${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  if (FIXED_HOLIDAYS[key]) return FIXED_HOLIDAYS[key];
+  const e = orthodoxEaster(d.getUTCFullYear());
+  if (day === e - 2) return "Vinerea Mare";
+  if (day === e || day === e + 1) return "Paștele";
+  if (day === e + 49 || day === e + 50) return "Rusaliile";
+  return null;
+}
+
+/** Zi lucrătoare sau liberă (sâmbăta, duminica, sărbătorile legale). */
+export function dayTypeOf(day: number): DayType {
+  const wd = new Date(day * 86_400_000).getUTCDay();
+  return wd === 0 || wd === 6 || holidayOf(day) ? "free" : "work";
+}
+
 /** Începutul turei `shift` de care ține momentul `ms`, dacă `ms - început` e în fereastră. */
 function shiftStartFor(ms: number, start: number, offsetMin: number, window: number[]): number | null {
   const today = local(ms).day;
@@ -116,6 +189,8 @@ function shiftStartFor(ms: number, start: number, offsetMin: number, window: num
 export function commute(trips: Trip[], now = Date.now()): Commute | null {
   const cutoff = new Date(now - DAYS * 86_400_000).toISOString();
   const recent = trips.filter((t) => !t.idle && t.start >= cutoff);
+  // Cu opriri pe drum (alimentare, magazin) durata nu e a drumului: ele contează doar la ciclu.
+  const direct = (t: Trip) => !t.via?.length && (t.parts ?? 1) === 1;
   const to = recent.filter((t) => t.fromPlace === HOME && t.toPlace === WORK);
   const from = recent.filter((t) => t.fromPlace === WORK && t.toPlace === HOME);
   if (!to.length) return null;
@@ -126,26 +201,38 @@ export function commute(trips: Trip[], now = Date.now()): Commute | null {
   };
 
   const shifts: ShiftCommute[] = SHIFTS.map((sh, i) => {
-    const going: Array<{ depart: number; arrive: number; warm: number; startMs: number }> = [];
+    const going: Array<{ depart: number; arrive: number; warm: number; startMs: number; type: DayType }> = [];
     for (const t of to) {
       const arrive = Date.parse(t.arriveAt);
       const startMs = shiftStartFor(arrive, sh.start, 0, TO_WORK_WINDOW);
       if (startMs === null) continue;
-      going.push({ depart: Date.parse(t.departAt), arrive, warm: Date.parse(t.departAt) - Date.parse(t.start), startMs });
       vote(startMs, i);
+      if (!direct(t)) continue;
+      const type = dayTypeOf(local(startMs).day);
+      going.push({ depart: Date.parse(t.departAt), arrive, warm: Date.parse(t.departAt) - Date.parse(t.start), startMs, type });
     }
-    const back: Array<{ depart: number; arrive: number; endMs: number }> = [];
+    const back: Array<{ depart: number; arrive: number; drive: number; endMs: number }> = [];
     for (const t of from) {
       const depart = Date.parse(t.departAt);
       const startMs = shiftStartFor(depart, sh.start, SHIFT_MIN, FROM_WORK_WINDOW);
       if (startMs === null) continue;
-      back.push({ depart, arrive: Date.parse(t.arriveAt), endMs: startMs + SHIFT_MIN * 60_000 });
       vote(startMs, i);
+      if (!direct(t)) continue;
+      const arrive = Date.parse(t.arriveAt);
+      // La întoarcere se așteaptă des cu motorul pornit (~10 min) între plecare și sosire.
+      const drive = t.movingMin !== undefined ? t.movingMin + (t.trafficMin ?? 0) : (arrive - depart) / 60_000;
+      back.push({ depart, arrive, drive, endMs: startMs + SHIFT_MIN * 60_000 });
     }
     const min = (ms: number) => ms / 60_000;
     let toWork: ShiftCommute["toWork"] = null;
     if (going.length) {
       const drive = going.map((g) => min(g.arrive - g.depart));
+      const day = (type: DayType): DayCommute | null => {
+        const d = going.filter((g) => g.type === type).map((g) => min(g.arrive - g.depart));
+        if (d.length < DAY_MIN_TRIPS) return null;
+        const safe = Math.ceil(p90(d));
+        return { trips: d.length, driveMin: round1(median(d)), safeMin: safe, leaveBy: hhmm(sh.start - MARGIN_MIN - safe) };
+      };
       const margins = going.map((g) => min(g.startMs - g.arrive));
       const safe = Math.ceil(p90(drive));
       toWork = {
@@ -158,13 +245,14 @@ export function commute(trips: Trip[], now = Date.now()): Commute | null {
         warmupMin: round1(median(going.map((g) => min(g.warm)))),
         tight: margins.filter((m) => m < MARGIN_MIN).length,
         late: margins.filter((m) => m < 0).length,
+        byDay: { work: day("work"), free: day("free") },
       };
     }
     const end = sh.start + SHIFT_MIN;
     const fromWork: ShiftCommute["fromWork"] = back.length
       ? {
           trips: back.length,
-          driveMin: round1(median(back.map((b) => min(b.arrive - b.depart)))),
+          driveMin: round1(median(back.map((b) => b.drive))),
           usualLeave: hhmm(end + median(back.map((b) => min(b.depart - b.endMs)))),
           usualArrive: hhmm(end + median(back.map((b) => min(b.arrive - b.endMs)))),
         }
@@ -184,11 +272,20 @@ export function commute(trips: Trip[], now = Date.now()): Commute | null {
         // Și tura începută de cel mult o oră: lista se recalculează din oră în oră, iar
         // clientul o ascunde pe cea trecută.
         if (s <= now - 3_600_000 || next.length >= 3) return;
-        const leave = shifts[i].toWork?.leaveBy ? s - (MARGIN_MIN + shifts[i].toWork!.safeMin) * 60_000 : null;
+        const tw = shifts[i].toWork;
+        const dayType = dayTypeOf(d);
+        const byDay = tw?.byDay[dayType] ?? null;
+        const use = byDay ?? (tw?.leaveBy ? tw : null);
         next.push({
           shift: sh.name,
           start: new Date(s).toISOString(),
-          leaveBy: leave === null ? null : new Date(leave).toISOString(),
+          leaveBy: use ? new Date(s - (MARGIN_MIN + use.safeMin) * 60_000).toISOString() : null,
+          dayType,
+          holiday: holidayOf(d),
+          byDay: byDay !== null,
+          trips: use?.trips ?? tw?.trips ?? 0,
+          driveMin: use?.driveMin ?? null,
+          safeMin: use?.safeMin ?? null,
         });
       });
     }

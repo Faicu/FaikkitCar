@@ -326,6 +326,12 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   Drumurile Acasă → Serviciu se leagă de tura după sosire (−3 h … +1 h față de început), cele
   înapoi după plecare față de sfârșit (−1 h … +3 h); ora de plecare = început − 15 min − percentila
   90 a drumului (`departAt` → `arriveAt`); ciclul de 4 zile dedus prin vot din drumuri (`next`).
+  19.11: doar drumurile directe (fără `via`, `parts` 1) intră în durate; cele cu opriri doar votează ciclul.
+  Ora pe zile lucrătoare / libere (weekend + sărbătorile legale, `holidayOf`, Paștele ortodox calculat),
+  `toWork.byDay`, de la 2 drumuri; altfel din toate drumurile turei. Dimineața: lucrătoare 12–35 min
+  (mediana 17), weekend 5–7 min. `next[]` are `dayType`, `holiday`, `byDay`, `trips`, `driveMin`, `safeMin`
+  (cele folosite pentru `leaveBy`; site și Panel le afișează de acolo). Întoarcerea: durata = mers + trafic
+  (între plecare și sosire se stă des ~10 min cu motorul pornit). 17–18.11: Acasă → Standox, nu Serviciu.
   Nu mai afișa „cea mai bună oră de plecare”: n-are sens la ture fixe (cererea utilizatorului). Propuneri (`suggestions.ts`): alimentări
   văzute în rezervor, locuri unde parchezi des. Locuri: după adresă (Nominatim, ≤ 1 cerere/s),
   pin tras pe hartă, raza 50–250 m. Un loc poate avea mai multe poziții = rânduri `place` cu același nume (27.10: a doua parcare

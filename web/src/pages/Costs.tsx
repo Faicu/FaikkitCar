@@ -169,6 +169,12 @@ function dayWord(iso: string): string {
  * cu minutul până la care să pleci ca să ajungi cu 15 min înainte și, pe fiecare tură, cum
  * pleci și ajungi de obicei. Ora sigură ține cont și de zilele proaste (percentila 90).
  */
+/** „în zilele lucrătoare”, „în weekend” sau „în zilele libere (Sf. Andrei)”. */
+function dayKind(type: "work" | "free", holiday: string | null): string {
+  if (type === "work") return "în zilele lucrătoare";
+  return holiday ? `în zilele libere (${holiday})` : "în weekend";
+}
+
 function CommuteCard({ c }: { c: Commute }) {
   const next = c.next.find((n) => Date.parse(n.start) > Date.now());
   const nextShift = next && c.shifts.find((s) => s.name === next.shift);
@@ -180,14 +186,17 @@ function CommuteCard({ c }: { c: Commute }) {
       {next && nextShift && (
         <div className="rounded-xl bg-emerald-500/10 p-3">
           <p className="text-sm text-muted-foreground">
-            Următoarea tură: {dayWord(next.start)}, {nextShift.name.replace("Tura de ", "")} {hm(next.start)}
+            Următoarea tură: {dayWord(next.start)}
+            {next.holiday ? ` (${next.holiday})` : ""}, {nextShift.name.replace("Tura de ", "")} {hm(next.start)}
           </p>
           {next.leaveBy ? (
             <>
               <p className="mt-1 text-xl font-semibold text-emerald-400">Pleacă până la {hm(next.leaveBy)}</p>
               <p className="text-xs text-muted-foreground">
-                ca să fii acolo cu {c.marginMin} min înainte (drumul: ~{duration(nextShift.toWork!.driveMin)}, în
-                zilele proaste {duration(nextShift.toWork!.safeMin)})
+                ca să fii acolo cu {c.marginMin} min înainte (drumul
+                {next.byDay ? ` ${dayKind(next.dayType, next.holiday)}` : ""}: ~{duration(next.driveMin ?? 0)}, în
+                zilele proaste {duration(next.safeMin ?? 0)}
+                {next.trips < 3 ? `, din ${next.trips} drumuri` : ""})
                 {nextShift.toWork!.warmupMin >= 1 &&
                   `; cu încălzirea de ~${Math.round(nextShift.toWork!.warmupMin)} min, pornește motorul la ${hm(
                     new Date(Date.parse(next.leaveBy) - Math.round(nextShift.toWork!.warmupMin) * 60_000).toISOString(),
@@ -209,11 +218,29 @@ function CommuteCard({ c }: { c: Commute }) {
           </div>
           {s.toWork ? (
             <>
-              {s.toWork.leaveBy && (
-                <p className="mt-1">
-                  <span className="text-emerald-400">Pleacă până la {s.toWork.leaveBy}</span>
-                  <span className="text-muted-foreground"> (drum ~{duration(s.toWork.driveMin)}, cel mult {duration(s.toWork.safeMin)})</span>
-                </p>
+              {s.toWork.byDay.work || s.toWork.byDay.free ? (
+                (["work", "free"] as const).map((k) => {
+                  const d = s.toWork!.byDay[k];
+                  return (
+                    d && (
+                      <p key={k} className="mt-1">
+                        <span className="text-muted-foreground">{k === "work" ? "Zile lucrătoare" : "Weekend și sărbători"}: </span>
+                        <span className="text-emerald-400">pleacă până la {d.leaveBy}</span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          (drum ~{duration(d.driveMin)}, cel mult {duration(d.safeMin)}, {d.trips} drumuri)
+                        </span>
+                      </p>
+                    )
+                  );
+                })
+              ) : (
+                s.toWork.leaveBy && (
+                  <p className="mt-1">
+                    <span className="text-emerald-400">Pleacă până la {s.toWork.leaveBy}</span>
+                    <span className="text-muted-foreground"> (drum ~{duration(s.toWork.driveMin)}, cel mult {duration(s.toWork.safeMin)})</span>
+                  </p>
+                )
               )}
               <p className="text-xs text-muted-foreground">
                 De obicei pleci la {s.toWork.usualLeave} și ajungi la {s.toWork.usualArrive}
