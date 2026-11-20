@@ -120,7 +120,7 @@ final class Obd extends BluetoothGattCallback {
         Obd o = instance;
         if (o == null) return null;
         synchronized (o) {
-            boolean fresh = SystemClock.elapsedRealtime() - o.fastAt < 3_000;
+            boolean fresh = SystemClock.elapsedRealtime() - o.fastAt < 5_000;
             if (o.seconds <= 0 && !fresh) return null;
             double[] r = {o.liters, o.seconds, fresh ? o.lh : Double.NaN, fresh ? o.map : Double.NaN,
                     fresh ? o.iat : Double.NaN, o.ect, o.load};
@@ -186,6 +186,7 @@ final class Obd extends BluetoothGattCallback {
     /** Lucrarile de scanare: {tx, rx, de la, pana la}; una in curs, restul la rand. */
     private final java.util.ArrayDeque<int[]> scanQueue = new java.util.ArrayDeque<>();
     private int[] scanJob;
+    private final java.util.ArrayDeque<Integer> scanPending = new java.util.ArrayDeque<>();
     private int scanNext;
     private int scanSilent;
     private long scanStartedAt;
@@ -234,6 +235,7 @@ final class Obd extends BluetoothGattCallback {
                 scanJob = scanQueue.poll();
                 if (scanJob == null) return;
                 scanNext = scanJob[2];
+                scanPending.clear();
                 scanSilent = 0;
                 scanStartedAt = SystemClock.elapsedRealtime();
                 scanLog.append("\n== ").append(hex(scanJob[0], 3)).append("/").append(hex(scanJob[1], 3)).append(" ")
@@ -248,9 +250,24 @@ final class Obd extends BluetoothGattCallback {
             send("ATFCSH" + tx, 1_000);
             send("ATFCSD300000", 1_000);
             send("ATFCSM1", 1_000);
-            long end = SystemClock.elapsedRealtime() + 2_000;
+            // Cel mult ~1,2 s, recitirile incluse: citirile motorului (consumul) nu raman in urma
+            // (21.11: pe bord, de la 0x1000, bucatile de 2 s + recitiri lasau puncte fara consum).
+            long end = SystemClock.elapsedRealtime() + 1_200;
             int retries = 0;
-            while (connected && scanJob == job && scanNext <= job[3] && SystemClock.elapsedRealtime() < end) {
+            while (connected && scanJob == job && !scanPending.isEmpty() && SystemClock.elapsedRealtime() < end) {
+                int did = scanPending.peek();
+                int[] r = bytesOf(send("22" + hex(did, 4), 1_500));
+                if (r.length > 0 && r[0] == 0x7F && r.length >= 3 && (r[2] == 0x78 || r[2] == 0x21) && retries++ < 3) {
+                    Thread.sleep(100);
+                    continue;
+                }
+                retries = 0;
+                scanPending.poll();
+                if (r.length == 0 || (r[0] == 0x7F && r.length >= 3 && r[2] == 0x31)) continue;
+                found(did, r);
+            }
+            while (connected && scanJob == job && scanPending.isEmpty() && scanNext <= job[3]
+                    && SystemClock.elapsedRealtime() < end) {
                 int from = scanNext, n = Math.min(3, job[3] - from + 1);
                 StringBuilder req = new StringBuilder("22");
                 for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
@@ -269,17 +286,13 @@ final class Obd extends BluetoothGattCallback {
                 }
                 retries = 0;
                 if (!(b[0] == 0x7F && b.length >= 3 && b[2] == 0x31)) {
-                    // Ceva exista in grupul asta: le citim pe rand, ca sa stim al cui e raspunsul.
-                    for (int i = 0; i < n; i++) {
-                        int did = from + i;
-                        int[] r = bytesOf(send("22" + hex(did, 4), 1_500));
-                        if (r.length == 0 || (r[0] == 0x7F && r.length >= 3 && r[2] == 0x31)) continue;
-                        found(did, r);
-                    }
+                    // Ceva exista in grupul asta: le recitim pe rand (in bucatile urmatoare, daca nu
+                    // mai e timp), ca sa stim al cui e raspunsul.
+                    for (int i = 0; i < n; i++) scanPending.add(from + i);
                 }
                 scanNext = from + n;
             }
-            if (scanJob == job && scanNext > job[3]) scanDone(job, "gata");
+            if (scanJob == job && scanNext > job[3] && scanPending.isEmpty()) scanDone(job, "gata");
             send("ATFCSM0", 1_000);
             send("ATCRA", 1_000);
             send("ATSH7E0", 1_000);
@@ -472,7 +485,7 @@ final class Obd extends BluetoothGattCallback {
         lh = Math.round(v * 100) / 100.0;
         if (lastSampleAt > 0) {
             long dt = now - lastSampleAt;
-            if (dt <= 3_000) {
+            if (dt <= 5_000) {
                 liters += v * dt / 3_600_000.0;
                 litersTotal += v * dt / 3_600_000.0;
                 seconds += dt / 1000.0;

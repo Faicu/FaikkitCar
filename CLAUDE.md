@@ -176,6 +176,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   niciunul nu există). 1.1.94: `@obd scan <tx> <rx> <de la> <până la>` (hex) pune la rând o scanare `22` în fundal, câte
   2 s între citirile motorului (consumul se înregistrează mai departe, la ~2,4 s); un grup cu răspuns e recitit DID cu DID;
   `@obd scan status` = progresul și ce s-a găsit (în memorie, se pierde la repornirea aplicației), `@obd scan stop`.
+  21.11, bordul 714 0000–101A (rezultatele parțiale în `/root/obd-scan-714-partial.txt`): de la 0x1000 multe DID-uri și
+  răspunsuri 7F 22 78, ~6 DID/s, iar bucățile prea lungi lăsau puncte fără consum: oprit. 1.1.95: bucăți de cel mult 1,2 s
+  cu recitirile la rând, consumul integrat peste goluri de până la 5 s. **Kilometrajul în bordul 1017/1018/1019:**
+  `C0 4C 00 03` = 0x0003C04C = 245.836 km (cuvintele de 16 biți inversate).
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
