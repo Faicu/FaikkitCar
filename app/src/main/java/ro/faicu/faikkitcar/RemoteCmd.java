@@ -62,6 +62,12 @@ final class RemoteCmd {
                     new JSONObject().put("exitCode", 0).put("output", BleProbe.run(c)).toString());
             return;
         }
+        if (cmd.trim().equals("@obd") || cmd.trim().startsWith("@obd ")) {
+            // Comanda interna: adaptorul OBD2 BLE (vLinker), comenzi ELM327 prin GATT.
+            request("POST", BASE + "/" + id, new JSONObject().put("exitCode", 0)
+                    .put("output", ObdProbe.run(c, cmd.trim().substring(4))).toString());
+            return;
+        }
         if (cmd.trim().equals("@media") || cmd.trim().startsWith("@media ")) {
             // Comanda interna: sesiunile media cer API-ul Android (testul controlului muzicii).
             request("POST", BASE + "/" + id, new JSONObject().put("exitCode", 0)
