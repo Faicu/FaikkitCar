@@ -452,11 +452,25 @@ export function calibrate(
       liters += a.before! - b.before!;
       for (let k = i; k < j; k++) liters += anchors[k].liters;
     }
-    if (liters < MIN_INTERVAL_LITERS) {
-      // Un plin după prea puțini litri: de la el pornește un interval exact, restul se lasă.
-      if (!exact && isFull(b)) i = j;
-      continue;
-    }
+    if (liters < MIN_INTERVAL_LITERS && !exact && isFull(b)) {
+      // Plin → parțial(e) → plin, cu prea puțini litri după ultimul parțial (20.11: 12 + 31 − 35 =
+      // 8 L, cu indicatorul de dinaintea plinului care minte): restul = litrii de pe bonuri de la
+      // plinul anterior − intervalele deja încheiate de atunci. Altfel de la plin pornește unul nou.
+      let f = i;
+      while (f >= 0 && !isFull(anchors[f])) f--;
+      const closed = f >= 0 ? intervals.filter((x) => x.from >= anchors[f].since) : [];
+      if (closed.length) {
+        let total = extras
+          .filter((e) => e.at > anchors[f].since && e.at <= b.since)
+          .reduce((s, e) => s + e.liters, 0);
+        for (let k = f + 1; k <= j; k++) total += anchors[k].liters;
+        liters = total - closed.reduce((s, x) => s + x.liters, 0);
+      }
+      if (!closed.length || liters <= 0) {
+        i = j;
+        continue;
+      }
+    } else if (liters < MIN_INTERVAL_LITERS) continue;
     const inside = trips.filter((t) =>
       a.first
         ? (t.end ?? t.start) >= a.since && t.start <= b.since

@@ -227,6 +227,37 @@ describe("calibrate", () => {
     expect(lPer100At(c, "2026-11-20T09:00:00Z")).toBeCloseTo((71.18 / 675) * 100);
   });
 
+  it("plin → parțial → plin cu puțini litri la urmă: restul din bonuri, nu din indicator", () => {
+    // Ca pe 20.11: plin 46,18, parțial 31 (12 → 45), plin 25,13 la 35 pe indicator (+17).
+    const c = calibrate(
+      [
+        refuel(2, "2026-10-20T08:04:00Z", 46.18, true),
+        refuel(3, "2026-11-14T18:17:00Z", 31, false),
+        refuel(4, "2026-11-20T06:06:00Z", 25.13, true),
+      ],
+      [
+        { start: "2026-10-25T10:00:00Z", modelLiters: 48, distanceKm: 426 },
+        { start: "2026-11-17T10:00:00Z", modelLiters: 10, distanceKm: 90 },
+      ],
+      levels(
+        ["2026-10-20T07:59:00Z", 12, 245319],
+        ["2026-10-20T08:05:00Z", 52, 245319],
+        ["2026-11-14T18:14:00Z", 12, 245745],
+        ["2026-11-14T18:19:00Z", 45, 245745],
+        ["2026-11-20T06:03:00Z", 35, 245835],
+        ["2026-11-20T06:08:00Z", 52, 245835],
+      ),
+    );
+    expect(c.intervals.map((x) => [x.fromId, x.toId])).toEqual([
+      [2, 3],
+      [3, 4],
+    ]);
+    expect(c.intervals[0]).toMatchObject({ liters: 46.18, km: 426 });
+    // 31 + 25,13 − 46,18
+    expect(c.intervals[1]).toMatchObject({ liters: 9.95, km: 90 });
+    expect(c.intervals[1].factor).toBeCloseTo(0.995, 3);
+  });
+
   it("o alimentare trecută în jurnal înainte ca mașina să pornească închide intervalul", () => {
     const c = calibrate(
       [refuel(1, "2026-10-09T11:00:00Z", 30, false, 1300)],

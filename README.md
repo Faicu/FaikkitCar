@@ -291,7 +291,8 @@ Pe server (`web/server/trip-math.ts`), segment cu segment, din punctele trimise 
   alimentări în care cade drumul. Realul unui interval = nivelul rezervorului de dinaintea
   alimentării + litrii de pe bon − nivelul de dinaintea alimentării următoare (indicatorul nu
   se folosește imediat după alimentare, unde minte); între două plinuri, direct litrii de pe
-  bonuri. Un interval se încheie de la 20 L consumați (alimentările mai dese se adună).
+  bonuri. Un interval se încheie de la 20 L consumați (alimentările mai dese se adună); la un
+  plin cu mai puțin după ultima alimentare parțială, restul iese din bonurile de la plinul anterior.
   Drumurile de după ultima alimentare folosesc media ultimelor 3 intervale. Drumurile
   neînregistrate se iau în calcul din kilometraj, ca să nu umfle corecția. Fără niciun
   interval încheiat: nivelul rezervorului pe toată perioada, de la ~8 L consumați.

@@ -319,7 +319,9 @@ instantaneu ar trebui un adaptor OBD2 Bluetooth (MAP + IAT + rpm).
   pe 426 km = 10,8 L/100, factor 0,96 (înainte un singur factor, 0,82, cu AC fix); drumurile înregistrate
   67,8 → 70,0 L, 673 → 696 lei; cele scurte mai scumpe (sub 2 km 16,8 → 21 L/100), cele lungi mai ieftine
   (peste 10 km 9,4 → 8,7). Autonomia = litrii ÷ consumul real; rezervorul de acum = `currentLevel` (mediana
-  pe 10 min, doar după ultimul salt). Alimentări: 01.10 (parțială, 16 L, id 1), 20.10 (plin, id 2), 14.11 (parțială, 31 L, id 3).
+  pe 10 min, doar după ultimul salt). Alimentări: 01.10 (parțială, 16 L, id 1), 20.10 (plin, id 2), 14.11 (parțială, 31 L, id 3), 20.11 (plin până la oprirea pistolului, 25,13 L, 225,67 lei, id 4).
+  Plin → parțial(e) → plin cu sub 20 L după ultimul parțial: restul = bonurile de la plinul anterior − intervalele
+  încheiate de atunci (20.11: indicatorul arăta 35 L înainte, +17 la 25,13 L pe bon; 31 + 25,13 − 46,18 = 9,95 L pe 90 km).
 - Costuri (`stats.ts`): 30 de zile, pe luni, raportul lunii (cu drumurile neînregistrate pe rând separat), „Drumurile tale” între locuri salvate
   (doar de la 10 deplasări în 90 de zile; durata = `arriveAt − departAt` fără opriri), staționarea pe lună.
 - Turele (`commute.ts`, 21.10): utilizatorul lucrează 12/24: zi 08–20, noapte 20–08, liber, liber.
