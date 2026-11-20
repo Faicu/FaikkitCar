@@ -164,6 +164,14 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   → `trip_point.obd_l`, `obd_s`, `obd_lh`, `map`, `iat`, `ect`, `obd_load`. Încă nefolosite în calcule și pe site/Panel
   (utilizatorul: întâi strângem date). `@obd` cu legătura deschisă trece prin ea (`Obd.script`). Jurnal: „OBD: conectat”,
   „OBD: deconectat (…), s, cicluri/s, L” (categoria Mașina). Pe ecranul din mașină doar costul, fără L/100 (îl arată bordul).
+  21.11 în mers: 1.1.92 s-a conectat singură la 4 s după contact; ~1,5 L/h la 50 km/h (necalibrat). Cererea multiplă
+  răspunde corect (`00D | 0:410C… | 1:0F4C…`, ~75 ms), dar a eșuat la pornire cât rula un `@obd` prin legătură: din
+  1.1.93 reîncearcă la 1 min și scrie o dată răspunsul în jurnal. Modulele pe UDS prin priza OBD (adresare 11 biți,
+  `ATSH<tx> ATCRA<rx> ATFCSH<tx> ATFCSD300000 ATFCSM1`, în ordinea asta, altfel `?`): motorul 7E0/7E8 (J623), bordul
+  714/77E (J285, 5K0920873), climatronicul 746/7B0 (J255, 5K0907044GK, `EV_Climatronic`, uneori 7F 22 21 = ocupat),
+  airbag-ul 715/77F (5C0959655B). Nu răspund (probabil KWP pe TP2.0): gateway 710, ABS 713, confort 70E, direcția 712,
+  cutia 7E1 (manuală). Mod 09: VIN, CALID `03F906070GA 5413`, CVN C3664742, numele „ECM-EngineControl”; mod 06 are teste.
+  Valorile VW (DID-urile de măsură) încă necunoscute: de scanat.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
