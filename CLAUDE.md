@@ -148,6 +148,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   testele catalizator, evaporare, sondă lambda și încălzirea ei neterminate. 1.1.90 făcea `close()` imediat după
   `disconnect()`: legătura a rămas deschisă pe navigație și adaptorul n-a mai apărut în scanare; 1.1.91 așteaptă
   deconectarea, ia întâi dispozitivele deja conectate, apoi scanarea, apoi adresa știută.
+  A doua rundă (20.11, 1.1.91, relanti cald): prima conectare cod 133, a doua da (reîncercarea e necesară). Motorul: Simos
+  10.12 (`22F197`), J623, hardware 03F907309R / H10, ODX `EV_ECM12TFS021`. Rampa 47 bar, catalizator 417 °C, λ cerut 1,000 /
+  măsurat 0,998, sarcina absolută 26 %, pedala 14,5/14,9 % în repaus. **0130 = 1 încălzire și 0131 = 0 km de la ștergerea
+  codurilor**: ECU-ul a fost resetat de curând (de aici testele neterminate). După test adaptorul nu apare în scanare
+  1–3 min (și cu 1.1.91, și după `@obd reset`, deși `getConnectedDevices(GATT)` e gol); apoi revine singur. Cauza neclară.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
