@@ -66,6 +66,8 @@ final class Obd extends BluetoothGattCallback {
     private boolean failLogged;
     private boolean multi = true;
     private int multiFails;
+    private long multiRetryAt;
+    private boolean multiLogged;
     private long lastSlowAt;
     private long lastStatusAt;
     private long connectedAt;
@@ -183,11 +185,24 @@ final class Obd extends BluetoothGattCallback {
     private void poll() throws InterruptedException {
         long now = SystemClock.elapsedRealtime();
         boolean ok;
+        if (!multi && now >= multiRetryAt) {
+            multi = true;
+            multiFails = 0;
+        }
         if (multi) {
-            ok = mode01(send("010C0B0F0349", 1_500));
+            String r = send("010C0B0F0349", 1_500);
+            ok = mode01(r);
             if (!ok && ++multiFails >= 3) {
+                // Pe rand un minut, apoi iar mai multe deodata (21.11: a esuat doar la pornire, cat
+                // testul de la distanta schimba setarile adaptorului).
                 multi = false;
-                Prefs.log(c, "OBD: cererile cu mai multe PID-uri nu merg, citesc pe rand");
+                multiRetryAt = now + 60_000;
+                if (!multiLogged) {
+                    multiLogged = true;
+                    String raw = r == null ? "fara raspuns" : r.replace("\r", " | ").trim();
+                    Prefs.log(c, "OBD: cererea cu mai multe PID-uri a esuat (" + raw.substring(0, Math.min(80, raw.length()))
+                            + "), citesc pe rand un minut");
+                }
             } else if (ok) {
                 multiFails = 0;
             }
