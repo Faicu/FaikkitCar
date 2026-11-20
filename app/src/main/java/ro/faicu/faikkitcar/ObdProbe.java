@@ -46,9 +46,12 @@ final class ObdProbe {
     @SuppressWarnings("MissingPermission")
     static String run(Context c, String args) {
         if (args.trim().equals("reset")) return reset(c);
+        Obd o = Obd.instance();
+        if (args.trim().startsWith("scan")) {
+            return o == null ? "fara Obd" : o.scanCommand(args.trim());
+        }
         String[] cmds = args.trim().isEmpty() ? DEFAULT : args.trim().split("\\s+");
         // Cu motorul pornit legatura e deja a noastra (Obd): comenzile trec prin ea.
-        Obd o = Obd.instance();
         if (o != null && o.connected()) {
             try {
                 return o.script(cmds);

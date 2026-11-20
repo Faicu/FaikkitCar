@@ -177,7 +177,144 @@ final class Obd extends BluetoothGattCallback {
         synchronized (io) {
             poll();
         }
+        if (connected) scanBlock();
         return true;
+    }
+
+    // --- scanarea codurilor de citire (UDS 22) ----------------------------------------------
+
+    /** Lucrarile de scanare: {tx, rx, de la, pana la}; una in curs, restul la rand. */
+    private final java.util.ArrayDeque<int[]> scanQueue = new java.util.ArrayDeque<>();
+    private int[] scanJob;
+    private int scanNext;
+    private int scanSilent;
+    private long scanStartedAt;
+    private final StringBuilder scanLog = new StringBuilder();
+
+    /**
+     * `scan <tx> <rx> <de la> <pana la>` (hex) pune o scanare la rand; `scan status` = progresul si
+     * ce s-a gasit; `scan stop` = opreste tot. Scanarea merge in fundal, cate 2 s intre citirile
+     * motorului, doar cu legatura deschisa (motorul pornit); se reia la urmatoarea conectare.
+     */
+    String scanCommand(String args) {
+        String[] a = args.trim().split("\\s+");
+        synchronized (scanLog) {
+            if (a.length >= 5) {
+                int[] job = {Integer.parseInt(a[1], 16), Integer.parseInt(a[2], 16),
+                        Integer.parseInt(a[3], 16), Integer.parseInt(a[4], 16)};
+                scanQueue.add(job);
+                return "pus la rand: " + hex(job[0], 3) + "/" + hex(job[1], 3) + " " + hex(job[2], 4) + "-"
+                        + hex(job[3], 4) + " (la rand: " + scanQueue.size() + ")";
+            }
+            if (a.length >= 2 && a[1].equals("stop")) {
+                scanQueue.clear();
+                scanJob = null;
+                scanLog.append("\n[oprit]");
+                return "oprit";
+            }
+            StringBuilder out = new StringBuilder();
+            if (scanJob != null) {
+                int done = scanNext - scanJob[2], total = scanJob[3] - scanJob[2] + 1;
+                out.append("In curs: ").append(hex(scanJob[0], 3)).append("/").append(hex(scanJob[1], 3))
+                        .append(" la ").append(hex(scanNext, 4)).append(" (").append(done * 100 / total)
+                        .append("%, ").append((SystemClock.elapsedRealtime() - scanStartedAt) / 1000).append(" s)");
+            } else {
+                out.append("Nicio scanare in curs");
+            }
+            out.append(connected ? ", legatura deschisa" : ", legatura inchisa (asteapta motorul)")
+                    .append(", la rand ").append(scanQueue.size()).append("\n").append(scanLog);
+            return out.toString();
+        }
+    }
+
+    private void scanBlock() throws InterruptedException {
+        int[] job;
+        synchronized (scanLog) {
+            if (scanJob == null) {
+                scanJob = scanQueue.poll();
+                if (scanJob == null) return;
+                scanNext = scanJob[2];
+                scanSilent = 0;
+                scanStartedAt = SystemClock.elapsedRealtime();
+                scanLog.append("\n== ").append(hex(scanJob[0], 3)).append("/").append(hex(scanJob[1], 3)).append(" ")
+                        .append(hex(scanJob[2], 4)).append("-").append(hex(scanJob[3], 4));
+            }
+            job = scanJob;
+        }
+        String tx = hex(job[0], 3);
+        synchronized (io) {
+            send("ATSH" + tx, 1_000);
+            send("ATCRA" + hex(job[1], 3), 1_000);
+            send("ATFCSH" + tx, 1_000);
+            send("ATFCSD300000", 1_000);
+            send("ATFCSM1", 1_000);
+            long end = SystemClock.elapsedRealtime() + 2_000;
+            int retries = 0;
+            while (connected && scanJob == job && scanNext <= job[3] && SystemClock.elapsedRealtime() < end) {
+                int from = scanNext, n = Math.min(3, job[3] - from + 1);
+                StringBuilder req = new StringBuilder("22");
+                for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
+                int[] b = bytesOf(send(req.toString(), 1_500));
+                if (b.length == 0) {
+                    if (++scanSilent >= 20) {
+                        scanDone(job, "modulul nu raspunde");
+                        break;
+                    }
+                    continue;
+                }
+                scanSilent = 0;
+                if (b[0] == 0x7F && b.length >= 3 && (b[2] == 0x78 || b[2] == 0x21) && retries++ < 5) {
+                    Thread.sleep(200);
+                    continue;
+                }
+                retries = 0;
+                if (!(b[0] == 0x7F && b.length >= 3 && b[2] == 0x31)) {
+                    // Ceva exista in grupul asta: le citim pe rand, ca sa stim al cui e raspunsul.
+                    for (int i = 0; i < n; i++) {
+                        int did = from + i;
+                        int[] r = bytesOf(send("22" + hex(did, 4), 1_500));
+                        if (r.length == 0 || (r[0] == 0x7F && r.length >= 3 && r[2] == 0x31)) continue;
+                        found(did, r);
+                    }
+                }
+                scanNext = from + n;
+            }
+            if (scanJob == job && scanNext > job[3]) scanDone(job, "gata");
+            send("ATFCSM0", 1_000);
+            send("ATCRA", 1_000);
+            send("ATSH7E0", 1_000);
+        }
+    }
+
+    private int[] bytesOf(String r) {
+        return r == null ? new int[0] : bytes(r);
+    }
+
+    private void found(int did, int[] r) {
+        StringBuilder line = new StringBuilder("\n").append(hex(did, 4)).append(":");
+        int start = r[0] == 0x62 && r.length >= 3 ? 3 : 0;
+        StringBuilder ascii = new StringBuilder();
+        for (int i = start; i < r.length; i++) {
+            line.append(' ').append(hex(r[i], 2));
+            ascii.append(r[i] >= 32 && r[i] < 127 ? (char) r[i] : '.');
+        }
+        if (start == 3 && r.length - start >= 3) line.append("  \"").append(ascii).append('"');
+        synchronized (scanLog) {
+            scanLog.append(line);
+        }
+    }
+
+    private void scanDone(int[] job, String why) {
+        synchronized (scanLog) {
+            scanLog.append("\n[").append(why).append(", ")
+                    .append((SystemClock.elapsedRealtime() - scanStartedAt) / 1000).append(" s]");
+            if (scanJob == job) scanJob = null;
+        }
+        Prefs.log(c, "OBD: scanarea " + hex(job[0], 3) + " " + why);
+    }
+
+    private static String hex(int v, int digits) {
+        return String.format(java.util.Locale.US, "%0" + digits + "X", v);
     }
 
     // --- citirea ---------------------------------------------------------------------------

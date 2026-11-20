@@ -172,6 +172,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   airbag-ul 715/77F (5C0959655B). Nu răspund (probabil KWP pe TP2.0): gateway 710, ABS 713, confort 70E, direcția 712,
   cutia 7E1 (manuală). Mod 09: VIN, CALID `03F906070GA 5413`, CVN C3664742, numele „ECM-EngineControl”; mod 06 are teste.
   Valorile VW (DID-urile de măsură) încă necunoscute: de scanat.
+  Cererea UDS cu 3 DID-uri deodată merge pe motor, bord și climatronic (cele inexistente sunt sărite; 7F 22 31 doar dacă
+  niciunul nu există). 1.1.94: `@obd scan <tx> <rx> <de la> <până la>` (hex) pune la rând o scanare `22` în fundal, câte
+  2 s între citirile motorului (consumul se înregistrează mai departe, la ~2,4 s); un grup cu răspuns e recitit DID cu DID;
+  `@obd scan status` = progresul și ce s-a găsit (în memorie, se pierde la repornirea aplicației), `@obd scan stop`.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
