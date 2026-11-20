@@ -137,6 +137,17 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (`--timeout 60`); butonul din Setări scos în 1.1.72, la cererea utilizatorului. Navigația are și SIM cu LTE.
   Rezultat 22.10: Bluetooth-ul Android e pornit (nume „FAImobil”), BLE merge (a găsit `LEDCAR-01`, −43 dBm),
   deci un adaptor OBD2 BLE se poate citi direct din aplicație; ales vLinker MC+.
+- `ObdProbe` (20.11, 1.1.90): adaptorul OBD2 BLE vLinker MC+ (se anunță „vLinker MC-IOS”, `C5:57:46:DD:88:83`, fără
+  asociere). Comanda internă `@obd` (setul implicit) / `@obd <comenzi ELM…>` / `@obd reset` (Bluetooth Android oprit și
+  pornit) prin `car-cmd.ts`; doar citiri (04/10/2E/31/14/11/27/28/85 refuzate). GATT: serviciul `18f0`, notificări `2af0`,
+  scriere `2af1` (mai e `e7810a71…`/`bef8d6c9…`, nefolosit). STN1151 v4.3.2, ELM327 v2.2, ~40 ms pe comandă, ~100 ms
+  răspunsul motorului. Protocol A6 (CAN 11 biți 500k), motorul răspunde pe 7E8. VIN WVWZZZ1KZDW032311.
+  PID-uri suportate: 01 03–07 0B–0F 11 13 15 1C 1F 21 23 2E 30 31 33 34 3C 41–47 49 4A 4C 56; **fără MAF (10) și fără
+  consum (5E)**, deci consumul din MAP + IAT + rpm (sau cantitatea injectată prin UDS, de găsit). **UDS da**: 22F190 = VIN,
+  22F187 = 03F906070GA, 22F189 = 5413; KWP 1A9B refuzat (7F 11). 20.11, la relanti: fără coduri (03/07), MIL stins;
+  testele catalizator, evaporare, sondă lambda și încălzirea ei neterminate. 1.1.90 făcea `close()` imediat după
+  `disconnect()`: legătura a rămas deschisă pe navigație și adaptorul n-a mai apărut în scanare; 1.1.91 așteaptă
+  deconectarea, ia întâi dispozitivele deja conectate, apoi scanarea, apoi adresa știută.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

@@ -43,7 +43,9 @@ final class ObdProbe {
 
     private ObdProbe() {}
 
+    @SuppressWarnings("MissingPermission")
     static String run(Context c, String args) {
+        if (args.trim().equals("reset")) return reset(c);
         String[] cmds = args.trim().isEmpty() ? DEFAULT : args.trim().split("\\s+");
         Probe p = new Probe(c);
         try {
@@ -54,6 +56,29 @@ final class ObdProbe {
             p.close();
         }
         return p.out.toString();
+    }
+
+    /** Opreste si reporneste Bluetooth-ul Android (cel al navigatiei; telefonul Teyes e alt modul). */
+    @SuppressWarnings("MissingPermission")
+    private static String reset(Context c) {
+        BluetoothManager bm = c.getSystemService(BluetoothManager.class);
+        BluetoothAdapter ad = bm != null ? bm.getAdapter() : null;
+        if (ad == null) return "fara adaptor";
+        try {
+            StringBuilder sb = new StringBuilder("conectate GATT: ")
+                    .append(bm.getConnectedDevices(BluetoothProfile.GATT));
+            sb.append("\noprire: ").append(ad.disable());
+            long end = System.currentTimeMillis() + 10_000;
+            while (ad.getState() != BluetoothAdapter.STATE_OFF && System.currentTimeMillis() < end) Thread.sleep(200);
+            sb.append(" -> ").append(ad.getState() == BluetoothAdapter.STATE_OFF ? "oprit" : "stare " + ad.getState());
+            sb.append("\npornire: ").append(ad.enable());
+            end = System.currentTimeMillis() + 10_000;
+            while (!ad.isEnabled() && System.currentTimeMillis() < end) Thread.sleep(200);
+            sb.append(" -> ").append(ad.isEnabled() ? "pornit" : "stare " + ad.getState());
+            return sb.toString();
+        } catch (Exception e) {
+            return "eroare: " + e;
+        }
     }
 
     private static boolean forbidden(String cmd) {
@@ -89,11 +114,22 @@ final class ObdProbe {
                 out.append("Bluetooth Android oprit sau lipsa");
                 return;
             }
-            BluetoothDevice dev = find(ad);
+            BluetoothDevice dev = null;
+            for (BluetoothDevice d : bm.getConnectedDevices(BluetoothProfile.GATT)) {
+                out.append("Deja conectat: ").append(d.getName()).append(" ").append(d.getAddress()).append("\n");
+                if (isObd(d.getName())) dev = d;
+            }
+            if (dev == null) dev = find(ad);
+            String known = c.getSharedPreferences("obd", Context.MODE_PRIVATE).getString("addr", null);
+            if (dev == null && known != null) {
+                out.append("Nu apare in scanare; incerc adresa stiuta\n");
+                dev = ad.getRemoteDevice(known);
+            }
             if (dev == null) {
                 out.append("Adaptorul OBD nu s-a gasit in 8 s (nume vLinker/OBD/ELM)");
                 return;
             }
+            c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit().putString("addr", dev.getAddress()).apply();
             out.append("Adaptor: ").append(dev.getName()).append(" ").append(dev.getAddress());
             if (!connect(dev)) {
                 connStatus = 0;
@@ -187,9 +223,7 @@ final class ObdProbe {
                 @Override
                 public void onScanResult(int type, ScanResult r) {
                     String n = r.getScanRecord() != null ? r.getScanRecord().getDeviceName() : null;
-                    if (n == null) return;
-                    String u = n.toUpperCase();
-                    if (u.contains("VLINK") || u.contains("OBD") || u.contains("ELM")) {
+                    if (isObd(n)) {
                         synchronized (found) {
                             if (found[0] == null) found[0] = r.getDevice();
                             found.notifyAll();
@@ -244,13 +278,24 @@ final class ObdProbe {
             return until - System.currentTimeMillis();
         }
 
+        /**
+         * Deconectarea si apoi inchiderea, dupa confirmare: `close()` imediat dupa `disconnect()`
+         * lasa pe navigatie legatura radio deschisa (20.11: adaptorul n-a mai aparut in scanare).
+         */
         @SuppressWarnings("MissingPermission")
         void close() {
             BluetoothGatt g = gatt;
             gatt = null;
             if (g == null) return;
             try {
-                g.disconnect();
+                synchronized (lock) {
+                    if (connState == BluetoothProfile.STATE_CONNECTED) {
+                        g.disconnect();
+                        long end = System.currentTimeMillis() + 3_000;
+                        while (connState != BluetoothProfile.STATE_DISCONNECTED
+                                && System.currentTimeMillis() < end) lock.wait(100);
+                    }
+                }
                 g.close();
             } catch (Exception ignored) {
                 // deja inchis
@@ -302,6 +347,12 @@ final class ObdProbe {
                 lock.notifyAll();
             }
         }
+    }
+
+    private static boolean isObd(String name) {
+        if (name == null) return false;
+        String u = name.toUpperCase();
+        return u.contains("VLINK") || u.contains("OBD") || u.contains("ELM");
     }
 
     private static String props(int p) {
