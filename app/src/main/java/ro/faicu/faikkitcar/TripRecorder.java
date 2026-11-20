@@ -241,6 +241,16 @@ final class TripRecorder implements LocationListener {
             p.put("hb", can.handbrakePulled() ? 1 : 0);
             p.put("door", can.openDoors().isEmpty() ? 0 : 1);
             p.put("rev", can.reverse() ? 1 : 0);
+            // Adaptorul OBD2: litrii din aerul aspirat de la punctul anterior si valorile motorului.
+            double[] o = Obd.take();
+            if (o != null) {
+                if (o[1] > 0) p.put("ol", Math.round(o[0] * 100_000) / 100_000.0).put("os", round1(o[1]));
+                if (!Double.isNaN(o[2])) p.put("olh", o[2]);
+                if (!Double.isNaN(o[3])) p.put("map", o[3]);
+                if (!Double.isNaN(o[4])) p.put("iat", o[4]);
+                if (!Double.isNaN(o[5])) p.put("ect", o[5]);
+                if (!Double.isNaN(o[6])) p.put("load", o[6]);
+            }
             // Semnalul mobil al cartelei din navigatie: harta zonelor fara internet.
             CellSignal.put(c, p);
             if (!Double.isNaN(pendingCrank)) {

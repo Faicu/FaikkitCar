@@ -56,6 +56,16 @@ export interface IncomingPoint {
   sig?: number | null; // dBm (RSRP la 4G/5G)
   op?: string | null; // MCC+MNC, ex. 22605 = Digi
   ca?: number | null; // vechimea citirii celulei, s (1.1.65+)
+  // Adaptorul OBD2 (1.1.92+): litrii de la punctul anterior (din aerul aspirat, necalibrați), câte
+  // secunde le acoperă, consumul de acum (L/h), presiunea din galerie (kPa), aerul admis și lichidul
+  // de răcire (°C), sarcina (%).
+  ol?: number | null;
+  os?: number | null;
+  olh?: number | null;
+  map?: number | null;
+  iat?: number | null;
+  ect?: number | null;
+  load?: number | null;
 }
 
 export interface TripPoint {
@@ -111,8 +121,9 @@ export function insertPoints(points: IncomingPoint[]): number {
   const stmt = db.prepare(
     `INSERT OR IGNORE INTO trip_point
        (device_at, received_at, lat, lon, alt, acc, gps_speed, can_speed, rpm, volt, temp, odo, fuel, cons, crank,
-        ac, fan, belt, hb, door, rev, net, rat, ch, sig, op, cell_age)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ac, fan, belt, hb, door, rev, net, rat, ch, sig, op, cell_age,
+        obd_l, obd_s, obd_lh, map, iat, ect, obd_load)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   let added = 0;
   db.exec("BEGIN");
@@ -150,6 +161,13 @@ export function insertPoints(points: IncomingPoint[]): number {
         num(p.sig),
         str(p.op),
         num(p.ca),
+        num(p.ol),
+        num(p.os),
+        num(p.olh),
+        num(p.map),
+        num(p.iat),
+        num(p.ect),
+        num(p.load),
       );
       added += Number(r.changes);
     }

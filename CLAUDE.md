@@ -153,6 +153,17 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   măsurat 0,998, sarcina absolută 26 %, pedala 14,5/14,9 % în repaus. **0130 = 1 încălzire și 0131 = 0 km de la ștergerea
   codurilor**: ECU-ul a fost resetat de curând (de aici testele neterminate). După test adaptorul nu apare în scanare
   1–3 min (și cu 1.1.91, și după `@obd reset`, deși `getConnectedDevices(GATT)` e gol); apoi revine singur. Cauza neclară.
+- `Obd` (21.11, 1.1.92): legătura permanentă cu adaptorul, **fără comutator** (cererea utilizatorului): cu motorul pornit
+  (turația CAN > 300) se conectează singur la adresa știută (`obd/addr`, implicit cea din test), la 60 s după oprirea
+  motorului îl eliberează (Car Scanner îl poate lua; adaptorul reapare în scanare după 1–3 min). Fără adaptor: reîncearcă
+  la 10 s … 2 min, în jurnal o dată „OBD: adaptorul nu raspunde”. Init `ATZ ATE0 ATL0 ATS0 ATH0 ATSP6 ATSH7E0`, `0100`.
+  Ciclul: `010C0B0F0349` (turație, MAP, aer admis, starea injecției, pedala), la 2 s `0105044406070E`, la 5 min `0101`
+  (coduri / martor, în jurnal la schimbare); după 3 eșecuri trece pe PID-uri unul câte unul. Consumul din aerul aspirat:
+  MAP × 1,197 L × rpm/120 × VE 0,85 / (R × T) / (14,7 × λ cerut) / 745 g/L; 0 la injecția tăiată (starea 4, pedala în
+  repaus, > 1000 rpm). Pe puncte: `ol` (L de la punctul anterior), `os` (s citite), `olh`, `map`, `iat`, `ect`, `load`
+  → `trip_point.obd_l`, `obd_s`, `obd_lh`, `map`, `iat`, `ect`, `obd_load`. Încă nefolosite în calcule și pe site/Panel
+  (utilizatorul: întâi strângem date). `@obd` cu legătura deschisă trece prin ea (`Obd.script`). Jurnal: „OBD: conectat”,
+  „OBD: deconectat (…), s, cicluri/s, L” (categoria Mașina). Pe ecranul din mașină doar costul, fără L/100 (îl arată bordul).
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

@@ -89,6 +89,7 @@ public class WelcomeService extends Service {
                 + (alive > 0 ? "acum " + (now - alive) / 1000 + " s" : "necunoscuta"));
         Prefs.log(this, "Info: " + Prefs.deviceInfo(this).replace("\n", " | "));
         Music.start(this); // muzica de pe navigatie, comandata din Panel
+        Obd.start(this); // adaptorul OBD2: singur cu motorul pornit, eliberat dupa oprire
         // APK-ul MainServer-ului se citeste in fundal (cativa MB).
         new Thread(() -> {
             try {

@@ -24,7 +24,7 @@ const RULES: Array<[RegExp, LogCategory]> = [
   [/^Actualizare/, "actualizari"],
   [/^Calatorii/, "calatorii"],
   [/^(Redare|Volum|Focus audio|Lista audio|Voce|Pauza|Usa deschisa|Selector fisiere)/, "sunet"],
-  [/^(Frana de mana|Contact|Pornire motor|Rezervor|Lumini|Date masina)/, "masina"],
+  [/^(Frana de mana|Contact|Pornire motor|Rezervor|Lumini|Date masina|OBD:)/, "masina"],
 ];
 
 /** Tot ce nu se potrivește (pornirea serviciului, treziri, somn, ecran, căderi...) e „sistem”. */

@@ -217,6 +217,15 @@ export function getDb(): DatabaseSync {
     ["op", "TEXT"],
     // Vechimea citirii celulei în secunde (1.1.65+): pe Teyes getAllCellInfo dădea o copie veche.
     ["cell_age", "INTEGER"],
+    // Adaptorul OBD2 (1.1.92+): litrii din aerul aspirat de la punctul anterior și câte secunde au
+    // fost citite, consumul de acum (L/h), presiunea din galerie, aerul admis, lichidul de răcire, sarcina.
+    ["obd_l", "REAL"],
+    ["obd_s", "REAL"],
+    ["obd_lh", "REAL"],
+    ["map", "REAL"],
+    ["iat", "REAL"],
+    ["ect", "REAL"],
+    ["obd_load", "REAL"],
   ]) {
     if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
   }

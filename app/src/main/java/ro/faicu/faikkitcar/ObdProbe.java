@@ -47,6 +47,24 @@ final class ObdProbe {
     static String run(Context c, String args) {
         if (args.trim().equals("reset")) return reset(c);
         String[] cmds = args.trim().isEmpty() ? DEFAULT : args.trim().split("\\s+");
+        // Cu motorul pornit legatura e deja a noastra (Obd): comenzile trec prin ea.
+        Obd o = Obd.instance();
+        if (o != null && o.connected()) {
+            try {
+                return o.script(cmds);
+            } catch (InterruptedException e) {
+                return "intrerupt";
+            }
+        }
+        if (o != null) o.probeRunning = true;
+        try {
+            return probe(c, cmds);
+        } finally {
+            if (o != null) o.probeRunning = false;
+        }
+    }
+
+    private static String probe(Context c, String[] cmds) {
         Probe p = new Probe(c);
         try {
             p.go(cmds);
@@ -81,7 +99,7 @@ final class ObdProbe {
         }
     }
 
-    private static boolean forbidden(String cmd) {
+    static boolean forbidden(String cmd) {
         String u = cmd.toUpperCase();
         if (u.startsWith("AT") || u.startsWith("ST")) return false;
         for (String f : FORBIDDEN) if (u.startsWith(f)) return true;
