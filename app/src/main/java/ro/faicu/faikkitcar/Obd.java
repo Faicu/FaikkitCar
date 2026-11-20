@@ -177,7 +177,9 @@ final class Obd extends BluetoothGattCallback {
         synchronized (io) {
             poll();
         }
-        if (connected) scanBlock();
+        // Scanarea doar pe loc (21.11: in mers lasa puncte fara consum), cu motorul pornit.
+        double kmh = CanLink.get(c).speed();
+        if (connected && !Double.isNaN(kmh) && kmh < 1) scanBlock();
         return true;
     }
 
@@ -189,6 +191,7 @@ final class Obd extends BluetoothGattCallback {
     private final java.util.ArrayDeque<Integer> scanPending = new java.util.ArrayDeque<>();
     private int scanNext;
     private int scanSilent;
+    private int pendingTries;
     private long scanStartedAt;
     private final StringBuilder scanLog = new StringBuilder();
 
@@ -253,17 +256,21 @@ final class Obd extends BluetoothGattCallback {
             // Cel mult ~1,2 s, recitirile incluse: citirile motorului (consumul) nu raman in urma
             // (21.11: pe bord, de la 0x1000, bucatile de 2 s + recitiri lasau puncte fara consum).
             long end = SystemClock.elapsedRealtime() + 1_200;
-            int retries = 0;
             while (connected && scanJob == job && !scanPending.isEmpty() && SystemClock.elapsedRealtime() < end) {
                 int did = scanPending.peek();
                 int[] r = bytesOf(send("22" + hex(did, 4), 1_500));
-                if (r.length > 0 && r[0] == 0x7F && r.length >= 3 && (r[2] == 0x78 || r[2] == 0x21) && retries++ < 3) {
-                    Thread.sleep(100);
+                // Doar „asteapta” (7F 22 78/21) sau nimic: mai incercam de cel mult 3 ori, in bucati diferite.
+                boolean slow = r.length == 0 || (r[0] == 0x7F && r.length == 3 && (r[2] == 0x78 || r[2] == 0x21));
+                if (slow && ++pendingTries < 3) continue;
+                pendingTries = 0;
+                scanPending.poll();
+                if (slow) {
+                    synchronized (scanLog) {
+                        scanLog.append("\n").append(hex(did, 4)).append(": lent (fara raspuns)");
+                    }
                     continue;
                 }
-                retries = 0;
-                scanPending.poll();
-                if (r.length == 0 || (r[0] == 0x7F && r.length >= 3 && r[2] == 0x31)) continue;
+                if (r[0] == 0x7F && r.length >= 3 && r[2] == 0x31) continue;
                 found(did, r);
             }
             while (connected && scanJob == job && scanPending.isEmpty() && scanNext <= job[3]
@@ -277,14 +284,12 @@ final class Obd extends BluetoothGattCallback {
                         scanDone(job, "modulul nu raspunde");
                         break;
                     }
+                    // Poate doar un raspuns prea lung sau lent: le recitim pe rand.
+                    for (int i = 0; i < n; i++) scanPending.add(from + i);
+                    scanNext = from + n;
                     continue;
                 }
                 scanSilent = 0;
-                if (b[0] == 0x7F && b.length >= 3 && (b[2] == 0x78 || b[2] == 0x21) && retries++ < 5) {
-                    Thread.sleep(200);
-                    continue;
-                }
-                retries = 0;
                 if (!(b[0] == 0x7F && b.length >= 3 && b[2] == 0x31)) {
                     // Ceva exista in grupul asta: le recitim pe rand (in bucatile urmatoare, daca nu
                     // mai e timp), ca sa stim al cui e raspunsul.
