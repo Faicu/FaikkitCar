@@ -55,6 +55,8 @@ final class Obd extends BluetoothGattCallback {
     /** O singura conversatie cu adaptorul: ciclul de citire sau testul de la distanta. */
     private final Object io = new Object();
     private final StringBuilder rx = new StringBuilder();
+    /** Ultima cerere a ramas fara raspuns la timp (poate veni intarziat). */
+    private boolean late;
     private BluetoothGatt gatt;
     private BluetoothGattCharacteristic wr;
     private volatile boolean connected;
@@ -266,7 +268,7 @@ final class Obd extends BluetoothGattCallback {
                 while (connected && !scanSlow.isEmpty() && SystemClock.elapsedRealtime() < end) {
                     int[] d = scanSlow.peek();
                     target(d[0], d[1]);
-                    int[] r = bytesOf(send("22" + hex(d[2], 4), wait));
+                    int[] r = read22(d[2], wait);
                     boolean slow = isSlow(r);
                     if (slow && ++pendingTries < 3) continue;
                     pendingTries = 0;
@@ -282,7 +284,7 @@ final class Obd extends BluetoothGattCallback {
             long end = SystemClock.elapsedRealtime() + budget;
             while (connected && scanJob == job && !scanPending.isEmpty() && SystemClock.elapsedRealtime() < end) {
                 int did = scanPending.peek();
-                int[] r = bytesOf(send("22" + hex(did, 4), wait));
+                int[] r = read22(did, wait);
                 boolean slow = isSlow(r);
                 // In mers, cele lente direct pentru oprire; pe loc, de cel mult 3 ori.
                 if (slow && !moving && ++pendingTries < 3) continue;
@@ -300,7 +302,9 @@ final class Obd extends BluetoothGattCallback {
                 int from = scanNext, n = Math.min(3, job[3] - from + 1);
                 StringBuilder req = new StringBuilder("22");
                 for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
-                int[] b = bytesOf(send(req.toString(), wait));
+                int[] b = strip(bytesOf(send(req.toString(), wait)));
+                // Un raspuns intarziat la altceva (21.11: „41 0C …” la DID 000F) = ca si cum n-ar fi venit.
+                if (b.length > 0 && b[0] != 0x62 && !(b[0] == 0x7F && b.length >= 3 && b[1] == 0x22)) b = new int[0];
                 scanNext = from + n;
                 if (b.length == 0) {
                     if (++scanSilent >= 20) {
@@ -328,6 +332,23 @@ final class Obd extends BluetoothGattCallback {
         send("ATSH" + hex(tx, 3), 1_000);
         send(tx == 0x7E0 ? "ATCRA" : "ATCRA" + hex(rx, 3), 1_000);
         send("ATFCSH" + hex(tx, 3), 1_000);
+    }
+
+    /**
+     * Un DID, doar raspunsul lui: „62 <DID> …” sau „7F 22 <cod>”; altceva (raspunsul intarziat al
+     * altei cereri) = fara raspuns. Prefixele „7F 22 78” (asteapta) dinaintea raspunsului se scot.
+     */
+    private int[] read22(int did, long wait) throws InterruptedException {
+        int[] r = strip(bytesOf(send("22" + hex(did, 4), wait)));
+        if (r.length >= 3 && r[0] == 0x62 && r[1] == (did >> 8) && r[2] == (did & 0xFF)) return r;
+        if (r.length == 3 && r[0] == 0x7F && r[1] == 0x22) return r;
+        return new int[0];
+    }
+
+    private static int[] strip(int[] r) {
+        int i = 0;
+        while (r.length - i > 3 && r[i] == 0x7F && r[i + 1] == 0x22 && (r[i + 2] == 0x78 || r[i + 2] == 0x21)) i += 3;
+        return i == 0 ? r : java.util.Arrays.copyOfRange(r, i, r.length);
     }
 
     private static boolean isSlow(int[] r) {
@@ -617,6 +638,12 @@ final class Obd extends BluetoothGattCallback {
     private String send(String cmd, long waitMs) throws InterruptedException {
         synchronized (lock) {
             if (!connected || gatt == null || wr == null) return null;
+            if (late) {
+                // Cererea anterioara a ramas fara „>”: asteptam sa se termine si aruncam raspunsul ei.
+                long until = SystemClock.elapsedRealtime() + 1_000;
+                while (rx.indexOf(">") < 0 && connected && SystemClock.elapsedRealtime() < until) lock.wait(20);
+                late = false;
+            }
             rx.setLength(0);
             wr.setValue((cmd + "\r").getBytes(StandardCharsets.US_ASCII));
             if (!gatt.writeCharacteristic(wr)) {
@@ -626,7 +653,10 @@ final class Obd extends BluetoothGattCallback {
             }
             long end = SystemClock.elapsedRealtime() + waitMs;
             while (rx.indexOf(">") < 0 && connected && SystemClock.elapsedRealtime() < end) lock.wait(20);
-            if (rx.indexOf(">") < 0) return null;
+            if (rx.indexOf(">") < 0) {
+                late = true;
+                return null;
+            }
             return rx.substring(0, rx.indexOf(">"));
         }
     }

@@ -186,6 +186,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   1.1.97 (utilizatorul vrea să se plimbe cât scanează): și în mers, bucăți de ~0,4 s cu răspunsul așteptat ≤ 0,5 s
   (citirile motorului sub o secundă); ce răspunde greu în mers merge în `scanSlow`, recitit pe loc. Confirmarea cadrelor
   (`ATFCSH7E0 ATFCSD300000 ATFCSM1`) pusă o dată la conectare, la schimbarea modulului doar `ATSH`/`ATCRA`/`ATFCSH`.
+  1.1.97: consumul acoperit complet în mers cu scanarea (os 20,3/20, 30,3/30), dar răspunsurile întârziate se lipeau de
+  cererea următoare (DID 000F = „41 0C …”, și cererea multiplă „fără răspuns”). 1.1.98: după o cerere fără „>” se
+  așteaptă ≤ 1 s și se aruncă restul; un DID e acceptat doar ca „62 <DID> …” / „7F 22 xx”, prefixele 7F 22 78 scoase.
+  Comenzile date chiar înainte de o actualizare le ia procesul vechi și se pierd (scanările puse atunci).
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
