@@ -183,6 +183,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   1.1.95 a stat 200 s pe grupul 101A (7F 22 78 / fără răspuns la nesfârșit) și tot lăsa puncte fără consum: oprit.
   1.1.96: scanarea doar pe loc (viteza CAN < 1) cu motorul pornit; un grup lent sau fără răspuns trece la recitirea DID cu
   DID, un DID fără răspuns după 3 încercări = „lent” și sărit.
+  1.1.97 (utilizatorul vrea să se plimbe cât scanează): și în mers, bucăți de ~0,4 s cu răspunsul așteptat ≤ 0,5 s
+  (citirile motorului sub o secundă); ce răspunde greu în mers merge în `scanSlow`, recitit pe loc. Confirmarea cadrelor
+  (`ATFCSH7E0 ATFCSD300000 ATFCSM1`) pusă o dată la conectare, la schimbarea modulului doar `ATSH`/`ATCRA`/`ATFCSH`.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

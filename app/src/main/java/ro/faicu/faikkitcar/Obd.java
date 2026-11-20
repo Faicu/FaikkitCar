@@ -38,6 +38,9 @@ final class Obd extends BluetoothGattCallback {
     private static final long RELEASE_MS = 60_000;
     private static final long SLOW_MS = 2_000;
     private static final long STATUS_MS = 5 * 60_000;
+    /** Setarile noastre; confirmarea cadrelor manuala (si pentru celelalte module, la scanare). */
+    private static final String[] INIT = {"ATE0", "ATL0", "ATS0", "ATH0", "ATSP6", "ATSH7E0", "ATCRA",
+            "ATFCSH7E0", "ATFCSD300000", "ATFCSM1"};
 
     // Motorul CBZB: 1197 cm3. Benzina: 745 g/L, stoechiometric 14,7.
     private static final double DISPLACEMENT_M3 = 0.001197;
@@ -177,9 +180,9 @@ final class Obd extends BluetoothGattCallback {
         synchronized (io) {
             poll();
         }
-        // Scanarea doar pe loc (21.11: in mers lasa puncte fara consum), cu motorul pornit.
+        // Scanarea, cu motorul pornit: in mers bucati scurte (consumul ramane acoperit).
         double kmh = CanLink.get(c).speed();
-        if (connected && !Double.isNaN(kmh) && kmh < 1) scanBlock();
+        if (connected) scanBlock(Double.isNaN(kmh) || kmh >= 1);
         return true;
     }
 
@@ -189,6 +192,8 @@ final class Obd extends BluetoothGattCallback {
     private final java.util.ArrayDeque<int[]> scanQueue = new java.util.ArrayDeque<>();
     private int[] scanJob;
     private final java.util.ArrayDeque<Integer> scanPending = new java.util.ArrayDeque<>();
+    /** {tx, rx, DID} care au raspuns greu in mers: recitite pe loc. */
+    private final java.util.ArrayDeque<int[]> scanSlow = new java.util.ArrayDeque<>();
     private int scanNext;
     private int scanSilent;
     private int pendingTries;
@@ -212,6 +217,7 @@ final class Obd extends BluetoothGattCallback {
             }
             if (a.length >= 2 && a[1].equals("stop")) {
                 scanQueue.clear();
+                scanSlow.clear();
                 scanJob = null;
                 scanLog.append("\n[oprit]");
                 return "oprit";
@@ -226,17 +232,22 @@ final class Obd extends BluetoothGattCallback {
                 out.append("Nicio scanare in curs");
             }
             out.append(connected ? ", legatura deschisa" : ", legatura inchisa (asteapta motorul)")
-                    .append(", la rand ").append(scanQueue.size()).append("\n").append(scanLog);
+                    .append(", la rand ").append(scanQueue.size()).append(", lente pentru oprire ")
+                    .append(scanSlow.size()).append("\n").append(scanLog);
             return out.toString();
         }
     }
 
-    private void scanBlock() throws InterruptedException {
+    /**
+     * O bucata de scanare. In mers (cererea utilizatorului, 21.11: sa se poata plimba) bucati de
+     * ~0,4 s cu raspunsul asteptat cel mult 0,5 s, ca citirile motorului sa ramana sub o secunda;
+     * ce raspunde greu se lasa pentru o oprire (`scanSlow`). Pe loc: 1,2 s si raspunsuri de 1,5 s.
+     */
+    private void scanBlock(boolean moving) throws InterruptedException {
         int[] job;
         synchronized (scanLog) {
-            if (scanJob == null) {
+            if (scanJob == null && !scanQueue.isEmpty()) {
                 scanJob = scanQueue.poll();
-                if (scanJob == null) return;
                 scanNext = scanJob[2];
                 scanPending.clear();
                 scanSilent = 0;
@@ -246,61 +257,90 @@ final class Obd extends BluetoothGattCallback {
             }
             job = scanJob;
         }
-        String tx = hex(job[0], 3);
+        long budget = moving ? 400 : 1_200;
+        long wait = moving ? 500 : 1_500;
         synchronized (io) {
-            send("ATSH" + tx, 1_000);
-            send("ATCRA" + hex(job[1], 3), 1_000);
-            send("ATFCSH" + tx, 1_000);
-            send("ATFCSD300000", 1_000);
-            send("ATFCSM1", 1_000);
-            // Cel mult ~1,2 s, recitirile incluse: citirile motorului (consumul) nu raman in urma
-            // (21.11: pe bord, de la 0x1000, bucatile de 2 s + recitiri lasau puncte fara consum).
-            long end = SystemClock.elapsedRealtime() + 1_200;
+            if (!moving && !scanSlow.isEmpty()) {
+                // Pe loc: intai cele lente, ramase din mers.
+                long end = SystemClock.elapsedRealtime() + budget;
+                while (connected && !scanSlow.isEmpty() && SystemClock.elapsedRealtime() < end) {
+                    int[] d = scanSlow.peek();
+                    target(d[0], d[1]);
+                    int[] r = bytesOf(send("22" + hex(d[2], 4), wait));
+                    boolean slow = isSlow(r);
+                    if (slow && ++pendingTries < 3) continue;
+                    pendingTries = 0;
+                    scanSlow.poll();
+                    if (slow) note(hex(d[0], 3) + " " + hex(d[2], 4) + ": lent (fara raspuns)");
+                    else if (!isMissing(r)) found(d[0], d[2], r);
+                }
+                target(0x7E0, -1);
+                return;
+            }
+            if (job == null) return;
+            target(job[0], job[1]);
+            long end = SystemClock.elapsedRealtime() + budget;
             while (connected && scanJob == job && !scanPending.isEmpty() && SystemClock.elapsedRealtime() < end) {
                 int did = scanPending.peek();
-                int[] r = bytesOf(send("22" + hex(did, 4), 1_500));
-                // Doar „asteapta” (7F 22 78/21) sau nimic: mai incercam de cel mult 3 ori, in bucati diferite.
-                boolean slow = r.length == 0 || (r[0] == 0x7F && r.length == 3 && (r[2] == 0x78 || r[2] == 0x21));
-                if (slow && ++pendingTries < 3) continue;
+                int[] r = bytesOf(send("22" + hex(did, 4), wait));
+                boolean slow = isSlow(r);
+                // In mers, cele lente direct pentru oprire; pe loc, de cel mult 3 ori.
+                if (slow && !moving && ++pendingTries < 3) continue;
                 pendingTries = 0;
                 scanPending.poll();
                 if (slow) {
-                    synchronized (scanLog) {
-                        scanLog.append("\n").append(hex(did, 4)).append(": lent (fara raspuns)");
-                    }
+                    if (moving) scanSlow.add(new int[]{job[0], job[1], did});
+                    else note(hex(job[0], 3) + " " + hex(did, 4) + ": lent (fara raspuns)");
                     continue;
                 }
-                if (r[0] == 0x7F && r.length >= 3 && r[2] == 0x31) continue;
-                found(did, r);
+                if (!isMissing(r)) found(job[0], did, r);
             }
             while (connected && scanJob == job && scanPending.isEmpty() && scanNext <= job[3]
                     && SystemClock.elapsedRealtime() < end) {
                 int from = scanNext, n = Math.min(3, job[3] - from + 1);
                 StringBuilder req = new StringBuilder("22");
                 for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
-                int[] b = bytesOf(send(req.toString(), 1_500));
+                int[] b = bytesOf(send(req.toString(), wait));
+                scanNext = from + n;
                 if (b.length == 0) {
                     if (++scanSilent >= 20) {
                         scanDone(job, "modulul nu raspunde");
                         break;
                     }
-                    // Poate doar un raspuns prea lung sau lent: le recitim pe rand.
-                    for (int i = 0; i < n; i++) scanPending.add(from + i);
-                    scanNext = from + n;
-                    continue;
+                } else {
+                    scanSilent = 0;
                 }
-                scanSilent = 0;
-                if (!(b[0] == 0x7F && b.length >= 3 && b[2] == 0x31)) {
-                    // Ceva exista in grupul asta: le recitim pe rand (in bucatile urmatoare, daca nu
-                    // mai e timp), ca sa stim al cui e raspunsul.
-                    for (int i = 0; i < n; i++) scanPending.add(from + i);
-                }
-                scanNext = from + n;
+                // Ceva exista in grupul asta (sau a raspuns greu): le recitim pe rand, ca sa stim al
+                // cui e raspunsul.
+                if (!isMissing(b)) for (int i = 0; i < n; i++) scanPending.add(from + i);
             }
             if (scanJob == job && scanNext > job[3] && scanPending.isEmpty()) scanDone(job, "gata");
-            send("ATFCSM0", 1_000);
-            send("ATCRA", 1_000);
-            send("ATSH7E0", 1_000);
+            target(0x7E0, -1);
+        }
+    }
+
+    private int targetTx = 0x7E0;
+
+    /** Adresa modulului (cererile, filtrul raspunsurilor, confirmarea cadrelor); 7E0 = motorul. */
+    private void target(int tx, int rx) throws InterruptedException {
+        if (tx == targetTx) return;
+        targetTx = tx;
+        send("ATSH" + hex(tx, 3), 1_000);
+        send(tx == 0x7E0 ? "ATCRA" : "ATCRA" + hex(rx, 3), 1_000);
+        send("ATFCSH" + hex(tx, 3), 1_000);
+    }
+
+    private static boolean isSlow(int[] r) {
+        return r.length == 0 || (r[0] == 0x7F && r.length == 3 && (r[2] == 0x78 || r[2] == 0x21));
+    }
+
+    private static boolean isMissing(int[] r) {
+        return r.length >= 3 && r[0] == 0x7F && r[2] == 0x31;
+    }
+
+    private void note(String line) {
+        synchronized (scanLog) {
+            scanLog.append("\n").append(line);
         }
     }
 
@@ -308,8 +348,8 @@ final class Obd extends BluetoothGattCallback {
         return r == null ? new int[0] : bytes(r);
     }
 
-    private void found(int did, int[] r) {
-        StringBuilder line = new StringBuilder("\n").append(hex(did, 4)).append(":");
+    private void found(int tx, int did, int[] r) {
+        StringBuilder line = new StringBuilder("\n").append(hex(tx, 3)).append(" ").append(hex(did, 4)).append(":");
         int start = r[0] == 0x62 && r.length >= 3 ? 3 : 0;
         StringBuilder ascii = new StringBuilder();
         for (int i = start; i < r.length; i++) {
@@ -552,7 +592,8 @@ final class Obd extends BluetoothGattCallback {
     private boolean init() throws InterruptedException {
         synchronized (io) {
             if (send("ATZ", 3_000) == null) return false;
-            for (String a : new String[]{"ATE0", "ATL0", "ATS0", "ATH0", "ATSP6", "ATSH7E0"}) send(a, 1_000);
+            for (String a : INIT) send(a, 1_000);
+            targetTx = 0x7E0;
             String r = send("0100", 3_000);
             if (r == null || !r.replace(" ", "").contains("4100")) return false;
         }
@@ -614,7 +655,8 @@ final class Obd extends BluetoothGattCallback {
                         .append(ObdProbe.forbidden(cmd) ? "sarit (nu e o citire)"
                                 : r == null ? "[fara raspuns]" : r.replace("\r", " | ").trim());
             }
-            for (String a : new String[]{"ATE0", "ATL0", "ATS0", "ATH0", "ATSP6", "ATSH7E0"}) send(a, 1_000);
+            for (String a : INIT) send(a, 1_000);
+            targetTx = 0x7E0;
         }
         return out.toString();
     }
