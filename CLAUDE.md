@@ -190,6 +190,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   cererea următoare (DID 000F = „41 0C …”, și cererea multiplă „fără răspuns”). 1.1.98: după o cerere fără „>” se
   așteaptă ≤ 1 s și se aruncă restul; un DID e acceptat doar ca „62 <DID> …” / „7F 22 xx”, prefixele 7F 22 78 scoase.
   Comenzile date chiar înainte de o actualizare le ia procesul vechi și se pierd (scanările puse atunci).
+  1.1.98, 21.11: bordul 0000–1923 în 640 s (~10 DID/s în zona 0x1000+), rezultate în `/root/obd-scan-714-0000-1923.txt`;
+  scanarea așteaptă următoarea pornire. **Kilometrajul confirmat: bordul 1018, primii 4 octeți** (`C0 62 00 03` =
+  245.858 km după 22 km de mers; CAN 245.861 puțin mai târziu). Se schimbă în mers și 1006, 1007, 1009, 100A, 1014, 1016.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
