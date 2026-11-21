@@ -192,9 +192,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   așteaptă ≤ 1 s și se aruncă restul; un DID e acceptat doar ca „62 <DID> …” / „7F 22 xx”, prefixele 7F 22 78 scoase.
   Comenzile date chiar înainte de o actualizare le ia procesul vechi și se pierd (scanările puse atunci).
   1.1.98, 21.11: bordul 0000–1923 în 640 s (~10 DID/s în zona 0x1000+), rezultate în `/root/obd-scan-714-0000-1923.txt`;
-  scanarea așteaptă următoarea pornire. Bordul 1018, primii 4 octeți (`C0 62 00 03` = 245.858) = kilometrajul **salvat la
-  ultima oprire**, nu cel live: la 00:05 (22.11) tot 245.858, CAN 245.875 (s-a schimbat 245.836 → 245.858 după oprirea de
-  la 23:28). La 00:05 în mers: 2205 = 0x28 la 41, 49 și 54 km/h (nu e viteza); 2206 = 0x34 (52, ca rezervorul CAN);
+  scanarea așteaptă următoarea pornire. Bordul 1018/1019/101A: kilometraje (`C0 62 00 03` = 245.858)
+  într-un jurnal de evenimente al bordului (contor 00/01/02 la 245.836, 245.858, 245.878, în mijlocul drumurilor), **nu**
+  kilometrajul de la ultima oprire (corectat 22.11; detaliile în `OBD-CODURI.md`). La 00:05 în mers: 2205 = 0x28 la 41, 49 și 54 km/h (nu e viteza); 2206 = 0x34 (52, ca rezervorul CAN);
   se schimbă: 1007 (crește repede, contor), 100A (92 → 90), 1014, 220C (7D → 7B), 202F (93 → 95). Bordul răspunde în
   ~240 ms cât scanează. Sensul lor: de înregistrat periodic într-un drum și corelat cu CAN/OBD.
 - **Scanarea OBD de pe server** (21.11, cererea utilizatorului: tot ce dă mașina, într-o bază, fără să se mai piardă
