@@ -19,9 +19,9 @@ const FAULT_STATE = {
 } as const;
 
 /**
- * Erorile mașinii, pe Acum: din toate modulele citite (motorul prin OBD și UDS, bordul,
- * climatronicul, airbag-ul), doar când există vreuna sau martorul motorului e aprins (cererea
- * utilizatorului, 21.11: orice eroare, nu doar martorii din bord; fără notificări).
+ * Erorile mașinii, pe Navigație (pe Acum până la 21.11: utilizatorul nu le poate rezolva imediat și
+ * ocupau loc): din toate modulele citite (motorul prin OBD și UDS, bordul, climatronicul,
+ * airbag-ul), doar când există vreuna sau martorul motorului e aprins; fără notificări.
  */
 export function DtcCard({ obd }: { obd: Obd }) {
   const faults = obd.faults ?? [];

@@ -3,7 +3,6 @@ import { AlertTriangle, ChevronRight, Cpu, Fuel, Navigation, Wind } from "lucide
 
 import { CarPosition } from "../components/CarPosition";
 import { LiveTripMap } from "../components/LiveTripMap";
-import { DtcCard } from "../components/ObdCard";
 import { MusicCard } from "../components/MusicCard";
 import { Suggestions } from "../components/Suggestions";
 import { TripSummary } from "../components/TripView";
@@ -39,7 +38,6 @@ export function NowPage() {
   return (
     <>
       <Suggestions />
-      <DtcCard obd={live.obd} />
       <div className="space-y-3 rounded-2xl glass-card p-4">
         <div className="flex items-center gap-3">
           <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${st.dot}`} />

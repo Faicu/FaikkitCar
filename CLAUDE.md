@@ -501,7 +501,7 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   după răspunsurile lente ale bordului ajunsese la ~240 ms pe cerere, ~3 citiri/s). Codurile de eroare (`01011`, `03`,
   `07`) la conectare și la 5 min, brute în starea live (`o.d`); serverul `dtc.ts` (pur, `dtc.test.ts`: coduri + descrieri
   în română, altfel după familie) și `obd.ts` (`obd_dtc` activ = `cleared_at` NULL, `obd_check` = ultima citire, martorul).
-  `live.obd` = {status, hz, enabled, checkedAt, mil, codes, faults, modules}. Site: `ObdCard.tsx` (`DtcCard` pe Acum doar
+  `live.obd` = {status, hz, enabled, checkedAt, mil, codes, faults, modules}. Site: `ObdCard.tsx` (`DtcCard` pe Navigație, de pe Acum mutat 21.11 la cererea utilizatorului, doar
   cu erori, `ObdCard` pe Navigație); Panel: `renderDtc`/`renderObd`. Cardul de erori fără notificări (utilizatorul).
   „Eliberează 10 min” (1.1.100–1.1.102) a fost înlocuit de comutator (mai jos).
   1.1.101: erorile tuturor modulelor UDS (cererea utilizatorului: orice eroare, nu doar martorii): `19 02 FF` la motor

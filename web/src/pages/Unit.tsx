@@ -1,4 +1,4 @@
-import { ObdCard } from "../components/ObdCard";
+import { DtcCard, ObdCard } from "../components/ObdCard";
 import { ObdScanCard } from "../components/ObdScanCard";
 import { SignalCard } from "../components/SignalCard";
 import { UnitCard } from "../components/UnitCard";
@@ -18,6 +18,7 @@ export function UnitPage() {
       ) : (
         <UnitCard unit={live.unit} health={live.unitHealth} />
       )}
+      {live && <DtcCard obd={live.obd} />}
       {live && <ObdCard obd={live.obd} />}
       {live?.obd.enabled && <ObdScanCard />}
       <SignalCard />

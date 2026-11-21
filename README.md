@@ -45,7 +45,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **OBD (de testat, doar teste):** pe Acum apare un card doar dacă există o eroare (motor, bord, climatronic, airbag); pe
+1. **OBD (de testat, doar teste):** pe Navigație apare un card doar dacă există o eroare (motor, bord, climatronic, airbag); pe
    fila Navigație, „Adaptorul OBD (teste)” cu starea și comutatorul „Oprește OBD / Pornește OBD” (și în mașină, Setări →
    Sistem), plus „Scanarea OBD”. Oprit, adaptorul e liber pentru Car Scanner; călătoriile merg la fel. Cer FaikkitCar
    1.1.103 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
@@ -122,7 +122,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | ✅ | Vocea locală (fără întârziere) sau bip |
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
 | Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
-| Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Acum (site și Panel) doar când există vreuna. ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
+| Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
 | Scanarea OBD | 🧪 | Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Bordul e scanat complet |
 | Comutatorul „OBD (teste)” | 🧪 | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 

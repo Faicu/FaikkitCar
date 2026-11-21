@@ -605,7 +605,6 @@ public class MainActivity extends Activity {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
-        renderDtc();
         String state = live.optString("state", "off");
         LinearLayout card = Ui.card(this, content);
         LinearLayout row = new LinearLayout(this);
@@ -766,15 +765,16 @@ public class MainActivity extends Activity {
             UnitCard.render(this, content, unit, live.optJSONObject("unitHealth"), unitHistory);
             loadUnitHistory();
         }
+        renderDtc();
         renderObd();
         renderSignal();
         loadSignal();
     }
 
     /**
-     * Erorile din toate modulele citite (motor, bord, climatronic, airbag), sus pe Acum, doar cand
-     * exista vreuna sau martorul e aprins (ca DtcCard.tsx pe site; cererea utilizatorului, 21.11:
-     * orice eroare, nu doar martorii din bord; fara notificari).
+     * Erorile din toate modulele citite (motor, bord, climatronic, airbag), pe Navigatie (pe Acum
+     * pana la 21.11: nu le poate rezolva imediat si ocupau loc), doar cand exista vreuna sau martorul
+     * e aprins (ca DtcCard.tsx pe site); fara notificari.
      */
     private void renderDtc() {
         JSONObject obd = live.optJSONObject("obd");
