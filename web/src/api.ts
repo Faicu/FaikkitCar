@@ -10,6 +10,7 @@ import type { GeocodeResult, Place, PlaceInput } from "../server/places.ts";
 import type { MusicAction, MusicView, SongHit } from "../server/music.ts";
 import type { ServiceEntry, ServiceInput, ServiceItem } from "../server/service.ts";
 import type { Commute } from "../server/commute.ts";
+import type { ScanCode, ScanOverview } from "../server/obd-scan.ts";
 import type { MonthStats, PeriodStats, RouteStats, Stats } from "../server/stats.ts";
 import type { SignalSummary } from "../server/signal.ts";
 import type { Suggestion } from "../server/suggestions.ts";
@@ -113,9 +114,17 @@ export const api = {
   cmds: () => call<CarCmd[]>("GET", "/api/cmd"),
   /** Eliberarea adaptorului OBD pentru Car Scanner (minute, 0 = reia acum). */
   obdRelease: (minutes: number) => call<{ ok: true; obdOff: number }>("POST", "/api/obd/release", { minutes }),
+  // Scanarea OBD: lucrările cu progresul, catalogul unui modul, istoricul unui cod.
+  obdScan: () => call<ScanOverview>("GET", "/api/obd/scan"),
+  obdCodes: (tx: string) => call<ScanCode[]>("GET", `/api/obd/codes/${tx}`),
+  obdSamples: (tx: string, svc: string, id: number) =>
+    call<Array<{ at: string; value: string }>>("GET", `/api/obd/samples/${tx}/${svc}/${id}`),
+  obdScanPause: (id: number, paused: boolean) => call<{ ok: true }>("POST", `/api/obd/scan/${id}`, { paused }),
 };
 
 export type {
+  ScanCode,
+  ScanOverview,
   FuelSummary,
   Gap,
   GeocodeResult,

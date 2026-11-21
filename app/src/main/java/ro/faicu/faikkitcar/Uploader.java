@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class Uploader {
     private static final String URL_LOG = VwStatus.BASE + "/api/car/log";
     private static final String URL_TRIP = VwStatus.BASE + "/api/car/trip";
+    private static final String URL_SCAN = VwStatus.BASE + "/api/car/obd/scan";
+    private static final int SCAN_BATCH = 500;
     private static final int POINT_BATCH = 300;
     private static final int POINT_CHUNK = 3000;
     private static final int BATCH = 100;
@@ -82,6 +84,17 @@ final class Uploader {
                 Prefs.setUploadStatus(c, "eroare traseu: " + error);
                 return;
             }
+        }
+        // Rezultatele si progresul scanarii OBD (Obd), in ordinea in care s-au adaugat.
+        while (true) {
+            JSONArray batch = Obd.SCAN_QUEUE.peek(c, SCAN_BATCH);
+            if (batch.length() == 0) break;
+            String error = post(URL_SCAN, "items", batch);
+            if (error != null) {
+                Prefs.setUploadStatus(c, "eroare scanare OBD: " + error);
+                return;
+            }
+            Obd.SCAN_QUEUE.drop(c, batch.length());
         }
         // Avem internet: reimprospatam si starea (mentenanta, versiunea noua).
         VwStatus.refreshIfOld(c);

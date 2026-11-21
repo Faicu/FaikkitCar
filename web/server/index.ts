@@ -5,6 +5,15 @@
 // ---------------------------------------------------------------------------
 
 import { obdOffSeconds, releaseObd, saveObd } from "./obd.ts";
+import {
+  carScanJobs,
+  readScanCodes,
+  readScanOverview,
+  readScanSamples,
+  saveScanItems,
+  seedScanJobs,
+  setScanJobPaused,
+} from "./obd-scan.ts";
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import { serve } from "@hono/node-server";
@@ -159,6 +168,19 @@ app.get("/api/car/music/wait", async (c) => {
   return c.json({ epoch: MUSIC_EPOCH, cmds });
 });
 
+// Scanarea OBD (obd-scan.ts): lucrările de făcut, în ordine, și rezultatele din coada mașinii.
+app.get("/api/car/obd/scan", (c) => {
+  requireCarToken(c);
+  return c.json({ jobs: carScanJobs() });
+});
+
+app.post("/api/car/obd/scan", async (c) => {
+  requireCarToken(c);
+  const { items } = await json<{ items?: unknown }>(c, 2 * 1024 * 1024);
+  const r = saveScanItems(items);
+  return c.json({ ok: true, saved: r.ok, skipped: r.skipped });
+});
+
 app.get("/api/car/cmd", (c) => {
   requireCarToken(c);
   return c.json(takeCmds());
@@ -299,6 +321,29 @@ app.post("/api/obd/release", async (c) => {
   requireUser(c);
   const { minutes } = await json<{ minutes?: unknown }>(c, 1024);
   return c.json({ ok: true, obdOff: releaseObd(minutes) });
+});
+
+// Scanarea OBD pe site: lucrările cu progresul, catalogul pe module, istoricul unui cod.
+app.get("/api/obd/scan", (c) => {
+  requireUser(c);
+  return c.json(readScanOverview());
+});
+
+app.get("/api/obd/codes/:tx", (c) => {
+  requireUser(c);
+  return c.json(readScanCodes(c.req.param("tx").toUpperCase()));
+});
+
+app.get("/api/obd/samples/:tx/:svc/:id", (c) => {
+  requireUser(c);
+  return c.json(readScanSamples(c.req.param("tx").toUpperCase(), c.req.param("svc"), Number(c.req.param("id"))));
+});
+
+app.post("/api/obd/scan/:id", async (c) => {
+  requireUser(c);
+  const { paused } = await json<{ paused?: unknown }>(c, 1024);
+  setScanJobPaused(Number(c.req.param("id")), paused === true);
+  return c.json({ ok: true });
 });
 
 app.get("/api/cmd", (c) => {
@@ -567,6 +612,9 @@ const dist = new URL("../dist/", import.meta.url).pathname;
 app.use("/*", serveStatic({ root: dist }));
 // Aplicația e o singură pagină: orice altă cale primește index.html.
 app.get("*", serveStatic({ path: `${dist}index.html` }));
+
+// Ordinea scanării OBD, o singură dată (tabela goală).
+seedScanJobs();
 
 const port = Number(process.env.PORT ?? 3001);
 // Pe toate interfețele, ca FaikkitBox: tunelul Cloudflare rulează în Docker și vine prin

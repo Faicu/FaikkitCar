@@ -41,12 +41,12 @@ activă, separată. Remote Control: `claude.service` (sursa în
 - `/opt/faikkitcar/data`: `faikkitcar.db`, `apk/`, `tts/` (cache voce), `piper/` (binar + model
   `ro_RO-mihai-medium`, nu în git), `service/<id>/<fileId>` (bonuri).
   Tabele: `log`, `trip_point`, `car_state` (un rând), `reminder`, `refuel`, `place`, `trip_join`,
-  `service`, `service_file`, `dismissed`, `car_cmd`, `unit_stat` (performanța navigației, 90 de zile). Coloane noi se adaugă prin migrare în `db.ts`.
+  `service`, `service_file`, `dismissed`, `car_cmd`, `unit_stat` (performanța navigației, 90 de zile), `obd_*` (erorile, scanarea). Coloane noi se adaugă prin migrare în `db.ts`.
   Jurnalul nu se șterge niciodată.
 - API mașină (Bearer `CAR_TOKEN`; APK-urile se încarcă cu `CI_TOKEN`): `POST /api/car/log`, `/api/car/trip`, `/api/car/state`,
   `/api/car/tts`, `/api/car/music`; `GET /api/car/music/wait`; `GET /api/car/status` (kilometraj, mentenanță, ultimul APK, locuri),
   `/api/car/summary` (ecranul Acasă), `/api/car/route?last=1&after=` (harta), `GET|POST
-  /api/car/apk`, `/api/car/apk/download`.
+  /api/car/apk`, `/api/car/apk/download`, `GET|POST /api/car/obd/scan` (scanarea OBD).
 - API utilizator (cookie `fc_session` sau Bearer din `POST /api/login`): `/api/live` (long
   polling cu `?after=`), `/api/live/route`, `/api/trips`, `/api/trips/points`, `/api/trips/join|split`,
   `/api/trips/shapes`, `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
@@ -173,9 +173,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   cutia 7E1 (manuală). Mod 09: VIN, CALID `03F906070GA 5413`, CVN C3664742, numele „ECM-EngineControl”; mod 06 are teste.
   Valorile VW (DID-urile de măsură) încă necunoscute: de scanat.
   Cererea UDS cu 3 DID-uri deodată merge pe motor, bord și climatronic (cele inexistente sunt sărite; 7F 22 31 doar dacă
-  niciunul nu există). 1.1.94: `@obd scan <tx> <rx> <de la> <până la>` (hex) pune la rând o scanare `22` în fundal, câte
-  2 s între citirile motorului (consumul se înregistrează mai departe, la ~2,4 s); un grup cu răspuns e recitit DID cu DID;
-  `@obd scan status` = progresul și ce s-a găsit (în memorie, se pierde la repornirea aplicației), `@obd scan stop`.
+  niciunul nu există). 1.1.94–1.1.101: `@obd scan <tx> <rx> <de la> <până la>` punea scanări `22` în memoria aplicației
+  (se pierdeau la repornire); înlocuit de **scanarea de pe server** (21.11, vezi mai jos). Un grup cu răspuns e recitit DID cu DID.
   21.11, bordul 714 0000–101A (rezultatele parțiale în `/root/obd-scan-714-partial.txt`): de la 0x1000 multe DID-uri și
   răspunsuri 7F 22 78, ~6 DID/s, iar bucățile prea lungi lăsau puncte fără consum: oprit. 1.1.95: bucăți de cel mult 1,2 s
   cu recitirile la rând, consumul integrat peste goluri de până la 5 s. **Kilometrajul în bordul 1017/1018/1019:**
@@ -196,6 +195,24 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   la 23:28). La 00:05 în mers: 2205 = 0x28 la 41, 49 și 54 km/h (nu e viteza); 2206 = 0x34 (52, ca rezervorul CAN);
   se schimbă: 1007 (crește repede, contor), 100A (92 → 90), 1014, 220C (7D → 7B), 202F (93 → 95). Bordul răspunde în
   ~240 ms cât scanează. Sensul lor: de înregistrat periodic într-un drum și corelat cu CAN/OBD.
+- **Scanarea OBD de pe server** (21.11, cererea utilizatorului: tot ce dă mașina, într-o bază, fără să se mai piardă
+  nimic). Serverul (`obd-scan.ts`, `obd-scan.test.ts`) ține ordinea în `obd_scan_job` (`ord`; kind `range` first..last,
+  `list` ids, `loop` = recitirea codurilor găsite, ids luate din catalog la sfârșitul fiecărei treceri, `round`), catalogul
+  `obd_code` (tx, svc, id: valoarea fără ecou, `nrc` refuzul, 256 = lent / fără răspuns, `changes`) și istoricul
+  `obd_sample` (prima valoare și fiecare schimbare). svc: `22` (UDS), `01`/`09`/`06` (`<svc><id>`), `02` (`02<id>00`),
+  `dtc` (id = serviciul 03/07/0A). Ordinea (`SEED`, pusă o dată la pornirea serverului): motor 0000–FFFF, OBD 01, 09, 06,
+  02, erorile, climatronic 0A3B–FFFF, apoi buclele (motor, OBD 01, bord, climatronic). Airbag-ul nu (utilizatorul).
+  După un interval terminat, codurile rămase lente intră într-o lucrare `list` `parked` (doar pe loc), imediat după.
+  Bordul complet (170 de coduri) și climatronicul 0000–0A3A importate din `/root/obd-scan-*.txt`
+  (`scripts/import-obd-scan.ts`, rulat ca `faikkitcar`). Mașina (`Obd`, 1.1.102): `GET /api/car/obd/scan` (primele 3,
+  la 60 s, într-un fir separat), prima potrivită (cele `parked` doar pe loc, modulele tăcute în sesiunea asta sărite);
+  rezultatele `{t:"r", j, x, s, i, v|n, at}` și progresul `{t:"p", j, r, n, d}` în coada de pe disc `obd_scan.jsonl`
+  (`JsonlQueue`, la fel ca punctele), trimise de `Uploader` la `POST /api/car/obd/scan`; progresul și pe disc
+  (`obd/scanJob`, `scanNext`), deci după o repornire se reia de la cel mai departe dintre server și mașină. Progresul unei
+  treceri vechi a buclei e ignorat. 20 de grupuri fără răspuns la rând = modulul tace: lucrarea așteaptă reconectarea
+  (reluată de la primul grup tăcut). `@obd scan` = starea. Site: `ObdScanCard.tsx` pe Navigație (lucrările cu progresul,
+  „Oprește”/„Reia” = `POST /api/obd/scan/:id {paused}`, modulele, catalogul `GET /api/obd/codes/:tx`, istoricul
+  `GET /api/obd/samples/:tx/:svc/:id`). Panel: încă nimic.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

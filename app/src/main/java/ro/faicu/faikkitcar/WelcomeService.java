@@ -170,7 +170,7 @@ public class WelcomeService extends Service {
             }
             // Reincercam la ~30 s liniile ramase netrimise (ex. server indisponibil).
             if (count % 6 == 0 && (Prefs.outboxSize(WelcomeService.this) > 0
-                    || !PointQueue.isEmpty(WelcomeService.this))) {
+                    || !PointQueue.isEmpty(WelcomeService.this) || !Obd.SCAN_QUEUE.isEmpty(WelcomeService.this))) {
                 Uploader.kick(WelcomeService.this);
             }
             // Pornesc / opresc sonda CAN si calatoriile dupa setarile din aplicatie.

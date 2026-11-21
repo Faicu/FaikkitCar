@@ -316,7 +316,7 @@ public class MainActivity extends Activity {
         renderHomeTrip();
         addHomeWarnings(side);
 
-        int pending = Prefs.outboxSize(this) + PointQueue.size(this);
+        int pending = Prefs.outboxSize(this) + PointQueue.size(this) + Obd.SCAN_QUEUE.size(this);
         boolean gps = TripRecorder.hasPermission(this);
         Ui.hint(this, side, "Server: " + (!Uploader.configured() || !Prefs.uploadEnabled(this) ? "oprit"
                 : pending == 0 ? "la zi" : pending + " in asteptare")

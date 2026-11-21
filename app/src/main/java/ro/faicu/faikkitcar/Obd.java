@@ -292,139 +292,356 @@ final class Obd extends BluetoothGattCallback {
         return true;
     }
 
-    // --- scanarea codurilor de citire (UDS 22) ----------------------------------------------
-
-    /** Lucrarile de scanare: {tx, rx, de la, pana la}; una in curs, restul la rand. */
-    private final java.util.ArrayDeque<int[]> scanQueue = new java.util.ArrayDeque<>();
-    private int[] scanJob;
-    private final java.util.ArrayDeque<Integer> scanPending = new java.util.ArrayDeque<>();
-    /** {tx, rx, DID} care au raspuns greu in mers: recitite pe loc. */
-    private final java.util.ArrayDeque<int[]> scanSlow = new java.util.ArrayDeque<>();
-    private int scanNext;
-    private int scanSilent;
-    private int pendingTries;
-    private long scanStartedAt;
-    private final StringBuilder scanLog = new StringBuilder();
+    // --- scanarea (lucrarile de pe server, obd-scan.ts) -------------------------------------
 
     /**
-     * `scan <tx> <rx> <de la> <pana la>` (hex) pune o scanare la rand; `scan status` = progresul si
-     * ce s-a gasit; `scan stop` = opreste tot. Scanarea merge in fundal, cate 2 s intre citirile
-     * motorului, doar cu legatura deschisa (motorul pornit); se reia la urmatoarea conectare.
+     * Rezultatele si progresul scanarii, de trimis la server (Uploader). Pe disc, ca o repornire
+     * sau o actualizare a aplicatiei sa nu piarda nimic din ce s-a citit.
      */
-    String scanCommand(String args) {
-        String[] a = args.trim().split("\\s+");
-        synchronized (scanLog) {
-            if (a.length >= 5) {
-                int[] job = {Integer.parseInt(a[1], 16), Integer.parseInt(a[2], 16),
-                        Integer.parseInt(a[3], 16), Integer.parseInt(a[4], 16)};
-                scanQueue.add(job);
-                return "pus la rand: " + hex(job[0], 3) + "/" + hex(job[1], 3) + " " + hex(job[2], 4) + "-"
-                        + hex(job[3], 4) + " (la rand: " + scanQueue.size() + ")";
-            }
-            if (a.length >= 2 && a[1].equals("stop")) {
-                scanQueue.clear();
-                scanSlow.clear();
-                scanJob = null;
-                scanLog.append("\n[oprit]");
-                return "oprit";
-            }
-            StringBuilder out = new StringBuilder();
-            if (scanJob != null) {
-                int done = scanNext - scanJob[2], total = scanJob[3] - scanJob[2] + 1;
-                out.append("In curs: ").append(hex(scanJob[0], 3)).append("/").append(hex(scanJob[1], 3))
-                        .append(" la ").append(hex(scanNext, 4)).append(" (").append(done * 100 / total)
-                        .append("%, ").append((SystemClock.elapsedRealtime() - scanStartedAt) / 1000).append(" s)");
-            } else {
-                out.append("Nicio scanare in curs");
-            }
-            out.append(connected ? ", legatura deschisa" : ", legatura inchisa (asteapta motorul)")
-                    .append(", la rand ").append(scanQueue.size()).append(", lente pentru oprire ")
-                    .append(scanSlow.size()).append("\n").append(scanLog);
-            return out.toString();
+    static final JsonlQueue SCAN_QUEUE = new JsonlQueue("obd_scan.jsonl", 100_000);
+    private static final String URL_SCAN = VwStatus.BASE + "/api/car/obd/scan";
+    private static final long JOBS_MS = 60_000;
+    /** Refuzul „lent / fara raspuns” (serverul: NRC_SLOW). */
+    private static final int NRC_SLOW = 256;
+    private static final long PROGRESS_MS = 15_000;
+
+    /** O lucrare de la server: interval (range), lista (list) sau recitirea in bucla (loop). */
+    private static final class Job {
+        int id, round, tx, rx, first, last, next;
+        String svc, kind, label;
+        int[] ids;
+        boolean parked;
+
+        String key() {
+            return id + ":" + round;
         }
+
+        boolean range() {
+            return kind.equals("range");
+        }
+    }
+
+    private volatile java.util.List<Job> jobs = java.util.Collections.emptyList();
+    private volatile long jobsAt;
+    private volatile boolean jobsLoading;
+    private volatile String jobsError;
+    /** Terminate aici, inca necunoscute serverului (rezultatele asteapta in coada). */
+    private final java.util.Set<String> finishedHere = new java.util.HashSet<>();
+    /** Modulele care n-au raspuns in sesiunea asta: lucrarile lor asteapta reconectarea. */
+    private final java.util.Set<Integer> silentModules = new java.util.HashSet<>();
+    private Job job;
+    /** range: urmatorul cod; list/loop: urmatorul index. */
+    private int scanNext;
+    /** Codurile unui grup de 3 care a raspuns: recitite pe rand, ca sa stim al cui e raspunsul. */
+    private final java.util.ArrayDeque<Integer> scanPending = new java.util.ArrayDeque<>();
+    private int pendingTries;
+    private int scanSilent;
+    /** Primul grup din sirul fara raspuns: de acolo se reia cand modulul tace de tot. */
+    private int scanSilentFrom;
+    private int scanFound;
+    private long progressAt;
+    private int progressSent = -1;
+
+    /** `@obd scan` (sau `scan status`): lucrarile de la server, cea in curs, coada netrimisa. */
+    String scanCommand(String args) {
+        StringBuilder out = new StringBuilder();
+        Job j = job;
+        if (j != null) {
+            out.append("In curs: #").append(j.id).append(" ").append(j.label).append(" (").append(hex(j.tx, 3))
+                    .append(" ").append(j.svc).append(", ").append(j.kind).append(j.round > 0 ? " trecerea " + j.round : "")
+                    .append(") la ").append(j.range() ? hex(scanNext, 4) : scanNext + "/" + j.ids.length)
+                    .append(", gasite acum ").append(scanFound);
+        } else {
+            out.append("Nicio lucrare in curs");
+        }
+        out.append(connected ? ", legatura deschisa" : ", legatura inchisa (asteapta motorul)")
+                .append("\nDe la server (acum ").append(jobsAt == 0 ? "niciodata" : (SystemClock.elapsedRealtime() - jobsAt) / 1000 + " s")
+                .append(jobsError != null ? ", eroare " + jobsError : "").append("):");
+        for (Job x : jobs) {
+            boolean done;
+            synchronized (finishedHere) {
+                done = finishedHere.contains(x.key());
+            }
+            out.append("\n  #").append(x.id).append(" ").append(x.label).append(x.parked ? " (doar pe loc)" : "")
+                    .append(done ? " [terminata aici]" : "")
+                    .append(silentModules.contains(x.tx) ? " [modulul tace]" : "");
+        }
+        out.append("\nNetrimise: ").append(SCAN_QUEUE.size(c));
+        return out.toString();
+    }
+
+    /** Lista de la server, intr-un fir separat (cererea nu tine pe loc citirile motorului). */
+    private void refreshJobs() {
+        if (jobsLoading) return;
+        jobsLoading = true;
+        Thread t = new Thread(() -> {
+            java.net.HttpURLConnection conn = null;
+            try {
+                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN).openConnection();
+                conn.setConnectTimeout(10_000);
+                conn.setReadTimeout(20_000);
+                conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
+                int code = conn.getResponseCode();
+                StringBuilder sb = new StringBuilder();
+                try (java.io.InputStream in = code < 400 ? conn.getInputStream() : conn.getErrorStream()) {
+                    if (in != null) {
+                        byte[] buf = new byte[4096];
+                        int n;
+                        while ((n = in.read(buf)) > 0) sb.append(new String(buf, 0, n, StandardCharsets.UTF_8));
+                    }
+                }
+                if (code != 200) throw new java.io.IOException("HTTP " + code);
+                org.json.JSONArray a = new org.json.JSONObject(sb.toString()).getJSONArray("jobs");
+                java.util.List<Job> list = new java.util.ArrayList<>();
+                for (int i = 0; i < a.length(); i++) list.add(parseJob(a.getJSONObject(i)));
+                jobs = list;
+                jobsError = null;
+                synchronized (finishedHere) {
+                    // Ce nu mai e in lista a ajuns la server: nu mai trebuie tinut minte.
+                    java.util.Set<String> keys = new java.util.HashSet<>();
+                    for (Job x : list) keys.add(x.key());
+                    finishedHere.retainAll(keys);
+                }
+            } catch (Exception e) {
+                jobsError = e.getClass().getSimpleName();
+                Log.w(TAG, "OBD: lucrarile de scanare nu s-au luat", e);
+                if (conn != null) conn.disconnect();
+            } finally {
+                jobsAt = SystemClock.elapsedRealtime();
+                jobsLoading = false;
+            }
+        }, "obd-jobs");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private static Job parseJob(org.json.JSONObject o) throws org.json.JSONException {
+        Job j = new Job();
+        j.id = o.getInt("id");
+        j.round = o.optInt("round");
+        j.label = o.optString("label");
+        j.tx = Integer.parseInt(o.getString("tx"), 16);
+        j.rx = Integer.parseInt(o.getString("rx"), 16);
+        j.svc = o.getString("svc");
+        j.kind = o.getString("kind");
+        j.first = o.optInt("first");
+        j.last = o.optInt("last");
+        j.next = o.optInt("next");
+        j.parked = o.optBoolean("parked");
+        org.json.JSONArray ids = o.optJSONArray("ids");
+        j.ids = new int[ids == null ? 0 : ids.length()];
+        for (int i = 0; i < j.ids.length; i++) j.ids[i] = ids.getInt(i);
+        return j;
+    }
+
+    /** Prima lucrare potrivita acum, in ordinea serverului. */
+    private Job pickJob(boolean moving) {
+        for (Job j : jobs) {
+            synchronized (finishedHere) {
+                if (finishedHere.contains(j.key())) continue;
+            }
+            if (j.parked && moving) continue;
+            if (silentModules.contains(j.tx)) continue;
+            if (!j.range() && j.ids.length == 0) continue;
+            return j;
+        }
+        return null;
+    }
+
+    /** Lucrarea aleasa devine cea in curs: de unde a ramas (aici sau pe server, cel mai departe). */
+    private void startJob(Job j) {
+        flushProgress(true);
+        job = j;
+        scanPending.clear();
+        pendingTries = 0;
+        scanSilent = 0;
+        scanFound = 0;
+        progressSent = -1;
+        android.content.SharedPreferences p = c.getSharedPreferences("obd", Context.MODE_PRIVATE);
+        int here = j.key().equals(p.getString("scanJob", "")) ? p.getInt("scanNext", 0) : 0;
+        scanNext = Math.max(j.range() ? Math.max(j.first, j.next) : j.next, here);
+    }
+
+    /** Unde a ajuns lucrarea: nimic inaintea lui nu mai trebuie citit. */
+    private int reached() {
+        return job.range() && !scanPending.isEmpty() ? scanPending.peek() : scanNext;
+    }
+
+    /**
+     * Progresul: pe disc la fiecare bucata (pentru repornire), la server la ~15 s, la schimbarea
+     * lucrarii si la sfarsit (dupa rezultatele ei, in aceeasi coada).
+     */
+    private void flushProgress(boolean now) {
+        Job j = job;
+        if (j == null) return;
+        int n = reached();
+        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit()
+                .putString("scanJob", j.key()).putInt("scanNext", n).apply();
+        long t = SystemClock.elapsedRealtime();
+        if (n == progressSent || (!now && t - progressAt < PROGRESS_MS)) return;
+        progressAt = t;
+        progressSent = n;
+        try {
+            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round).put("n", n));
+        } catch (org.json.JSONException ignored) {
+        }
+    }
+
+    private void finishJob(String why) {
+        Job j = job;
+        scanNext = j.range() ? j.last + 1 : j.ids.length;
+        scanPending.clear();
+        try {
+            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round)
+                    .put("n", scanNext).put("d", 1));
+        } catch (org.json.JSONException ignored) {
+        }
+        synchronized (finishedHere) {
+            finishedHere.add(j.key());
+        }
+        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit().remove("scanJob").remove("scanNext").apply();
+        // Buclele se termina des (la fiecare trecere): doar lucrarile adevarate intra in jurnal.
+        if (!j.kind.equals("loop")) Prefs.log(c, "OBD: scanarea „" + j.label + "” " + why + ", " + scanFound + " coduri");
+        job = null;
+        jobsAt = 0; // lista noua cat mai repede
+        Uploader.kick(c);
+    }
+
+    private void result(Job j, int id, int[] data, int from, int nrc) {
+        try {
+            org.json.JSONObject o = new org.json.JSONObject().put("t", "r").put("j", j.id).put("x", hex(j.tx, 3))
+                    .put("s", j.svc).put("i", id).put("at", System.currentTimeMillis());
+            if (nrc >= 0) {
+                o.put("n", nrc);
+            } else {
+                StringBuilder v = new StringBuilder();
+                for (int i = from; i < data.length; i++) v.append(hex(data[i], 2));
+                o.put("v", v.toString());
+                scanFound++;
+            }
+            SCAN_QUEUE.add(c, o);
+        } catch (org.json.JSONException ignored) {
+        }
+    }
+
+    /** Raspunsul la 22 (o lista de un cod): bun, refuz (cu cod), lent, sau lipsa (nimic de scris). */
+    private void result22(Job j, int did, int[] r) {
+        if (isMissing(r)) return;
+        if (isSlow(r)) result(j, did, r, 0, NRC_SLOW);
+        else if (r[0] == 0x7F) result(j, did, r, 0, r[2]);
+        else result(j, did, r, 3, -1);
     }
 
     /**
      * O bucata de scanare. In mers (cererea utilizatorului, 21.11: sa se poata plimba) bucati de
      * ~0,4 s cu raspunsul asteptat cel mult 0,5 s, ca citirile motorului sa ramana sub o secunda;
-     * ce raspunde greu se lasa pentru o oprire (`scanSlow`). Pe loc: 1,2 s si raspunsuri de 1,5 s.
+     * ce raspunde greu se trimite ca „lent” si serverul il pune la recitit pe loc. Pe loc: 1,2 s si
+     * raspunsuri de 1,5 s, de cel mult 3 ori.
      */
     private void scanBlock(boolean moving) throws InterruptedException {
-        int[] job;
-        synchronized (scanLog) {
-            if (scanJob == null && !scanQueue.isEmpty()) {
-                scanJob = scanQueue.poll();
-                scanNext = scanJob[2];
-                scanPending.clear();
-                scanSilent = 0;
-                scanStartedAt = SystemClock.elapsedRealtime();
-                scanLog.append("\n== ").append(hex(scanJob[0], 3)).append("/").append(hex(scanJob[1], 3)).append(" ")
-                        .append(hex(scanJob[2], 4)).append("-").append(hex(scanJob[3], 4));
+        long now = SystemClock.elapsedRealtime();
+        if (jobsAt == 0 || now - jobsAt >= JOBS_MS) refreshJobs();
+        Job j = pickJob(moving);
+        if (j == null) {
+            if (job != null) {
+                flushProgress(true);
+                job = null;
             }
-            job = scanJob;
+            return;
         }
+        if (job == null || !job.key().equals(j.key())) startJob(j);
         long budget = moving ? 400 : 1_200;
         long wait = moving ? 500 : 1_500;
+        long end = SystemClock.elapsedRealtime() + budget;
         synchronized (io) {
-            if (!moving && !scanSlow.isEmpty()) {
-                // Pe loc: intai cele lente, ramase din mers.
-                long end = SystemClock.elapsedRealtime() + budget;
-                while (connected && !scanSlow.isEmpty() && SystemClock.elapsedRealtime() < end) {
-                    int[] d = scanSlow.peek();
-                    target(d[0], d[1]);
-                    int[] r = read22(d[2], wait);
-                    boolean slow = isSlow(r);
-                    if (slow && ++pendingTries < 3) continue;
-                    pendingTries = 0;
-                    scanSlow.poll();
-                    if (slow) note(hex(d[0], 3) + " " + hex(d[2], 4) + ": lent (fara raspuns)");
-                    else if (!isMissing(r)) found(d[0], d[2], r);
-                }
-                target(0x7E0, -1);
-                return;
-            }
-            if (job == null) return;
-            target(job[0], job[1]);
-            long end = SystemClock.elapsedRealtime() + budget;
-            while (connected && scanJob == job && !scanPending.isEmpty() && SystemClock.elapsedRealtime() < end) {
-                int did = scanPending.peek();
-                int[] r = read22(did, wait);
-                boolean slow = isSlow(r);
-                // In mers, cele lente direct pentru oprire; pe loc, de cel mult 3 ori.
-                if (slow && !moving && ++pendingTries < 3) continue;
-                pendingTries = 0;
-                scanPending.poll();
-                if (slow) {
-                    if (moving) scanSlow.add(new int[]{job[0], job[1], did});
-                    else note(hex(job[0], 3) + " " + hex(did, 4) + ": lent (fara raspuns)");
-                    continue;
-                }
-                if (!isMissing(r)) found(job[0], did, r);
-            }
-            while (connected && scanJob == job && scanPending.isEmpty() && scanNext <= job[3]
-                    && SystemClock.elapsedRealtime() < end) {
-                int from = scanNext, n = Math.min(3, job[3] - from + 1);
-                StringBuilder req = new StringBuilder("22");
-                for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
-                int[] b = strip(bytesOf(send(req.toString(), wait)));
-                // Un raspuns intarziat la altceva (21.11: „41 0C …” la DID 000F) = ca si cum n-ar fi venit.
-                if (b.length > 0 && b[0] != 0x62 && !(b[0] == 0x7F && b.length >= 3 && b[1] == 0x22)) b = new int[0];
-                scanNext = from + n;
-                if (b.length == 0) {
-                    if (++scanSilent >= 20) {
-                        scanDone(job, "modulul nu raspunde");
-                        break;
+            target(j.tx, j.rx);
+            try {
+                if (!j.svc.equals("22")) {
+                    while (connected && job == j && SystemClock.elapsedRealtime() < end) {
+                        if (j.range() ? scanNext > j.last : scanNext >= j.ids.length) {
+                            finishJob("gata");
+                            break;
+                        }
+                        int id = j.range() ? scanNext : j.ids[scanNext];
+                        readObd(j, id);
+                        scanNext++;
+                    }
+                } else if (!j.range()) {
+                    while (connected && job == j && SystemClock.elapsedRealtime() < end) {
+                        if (scanNext >= j.ids.length) {
+                            finishJob("gata");
+                            break;
+                        }
+                        int did = j.ids[scanNext];
+                        int[] r = read22(did, wait);
+                        if (isSlow(r) && !moving && ++pendingTries < 3) continue;
+                        pendingTries = 0;
+                        result22(j, did, r);
+                        scanNext++;
                     }
                 } else {
-                    scanSilent = 0;
+                    scanRange(j, moving, wait, end);
                 }
-                // Ceva exista in grupul asta (sau a raspuns greu): le recitim pe rand, ca sa stim al
-                // cui e raspunsul.
-                if (!isMissing(b)) for (int i = 0; i < n; i++) scanPending.add(from + i);
+            } finally {
+                target(0x7E0, -1);
             }
-            if (scanJob == job && scanNext > job[3] && scanPending.isEmpty()) scanDone(job, "gata");
-            target(0x7E0, -1);
         }
+        if (job == j) flushProgress(false);
+    }
+
+    private void scanRange(Job j, boolean moving, long wait, long end) throws InterruptedException {
+        while (connected && job == j && !scanPending.isEmpty() && SystemClock.elapsedRealtime() < end) {
+            int did = scanPending.peek();
+            int[] r = read22(did, wait);
+            if (isSlow(r) && !moving && ++pendingTries < 3) continue;
+            pendingTries = 0;
+            scanPending.poll();
+            result22(j, did, r);
+        }
+        while (connected && job == j && scanPending.isEmpty() && scanNext <= j.last
+                && SystemClock.elapsedRealtime() < end) {
+            int from = scanNext, n = Math.min(3, j.last - from + 1);
+            StringBuilder req = new StringBuilder("22");
+            for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
+            int[] b = strip(bytesOf(send(req.toString(), wait)));
+            // Un raspuns intarziat la altceva (21.11: „41 0C …” la DID 000F) = ca si cum n-ar fi venit.
+            if (b.length > 0 && b[0] != 0x62 && !(b[0] == 0x7F && b.length >= 3 && b[1] == 0x22)) b = new int[0];
+            scanNext = from + n;
+            if (b.length == 0) {
+                if (scanSilent++ == 0) scanSilentFrom = from;
+                if (scanSilent >= 20) {
+                    // Modulul nu raspunde (ex. climatronicul inca adormit): reluam la reconectare.
+                    scanNext = scanSilentFrom;
+                    silentModules.add(j.tx);
+                    flushProgress(true);
+                    Prefs.log(c, "OBD: modulul " + hex(j.tx, 3) + " nu raspunde, scanarea lui asteapta reconectarea");
+                    job = null;
+                    return;
+                }
+            } else {
+                scanSilent = 0;
+            }
+            if (!isMissing(b)) for (int i = 0; i < n; i++) scanPending.add(from + i);
+        }
+        if (job == j && scanNext > j.last && scanPending.isEmpty()) finishJob("gata");
+    }
+
+    /**
+     * Un cod din OBD-ul standard: 01/09/06 <id>, 02 <id> 00 (cadrul 0), 03/07/0A (id = serviciul).
+     * Ce nu e suportat nu raspunde („NO DATA”) si nu se scrie.
+     */
+    private void readObd(Job j, int id) throws InterruptedException {
+        boolean dtc = j.svc.equals("dtc");
+        int svc = dtc ? id : Integer.parseInt(j.svc, 16);
+        String req = dtc ? hex(id, 2) : j.svc.equals("02") ? "02" + hex(id, 2) + "00" : j.svc + hex(id, 2);
+        int[] b = bytesOf(send(req, 1_500));
+        if (b.length < 1 || b[0] != 0x40 + svc) return;
+        if (dtc) {
+            result(j, id, b, 1, -1);
+            return;
+        }
+        if (b.length < 2 || b[1] != id) return;
+        result(j, id, b, j.svc.equals("02") ? 3 : 2, -1);
     }
 
     private int targetTx = 0x7E0;
@@ -463,37 +680,8 @@ final class Obd extends BluetoothGattCallback {
         return r.length >= 3 && r[0] == 0x7F && r[2] == 0x31;
     }
 
-    private void note(String line) {
-        synchronized (scanLog) {
-            scanLog.append("\n").append(line);
-        }
-    }
-
     private int[] bytesOf(String r) {
         return r == null ? new int[0] : bytes(r);
-    }
-
-    private void found(int tx, int did, int[] r) {
-        StringBuilder line = new StringBuilder("\n").append(hex(tx, 3)).append(" ").append(hex(did, 4)).append(":");
-        int start = r[0] == 0x62 && r.length >= 3 ? 3 : 0;
-        StringBuilder ascii = new StringBuilder();
-        for (int i = start; i < r.length; i++) {
-            line.append(' ').append(hex(r[i], 2));
-            ascii.append(r[i] >= 32 && r[i] < 127 ? (char) r[i] : '.');
-        }
-        if (start == 3 && r.length - start >= 3) line.append("  \"").append(ascii).append('"');
-        synchronized (scanLog) {
-            scanLog.append(line);
-        }
-    }
-
-    private void scanDone(int[] job, String why) {
-        synchronized (scanLog) {
-            scanLog.append("\n[").append(why).append(", ")
-                    .append((SystemClock.elapsedRealtime() - scanStartedAt) / 1000).append(" s]");
-            if (scanJob == job) scanJob = null;
-        }
-        Prefs.log(c, "OBD: scanarea " + hex(job[0], 3) + " " + why);
     }
 
     private static String hex(int v, int digits) {
@@ -796,6 +984,7 @@ final class Obd extends BluetoothGattCallback {
         lastSlowAt = 0;
         lastStatusAt = 0;
         lastUdsAt = 0;
+        silentModules.clear();
         synchronized (this) {
             litersTotal = 0;
             lastSampleAt = 0;

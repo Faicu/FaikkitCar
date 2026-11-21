@@ -226,6 +226,55 @@ export function getDb(): DatabaseSync {
       at TEXT NOT NULL,
       mil INTEGER NOT NULL
     );
+
+    -- Scanarea OBD (obd-scan.ts): lucrările în ordine (ord); mașina le ia de aici și raportează
+    -- progresul (next) prin aceeași coadă ca rezultatele. kind: range = first..last, list = ids
+    -- (JSON), loop = recitirea codurilor găsite, la nesfârșit (round = a câta trecere).
+    CREATE TABLE IF NOT EXISTS obd_scan_job (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ord REAL NOT NULL,
+      label TEXT NOT NULL,
+      tx TEXT NOT NULL,
+      rx TEXT NOT NULL,
+      svc TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      first INTEGER,
+      last INTEGER,
+      ids TEXT,
+      next INTEGER NOT NULL DEFAULT 0,
+      round INTEGER NOT NULL DEFAULT 0,
+      parked INTEGER NOT NULL DEFAULT 0,
+      parent INTEGER,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      started_at TEXT,
+      updated_at TEXT,
+      done_at TEXT
+    );
+    -- Catalogul: fiecare cod care a răspuns (svc 22 = DID UDS, 01/02/06/09 = OBD standard,
+    -- dtc = 03/07/0A). value = datele fără ecou (hex); nrc = refuzul (0x22, 0x33…), 256 = lent /
+    -- fără răspuns, NULL = răspuns bun. changes = de câte ori s-a schimbat valoarea.
+    CREATE TABLE IF NOT EXISTS obd_code (
+      tx TEXT NOT NULL,
+      svc TEXT NOT NULL,
+      id INTEGER NOT NULL,
+      value TEXT,
+      nrc INTEGER,
+      first_at TEXT NOT NULL,
+      last_at TEXT NOT NULL,
+      reads INTEGER NOT NULL DEFAULT 1,
+      changes INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (tx, svc, id)
+    );
+    -- Istoricul valorilor: un rând la prima valoare și la fiecare schimbare.
+    CREATE TABLE IF NOT EXISTS obd_sample (
+      tx TEXT NOT NULL,
+      svc TEXT NOT NULL,
+      id INTEGER NOT NULL,
+      at TEXT NOT NULL,
+      value TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_obd_sample ON obd_sample(tx, svc, id, at);
   `);
   // Migrări pentru coloanele adăugate după crearea tabelelor.
   const cols = (table: string) =>
