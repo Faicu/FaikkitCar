@@ -208,7 +208,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   la 60 s, într-un fir separat), prima potrivită (cele `parked` doar pe loc, modulele tăcute în sesiunea asta sărite);
   rezultatele `{t:"r", j, x, s, i, v|n, at}` și progresul `{t:"p", j, r, n, d}` în coada de pe disc `obd_scan.jsonl`
   (`JsonlQueue`, la fel ca punctele), trimise de `Uploader` la `POST /api/car/obd/scan`; progresul și pe disc
-  (`obd/scanJob`, `scanNext`), deci după o repornire se reia de la cel mai departe dintre server și mașină. Progresul unei
+  (`obd/scanJob`, `scanNext`, la ~15 s), deci după o repornire se reia de la cel mai departe dintre server și mașină. Progresul unei
   treceri vechi a buclei e ignorat. 20 de grupuri fără răspuns la rând = modulul tace: lucrarea așteaptă reconectarea
   (reluată de la primul grup tăcut). `@obd scan` = starea. Site: `ObdScanCard.tsx` pe Navigație (lucrările cu progresul,
   „Oprește”/„Reia” = `POST /api/obd/scan/:id {paused}`, modulele, catalogul `GET /api/obd/codes/:tx`, istoricul

@@ -468,17 +468,18 @@ final class Obd extends BluetoothGattCallback {
     }
 
     /**
-     * Progresul: pe disc la fiecare bucata (pentru repornire), la server la ~15 s, la schimbarea
-     * lucrarii si la sfarsit (dupa rezultatele ei, in aceeasi coada).
+     * Progresul, pe disc (pentru repornire) si la server, la ~15 s (ca sa nu uzam memoria interna),
+     * la schimbarea lucrarii si la sfarsit (dupa rezultatele ei, in aceeasi coada). Dupa o repornire
+     * se recitesc cel mult ~15 s de coduri: serverul le primeste de doua ori fara probleme.
      */
     private void flushProgress(boolean now) {
         Job j = job;
         if (j == null) return;
         int n = reached();
-        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit()
-                .putString("scanJob", j.key()).putInt("scanNext", n).apply();
         long t = SystemClock.elapsedRealtime();
         if (n == progressSent || (!now && t - progressAt < PROGRESS_MS)) return;
+        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit()
+                .putString("scanJob", j.key()).putInt("scanNext", n).apply();
         progressAt = t;
         progressSent = n;
         try {
