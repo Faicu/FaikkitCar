@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 21.11.2026
+**Ultima actualizare:** 22.11.2026 (analiza codurilor găsite: valorile comparate cu CAN / OBD / revizia din aceeași clipă)
 
 ---
 
@@ -16,7 +16,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 | Lucrarea | Stare (21.11, ~22:00) |
 |---|---|
-| Motor (7E0), 0000–FFFF | 🔄 19% · 546 de coduri cu răspuns |
+| Motor (7E0), 0000–FFFF | 🔄 până la 31B0 (19%) · 546 de coduri cu răspuns |
 | OBD standard: 01, 09, 06, 02, erorile | ⏳ la rând |
 | Climatronic (746), 0A3B–FFFF (0000–0A3A gata) | ⏳ la rând |
 | Recitirea în buclă (motor, OBD 01, bord, climatronic) | ⏳ după scanări |
@@ -45,6 +45,13 @@ Viteza: ~6 coduri/s pe loc, ~2 coduri/s în mers. Ordinea și progresul: `obd_sc
 | **2206** | Litrii din rezervor | 1 octet, litri (0x34 = 52) | 21.11, la fel ca CAN c104 |
 | **1018** | Kilometrajul **de la ultima oprire** (nu cel live) | primii 4 octeți, cuvintele de 16 biți inversate: `C0 62 00 03` = 0x0003C062 = 245.858 km | 21.11, după o oprire |
 | **1017**, **1019**, **101A** | Conțin și ele kilometraje în același format | – | 21.11, sensul exact neclar |
+| **2260** | **Km până la revizia de ulei** | 2 octeți, km, rotunjit în sus la 100: 0x38A4 = 14.500 → 0x3840 = 14.400 | 22.11: 15.000 − (km de acum − 245.313 de la revizia din 19.10) = 14.419 → 14.500 și 14.396 → 14.400 |
+| **2261** | **Zile până la revizia de ulei** | 2 octeți: 0x014D = 333 → 0x014C = 332 | 22.11: 365 − 33 de zile de la 19.10 |
+| **2243** | Km de la revizie, în sute | 0x0005 → 0x0006 | 22.11: 581 km → 604 km de la revizie |
+| **2244** | Zile de la revizie | 0x0020 = 32 → 0x0021 = 33 | 22.11; 2259 / 225A / 225B au aceeași valoare (copii, probabil) |
+| **22A0** / **22A1** | Intervalul reviziei: 150 (× 100 km = 15.000 km) / 365 de zile | fixe | 22.11, se potrivesc cu 2260 / 2261. Bordul e pe revizie fixă 15.000 km / 1 an (nu 8.000 km, cum ai tu în aplicație) |
+| 100C / 100D | 15.000 / 30.000 | fixe | 15.000 = intervalul de ulei; 30.000 probabil inspecția |
+| **F18B** | Data fabricației bordului | 12 06 18 = 18.06.2012 | 22.11 (cod UDS standard) |
 | **2216** | Ceasul bordului | ora:minutul, 0x1734 = 23:52 | 21.11 |
 | **2238** / **2239** | Ora / minutul | 1 octet fiecare | 21.11 |
 | **F40C** | Turația ×4 (probabil oglinda PID-ului OBD 0C) | 0x0BD8 / 4 = 758 rpm la relanti | 21.11, probabil |
@@ -66,6 +73,9 @@ Viteza: ~6 coduri/s pe loc, ~2 coduri/s în mers. Ordinea și progresul: `obd_sc
 | UDS F187 / F189 / F197 | 03F906070GA / 5413 / Simos 10.12 | 20.11 |
 | OBD 01: PID-urile suportate | 03–07, 0B–0F, 11, 13, 15, 1C, 1F, 21, 23, 2E, 30, 31, 33, 34, 3C, 41–47, 49, 4A, 4C, 56; **fără MAF (10) și fără consum (5E)** | 20.11 |
 | OBD 01 citite permanent | 0C turația, 0B presiunea din galerie, 0F aerul admis, 03 starea injecției, 49 pedala; la 2 s 05 răcirea, 04 sarcina, 44 lambda cerut, 06/07 corecții, 0E avansul. Consumul (test) = din aerul aspirat | 21.11 |
+| **UDS 121C** | **Kilometrajul**, km | 4 octeți, ordinea normală: 0x0003C098 = 245.912 | 22.11: exact kilometrajul CAN din clipa citirii |
+| **UDS 15D4** | Kilometrajul la ultima oprire / la pornirea drumului, în 0,1 km | 0x00258550 = 2.458.960 = 245.896,0 km | 22.11: drumul a pornit de la 245.896 (oprirea din 21.11, 02:58) |
+| **UDS 2206** | Litrii din rezervor (la fel ca la bord) | 0x34 = 52 | 22.11, ca CAN c104 |
 | OBD 09 | VIN, CALID `03F906070GA 5413`, CVN C3664742, „ECM-EngineControl” | 20.11 |
 
 ### Climatronic (746)
@@ -76,14 +86,26 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 
 | Modul / DID | Ce am văzut | Bănuială |
 |---|---|---|
-| Bord **1007** | crește repede în mers | un contor; **candidat pentru consumul de combustibil** (de comparat cu litrii pe un drum) |
+| Bord **1007** | crește cu ~2.900 la fiecare litru estimat din OBD (2.826 pe 24 s, 2.956 pe 47 min, 21.11 noaptea); 16 biți | **contorul de consum al bordului** (calculatorul de bord), probabil ~0,3–0,5 mL pe unitate; de calibrat după un plin |
+| Bord 1009 | 603 → 624 → 647 (~0,48 pe minut de mers) | timpul din memoria calculatorului de bord, în minute? |
+| Bord **2205**, bitul 0x01 din primul octet | 1 la 4 citiri pe loc cu frâna trasă, 0 la 4 citiri în mers | **frâna de mână trasă** (sau „mașina stă”); de verificat cu frâna trasă în mers / eliberată pe loc |
+| Bord **202F** | 146–151; − 50 dă 96–101 °C, cu 1–3 °C peste lichidul de răcire OBD | o temperatură a motorului (lichidul, cum îl arată bordul, sau uleiul cu − 60 = 86–91 °C) |
+| Bord 1018 / 1019 / 101A | un jurnal cu un contor (00, 01, 02) și kilometrajul: 245.836, 245.858, 245.878 (mijlocul drumurilor, nu opriri) | un jurnal de evenimente al bordului; evenimentul necunoscut |
+| Bord 224B, 2250 / 2251, 2290 / 2291 | +1 deodată cu zilele reviziei (22, 65, 17) | numărători de zile de la alte evenimente |
+| Motor **1000** | 0x50 = 80 → 0,75 × 80 − 48 = 12 °C, afară erau 12 °C (CAN) | **temperatura de afară** (formula VW 0,75 × x − 48); la fel 1748 |
+| Motor **1001** / **1002** | 116 / 117 → 39 / 39,75 °C, aerul admis OBD 39 °C | **temperatura aerului admis** (doi senzori / modele) |
+| Motor **117C** | 751 cu motorul la 751 rpm, 1.410 la ~1.420–1.600 rpm | **turația** |
+| Motor 1154 | 750 pe loc, 800 în mers | turația de relanti cerută? |
+| Motor 117D | 23 la relanti, 43 la sarcină (MAP 109 kPa) | sarcina / clapeta? |
+| Motor 1189–118F | 7 valori ~490–540, toate cresc puțin în 24 s de accelerare | temperaturi modelate (evacuare / catalizator)? |
+| Motor 1036 | 0x000377F7 = 227.319 | un kilometraj de la un eveniment vechi (~18.600 km în urmă)? |
+| Motor 11F4–11FD, 16DF | text: „mec_open_cps”, „no_error” (×9), „SA3O6010 CBK0191” | stări ale unor teste / un cod intern |
 | Bord 2205 | 0x28 la 41, 49 și 54 km/h | nu e viteza |
 | Bord 100A, 1014, 220C, 202F, 220D | variază singure (100A 92 → 90, 202F 93 → 97) | temperaturi, tensiuni? |
-| Bord 2243, 2244, 224B, 2250, 2251, 2259, 225A, 225B, 2290, 2291 | toate +1 între 21.11 noaptea și 21.11 seara; nu se schimbă la o repornire a motorului | contoare (nu de porniri) |
 | Bord 2224, al doilea octet | 02 → 06 după schimbarea becului | necunoscut |
-| Bord 2203, 2260, 2261, 2294, 2295, 2297, 2298, 2299 | diferă între citiri | senzori? |
+| Bord 2203, 2208, 220C, 2273, 2275, 2277, 2294, 2295, 2297, 2299 | diferă între citiri (2275: 0B pe loc, 07 în mers) | senzori? |
 | Bord F405, F442 | BD → B9, 8B → 8A | oglinzi OBD (temperatură, tensiune?) |
-| Motor | cantitatea injectată (consum exact) | de găsit în scanare |
+| Motor | cantitatea injectată (consum exact) | de găsit în restul scanării (31B0–FFFF) |
 
 ## 5. Erorile citite (stare la 21.11)
 
@@ -114,3 +136,4 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 20.11 | Adaptorul în mașină; UDS la motor; fără MAF / consum în OBD; modulele care răspund |
 | 21.11 | Bordul scanat complet; kilometrajul în 1018; litrii în 2206; scanarea mutată pe server |
 | 21.11 seara | Erorile climatronicului (B1091); erorile UDS ale motorului / airbag-ului citite (7F 19 78); becul ars = 2224 bitul 0x01; ceasul în 2216 / 2238 / 2239 |
+| 22.11 | Analiza codurilor: intervalul reviziei în bord (2260 / 2261 / 2243 / 2244, potrivite cu revizia din 19.10), kilometrajul în motor (121C, 15D4), temperaturile și turația în motor (1000–1002, 117C); 1007 ≈ contorul de consum, 2205 ≈ frâna de mână |
