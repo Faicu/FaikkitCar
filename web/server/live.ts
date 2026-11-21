@@ -5,6 +5,7 @@
 // Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
+import { readObd, type ObdLive } from "./obd.ts";
 import { readLastPosition, type Position } from "./car.ts";
 import { getDb, hourKey, memo } from "./db.ts";
 import { applyFuel, readFuelSummary } from "./fuel.ts";
@@ -86,6 +87,7 @@ export interface Live {
   range: { km: number; lPer100: number; real: boolean } | null;
   unit: UnitStats | null; // performanța navigației, ultima măsurare (unit.ts)
   unitHealth: UnitHealth | null; // pe scurt, pentru primul card; null = navigația doarme
+  obd: ObdLive; // adaptorul OBD: legătura, eliberarea, codurile de eroare (obd.ts)
 }
 
 // Fără stare nouă atâta timp, unitatea doarme sau s-a oprit: mașina e oprită.
@@ -288,7 +290,7 @@ export function readLive(): Live {
   if (tank && lPer100 !== null && lPer100 > 0) {
     range = { km: Math.round((tank.liters / lPer100) * 100), lPer100: Math.round(lPer100 * 10) / 10, real };
   }
-  return { state, since, at: row?.received_at ?? null, data, trip, position, tank, range, unit: readUnit(), unitHealth: readUnitHealth() };
+  return { state, since, at: row?.received_at ?? null, data, trip, position, tank, range, unit: readUnit(), unitHealth: readUnitHealth(), obd: readObd() };
 }
 
 /** Consumul estimat pe ultimele 60 de zile, cât nu există încă unul real din rezervor. */

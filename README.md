@@ -39,13 +39,19 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 - ✅ Contactul pus cu motorul oprit: Panel → Acum arată „Doar contact”, 0 rpm, bateria, clima.
 - ✅ Avertizarea de ușă deschisă: „Atenție, ușa șoferului e deschisă!” la ~1,7 s după ce ușa e văzută în mers.
 - 🧪 Netestată încă în mașină: harta live pe drum.
+- ✅ **Adaptorul OBD2 (vLinker MC+):** FaikkitCar se conectează singur cu motorul pornit și îl eliberează la un minut
+  după oprire; strânge consumul din aerul aspirat pe fiecare punct de traseu (încă nefolosit în calcule, până la
+  calibrarea pe următorul plin). Motorul răspunde pe UDS; nu dă debitul de aer și nici consumul direct.
 
 ## Ce urmează
 
-1. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube
+1. **OBD (de testat):** pe Acum apare un card doar dacă motorul are un cod de eroare; pe fila Navigație,
+   „Adaptorul OBD” cu starea și „Eliberează 10 min (Car Scanner)” (și în mașină, Setări → Sistem). Cer FaikkitCar
+   1.1.100 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
+2. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube
    Music): coperta, redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care
    o pornește în mașină. Cere FaikkitCar și Panel noi.
-2. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
+3. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
    ca modemul să nu mai coboare pe 2G („G”), unde nu se încarcă nimic. De văzut dacă setarea rămâne
    după o repornire a navigației (în FaikkitCar, Setări → Sistem arată tipul) și, pe hartă (Navigație →
    „Semnal mobil”), cum stă internetul pe porțiunile unde cădea. Semnalul mobil al
@@ -54,20 +60,19 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
    (5 + 3 MHz), deci în afara orașelor pierde primul. Apoi, de comparat cu o cartelă Orange
    preplătită pe aceleași drumuri.
-3. **Instalează Panel 1.0.26** (semnalul mobil pe fila Navigație; „Actualizează acum”, o singură apăsare,
+4. **Instalează Panel 1.0.26** (semnalul mobil pe fila Navigație; „Actualizează acum”, o singură apăsare,
    apoi confirmarea; ~30 s până pornește versiunea nouă).
-4. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
+5. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
    regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
    scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
    închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
-5. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
+6. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
    somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
    ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
-6. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu litrii și totalul plătit
+7. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu litrii și totalul plătit
    (cel de pe bon, după reducere), la data și ora ei. „Plin” se bifează doar dacă pistolul
    s-a oprit singur.
-7. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
-   adaptor OBD2 pentru consum instantaneu, voce și mai naturală (Azure / ElevenLabs).
+8. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei, voce și mai naturală (Azure / ElevenLabs).
 
 ---
 
@@ -114,6 +119,10 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Mentenanță după km / dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe site sau în Panel; cele scadente apar pe navigație și în salut |
 | Salut vorbit după 30 s de mers | ✅ | Ora zilei („Bună seara” de la apus), temperatura de afară, mentenanța scadentă. Vocea Piper „Mihai” de pe server; fără internet, vocea Google |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | ✅ | Vocea locală (fără întârziere) sau bip |
+| Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
+| Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
+| Codurile de eroare ale motorului | 🧪 | La conectare și la 5 min; card pe Acum (site și Panel) doar când există vreunul |
+| Eliberarea OBD pentru Car Scanner | 🧪 | Navigație → „Adaptorul OBD” (site, Panel) sau Setări → Sistem în mașină: 10 min, apoi se reia singur |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
 
@@ -301,8 +310,9 @@ Pe server (`web/server/trip-math.ts`), segment cu segment, din punctele trimise 
 - **Rezervorul de acum** = mediana ultimelor 10 minute, doar după ultima alimentare.
 - **Costul** = litrii estimați × prețul mediu al benzinei din rezervor la acel moment (ce
   rămăsese, la prețul vechi, amestecat cu ce s-a pus, la prețul plătit efectiv).
-- **Mai precis** s-ar putea cu un adaptor OBD2 Bluetooth (presiune admisie + temperatură aer +
-  turație), ~5% pe orice drum.
+- **Cu adaptorul OBD2** (din 21.11) se strâng litrii din aerul aspirat (presiunea din galerie,
+  temperatura aerului, turația, lambda) pe fiecare punct; după calibrarea pe un plin → plin vor
+  înlocui estimarea.
 
 ---
 

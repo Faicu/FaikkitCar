@@ -454,6 +454,14 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
 - Contact pus cu motorul oprit: confirmat 15.11 (Panel 1.0.44 → „Doar contact”, 13,2 V, 0 rpm).
 - Avertizarea de ușă: confirmată 15.11 (ușa șoferului, vocea locală la ~1,7 s, cât pornește TextToSpeech).
 - Netestat încă în mașină: harta live pe drum.
-- De făcut (cererea utilizatorului, 21.11): „Eliberează OBD” pentru câteva minute (Car Scanner pe telefon): Panel + buton în mașină, prin starea live, reluare singură după 10 min.
+- 1.1.100 (21.11): cererile motorului cu „1” la sfârșit (un singur răspuns: adaptorul nu mai așteaptă după răspuns;
+  după răspunsurile lente ale bordului ajunsese la ~240 ms pe cerere, ~3 citiri/s). Codurile de eroare (`01011`, `03`,
+  `07`) la conectare și la 5 min, brute în starea live (`o.d`); serverul `dtc.ts` (pur, `dtc.test.ts`: coduri + descrieri
+  în română, altfel după familie) și `obd.ts` (`obd_dtc` activ = `cleared_at` NULL, `obd_check` = ultima citire, martorul).
+  `live.obd` = {status, hz, releasedFor, checkedAt, mil, codes}. Eliberarea pentru Car Scanner (cererea utilizatorului):
+  `POST /api/obd/release {minutes}` (0 = reia; utilizator) și `POST /api/car/obd/release` (butonul din Setări → Sistem),
+  în memorie pe server; răspunsul la `/api/car/state` are `obdOff` (secunde), mașina închide legătura și scrie „OBD:
+  eliberat … / reluat”. Site: `ObdCard.tsx` (`DtcCard` pe Acum doar cu erori, `ObdCard` pe Navigație); Panel:
+  `renderDtc`/`renderObd`. Cardul de erori fără notificări (utilizatorul).
 - Idei neîncepute: alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
   adaptor OBD2 pentru consum instantaneu.

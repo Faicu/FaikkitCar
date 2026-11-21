@@ -65,6 +65,8 @@ final class LiveState {
                 if (resp != null && resp.optInt("cmd", 0) > 0) RemoteCmd.poll(c);
                 if (resp != null) Updater.onServerVersion(c, resp.optInt("apk", 0));
                 if (resp != null) fastUntil = resp.optBoolean("fast") ? SystemClock.elapsedRealtime() + 20_000 : 0;
+                // Eliberarea OBD ceruta din Panel / site (secundele ramase, 0 = nu).
+                if (resp != null) Obd.release(resp.optInt("obdOff", 0));
             } finally {
                 busy.set(false);
             }
@@ -76,6 +78,8 @@ final class LiveState {
         HttpURLConnection conn = null;
         try {
             state.put("u", UnitStats.sample()); // performanta navigatiei (Panel, site)
+            org.json.JSONObject obd = Obd.live(); // adaptorul OBD: starea, codurile de eroare
+            if (obd != null) state.put("o", obd);
             byte[] body = state.put("version", BuildConfig.VERSION_NAME).toString().getBytes(StandardCharsets.UTF_8);
             conn = (HttpURLConnection) new URL(URL_STATE).openConnection();
             conn.setConnectTimeout(8_000);

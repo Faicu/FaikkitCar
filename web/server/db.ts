@@ -192,6 +192,23 @@ export function getDb(): DatabaseSync {
       at TEXT PRIMARY KEY,
       data TEXT NOT NULL
     );
+
+    -- Codurile de eroare ale motorului (adaptorul OBD, 1.1.100+): memorate (03) sau în așteptare
+    -- (07). Activ = cleared_at NULL; când nu mai apare la o citire, cleared_at = ora citirii.
+    CREATE TABLE IF NOT EXISTS obd_dtc (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      first_at TEXT NOT NULL,
+      last_at TEXT NOT NULL,
+      cleared_at TEXT
+    );
+    -- Ultima citire a codurilor (un rând): când și dacă martorul motorului era aprins.
+    CREATE TABLE IF NOT EXISTS obd_check (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      at TEXT NOT NULL,
+      mil INTEGER NOT NULL
+    );
   `);
   // Migrări pentru coloanele adăugate după crearea tabelelor.
   const cols = (table: string) =>

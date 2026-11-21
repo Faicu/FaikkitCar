@@ -605,6 +605,7 @@ public class MainActivity extends Activity {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
+        renderDtc();
         String state = live.optString("state", "off");
         LinearLayout card = Ui.card(this, content);
         LinearLayout row = new LinearLayout(this);
@@ -765,8 +766,74 @@ public class MainActivity extends Activity {
             UnitCard.render(this, content, unit, live.optJSONObject("unitHealth"), unitHistory);
             loadUnitHistory();
         }
+        renderObd();
         renderSignal();
         loadSignal();
+    }
+
+    /**
+     * Codurile de eroare ale motorului, sus pe Acum, doar cand exista vreunul sau martorul e
+     * aprins (ca DtcCard.tsx pe site; cererea utilizatorului, 21.11: fara notificari).
+     */
+    private void renderDtc() {
+        JSONObject obd = live.optJSONObject("obd");
+        JSONArray codes = obd == null ? null : obd.optJSONArray("codes");
+        int n = codes == null ? 0 : codes.length();
+        if (obd == null || (n == 0 && !obd.optBoolean("mil"))) return;
+        LinearLayout card = Ui.card(this, content);
+        card.setBackground(Ui.round(this, 0x33F59E0B, 16));
+        card.addView(Ui.text(this, n == 1 ? "O eroare la motor" : n > 1 ? n + " erori la motor"
+                : "Martorul motorului e aprins", 18, Ui.WARN, true));
+        for (int i = 0; i < n; i++) {
+            JSONObject c = codes.optJSONObject(i);
+            TextView t = Ui.text(this, c.optString("code") + " · " + c.optString("text"), 15, Ui.TEXT, false);
+            t.setPadding(0, dp(this, 8), 0, 0);
+            card.addView(t);
+            card.addView(Ui.text(this, ("pending".equals(c.optString("kind")) ? "în așteptare (nu s-a confirmat încă)"
+                    : "memorată") + " · apărută " + Fmt.ago(c.optString("since")), 13, Ui.MUTED, false));
+        }
+        String foot = (obd.optBoolean("mil") ? "Martorul motorului e aprins. " : "")
+                + (obd.isNull("checkedAt") ? "" : "Verificat " + Fmt.ago(obd.optString("checkedAt")) + ".");
+        if (!foot.isEmpty()) {
+            TextView t = Ui.text(this, foot, 13, Ui.MUTED, false);
+            t.setPadding(0, dp(this, 8), 0, 0);
+            card.addView(t);
+        }
+    }
+
+    /** Adaptorul OBD pe fila Navigatie: legatura si eliberarea pentru Car Scanner (ca ObdCard.tsx). */
+    private void renderObd() {
+        JSONObject obd = live.optJSONObject("obd");
+        if (obd == null) return;
+        LinearLayout card = Ui.card(this, content);
+        Ui.title(this, card, "Adaptorul OBD");
+        String st = obd.isNull("status") ? "" : obd.optString("status");
+        boolean released = !obd.isNull("releasedFor");
+        String status;
+        switch (st) {
+            case "connected": status = "conectat" + (obd.isNull("hz") ? "" : " · " + Fmt.num(obd.optDouble("hz"), 1) + " citiri/s"); break;
+            case "searching": status = "caută adaptorul"; break;
+            case "released": status = "eliberat pentru Car Scanner"; break;
+            case "off": status = "motor oprit (adaptorul e liber)"; break;
+            default: status = "fără semnal de la mașină";
+        }
+        if (released) status += " · încă " + Math.max(1, Math.round(obd.optInt("releasedFor") / 60.0)) + " min";
+        card.addView(Ui.text(this, status, 15, Ui.TEXT, false));
+        JSONArray codes = obd.optJSONArray("codes");
+        String dtc;
+        if (obd.isNull("checkedAt")) {
+            dtc = "Codurile de eroare nu au fost citite încă.";
+        } else {
+            List<String> list = new ArrayList<>();
+            for (int i = 0; codes != null && i < codes.length(); i++) list.add(codes.optJSONObject(i).optString("code"));
+            dtc = "Coduri de eroare: " + (list.isEmpty() ? "niciunul" : String.join(", ", list))
+                    + (obd.optBoolean("mil") ? ", martorul aprins" : "") + " · verificat " + Fmt.ago(obd.optString("checkedAt"));
+        }
+        Ui.hint(this, card, dtc);
+        Ui.addButton(this, card, released ? "Reia acum" : "Eliberează 10 min (Car Scanner)", Ui.PRIMARY,
+                v -> mutate(() -> api.obdRelease(released ? 0 : 10),
+                        released ? "OBD reluat" : "OBD eliberat 10 min: conectează Car Scanner"));
+        Ui.hint(this, card, "Doar cu motorul pornit aplicația ține adaptorul; după eliberare apare pentru telefon în 1–3 min.");
     }
 
     // Semnalul mobil al navigatiei (ca SignalCard.tsx pe site), cerut la cel mult un minut.

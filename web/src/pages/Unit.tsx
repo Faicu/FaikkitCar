@@ -1,8 +1,9 @@
+import { ObdCard } from "../components/ObdCard";
 import { SignalCard } from "../components/SignalCard";
 import { UnitCard } from "../components/UnitCard";
 import { useLive } from "./Now";
 
-/** Fila Navigație: performanța navigației Teyes, live (aceeași stare ca fila Acum), și semnalul mobil. */
+/** Fila Navigație: performanța navigației Teyes, live (aceeași stare ca fila Acum), adaptorul OBD și semnalul mobil. */
 export function UnitPage() {
   const live = useLive();
   return (
@@ -16,6 +17,7 @@ export function UnitPage() {
       ) : (
         <UnitCard unit={live.unit} health={live.unitHealth} />
       )}
+      {live && <ObdCard obd={live.obd} />}
       <SignalCard />
     </div>
   );

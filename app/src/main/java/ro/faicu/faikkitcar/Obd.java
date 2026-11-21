@@ -97,6 +97,88 @@ final class Obd extends BluetoothGattCallback {
     private double seconds;
     private double litersTotal;
 
+    private volatile long releaseUntil;
+    private boolean releasedLogged;
+    /** Pentru starea live: c = conectat, s = caut adaptorul, r = eliberat, o = motor oprit. */
+    private volatile String status = "o";
+
+    /** Eliberarea ceruta (secunde, 0 = reia acum); de la server, in raspunsul la starea live. */
+    static void release(int seconds) {
+        Obd o = instance;
+        if (o == null) return;
+        long until = seconds > 0 ? SystemClock.elapsedRealtime() + seconds * 1000L : 0;
+        // Doar schimbarile: serverul trimite secundele ramase la fiecare raspuns.
+        if (Math.abs(until - o.releaseUntil) > 15_000 || (until == 0) != (o.releaseUntil == 0)) o.releaseUntil = until;
+    }
+
+    /**
+     * Butonul din Setari: eliberarea trece prin server (ca Panel-ul si site-ul), altfel urmatorul
+     * raspuns la starea live (fara eliberare) ar anula-o. Din alt fir decat UI; true = ok.
+     */
+    static boolean requestRelease(int minutes) {
+        java.net.HttpURLConnection conn = null;
+        try {
+            byte[] body = ("{\"minutes\":" + minutes + "}").getBytes(StandardCharsets.UTF_8);
+            conn = (java.net.HttpURLConnection) new java.net.URL(VwStatus.BASE + "/api/car/obd/release").openConnection();
+            conn.setConnectTimeout(8_000);
+            conn.setReadTimeout(8_000);
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setFixedLengthStreamingMode(body.length);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
+            try (java.io.OutputStream out = conn.getOutputStream()) {
+                out.write(body);
+            }
+            int code = conn.getResponseCode();
+            try (java.io.InputStream in = conn.getInputStream()) {
+                while (in.read() >= 0) {
+                    // citit pana la capat
+                }
+            }
+            if (code != 200) return false;
+            release(minutes * 60);
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "OBD: eliberarea nu s-a trimis", e);
+            if (conn != null) conn.disconnect();
+            return false;
+        }
+    }
+
+    static boolean released() {
+        Obd o = instance;
+        return o != null && SystemClock.elapsedRealtime() < o.releaseUntil;
+    }
+
+    /** Pe scurt, pentru Setari: conectat / eliberat / caut / motor oprit. */
+    static String statusText() {
+        Obd o = instance;
+        if (o == null) return "neinceput";
+        switch (o.status) {
+            case "c": return "conectat, " + Math.round(o.rate * 10) / 10.0 + " citiri/s";
+            case "r": return "eliberat pentru Car Scanner inca "
+                    + Math.max(1, Math.round((o.releaseUntil - SystemClock.elapsedRealtime()) / 60_000.0)) + " min";
+            case "s": return "caut adaptorul";
+            default: return "motor oprit (adaptorul e liber)";
+        }
+    }
+
+    /** Pentru starea live (`o`): starea, citirile pe secunda, eliberarea, codurile de eroare. */
+    static org.json.JSONObject live() throws org.json.JSONException {
+        Obd o = instance;
+        if (o == null) return null;
+        org.json.JSONObject j = new org.json.JSONObject().put("st", o.status)
+                .put("hz", Math.round(o.rate * 10) / 10.0);
+        long rel = o.releaseUntil - SystemClock.elapsedRealtime();
+        if (rel > 0) j.put("rel", rel / 1000);
+        if (o.dtcAt > 0) {
+            j.put("d", new org.json.JSONObject().put("at", o.dtcAt).put("mil", o.dtcMil)
+                    .put("n", o.dtcCount).put("s", o.dtcStored).put("p", o.dtcPending));
+        }
+        return j;
+    }
+
     private Obd(Context c) {
         this.c = c.getApplicationContext();
     }
@@ -151,9 +233,26 @@ final class Obd extends BluetoothGattCallback {
     private boolean step() throws InterruptedException {
         if (probeRunning) return false;
         long now = SystemClock.elapsedRealtime();
+        // Eliberat pentru Car Scanner (din Panel, site sau Setari): nu ne conectam pana expira.
+        if (now < releaseUntil) {
+            if (!releasedLogged) {
+                releasedLogged = true;
+                Prefs.log(c, "OBD: eliberat pentru Car Scanner (" + Math.round((releaseUntil - now) / 60_000.0) + " min)");
+            }
+            if (connected || gatt != null) disconnect("eliberat");
+            status = "r";
+            return false;
+        }
+        if (releasedLogged) {
+            releasedLogged = false;
+            Prefs.log(c, "OBD: reluat");
+            nextTryAt = 0;
+            failures = 0;
+        }
         boolean engine = CanLink.get(c).rpm() > 300;
         if (engine) engineOffAt = 0;
         else if (engineOffAt == 0) engineOffAt = now;
+        status = connected ? "c" : engine ? "s" : "o";
         if (!engine && (!connected || now - engineOffAt >= RELEASE_MS)) {
             if (connected) disconnect("motor oprit");
             if (gatt != null) closeGatt();
@@ -406,7 +505,9 @@ final class Obd extends BluetoothGattCallback {
             multiFails = 0;
         }
         if (multi) {
-            String r = send("010C0B0F0349", 1_500);
+            // „1” la sfarsit = un singur raspuns asteptat: adaptorul se intoarce imediat, oricat si-ar
+            // fi marit singur asteptarea (21.11: dupa raspunsurile lente ale bordului, ~240 ms pe cerere).
+            String r = send("010C0B0F03491", 1_500);
             ok = mode01(r);
             if (!ok && ++multiFails >= 3) {
                 // Pe rand un minut, apoi iar mai multe deodata (21.11: a esuat doar la pornire, cat
@@ -423,24 +524,58 @@ final class Obd extends BluetoothGattCallback {
                 multiFails = 0;
             }
         } else {
-            ok = mode01(send("010C", 1_000)) & mode01(send("010B", 1_000)) & mode01(send("010F", 1_000));
+            ok = mode01(send("010C1", 1_000)) & mode01(send("010B1", 1_000)) & mode01(send("010F1", 1_000));
         }
         if (now - lastSlowAt >= SLOW_MS) {
             lastSlowAt = now;
             if (multi) {
-                mode01(send("0105044406070E", 1_500));
+                mode01(send("0105044406070E1", 1_500));
             } else {
-                for (String p : new String[]{"0105", "0104", "0144", "0103", "0149"}) mode01(send(p, 1_000));
+                for (String p : new String[]{"0105", "0104", "0144", "0103", "0149"}) mode01(send(p + "1", 1_000));
             }
         }
         if (now - lastStatusAt >= STATUS_MS) {
             lastStatusAt = now;
-            mode01(send("0101", 1_000));
+            readDtc();
+        }
+        if (now - rateAt >= 10_000) {
+            rate = rateAt == 0 ? 0 : (cycles - rateCycles) * 1000.0 / (now - rateAt);
+            rateAt = now;
+            rateCycles = cycles;
         }
         if (ok) sample();
         cycles++;
         if (!connected) return;
         if (!ok && consecutiveTimeouts >= 5) disconnect("adaptorul nu mai raspunde");
+    }
+
+    // Codurile de eroare: martorul si numarul (0101), memorate (03), in asteptare (07); brute in
+    // hex (serverul le traduce, dtc.ts). dtcAt = ora citirii (System.currentTimeMillis), 0 = niciuna.
+    private volatile long dtcAt;
+    private volatile boolean dtcMil;
+    private volatile int dtcCount = -1;
+    private volatile String dtcStored = "";
+    private volatile String dtcPending = "";
+    private long rateAt;
+    private int rateCycles;
+    private volatile double rate;
+
+    private void readDtc() throws InterruptedException {
+        mode01(send("01011", 1_000));
+        String s = send("03", 2_000);
+        String p = send("07", 2_000);
+        if (s == null || p == null) return;
+        int[] bs = bytes(s), bp = bytes(p);
+        if (bs.length == 0 || bs[0] != 0x43 || bp.length == 0 || bp[0] != 0x47) return;
+        dtcStored = hexOf(bs);
+        dtcPending = hexOf(bp);
+        dtcAt = System.currentTimeMillis();
+    }
+
+    private static String hexOf(int[] b) {
+        StringBuilder sb = new StringBuilder();
+        for (int x : b) sb.append(hex(x, 2));
+        return sb.toString();
     }
 
     private int consecutiveTimeouts;
@@ -479,6 +614,8 @@ final class Obd extends BluetoothGattCallback {
                     case 0x01: {
                         int count = a & 0x7F;
                         boolean mil = (a & 0x80) != 0;
+                        dtcMil = mil;
+                        dtcCount = count;
                         if (count != milCount) {
                             if (milCount >= 0 || count > 0) {
                                 Prefs.log(c, "OBD: coduri de eroare " + count + (mil ? ", martorul aprins" : ""));
@@ -620,6 +757,9 @@ final class Obd extends BluetoothGattCallback {
         }
         connectedAt = SystemClock.elapsedRealtime();
         cycles = 0;
+        rateAt = connectedAt;
+        rateCycles = 0;
+        rate = 0;
         multi = true;
         multiFails = 0;
         lastSlowAt = 0;

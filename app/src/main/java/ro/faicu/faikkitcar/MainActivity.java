@@ -857,6 +857,21 @@ public class MainActivity extends Activity {
                 }
             });
         }
+        // Adaptorul OBD: legatura e automata cu motorul pornit; pentru Car Scanner pe telefon il
+        // eliberam cateva minute (cererea utilizatorului, 21.11). Si din Panel / site.
+        Ui.hint(this, sys, "Adaptor OBD: " + Obd.statusText());
+        boolean obdReleased = Obd.released();
+        Ui.addButton(this, sys, obdReleased ? "Reia OBD acum" : "Elibereaza OBD 10 min (Car Scanner)", Ui.SECONDARY, v -> {
+            int minutes = obdReleased ? 0 : 10;
+            new Thread(() -> {
+                boolean ok = Obd.requestRelease(minutes);
+                runOnUiThread(() -> {
+                    toast(!ok ? "Fara legatura cu serverul, incearca din nou"
+                            : minutes > 0 ? "OBD eliberat 10 min: conecteaza Car Scanner" : "OBD reluat");
+                    refresh();
+                });
+            }).start();
+        });
         Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
         if (!batteryOk()) Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
         toggle(sys, "Comenzi de la distanta (teste)", "Lasa serverul sa ruleze comenzi pe navigatie, "

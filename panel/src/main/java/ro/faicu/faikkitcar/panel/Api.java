@@ -106,6 +106,11 @@ final class Api {
         return new JSONArray(call("GET", "/api/cmd", null, true));
     }
 
+    /** Elibereaza adaptorul OBD pentru Car Scanner (minute, 0 = reia acum). */
+    void obdRelease(int minutes) throws Exception {
+        call("POST", "/api/obd/release", new JSONObject().put("minutes", minutes), true);
+    }
+
     void saveRefuel(JSONObject r) throws Exception {
         call("POST", "/api/refuels", r, true);
     }

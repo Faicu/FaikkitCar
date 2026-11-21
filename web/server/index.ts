@@ -4,6 +4,7 @@
 // login) și site-ul (web/dist). Rulează direct cu Node ≥ 22.18 (tipurile TS se șterg).
 // ---------------------------------------------------------------------------
 
+import { obdOffSeconds, releaseObd, saveObd } from "./obd.ts";
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import { serve } from "@hono/node-server";
@@ -118,8 +119,9 @@ app.post("/api/car/trip", async (c) => {
 // Starea de acum (contact, turație, viteză...), la ~15 s cât unitatea e trează.
 app.post("/api/car/state", async (c) => {
   requireCarToken(c);
-  const p = await json<IncomingState & { u?: unknown }>(c, 16 * 1024);
+  const p = await json<IncomingState & { u?: unknown; o?: unknown }>(c, 16 * 1024);
   saveUnit(p.u);
+  saveObd(p.o);
   // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
   // `apk` = ultima versiune publicată: aplicația o descarcă și cere confirmarea în câteva secunde.
   // `fast` = cineva se uită acum la starea live: mașina trimite la fiecare secundă.
@@ -129,7 +131,16 @@ app.post("/api/car/state", async (c) => {
     cmd: pendingCmdCount(),
     apk: readApkInfo("car")?.versionCode ?? 0,
     fast: hasViewer(),
+    // `obdOff` = secundele rămase din eliberarea adaptorului OBD pentru Car Scanner (0 = nu).
+    obdOff: obdOffSeconds(),
   });
+});
+
+// Butonul din mașină (Setări → Sistem): eliberarea OBD trece tot prin server.
+app.post("/api/car/obd/release", async (c) => {
+  requireCarToken(c);
+  const { minutes } = await json<{ minutes?: unknown }>(c, 1024);
+  return c.json({ ok: true, obdOff: releaseObd(minutes) });
 });
 
 // Muzica (music.ts): starea la fiecare schimbare, comenzile prin long polling (≤ 25 s).
@@ -283,6 +294,13 @@ app.post("/api/logout", (c) => {
 });
 
 // Comenzile shell pentru navigație (cmd.ts): puse în coadă de utilizator, cu rezultatul.
+// Eliberarea adaptorului OBD pentru Car Scanner (Panel, site): { minutes } 1–60, 0 = reia acum.
+app.post("/api/obd/release", async (c) => {
+  requireUser(c);
+  const { minutes } = await json<{ minutes?: unknown }>(c, 1024);
+  return c.json({ ok: true, obdOff: releaseObd(minutes) });
+});
+
 app.get("/api/cmd", (c) => {
   requireUser(c);
   // În listă, rezultatul tăiat la 20.000 de caractere; tot e la /api/cmd/:id.
