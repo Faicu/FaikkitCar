@@ -97,29 +97,38 @@ final class Obd extends BluetoothGattCallback {
     private double seconds;
     private double litersTotal;
 
-    private volatile long releaseUntil;
-    private boolean releasedLogged;
-    /** Pentru starea live: c = conectat, s = caut adaptorul, r = eliberat, o = motor oprit. */
+    /**
+     * Comutatorul „OBD (teste)”, pornit implicit, tinut pe server (site, Panel, Setari): oprit =
+     * nicio legatura cu adaptorul (il poate lua Car Scanner), nicio citire, nicio scanare. Tot ce
+     * face clasa asta e de test: calatoriile si restul aplicatiei nu depind de ea.
+     */
+    private volatile boolean enabled;
+    private boolean disabledLogged;
+    /** Pentru starea live: c = conectat, s = caut adaptorul, o = motor oprit, x = comutatorul oprit. */
     private volatile String status = "o";
 
-    /** Eliberarea ceruta (secunde, 0 = reia acum); de la server, in raspunsul la starea live. */
-    static void release(int seconds) {
+    /** Comutatorul, de la server (raspunsul la starea live); tinut minte pentru pornirea fara retea. */
+    static void setEnabled(boolean on) {
         Obd o = instance;
-        if (o == null) return;
-        long until = seconds > 0 ? SystemClock.elapsedRealtime() + seconds * 1000L : 0;
-        // Doar schimbarile: serverul trimite secundele ramase la fiecare raspuns.
-        if (Math.abs(until - o.releaseUntil) > 15_000 || (until == 0) != (o.releaseUntil == 0)) o.releaseUntil = until;
+        if (o == null || o.enabled == on) return;
+        o.enabled = on;
+        o.c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit().putBoolean("enabled", on).apply();
+    }
+
+    static boolean enabled() {
+        Obd o = instance;
+        return o != null && o.enabled;
     }
 
     /**
-     * Butonul din Setari: eliberarea trece prin server (ca Panel-ul si site-ul), altfel urmatorul
-     * raspuns la starea live (fara eliberare) ar anula-o. Din alt fir decat UI; true = ok.
+     * Butonul din Setari: comutatorul trece prin server (ca Panel-ul si site-ul), altfel urmatorul
+     * raspuns la starea live l-ar intoarce. Din alt fir decat UI; true = ok.
      */
-    static boolean requestRelease(int minutes) {
+    static boolean requestEnabled(boolean on) {
         java.net.HttpURLConnection conn = null;
         try {
-            byte[] body = ("{\"minutes\":" + minutes + "}").getBytes(StandardCharsets.UTF_8);
-            conn = (java.net.HttpURLConnection) new java.net.URL(VwStatus.BASE + "/api/car/obd/release").openConnection();
+            byte[] body = ("{\"enabled\":" + on + "}").getBytes(StandardCharsets.UTF_8);
+            conn = (java.net.HttpURLConnection) new java.net.URL(VwStatus.BASE + "/api/car/obd/enabled").openConnection();
             conn.setConnectTimeout(8_000);
             conn.setReadTimeout(8_000);
             conn.setRequestMethod("POST");
@@ -137,41 +146,34 @@ final class Obd extends BluetoothGattCallback {
                 }
             }
             if (code != 200) return false;
-            release(minutes * 60);
+            setEnabled(on);
             return true;
         } catch (Exception e) {
-            Log.w(TAG, "OBD: eliberarea nu s-a trimis", e);
+            Log.w(TAG, "OBD: comutatorul nu s-a trimis", e);
             if (conn != null) conn.disconnect();
             return false;
         }
     }
 
-    static boolean released() {
-        Obd o = instance;
-        return o != null && SystemClock.elapsedRealtime() < o.releaseUntil;
-    }
-
-    /** Pe scurt, pentru Setari: conectat / eliberat / caut / motor oprit. */
+    /** Pe scurt, pentru Setari: conectat / oprit / caut / motor oprit. */
     static String statusText() {
         Obd o = instance;
         if (o == null) return "neinceput";
         switch (o.status) {
             case "c": return "conectat, " + Math.round(o.rate * 10) / 10.0 + " citiri/s";
-            case "r": return "eliberat pentru Car Scanner inca "
-                    + Math.max(1, Math.round((o.releaseUntil - SystemClock.elapsedRealtime()) / 60_000.0)) + " min";
+            case "x": return "oprit (adaptorul e liber)";
             case "s": return "caut adaptorul";
             default: return "motor oprit (adaptorul e liber)";
         }
     }
 
-    /** Pentru starea live (`o`): starea, citirile pe secunda, eliberarea, codurile de eroare. */
+    /** Pentru starea live (`o`): starea, citirile pe secunda, codurile de eroare. */
     static org.json.JSONObject live() throws org.json.JSONException {
         Obd o = instance;
         if (o == null) return null;
         org.json.JSONObject j = new org.json.JSONObject().put("st", o.status)
                 .put("hz", Math.round(o.rate * 10) / 10.0);
-        long rel = o.releaseUntil - SystemClock.elapsedRealtime();
-        if (rel > 0) j.put("rel", rel / 1000);
+        if (!o.enabled) return j;
         if (o.udsAt > 0) {
             org.json.JSONObject m = new org.json.JSONObject();
             for (java.util.Map.Entry<String, String> e : o.udsDtc.entrySet()) m.put(e.getKey(), e.getValue());
@@ -186,6 +188,7 @@ final class Obd extends BluetoothGattCallback {
 
     private Obd(Context c) {
         this.c = c.getApplicationContext();
+        enabled = this.c.getSharedPreferences("obd", Context.MODE_PRIVATE).getBoolean("enabled", true);
     }
 
     static synchronized void start(Context c) {
@@ -210,7 +213,7 @@ final class Obd extends BluetoothGattCallback {
      */
     static double[] take() {
         Obd o = instance;
-        if (o == null) return null;
+        if (o == null || !o.enabled) return null;
         synchronized (o) {
             boolean fresh = SystemClock.elapsedRealtime() - o.fastAt < 5_000;
             if (o.seconds <= 0 && !fresh) return null;
@@ -238,19 +241,20 @@ final class Obd extends BluetoothGattCallback {
     private boolean step() throws InterruptedException {
         if (probeRunning) return false;
         long now = SystemClock.elapsedRealtime();
-        // Eliberat pentru Car Scanner (din Panel, site sau Setari): nu ne conectam pana expira.
-        if (now < releaseUntil) {
-            if (!releasedLogged) {
-                releasedLogged = true;
-                Prefs.log(c, "OBD: eliberat pentru Car Scanner (" + Math.round((releaseUntil - now) / 60_000.0) + " min)");
+        // Comutatorul oprit (site, Panel, Setari): adaptorul ramane liber, nu citim nimic.
+        if (!enabled) {
+            if (!disabledLogged) {
+                disabledLogged = true;
+                Prefs.log(c, "OBD: oprit (comutatorul)");
             }
-            if (connected || gatt != null) disconnect("eliberat");
-            status = "r";
+            if (connected || gatt != null) disconnect("comutatorul oprit");
+            status = "x";
+            job = null;
             return false;
         }
-        if (releasedLogged) {
-            releasedLogged = false;
-            Prefs.log(c, "OBD: reluat");
+        if (disabledLogged) {
+            disabledLogged = false;
+            Prefs.log(c, "OBD: pornit (comutatorul)");
             nextTryAt = 0;
             failures = 0;
         }

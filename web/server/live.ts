@@ -87,7 +87,7 @@ export interface Live {
   range: { km: number; lPer100: number; real: boolean } | null;
   unit: UnitStats | null; // performanța navigației, ultima măsurare (unit.ts)
   unitHealth: UnitHealth | null; // pe scurt, pentru primul card; null = navigația doarme
-  obd: ObdLive; // adaptorul OBD: legătura, eliberarea, codurile de eroare (obd.ts)
+  obd: ObdLive; // adaptorul OBD: legătura, comutatorul, codurile de eroare (obd.ts)
 }
 
 // Fără stare nouă atâta timp, unitatea doarme sau s-a oprit: mașina e oprită.

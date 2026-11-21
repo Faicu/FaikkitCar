@@ -106,9 +106,14 @@ final class Api {
         return new JSONArray(call("GET", "/api/cmd", null, true));
     }
 
-    /** Elibereaza adaptorul OBD pentru Car Scanner (minute, 0 = reia acum). */
-    void obdRelease(int minutes) throws Exception {
-        call("POST", "/api/obd/release", new JSONObject().put("minutes", minutes), true);
+    /** Comutatorul „OBD (teste)”: oprit = adaptorul liber, nimic citit sau scanat. */
+    void obdEnable(boolean enabled) throws Exception {
+        call("POST", "/api/obd/enabled", new JSONObject().put("enabled", enabled), true);
+    }
+
+    /** Scanarea OBD: lucrarile cu progresul si ce s-a gasit pe fiecare modul. */
+    JSONObject obdScan() throws Exception {
+        return new JSONObject(call("GET", "/api/obd/scan", null, true));
     }
 
     void saveRefuel(JSONObject r) throws Exception {

@@ -1,15 +1,16 @@
 // ---------------------------------------------------------------------------
 // Adaptorul OBD2 din mașină (cheia „o” din POST /api/car/state, 1.1.100+): starea legăturii
-// (conectat / caută / eliberat / motor oprit), citirile pe secundă, eliberarea pentru Car Scanner
-// (cerută din Panel, site sau mașină; mașina o află din răspunsul la starea live, `obdOff`) și
-// codurile de eroare (memorate în `obd_dtc`, ca să rămână și cu mașina oprită).
+// (conectat / caută / motor oprit / dezactivat), citirile pe secundă, comutatorul „OBD (teste)”
+// (din site, Panel sau mașină; mașina îl află din răspunsul la starea live, `obd`) și codurile
+// de eroare (memorate în `obd_dtc`, ca să rămână și cu mașina oprită). Tot ce ține de OBD e de
+// test: cu comutatorul oprit (sau fără adaptor) călătoriile și restul merg ca înainte.
 // Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
 import { describeDtc, parseDtcs, parseUdsDtcs, UDS_MODULES } from "./dtc.ts";
 
-export type ObdStatus = "connected" | "searching" | "released" | "off";
+export type ObdStatus = "connected" | "searching" | "off" | "disabled";
 
 export interface ObdCode {
   code: string;
@@ -40,7 +41,7 @@ export interface ObdModule {
 export interface ObdLive {
   status: ObdStatus | null; // null = nicio stare recentă de la mașină
   hz: number | null; // citiri ale motorului pe secundă
-  releasedFor: number | null; // secunde rămase din eliberare (null = nu e eliberat)
+  enabled: boolean; // comutatorul „OBD (teste)”: oprit = adaptorul liber, nu se citește nimic
   checkedAt: string | null; // ultima citire a codurilor
   mil: boolean; // martorul motorului aprins la ultima citire
   codes: ObdCode[]; // active (OBD standard, doar motorul)
@@ -48,23 +49,23 @@ export interface ObdLive {
   modules: ObdModule[]; // modulele citite prin UDS
 }
 
-const STATUS: Record<string, ObdStatus> = { c: "connected", s: "searching", r: "released", o: "off" };
+// „x” = comutatorul oprit în mașină; „r” (eliberat 10 min, până la 1.1.102) se citește ca motor oprit.
+const STATUS: Record<string, ObdStatus> = { c: "connected", s: "searching", o: "off", r: "off", x: "disabled" };
 const FRESH_MS = 90_000;
-const MAX_RELEASE_MIN = 60;
 
 let last: { at: number; status: ObdStatus; hz: number | null } | null = null;
-let releaseUntil = 0;
 
-/** Eliberarea pentru Car Scanner: `minutes` 0 = reia acum. Întoarce secundele eliberării. */
-export function releaseObd(minutes: unknown): number {
-  const m = typeof minutes === "number" && Number.isFinite(minutes) ? Math.max(0, Math.min(MAX_RELEASE_MIN, minutes)) : 0;
-  releaseUntil = m > 0 ? Date.now() + m * 60_000 : 0;
-  return obdOffSeconds();
+/** Comutatorul „OBD (teste)”, pornit implicit (tabela `setting`, cheia `obd_enabled`). */
+export function obdEnabled(): boolean {
+  const r = getDb().prepare(`SELECT value FROM setting WHERE key = 'obd_enabled'`).get() as { value: string } | undefined;
+  return r?.value !== "0";
 }
 
-/** Secundele rămase din eliberare, pentru răspunsul la starea live (0 = nu e eliberat). */
-export function obdOffSeconds(now = Date.now()): number {
-  return releaseUntil > now ? Math.ceil((releaseUntil - now) / 1000) : 0;
+export function setObdEnabled(on: unknown): boolean {
+  getDb()
+    .prepare(`INSERT INTO setting (key, value) VALUES ('obd_enabled', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`)
+    .run(on === false ? "0" : "1");
+  return obdEnabled();
 }
 
 /** Cheia „o” din starea mașinii: { st, hz, rel?, d?: { at, mil, n, s, p } }. */
@@ -159,12 +160,12 @@ function saveCheck(d: Record<string, unknown>): void {
 
 export function readObd(now = Date.now()): ObdLive {
   const db = getDb();
+  const enabled = obdEnabled();
   const check = db.prepare(`SELECT at, mil FROM obd_check WHERE id = 1`).get() as { at: string; mil: number } | undefined;
   const rows = db
     .prepare(`SELECT code, kind, first_at FROM obd_dtc WHERE cleared_at IS NULL ORDER BY kind DESC, first_at`)
     .all() as Array<{ code: string; kind: "stored" | "pending"; first_at: string }>;
   const fresh = last && now - last.at < FRESH_MS ? last : null;
-  const off = obdOffSeconds(now);
   const codes = rows.map((r) => ({ ...describeDtc(r.code), kind: r.kind, since: r.first_at }));
   const mods = db
     .prepare(`SELECT module, at, ok FROM obd_module_check ORDER BY module`)
@@ -191,9 +192,9 @@ export function readObd(now = Date.now()): ObdLive {
     faults.unshift({ module: "Motor", code: c.code, text: c.text, known: c.known, state: c.kind === "pending" ? "pending" : "stored", since: c.since });
   }
   return {
-    status: off > 0 ? "released" : (fresh?.status ?? null),
-    hz: fresh?.status === "connected" ? fresh.hz : null,
-    releasedFor: off > 0 ? off : null,
+    status: !enabled ? "disabled" : (fresh?.status ?? null),
+    hz: enabled && fresh?.status === "connected" ? fresh.hz : null,
+    enabled,
     checkedAt: check?.at ?? null,
     mil: check?.mil === 1,
     codes,

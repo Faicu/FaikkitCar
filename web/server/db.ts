@@ -275,6 +275,12 @@ export function getDb(): DatabaseSync {
       value TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_obd_sample ON obd_sample(tx, svc, id, at);
+
+    -- Setări simple (cheie → valoare): obd_enabled = comutatorul „OBD (teste)” („0” = oprit).
+    CREATE TABLE IF NOT EXISTS setting (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
   // Migrări pentru coloanele adăugate după crearea tabelelor.
   const cols = (table: string) =>

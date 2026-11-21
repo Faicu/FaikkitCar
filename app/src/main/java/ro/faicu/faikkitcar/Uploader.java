@@ -26,6 +26,7 @@ final class Uploader {
     private static final String URL_TRIP = VwStatus.BASE + "/api/car/trip";
     private static final String URL_SCAN = VwStatus.BASE + "/api/car/obd/scan";
     private static final int SCAN_BATCH = 500;
+    private static final int SCAN_ROUNDS = 4;
     private static final int POINT_BATCH = 300;
     private static final int POINT_CHUNK = 3000;
     private static final int BATCH = 100;
@@ -85,21 +86,25 @@ final class Uploader {
                 return;
             }
         }
-        // Rezultatele si progresul scanarii OBD (Obd), in ordinea in care s-au adaugat.
-        while (true) {
-            JSONArray batch = Obd.SCAN_QUEUE.peek(c, SCAN_BATCH);
-            if (batch.length() == 0) break;
-            String error = post(URL_SCAN, "items", batch);
-            if (error != null) {
-                Prefs.setUploadStatus(c, "eroare scanare OBD: " + error);
-                return;
-            }
-            Obd.SCAN_QUEUE.drop(c, batch.length());
-        }
         // Avem internet: reimprospatam si starea (mentenanta, versiunea noua).
         VwStatus.refreshIfOld(c);
         // Versiunea noua, descarcata in avans: se propune la urmatoarea pornire a masinii.
         if (Prefs.autoUpdateEnabled(c)) Updater.prefetch(c);
+        flushScan(c);
+    }
+
+    /**
+     * Rezultatele scanarii OBD (de test), ultimele si separat: o eroare aici nu opreste nimic
+     * altceva si nu apare in starea trimiterii. Cel mult cateva loturi deodata, ca jurnalul si
+     * punctele noi sa nu astepte dupa o coada mare.
+     */
+    private static void flushScan(Context c) {
+        for (int i = 0; i < SCAN_ROUNDS; i++) {
+            JSONArray batch = Obd.SCAN_QUEUE.peek(c, SCAN_BATCH);
+            if (batch.length() == 0) return;
+            if (post(URL_SCAN, "items", batch) != null) return;
+            Obd.SCAN_QUEUE.drop(c, batch.length());
+        }
     }
 
     /** Intoarce null la succes, altfel motivul. */

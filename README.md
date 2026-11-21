@@ -45,9 +45,10 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **OBD (de testat):** pe Acum apare un card doar dacă există o eroare (motor, bord, climatronic, airbag); pe fila Navigație,
-   „Adaptorul OBD” cu starea și „Eliberează 10 min (Car Scanner)” (și în mașină, Setări → Sistem). Cer FaikkitCar
-   1.1.101 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
+1. **OBD (de testat, doar teste):** pe Acum apare un card doar dacă există o eroare (motor, bord, climatronic, airbag); pe
+   fila Navigație, „Adaptorul OBD (teste)” cu starea și comutatorul „Oprește OBD / Pornește OBD” (și în mașină, Setări →
+   Sistem), plus „Scanarea OBD”. Oprit, adaptorul e liber pentru Car Scanner; călătoriile merg la fel. Cer FaikkitCar
+   1.1.103 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
 2. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube
    Music): coperta, redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care
    o pornește în mașină. Cere FaikkitCar și Panel noi.
@@ -123,7 +124,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
 | Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Acum (site și Panel) doar când există vreuna. ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
 | Scanarea OBD | 🧪 | Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Bordul e scanat complet |
-| Eliberarea OBD pentru Car Scanner | 🧪 | Navigație → „Adaptorul OBD” (site, Panel) sau Setări → Sistem în mașină: 10 min, apoi se reia singur |
+| Comutatorul „OBD (teste)” | 🧪 | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
 

@@ -19,7 +19,7 @@ export function UnitPage() {
         <UnitCard unit={live.unit} health={live.unitHealth} />
       )}
       {live && <ObdCard obd={live.obd} />}
-      <ObdScanCard />
+      {live?.obd.enabled && <ObdScanCard />}
       <SignalCard />
     </div>
   );

@@ -780,7 +780,7 @@ public class MainActivity extends Activity {
         JSONObject obd = live.optJSONObject("obd");
         JSONArray faults = obd == null ? null : obd.optJSONArray("faults");
         int n = faults == null ? 0 : faults.length();
-        if (obd == null || (n == 0 && !obd.optBoolean("mil"))) return;
+        if (obd == null || !obd.optBoolean("enabled", true) || (n == 0 && !obd.optBoolean("mil"))) return;
         LinearLayout card = Ui.card(this, content);
         card.setBackground(Ui.round(this, 0x33F59E0B, 16));
         card.addView(Ui.text(this, n == 1 ? "O eroare" : n > 1 ? n + " erori" : "Martorul motorului e aprins", 18, Ui.WARN, true));
@@ -803,47 +803,115 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Adaptorul OBD pe fila Navigatie: legatura si eliberarea pentru Car Scanner (ca ObdCard.tsx). */
+    /**
+     * Adaptorul OBD pe fila Navigatie: legatura si comutatorul „OBD (teste)”, pornit implicit (ca
+     * ObdCard.tsx). Oprit = adaptorul liber (Car Scanner), nimic citit; calatoriile merg la fel.
+     */
     private void renderObd() {
         JSONObject obd = live.optJSONObject("obd");
         if (obd == null) return;
+        boolean on = obd.optBoolean("enabled", true);
         LinearLayout card = Ui.card(this, content);
-        Ui.title(this, card, "Adaptorul OBD");
+        Ui.title(this, card, "Adaptorul OBD (teste)");
         String st = obd.isNull("status") ? "" : obd.optString("status");
-        boolean released = !obd.isNull("releasedFor");
         String status;
         switch (st) {
             case "connected": status = "conectat" + (obd.isNull("hz") ? "" : " · " + Fmt.num(obd.optDouble("hz"), 1) + " citiri/s"); break;
             case "searching": status = "caută adaptorul"; break;
-            case "released": status = "eliberat pentru Car Scanner"; break;
             case "off": status = "motor oprit (adaptorul e liber)"; break;
+            case "disabled": status = "oprit (adaptorul e liber)"; break;
             default: status = "fără semnal de la mașină";
         }
-        if (released) status += " · încă " + Math.max(1, Math.round(obd.optInt("releasedFor") / 60.0)) + " min";
         card.addView(Ui.text(this, status, 15, Ui.TEXT, false));
-        JSONArray codes = obd.optJSONArray("codes");
-        String dtc;
-        if (obd.isNull("checkedAt")) {
-            dtc = "Erorile nu au fost citite încă.";
-        } else {
-            List<String> list = new ArrayList<>();
-            for (int i = 0; codes != null && i < codes.length(); i++) list.add(codes.optJSONObject(i).optString("code"));
-            dtc = "Motorul (OBD): " + (list.isEmpty() ? "nicio eroare" : String.join(", ", list))
-                    + (obd.optBoolean("mil") ? ", martorul aprins" : "") + " · verificat " + Fmt.ago(obd.optString("checkedAt"));
+        if (on) {
+            JSONArray codes = obd.optJSONArray("codes");
+            String dtc;
+            if (obd.isNull("checkedAt")) {
+                dtc = "Erorile nu au fost citite încă.";
+            } else {
+                List<String> list = new ArrayList<>();
+                for (int i = 0; codes != null && i < codes.length(); i++) list.add(codes.optJSONObject(i).optString("code"));
+                dtc = "Motorul (OBD): " + (list.isEmpty() ? "nicio eroare" : String.join(", ", list))
+                        + (obd.optBoolean("mil") ? ", martorul aprins" : "") + " · verificat " + Fmt.ago(obd.optString("checkedAt"));
+            }
+            Ui.hint(this, card, dtc);
+            JSONArray mods = obd.optJSONArray("modules");
+            for (int i = 0; mods != null && i < mods.length(); i++) {
+                JSONObject m = mods.optJSONObject(i);
+                int c = m.optInt("count");
+                Ui.hint(this, card, m.optString("name") + ": " + (!m.optBoolean("ok") ? "n-a răspuns"
+                        : c == 0 ? "nicio eroare" : c == 1 ? "o eroare" : c + " erori")
+                        + " · verificat " + Fmt.ago(m.optString("checkedAt")));
+            }
         }
-        Ui.hint(this, card, dtc);
-        JSONArray mods = obd.optJSONArray("modules");
+        Ui.addButton(this, card, on ? "Oprește OBD" : "Pornește OBD", on ? Ui.SECONDARY : Ui.PRIMARY,
+                v -> mutate(() -> api.obdEnable(!on), on ? "OBD oprit: adaptorul e liber (Car Scanner)" : "OBD pornit"));
+        Ui.hint(this, card, on
+                ? "Oprit, mașina lasă adaptorul liber (pentru Car Scanner) și nu mai citește și nu mai scanează nimic. Călătoriile și costurile merg la fel."
+                : "Adaptorul e liber: Car Scanner îl poate folosi (apare pe telefon în 1–3 min). Călătoriile și costurile merg la fel.");
+        if (on) {
+            renderObdScan();
+            loadObdScan();
+        }
+    }
+
+    // Scanarea OBD (ca ObdScanCard.tsx pe site, fără catalog), ceruta la cel mult un minut.
+    private JSONObject obdScan;
+    private long obdScanAt;
+    private boolean obdScanBusy;
+
+    private void loadObdScan() {
+        if (obdScanBusy || System.currentTimeMillis() - obdScanAt < 60_000) return;
+        obdScanBusy = true;
+        io.execute(() -> {
+            JSONObject got = null;
+            try {
+                got = api.obdScan();
+            } catch (Exception ignored) {
+            }
+            JSONObject r = got;
+            ui.post(() -> {
+                obdScanBusy = false;
+                obdScanAt = System.currentTimeMillis();
+                if (r != null) {
+                    obdScan = r;
+                    render();
+                }
+            });
+        });
+    }
+
+    private void renderObdScan() {
+        if (obdScan == null) return;
+        LinearLayout card = Ui.card(this, content);
+        Ui.title(this, card, "Scanarea OBD");
+        JSONArray jobs = obdScan.optJSONArray("jobs");
+        int current = obdScan.isNull("current") ? -1 : obdScan.optInt("current");
+        int done = 0;
+        for (int i = 0; jobs != null && i < jobs.length(); i++) {
+            JSONObject j = jobs.optJSONObject(i);
+            String st = j.optString("status");
+            if ("done".equals(st)) {
+                done++;
+                continue;
+            }
+            int total = j.optInt("total");
+            String line = j.optString("label") + " · "
+                    + (j.optInt("id") == current ? "acum" : "paused".equals(st) ? "oprită" : "running".equals(st) ? "în curs" : "la rând")
+                    + (j.optBoolean("parked") ? " · doar pe loc" : "")
+                    + ("loop".equals(j.optString("kind")) && j.optInt("round") > 0 ? " · trecerea " + (j.optInt("round") + 1) : "")
+                    + (total > 0 ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "");
+            card.addView(Ui.text(this, line, 14, j.optInt("id") == current ? Ui.TEXT : Ui.MUTED, j.optInt("id") == current));
+        }
+        if (done > 0) Ui.hint(this, card, done == 1 ? "O lucrare terminată" : done + " lucrări terminate");
+        JSONArray mods = obdScan.optJSONArray("modules");
         for (int i = 0; mods != null && i < mods.length(); i++) {
             JSONObject m = mods.optJSONObject(i);
-            int c = m.optInt("count");
-            Ui.hint(this, card, m.optString("name") + ": " + (!m.optBoolean("ok") ? "n-a răspuns"
-                    : c == 0 ? "nicio eroare" : c == 1 ? "o eroare" : c + " erori")
-                    + " · verificat " + Fmt.ago(m.optString("checkedAt")));
+            Ui.hint(this, card, m.optString("name") + ": " + m.optInt("codes") + " coduri · " + m.optInt("changing") + " se schimbă"
+                    + (m.optInt("refused") > 0 ? " · " + m.optInt("refused") + " refuzate" : "")
+                    + (m.optInt("slow") > 0 ? " · " + m.optInt("slow") + " lente" : ""));
         }
-        Ui.addButton(this, card, released ? "Reia acum" : "Eliberează 10 min (Car Scanner)", Ui.PRIMARY,
-                v -> mutate(() -> api.obdRelease(released ? 0 : 10),
-                        released ? "OBD reluat" : "OBD eliberat 10 min: conectează Car Scanner"));
-        Ui.hint(this, card, "Doar cu motorul pornit aplicația ține adaptorul; după eliberare apare pentru telefon în 1–3 min.");
+        Ui.hint(this, card, "Catalogul cu valorile și istoricul lor e pe site (Navigație), unde se pot și opri lucrările.");
     }
 
     // Semnalul mobil al navigatiei (ca SignalCard.tsx pe site), cerut la cel mult un minut.

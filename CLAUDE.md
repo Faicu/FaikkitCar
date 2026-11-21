@@ -207,12 +207,23 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (`scripts/import-obd-scan.ts`, rulat ca `faikkitcar`). Mașina (`Obd`, 1.1.102): `GET /api/car/obd/scan` (primele 3,
   la 60 s, într-un fir separat), prima potrivită (cele `parked` doar pe loc, modulele tăcute în sesiunea asta sărite);
   rezultatele `{t:"r", j, x, s, i, v|n, at}` și progresul `{t:"p", j, r, n, d}` în coada de pe disc `obd_scan.jsonl`
-  (`JsonlQueue`, la fel ca punctele), trimise de `Uploader` la `POST /api/car/obd/scan`; progresul și pe disc
+  (`JsonlQueue`, separată de punctele de traseu), trimise de `Uploader.flushScan` la `POST /api/car/obd/scan`; progresul și pe disc
   (`obd/scanJob`, `scanNext`, la ~15 s), deci după o repornire se reia de la cel mai departe dintre server și mașină. Progresul unei
   treceri vechi a buclei e ignorat. 20 de grupuri fără răspuns la rând = modulul tace: lucrarea așteaptă reconectarea
   (reluată de la primul grup tăcut). `@obd scan` = starea. Site: `ObdScanCard.tsx` pe Navigație (lucrările cu progresul,
   „Oprește”/„Reia” = `POST /api/obd/scan/:id {paused}`, modulele, catalogul `GET /api/obd/codes/:tx`, istoricul
-  `GET /api/obd/samples/:tx/:svc/:id`). Panel: încă nimic.
+  `GET /api/obd/samples/:tx/:svc/:id`). Panel: `renderObdScan` (lucrările, modulele; fără catalog).
+- **Totul cu OBD e de test, separat de restul (cererea utilizatorului, 21.11):** fără adaptor sau cu comutatorul oprit,
+  călătoriile, costurile și aplicațiile merg ca înainte. Călătoriile și consumul vin din GPS + CAN; litrii OBD doar se
+  strâng pe puncte (`Obd.take()` → null când e oprit). Nu se leagă nimic de bază de OBD: coada punctelor (`PointQueue`)
+  rămâne a ei, scanarea are `JsonlQueue` separat, trimisă ultima în `Uploader.flushScan` (cel mult 4 loturi, fără
+  starea trimiterii, o eroare nu oprește nimic), ecranul Acasă nu numără nimic din OBD, `seedScanJobs` în try/catch.
+  **Comutatorul „OBD (teste)”** (1.1.103, pornit implicit): pe server în `setting` (`obd_enabled`, `obdEnabled`/
+  `setObdEnabled` în `obd.ts`), schimbat din site (`ObdCard`), Panel (`renderObd`) sau mașină (Setări → Sistem,
+  `POST /api/car/obd/enabled`; utilizator `POST /api/obd/enabled {enabled}`). Mașina îl ia din răspunsul la starea
+  live (`obd`, lipsă = pornit), îl ține în `obd/enabled`; oprit = deconectat, starea „x” (`disabled`), nicio citire,
+  nicio scanare, `@obd` refuzat. Cu el oprit, cardul de erori și cardul scanării nu apar. Înlocuiește „Eliberează
+  10 min” (același efect pentru Car Scanner, dar până îl pornești înapoi).
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
@@ -475,11 +486,9 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   după răspunsurile lente ale bordului ajunsese la ~240 ms pe cerere, ~3 citiri/s). Codurile de eroare (`01011`, `03`,
   `07`) la conectare și la 5 min, brute în starea live (`o.d`); serverul `dtc.ts` (pur, `dtc.test.ts`: coduri + descrieri
   în română, altfel după familie) și `obd.ts` (`obd_dtc` activ = `cleared_at` NULL, `obd_check` = ultima citire, martorul).
-  `live.obd` = {status, hz, releasedFor, checkedAt, mil, codes}. Eliberarea pentru Car Scanner (cererea utilizatorului):
-  `POST /api/obd/release {minutes}` (0 = reia; utilizator) și `POST /api/car/obd/release` (butonul din Setări → Sistem),
-  în memorie pe server; răspunsul la `/api/car/state` are `obdOff` (secunde), mașina închide legătura și scrie „OBD:
-  eliberat … / reluat”. Site: `ObdCard.tsx` (`DtcCard` pe Acum doar cu erori, `ObdCard` pe Navigație); Panel:
-  `renderDtc`/`renderObd`. Cardul de erori fără notificări (utilizatorul).
+  `live.obd` = {status, hz, enabled, checkedAt, mil, codes, faults, modules}. Site: `ObdCard.tsx` (`DtcCard` pe Acum doar
+  cu erori, `ObdCard` pe Navigație); Panel: `renderDtc`/`renderObd`. Cardul de erori fără notificări (utilizatorul).
+  „Eliberează 10 min” (1.1.100–1.1.102) a fost înlocuit de comutator (mai jos).
   1.1.101: erorile tuturor modulelor UDS (cererea utilizatorului: orice eroare, nu doar martorii): `19 02 FF` la motor
   7E0, bord 714, climatronic 746, airbag 715, la conectare și la 15 min (`o.u` = {at, m: {modul: hex sau „-”}}).
   `parseUdsDtcs` (cod de 3 octeți „U1013 00” + starea ISO 14229: 0x01 acum, 0x04 în așteptare, 0x08 memorat, 0x80

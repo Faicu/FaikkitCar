@@ -47,6 +47,7 @@ final class ObdProbe {
     static String run(Context c, String args) {
         if (args.trim().equals("reset")) return reset(c);
         Obd o = Obd.instance();
+        if (!Obd.enabled()) return "OBD oprit (comutatorul din site / Panel / Setari)";
         if (args.trim().startsWith("scan")) {
             return o == null ? "fara Obd" : o.scanCommand(args.trim());
         }

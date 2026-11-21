@@ -4,7 +4,7 @@
 // login) și site-ul (web/dist). Rulează direct cu Node ≥ 22.18 (tipurile TS se șterg).
 // ---------------------------------------------------------------------------
 
-import { obdOffSeconds, releaseObd, saveObd } from "./obd.ts";
+import { obdEnabled, saveObd, setObdEnabled } from "./obd.ts";
 import {
   carScanJobs,
   readScanCodes,
@@ -140,16 +140,16 @@ app.post("/api/car/state", async (c) => {
     cmd: pendingCmdCount(),
     apk: readApkInfo("car")?.versionCode ?? 0,
     fast: hasViewer(),
-    // `obdOff` = secundele rămase din eliberarea adaptorului OBD pentru Car Scanner (0 = nu).
-    obdOff: obdOffSeconds(),
+    // `obd` = comutatorul „OBD (teste)”: false = mașina lasă adaptorul și nu citește nimic.
+    obd: obdEnabled(),
   });
 });
 
-// Butonul din mașină (Setări → Sistem): eliberarea OBD trece tot prin server.
-app.post("/api/car/obd/release", async (c) => {
+// Butonul din mașină (Setări → Sistem): comutatorul OBD trece tot prin server, ca din site și Panel.
+app.post("/api/car/obd/enabled", async (c) => {
   requireCarToken(c);
-  const { minutes } = await json<{ minutes?: unknown }>(c, 1024);
-  return c.json({ ok: true, obdOff: releaseObd(minutes) });
+  const { enabled } = await json<{ enabled?: unknown }>(c, 1024);
+  return c.json({ ok: true, enabled: setObdEnabled(enabled) });
 });
 
 // Muzica (music.ts): starea la fiecare schimbare, comenzile prin long polling (≤ 25 s).
@@ -316,11 +316,11 @@ app.post("/api/logout", (c) => {
 });
 
 // Comenzile shell pentru navigație (cmd.ts): puse în coadă de utilizator, cu rezultatul.
-// Eliberarea adaptorului OBD pentru Car Scanner (Panel, site): { minutes } 1–60, 0 = reia acum.
-app.post("/api/obd/release", async (c) => {
+// Comutatorul „OBD (teste)” (Panel, site): { enabled: false } = adaptorul liber, nimic citit.
+app.post("/api/obd/enabled", async (c) => {
   requireUser(c);
-  const { minutes } = await json<{ minutes?: unknown }>(c, 1024);
-  return c.json({ ok: true, obdOff: releaseObd(minutes) });
+  const { enabled } = await json<{ enabled?: unknown }>(c, 1024);
+  return c.json({ ok: true, enabled: setObdEnabled(enabled) });
 });
 
 // Scanarea OBD pe site: lucrările cu progresul, catalogul pe module, istoricul unui cod.
@@ -613,8 +613,12 @@ app.use("/*", serveStatic({ root: dist }));
 // Aplicația e o singură pagină: orice altă cale primește index.html.
 app.get("*", serveStatic({ path: `${dist}index.html` }));
 
-// Ordinea scanării OBD, o singură dată (tabela goală).
-seedScanJobs();
+// Ordinea scanării OBD, o singură dată (tabela goală). E de test: o eroare aici nu oprește serverul.
+try {
+  seedScanJobs();
+} catch (e) {
+  console.error("Scanarea OBD: ordinea nu s-a pus", e);
+}
 
 const port = Number(process.env.PORT ?? 3001);
 // Pe toate interfețele, ca FaikkitBox: tunelul Cloudflare rulează în Docker și vine prin

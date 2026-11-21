@@ -316,7 +316,7 @@ public class MainActivity extends Activity {
         renderHomeTrip();
         addHomeWarnings(side);
 
-        int pending = Prefs.outboxSize(this) + PointQueue.size(this) + Obd.SCAN_QUEUE.size(this);
+        int pending = Prefs.outboxSize(this) + PointQueue.size(this);
         boolean gps = TripRecorder.hasPermission(this);
         Ui.hint(this, side, "Server: " + (!Uploader.configured() || !Prefs.uploadEnabled(this) ? "oprit"
                 : pending == 0 ? "la zi" : pending + " in asteptare")
@@ -857,17 +857,16 @@ public class MainActivity extends Activity {
                 }
             });
         }
-        // Adaptorul OBD: legatura e automata cu motorul pornit; pentru Car Scanner pe telefon il
-        // eliberam cateva minute (cererea utilizatorului, 21.11). Si din Panel / site.
-        Ui.hint(this, sys, "Adaptor OBD: " + Obd.statusText());
-        boolean obdReleased = Obd.released();
-        Ui.addButton(this, sys, obdReleased ? "Reia OBD acum" : "Elibereaza OBD 10 min (Car Scanner)", Ui.SECONDARY, v -> {
-            int minutes = obdReleased ? 0 : 10;
+        // Adaptorul OBD (teste): legatura e automata cu motorul pornit; comutatorul (pornit implicit,
+        // tinut pe server, ca in Panel si pe site) il opreste de tot, ex. pentru Car Scanner.
+        Ui.hint(this, sys, "Adaptor OBD (teste): " + Obd.statusText());
+        boolean obdOn = Obd.enabled();
+        Ui.addButton(this, sys, obdOn ? "Opreste OBD" : "Porneste OBD", Ui.SECONDARY, v -> {
             new Thread(() -> {
-                boolean ok = Obd.requestRelease(minutes);
+                boolean ok = Obd.requestEnabled(!obdOn);
                 runOnUiThread(() -> {
                     toast(!ok ? "Fara legatura cu serverul, incearca din nou"
-                            : minutes > 0 ? "OBD eliberat 10 min: conecteaza Car Scanner" : "OBD reluat");
+                            : obdOn ? "OBD oprit: adaptorul e liber (Car Scanner)" : "OBD pornit");
                     refresh();
                 });
             }).start();

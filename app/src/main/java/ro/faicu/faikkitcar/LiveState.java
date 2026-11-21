@@ -65,8 +65,8 @@ final class LiveState {
                 if (resp != null && resp.optInt("cmd", 0) > 0) RemoteCmd.poll(c);
                 if (resp != null) Updater.onServerVersion(c, resp.optInt("apk", 0));
                 if (resp != null) fastUntil = resp.optBoolean("fast") ? SystemClock.elapsedRealtime() + 20_000 : 0;
-                // Eliberarea OBD ceruta din Panel / site (secundele ramase, 0 = nu).
-                if (resp != null) Obd.release(resp.optInt("obdOff", 0));
+                // Comutatorul „OBD (teste)” din site / Panel / Setari (lipsa = pornit).
+                if (resp != null) Obd.setEnabled(resp.optBoolean("obd", true));
             } finally {
                 busy.set(false);
             }

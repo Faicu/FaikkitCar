@@ -112,8 +112,8 @@ export const api = {
   /** `cat` = o categorie (log-category.ts), „toate” sau nimic pentru evenimente. */
   log: (cat?: string) => call<LogEntry[]>("GET", cat ? `/api/log?cat=${cat}` : "/api/log"),
   cmds: () => call<CarCmd[]>("GET", "/api/cmd"),
-  /** Eliberarea adaptorului OBD pentru Car Scanner (minute, 0 = reia acum). */
-  obdRelease: (minutes: number) => call<{ ok: true; obdOff: number }>("POST", "/api/obd/release", { minutes }),
+  /** Comutatorul „OBD (teste)”: oprit = adaptorul liber, nimic citit sau scanat. */
+  obdEnable: (enabled: boolean) => call<{ ok: true; enabled: boolean }>("POST", "/api/obd/enabled", { enabled }),
   // Scanarea OBD: lucrările cu progresul, catalogul unui modul, istoricul unui cod.
   obdScan: () => call<ScanOverview>("GET", "/api/obd/scan"),
   obdCodes: (tx: string) => call<ScanCode[]>("GET", `/api/obd/codes/${tx}`),
