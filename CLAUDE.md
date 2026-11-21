@@ -85,7 +85,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   pornește abia cu primul sunet), pauză 5 s + 2 s după hibernare (utilizatorul: +3 s), volum în %,
   anti-dublare 20 s. Redarea programată se anulează dacă a venit alta sau dacă navigația a dormit
   între timp (1.1.66: trezirile scurte cu ecranul stins după ACC OFF lăsau sunetul în `postDelayed` până
-  dimineața → redat de două ori, 24.10 și 29.10). Trezirea din tick cu ecranul stins așteaptă `SCREEN_ON` ≤ 60 s. `Prefs`: sunete în `filesDir/sounds`, istoric, jurnal (100), setări `cfg`.
+  dimineața → redat de două ori, 24.10 și 29.10). Trezirea din tick cu ecranul stins așteaptă `SCREEN_ON` ≤ 60 s. De atunci (1.1.66) autostart-ul pornea sunetul după ce tick-ul refăcuse `sleptAtTick`, deci fără cele 3 s de după hibernare („pauza 5.0 s” după 12–15 h de somn) și începutul se tăia (utilizatorul, 21.11); din 1.1.99 `hibernatedAt` ține minte hibernarea 60 s. `Prefs`: sunete în `filesDir/sounds`, istoric, jurnal (100), setări `cfg`.
 - `Uploader`: jurnalul (coadă `outbox`, max 2000, loturi de 100) și punctele (`PointQueue`,
   JSONL, max 40.000, loturi de 300) la server; orice răspuns ≠ 200 păstrează datele. Conexiunile rămân în pool (fără `disconnect`, răspunsul citit
   până la capăt), ca în `LiveState`. În

@@ -130,6 +130,12 @@ public class WelcomeService extends Service {
     private String pendingWake;
     private long pendingWakeAt;
     private static final long PENDING_WAKE_MS = 60_000;
+    /**
+     * Cand a vazut tick-ul ultima hibernare (0 = niciuna). Din 1.1.66 trezirea cu ecranul stins
+     * asteapta ecranul, iar sunetul il porneste autostart-ul dupa ce tick-ul a refacut sleptAtTick:
+     * pana pe 21.11 pierdea astfel cele 3 s in plus si inceputul sunetului se taia.
+     */
+    private long hibernatedAt;
 
     // Caz 3: procesul a supravietuit, dar unitatea a fost in hibernare.
     private final Runnable tick = new Runnable() {
@@ -139,6 +145,9 @@ public class WelcomeService extends Service {
             long gap = now - lastTick;
             lastTick = now;
 
+            // O hibernare adevarata, tinuta minte pentru pauza mai lunga a sunetului: sleptAtTick se
+            // reface mai jos, iar sunetul il porneste de obicei autostart-ul, dupa acest tick.
+            if (sleptSec() - sleptAtTick >= 60) hibernatedAt = now;
             if (gap > thresholdMs()) {
                 String reason = "trezire din hibernare, " + gap / 1000 + " s";
                 // Navigatia se mai trezeste singura dupa ACC OFF, cu ecranul stins (28.10 14:09):
@@ -208,7 +217,8 @@ public class WelcomeService extends Service {
             } else {
                 // Pauza: lasam amplificatorul si audio-ul sa porneasca. Dupa o hibernare
                 // adevarata porneste mai greu (se pierdea ~1 s la 5 s pauza), deci adaugam.
-                boolean hibernated = sleptSec() - sleptAtTick >= 60;
+                boolean hibernated = sleptSec() - sleptAtTick >= 60
+                        || (hibernatedAt != 0 && SystemClock.elapsedRealtime() - hibernatedAt < PENDING_WAKE_MS);
                 long delay = Prefs.delayMs(this) + (hibernated ? Prefs.sleepExtraMs(this) : 0);
                 Player.play(this, f, delay, true);
                 result = Prefs.soundName(f) + " (pauza " + delay / 1000.0 + " s"
