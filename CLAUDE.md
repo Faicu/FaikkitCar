@@ -454,5 +454,6 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
 - Contact pus cu motorul oprit: confirmat 15.11 (Panel 1.0.44 → „Doar contact”, 13,2 V, 0 rpm).
 - Avertizarea de ușă: confirmată 15.11 (ușa șoferului, vocea locală la ~1,7 s, cât pornește TextToSpeech).
 - Netestat încă în mașină: harta live pe drum.
+- De făcut (cererea utilizatorului, 21.11): „Eliberează OBD” pentru câteva minute (Car Scanner pe telefon): Panel + buton în mașină, prin starea live, reluare singură după 10 min.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
   adaptor OBD2 pentru consum instantaneu.
