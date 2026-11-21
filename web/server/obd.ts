@@ -79,7 +79,28 @@ export function saveObd(o: unknown): void {
   const u = x.u as Record<string, unknown> | undefined;
   if (u && typeof u === "object" && typeof u.at === "number" && u.m && typeof u.m === "object") {
     saveModules(u.at, u.m as Record<string, unknown>);
+    if (typeof u.l === "string") saveLamp(u.at, u.l);
   }
+}
+
+/** Avertizarea de bec ars de pe bord (DID 2224, bitul 0x01 din primul octet); null = nu se poate citi. */
+export function lampWarning(raw: string): boolean | null {
+  if (!/^([0-9A-Fa-f]{2})+$/.test(raw)) return null;
+  return (parseInt(raw.slice(0, 2), 16) & 0x01) !== 0;
+}
+
+function saveLamp(atMs: number, raw: string): void {
+  const warn = lampWarning(raw);
+  if (warn === null) return; // bordul n-a răspuns: rămâne ce era
+  const iso = new Date(atMs).toISOString();
+  const db = getDb();
+  const prev = db.prepare(`SELECT at, since FROM obd_lamp WHERE id = 1`).get() as { at: string; since: string | null } | undefined;
+  if (prev && prev.at >= iso) return; // aceeași citire, trimisă din nou cu starea
+  const since = warn ? (prev?.since ?? iso) : null;
+  db.prepare(
+    `INSERT INTO obd_lamp (id, at, raw, since) VALUES (1, ?, ?, ?)
+     ON CONFLICT (id) DO UPDATE SET at = excluded.at, raw = excluded.raw, since = excluded.since`,
+  ).run(iso, raw.toUpperCase(), since);
 }
 
 /** Citirea UDS a modulelor: { "7E0": "5902FF…", "714": "-" (n-a răspuns), … }. */
@@ -185,6 +206,10 @@ export function readObd(now = Date.now()): ObdLive {
       since: r.first_at,
     };
   });
+  const lamp = db.prepare(`SELECT since FROM obd_lamp WHERE id = 1`).get() as { since: string | null } | undefined;
+  if (lamp?.since) {
+    faults.push({ module: "Bord", code: "bec", text: "Bec ars: vezi pe bord care", known: true, state: "active", since: lamp.since });
+  }
   // Codurile OBD ale motorului, doar dacă citirea UDS a motorului nu le are deja.
   const engineUds = new Set(udsRows.filter((r) => r.module === "7E0").map((r) => r.code.split(" ")[0]));
   for (const c of codes) {

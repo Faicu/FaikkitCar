@@ -276,6 +276,15 @@ export function getDb(): DatabaseSync {
     );
     CREATE INDEX IF NOT EXISTS idx_obd_sample ON obd_sample(tx, svc, id, at);
 
+    -- Avertizarea de bec ars de pe bord (DID 2224, bitul 0x01 din primul octet; un rând):
+    -- since = de când e aprinsă (NULL = stinsă), at = ultima citire.
+    CREATE TABLE IF NOT EXISTS obd_lamp (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      at TEXT NOT NULL,
+      raw TEXT NOT NULL,
+      since TEXT
+    );
+
     -- Setări simple (cheie → valoare): obd_enabled = comutatorul „OBD (teste)” („0” = oprit).
     CREATE TABLE IF NOT EXISTS setting (
       key TEXT PRIMARY KEY,

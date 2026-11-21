@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { describeDtc, dtcCode, parseDtcs, parseUdsDtcs } from "./dtc.ts";
+import { lampWarning } from "./obd.ts";
 
 describe("dtcCode", () => {
   it("decodes the system letter and digits", () => {
@@ -71,5 +72,14 @@ describe("parseUdsDtcs on the real answers (21.11, after the ECU was reset)", ()
   });
   it("shows nothing for the airbag (one entry with status 0x10)", () => {
     expect(parseUdsDtcs("59029990161210")).toEqual([]);
+  });
+});
+
+describe("lampWarning (cluster DID 2224)", () => {
+  it("reads the bulb warning bit as confirmed on 21.11", () => {
+    expect(lampWarning("2002")).toBe(false); // 21.11 night, bulbs ok
+    expect(lampWarning("2102")).toBe(true); // front right fog light burned
+    expect(lampWarning("2006")).toBe(false); // bulb replaced
+    expect(lampWarning("-")).toBe(null);
   });
 });

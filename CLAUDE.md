@@ -239,6 +239,12 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   lungimea mesajului pe mai multe cadre doar de unde începe (înainte se tăiau ultimii 3 octeți după un `7F 19 78`).
   Răspunsul real al motorului (21.11): 63 de intrări, toate 0x40/0x50 (test neterminat de la ștergere), nicio eroare;
   airbag-ul una, 0x10 (testat în `dtc.test.ts`).
+  **Becul ars** (21.11, proiectorul dreapta față): becurile le supraveghează BCM-ul (TP2.0, necitit), bordul doar afișează
+  mesajul, fără eroare UDS. Găsit prin citiri ale bordului înainte / după (`/root/obd-714-snapshot-2…4`): **DID 2224,
+  bitul 0x01 din primul octet** (20 02 bun → 21 02 ars → 20 06 schimbat; al doilea octet necunoscut). Din 1.1.107 se
+  citește odată cu erorile (15 min, `o.u.l`), serverul îl ține în `obd_lamp` (`since` = de când e aprins, `lampWarning`
+  testat) și îl pune în `faults` ca „Bord · bec · Bec ars: vezi pe bord care” (cardul de pe Navigație). Doar proiectorul
+  confirmat; celelalte becuri probabil la fel. Tot din bord: 2216 = ora:minutul (0x1734 = 23:52), 2238 ora, 2239 minutul.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

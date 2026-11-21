@@ -180,7 +180,7 @@ final class Obd extends BluetoothGattCallback {
         if (o.udsAt > 0) {
             org.json.JSONObject m = new org.json.JSONObject();
             for (java.util.Map.Entry<String, String> e : o.udsDtc.entrySet()) m.put(e.getKey(), e.getValue());
-            j.put("u", new org.json.JSONObject().put("at", o.udsAt).put("m", m));
+            j.put("u", new org.json.JSONObject().put("at", o.udsAt).put("m", m).put("l", o.udsLamp));
         }
         if (o.dtcAt > 0) {
             j.put("d", new org.json.JSONObject().put("at", o.dtcAt).put("mil", o.dtcMil)
@@ -786,6 +786,12 @@ final class Obd extends BluetoothGattCallback {
     // Erorile tuturor modulelor (UDS 19 02 FF), brute in hex pe modul („-” = n-a raspuns); udsAt = ora.
     private volatile long udsAt;
     private volatile java.util.Map<String, String> udsDtc = new java.util.LinkedHashMap<>();
+    /**
+     * Bordul, DID 2224 (hex, „-” = fara raspuns): bitul 0x01 din primul octet = avertizarea de bec ars
+     * de pe bord (21.11: proiectorul dreapta fata, 21 02 ars → 20 06 schimbat). Becurile le
+     * supravegheaza BCM-ul (TP2.0, necitit), bordul doar afiseaza mesajul.
+     */
+    private volatile String udsLamp = "-";
 
     /** Erorile fiecarui modul UDS: o singura citire (19 02 = dupa stare), nu sterge nimic. */
     private void readUdsDtc() throws InterruptedException {
@@ -796,6 +802,10 @@ final class Obd extends BluetoothGattCallback {
             int[] r = strip(bytesOf(send("1902FF", 3_000)));
             out.put(hex(m[0], 3), r.length >= 3 && r[0] == 0x59 && r[1] == 0x02 ? hexOf(r) : "-");
         }
+        if (!connected) return;
+        target(0x714, 0x77E);
+        int[] lamp = read22(0x2224, 3_000);
+        udsLamp = lamp.length > 3 && lamp[0] == 0x62 ? hexOf(java.util.Arrays.copyOfRange(lamp, 3, lamp.length)) : "-";
         target(0x7E0, -1);
         udsDtc = out;
         udsAt = System.currentTimeMillis();
