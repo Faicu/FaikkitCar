@@ -682,9 +682,13 @@ final class Obd extends BluetoothGattCallback {
         return new int[0];
     }
 
+    /**
+     * Scoate „7F <serviciul> 78/21” (asteapta / ocupat) dinaintea raspunsului, la orice serviciu (21.11:
+     * motorul si airbag-ul raspund la 19 02 intai cu 7F 19 78; pana la 1.1.105 doar 22 era curatat).
+     */
     private static int[] strip(int[] r) {
         int i = 0;
-        while (r.length - i > 3 && r[i] == 0x7F && r[i + 1] == 0x22 && (r[i + 2] == 0x78 || r[i + 2] == 0x21)) i += 3;
+        while (r.length - i > 3 && r[i] == 0x7F && (r[i + 2] == 0x78 || r[i + 2] == 0x21)) i += 3;
         return i == 0 ? r : java.util.Arrays.copyOfRange(r, i, r.length);
     }
 
@@ -887,6 +891,9 @@ final class Obd extends BluetoothGattCallback {
     static int[] bytes(String r) {
         StringBuilder hex = new StringBuilder();
         int total = -1;
+        // Unde incepe mesajul pe mai multe cadre: lungimea lui nu cuprinde ce a venit inainte
+        // (ex. un „7F 19 78” pe linia de deasupra).
+        int start = 0;
         for (String line : r.split("[\\r\\n]+")) {
             String l = line.replace(" ", "").trim();
             int colon = l.indexOf(':');
@@ -894,13 +901,14 @@ final class Obd extends BluetoothGattCallback {
             if (l.isEmpty() || !l.matches("[0-9A-Fa-f]+")) continue;
             if (colon < 0 && l.length() == 3) {
                 total = Integer.parseInt(l, 16);
+                start = hex.length() / 2;
                 continue;
             }
             if (l.length() % 2 != 0) continue;
             hex.append(l);
         }
         int n = hex.length() / 2;
-        if (total >= 0 && total < n) n = total;
+        if (total >= 0 && start + total < n) n = start + total;
         int[] b = new int[n];
         for (int i = 0; i < n; i++) b[i] = Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
         return b;

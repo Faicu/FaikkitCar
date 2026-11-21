@@ -234,7 +234,11 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   2 cadre), `0105044406070E3` (14 octeți, 3 cadre), confirmat 60–75 ms. Scanarea motorului în mers: ~2 DID/s.
   Tot pe 21.11: scanarea stătea la ~1 min după conectare (1.1.103–1.1.104): `refreshJobs` reface lista cu obiecte noi,
   iar buclele din `scanBlock` comparau obiectul (`job == j`); din 1.1.105 se lucrează pe obiectul în curs (`j = job`).
-  Erorile UDS ale motorului (`19 02 FF`, din 1.1.101, netestat până azi): motorul n-a răspuns la 21:16 (de văzut).
+  Erorile UDS ale motorului și airbag-ului (`19 02 FF`, din 1.1.101, netestat până azi) păreau „n-a răspuns”: amândouă
+  răspund întâi `7F 19 78` (așteaptă), iar `strip` curăța doar `7F 22 …`; din 1.1.106 orice serviciu, iar `bytes()` aplică
+  lungimea mesajului pe mai multe cadre doar de unde începe (înainte se tăiau ultimii 3 octeți după un `7F 19 78`).
+  Răspunsul real al motorului (21.11): 63 de intrări, toate 0x40/0x50 (test neterminat de la ștergere), nicio eroare;
+  airbag-ul una, 0x10 (testat în `dtc.test.ts`).
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.
