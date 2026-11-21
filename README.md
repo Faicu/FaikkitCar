@@ -123,7 +123,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
 | Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
 | Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. Plus „bec ars” (avertizarea de pe bord; confirmat la proiectoare). ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
-| Scanarea OBD | 🧪 | Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Bordul e scanat complet |
+| Scanarea OBD | 🧪 | Situația codurilor (ce înseamnă, ce e bănuit, erorile): [`OBD-CODURI.md`](OBD-CODURI.md). Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Bordul e scanat complet |
 | Comutatorul „OBD (teste)” | 🧪 | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
