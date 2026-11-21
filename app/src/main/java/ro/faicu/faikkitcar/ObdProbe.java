@@ -82,7 +82,8 @@ final class ObdProbe {
 
     /** Opreste si reporneste Bluetooth-ul Android (cel al navigatiei; telefonul Teyes e alt modul). */
     @SuppressWarnings("MissingPermission")
-    private static String reset(Context c) {
+    /** Bluetooth-ul Android oprit si pornit (si din Obd, cand stiva ramane blocata). */
+    static String reset(Context c) {
         BluetoothManager bm = c.getSystemService(BluetoothManager.class);
         BluetoothAdapter ad = bm != null ? bm.getAdapter() : null;
         if (ad == null) return "fara adaptor";

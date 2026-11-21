@@ -224,6 +224,14 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   live (`obd`, lipsă = pornit), îl ține în `obd/enabled`; oprit = deconectat, starea „x” (`disabled`), nicio citire,
   nicio scanare, `@obd` refuzat. Cu el oprit, cardul de erori și cardul scanării nu apar. Înlocuiește „Eliberează
   10 min” (același efect pentru Car Scanner, dar până îl pornești înapoi).
+- **21.11 seara, prima pornire cu 1.1.103** (de la 1.1.99, mașina nu primise 1.1.100–1.1.102): stiva Bluetooth a navigației
+  rămăsese blocată (adaptorul apărea în `@bluetooth` la −46 dBm, dar orice `connectGatt` expira fără callback, și din
+  `@obd`; „cod 0”); `@obd reset` a rezolvat-o (conectat la ~20 s). Din 1.1.104 `Obd.unstick()`: după 4 conectări la rând
+  fără niciun răspuns (`noAnswer`), dacă adaptorul se vede în scanarea BLE (8 s), oprește și pornește Bluetooth-ul Android,
+  cel mult o dată la 30 min (fără adaptor nu face nimic; în jurnal „OBD: Bluetooth repornit …” / „nu se vede”).
+  Tot atunci: cererile cu mai multe PID-uri cu „1” la sfârșit (1.1.100) primeau doar primul cadru CAN (turația și MAP,
+  fără aer / injecție / pedală, deci niciun litru OBD pe puncte); cifra = numărul de cadre: `010C0B0F03492` (13 octeți,
+  2 cadre), `0105044406070E3` (14 octeți, 3 cadre), confirmat 60–75 ms. Scanarea motorului în mers: ~2 DID/s.
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

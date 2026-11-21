@@ -38,6 +38,9 @@ final class Obd extends BluetoothGattCallback {
     private static final long RELEASE_MS = 60_000;
     private static final long SLOW_MS = 2_000;
     private static final long STATUS_MS = 5 * 60_000;
+    /** Incercari fara niciun raspuns de la stiva (~1,5 min) dupa care verificam daca e blocata. */
+    private static final int STUCK_FAILURES = 4;
+    private static final long UNSTICK_EVERY_MS = 30 * 60_000;
     /** Setarile noastre; confirmarea cadrelor manuala (si pentru celelalte module, la scanare). */
     private static final String[] INIT = {"ATE0", "ATL0", "ATS0", "ATH0", "ATSP6", "ATSH7E0", "ATCRA",
             "ATFCSH7E0", "ATFCSD300000", "ATFCSM1"};
@@ -266,6 +269,7 @@ final class Obd extends BluetoothGattCallback {
             if (connected) disconnect("motor oprit");
             if (gatt != null) closeGatt();
             failures = 0;
+            silentFailures = 0;
             failLogged = false;
             nextTryAt = 0;
             return false;
@@ -275,12 +279,16 @@ final class Obd extends BluetoothGattCallback {
             if (now < nextTryAt) return false;
             if (connect() && init()) {
                 failures = 0;
+                silentFailures = 0;
                 failLogged = false;
                 return true;
             }
             disconnectQuiet();
             failures++;
             nextTryAt = SystemClock.elapsedRealtime() + Math.min(120_000, 10_000L * failures);
+            if (noAnswer) silentFailures++;
+            else silentFailures = 0;
+            if (silentFailures >= STUCK_FAILURES) unstick();
             if (failures == 3 && !failLogged) {
                 failLogged = true;
                 Prefs.log(c, "OBD: adaptorul nu raspunde (cod " + connStatus + "), reincerc");
@@ -703,9 +711,11 @@ final class Obd extends BluetoothGattCallback {
             multiFails = 0;
         }
         if (multi) {
-            // „1” la sfarsit = un singur raspuns asteptat: adaptorul se intoarce imediat, oricat si-ar
-            // fi marit singur asteptarea (21.11: dupa raspunsurile lente ale bordului, ~240 ms pe cerere).
-            String r = send("010C0B0F03491", 1_500);
+            // Cifra de la sfarsit = cate cadre CAN asteptam: adaptorul se intoarce imediat, oricat si-ar
+            // fi marit singur asteptarea (dupa raspunsurile lente ale bordului, ~240 ms pe cerere).
+            // Raspunsul are 13 octeti = 2 cadre; cu „1” (1.1.100–1.1.103) venea doar primul (turatia
+            // si presiunea, fara aer, injectie, pedala: niciun litru), confirmat 21.11: „2” = 60–75 ms.
+            String r = send("010C0B0F03492", 1_500);
             ok = mode01(r);
             if (!ok && ++multiFails >= 3) {
                 // Pe rand un minut, apoi iar mai multe deodata (21.11: a esuat doar la pornire, cat
@@ -727,7 +737,7 @@ final class Obd extends BluetoothGattCallback {
         if (now - lastSlowAt >= SLOW_MS) {
             lastSlowAt = now;
             if (multi) {
-                mode01(send("0105044406070E1", 1_500));
+                mode01(send("0105044406070E3", 1_500)); // 14 octeti = 3 cadre
             } else {
                 for (String p : new String[]{"0105", "0104", "0144", "0103", "0149"}) mode01(send(p + "1", 1_000));
             }
@@ -923,6 +933,73 @@ final class Obd extends BluetoothGattCallback {
 
     // --- legatura --------------------------------------------------------------------------
 
+    private long unstickAt;
+    /** Ultima conectare a expirat fara niciun raspuns de la stiva Bluetooth; cate la rand. */
+    private boolean noAnswer;
+    private int silentFailures;
+
+    /**
+     * 21.11: stiva Bluetooth a navigatiei ramasese blocata (adaptorul se vedea in scanare, dar orice
+     * conectare expira fara niciun raspuns, si din testul de la distanta); oprirea si pornirea
+     * Bluetooth-ului Android a rezolvat-o. O facem singuri, cel mult o data la 30 min si doar daca
+     * adaptorul chiar se vede (fara el, ex. scos din priza, nu deranjam alte dispozitive BLE).
+     * Telefonul din masina (modulul Teyes) nu trece prin Bluetooth-ul Android.
+     */
+    private void unstick() throws InterruptedException {
+        long now = SystemClock.elapsedRealtime();
+        if (unstickAt != 0 && now - unstickAt < UNSTICK_EVERY_MS) return;
+        unstickAt = now;
+        String addr = c.getSharedPreferences("obd", Context.MODE_PRIVATE).getString("addr", DEFAULT_ADDR);
+        if (!advertising(addr)) {
+            Prefs.log(c, "OBD: adaptorul nu se vede in scanare, nu repornesc Bluetooth-ul");
+            return;
+        }
+        String r = ObdProbe.reset(c);
+        Prefs.log(c, "OBD: Bluetooth repornit (adaptorul se vedea, dar nu accepta legatura): " + r.replace("\n", "; "));
+        failures = 0;
+        silentFailures = 0;
+        failLogged = false;
+        nextTryAt = SystemClock.elapsedRealtime() + 3_000;
+    }
+
+    /** Adaptorul apare in scanarea BLE (cel mult 8 s)? */
+    @SuppressWarnings("MissingPermission")
+    private boolean advertising(String addr) throws InterruptedException {
+        BluetoothManager bm = c.getSystemService(BluetoothManager.class);
+        BluetoothAdapter ad = bm != null ? bm.getAdapter() : null;
+        android.bluetooth.le.BluetoothLeScanner sc = ad != null && ad.isEnabled() ? ad.getBluetoothLeScanner() : null;
+        if (sc == null) return false;
+        boolean[] seen = {false};
+        android.bluetooth.le.ScanCallback cb = new android.bluetooth.le.ScanCallback() {
+            @Override
+            public void onScanResult(int type, android.bluetooth.le.ScanResult r) {
+                if (!addr.equalsIgnoreCase(r.getDevice().getAddress())) return;
+                synchronized (seen) {
+                    seen[0] = true;
+                    seen.notifyAll();
+                }
+            }
+        };
+        try {
+            sc.startScan(cb);
+        } catch (Exception e) {
+            return false;
+        }
+        try {
+            synchronized (seen) {
+                long end = SystemClock.elapsedRealtime() + 8_000;
+                while (!seen[0] && SystemClock.elapsedRealtime() < end) seen.wait(250);
+            }
+        } finally {
+            try {
+                sc.stopScan(cb);
+            } catch (Exception ignored) {
+                // Bluetooth oprit intre timp
+            }
+        }
+        return seen[0];
+    }
+
     @SuppressWarnings("MissingPermission")
     private boolean connect() throws InterruptedException {
         BluetoothManager bm = c.getSystemService(BluetoothManager.class);
@@ -930,6 +1007,7 @@ final class Obd extends BluetoothGattCallback {
         if (ad == null || !ad.isEnabled()) return false;
         String addr = c.getSharedPreferences("obd", Context.MODE_PRIVATE).getString("addr", DEFAULT_ADDR);
         BluetoothDevice dev = ad.getRemoteDevice(addr);
+        noAnswer = false;
         for (int attempt = 0; attempt < 2; attempt++) {
             synchronized (lock) {
                 connStatus = 0;
@@ -939,6 +1017,7 @@ final class Obd extends BluetoothGattCallback {
                 while (!connected && connStatus == 0 && SystemClock.elapsedRealtime() < end) lock.wait(250);
             }
             if (connected) break;
+            noAnswer = connStatus == 0;
             closeGatt();
             if (connStatus != 133) return false;
             Thread.sleep(1_000);
