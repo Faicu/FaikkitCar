@@ -45,9 +45,9 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 ## Ce urmează
 
-1. **OBD (de testat):** pe Acum apare un card doar dacă motorul are un cod de eroare; pe fila Navigație,
+1. **OBD (de testat):** pe Acum apare un card doar dacă există o eroare (motor, bord, climatronic, airbag); pe fila Navigație,
    „Adaptorul OBD” cu starea și „Eliberează 10 min (Car Scanner)” (și în mașină, Setări → Sistem). Cer FaikkitCar
-   1.1.100 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
+   1.1.101 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
 2. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube
    Music): coperta, redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care
    o pornește în mașină. Cere FaikkitCar și Panel noi.
@@ -121,7 +121,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | ✅ | Vocea locală (fără întârziere) sau bip |
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
 | Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
-| Codurile de eroare ale motorului | 🧪 | La conectare și la 5 min; card pe Acum (site și Panel) doar când există vreunul |
+| Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Acum (site și Panel) doar când există vreuna. ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
 | Eliberarea OBD pentru Car Scanner | 🧪 | Navigație → „Adaptorul OBD” (site, Panel) sau Setări → Sistem în mașină: 10 min, apoi se reia singur |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel

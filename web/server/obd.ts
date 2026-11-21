@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
-import { describeDtc, parseDtcs } from "./dtc.ts";
+import { describeDtc, parseDtcs, parseUdsDtcs, UDS_MODULES } from "./dtc.ts";
 
 export type ObdStatus = "connected" | "searching" | "released" | "off";
 
@@ -19,13 +19,33 @@ export interface ObdCode {
   since: string; // prima citire în care a apărut
 }
 
+/** O eroare de arătat pe Acum, din orice modul. */
+export interface ObdFault {
+  module: string; // „Motor”, „Bord”, „Climatronic”, „Airbag”
+  code: string; // „P0301” (OBD) sau „U1013 00” (UDS)
+  text: string;
+  known: boolean;
+  state: "active" | "stored" | "pending"; // defect acum / memorat / în așteptare
+  since: string;
+}
+
+export interface ObdModule {
+  module: string;
+  name: string;
+  checkedAt: string;
+  ok: boolean; // a răspuns la ultima citire
+  count: number; // erori active (cleared_at NULL)
+}
+
 export interface ObdLive {
   status: ObdStatus | null; // null = nicio stare recentă de la mașină
   hz: number | null; // citiri ale motorului pe secundă
   releasedFor: number | null; // secunde rămase din eliberare (null = nu e eliberat)
   checkedAt: string | null; // ultima citire a codurilor
   mil: boolean; // martorul motorului aprins la ultima citire
-  codes: ObdCode[]; // active
+  codes: ObdCode[]; // active (OBD standard, doar motorul)
+  faults: ObdFault[]; // toate, din toate modulele (fără dublurile motorului)
+  modules: ObdModule[]; // modulele citite prin UDS
 }
 
 const STATUS: Record<string, ObdStatus> = { c: "connected", s: "searching", r: "released", o: "off" };
@@ -55,6 +75,50 @@ export function saveObd(o: unknown): void {
   if (status) last = { at: Date.now(), status, hz: typeof x.hz === "number" ? x.hz : null };
   const d = x.d as Record<string, unknown> | undefined;
   if (d && typeof d === "object" && typeof d.at === "number") saveCheck(d);
+  const u = x.u as Record<string, unknown> | undefined;
+  if (u && typeof u === "object" && typeof u.at === "number" && u.m && typeof u.m === "object") {
+    saveModules(u.at, u.m as Record<string, unknown>);
+  }
+}
+
+/** Citirea UDS a modulelor: { "7E0": "5902FF…", "714": "-" (n-a răspuns), … }. */
+function saveModules(atMs: number, m: Record<string, unknown>): void {
+  const at = new Date(atMs);
+  if (Number.isNaN(at.getTime())) return;
+  const iso = at.toISOString();
+  const db = getDb();
+  db.exec("BEGIN");
+  try {
+    for (const [module, raw] of Object.entries(m)) {
+      if (!(module in UDS_MODULES)) continue;
+      const prev = db.prepare(`SELECT at FROM obd_module_check WHERE module = ?`).get(module) as { at: string } | undefined;
+      if (prev && prev.at >= iso) continue; // aceeași citire, trimisă din nou cu starea
+      const codes = parseUdsDtcs(raw as string);
+      db.prepare(
+        `INSERT INTO obd_module_check (module, at, ok) VALUES (?, ?, ?)
+         ON CONFLICT (module) DO UPDATE SET at = excluded.at, ok = excluded.ok`,
+      ).run(module, iso, codes ? 1 : 0);
+      if (!codes) continue; // n-a răspuns: erorile de dinainte rămân cum erau
+      const active = db
+        .prepare(`SELECT id, code FROM obd_module_dtc WHERE module = ? AND cleared_at IS NULL`)
+        .all(module) as Array<{ id: number; code: string }>;
+      for (const r of active) {
+        const now = codes.find((c) => c.code === r.code);
+        if (now) db.prepare(`UPDATE obd_module_dtc SET last_at = ?, status = ? WHERE id = ?`).run(iso, now.status, r.id);
+        else db.prepare(`UPDATE obd_module_dtc SET cleared_at = ? WHERE id = ?`).run(iso, r.id);
+      }
+      for (const c of codes) {
+        if (active.some((r) => r.code === c.code)) continue;
+        db.prepare(
+          `INSERT INTO obd_module_dtc (module, code, status, first_at, last_at) VALUES (?, ?, ?, ?, ?)`,
+        ).run(module, c.code, c.status, iso, iso);
+      }
+    }
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
 }
 
 function saveCheck(d: Record<string, unknown>): void {
@@ -101,12 +165,45 @@ export function readObd(now = Date.now()): ObdLive {
     .all() as Array<{ code: string; kind: "stored" | "pending"; first_at: string }>;
   const fresh = last && now - last.at < FRESH_MS ? last : null;
   const off = obdOffSeconds(now);
+  const codes = rows.map((r) => ({ ...describeDtc(r.code), kind: r.kind, since: r.first_at }));
+  const mods = db
+    .prepare(`SELECT module, at, ok FROM obd_module_check ORDER BY module`)
+    .all() as Array<{ module: string; at: string; ok: number }>;
+  const udsRows = db
+    .prepare(`SELECT module, code, status, first_at FROM obd_module_dtc WHERE cleared_at IS NULL ORDER BY first_at`)
+    .all() as Array<{ module: string; code: string; status: number; first_at: string }>;
+  const faults: ObdFault[] = udsRows.map((r) => {
+    const sae = r.code.split(" ")[0];
+    const d = describeDtc(sae);
+    return {
+      module: UDS_MODULES[r.module] ?? r.module,
+      code: r.code,
+      text: d.text,
+      known: d.known,
+      state: r.status & 0x01 ? "active" : r.status & 0x08 ? "stored" : "pending",
+      since: r.first_at,
+    };
+  });
+  // Codurile OBD ale motorului, doar dacă citirea UDS a motorului nu le are deja.
+  const engineUds = new Set(udsRows.filter((r) => r.module === "7E0").map((r) => r.code.split(" ")[0]));
+  for (const c of codes) {
+    if (engineUds.has(c.code)) continue;
+    faults.unshift({ module: "Motor", code: c.code, text: c.text, known: c.known, state: c.kind === "pending" ? "pending" : "stored", since: c.since });
+  }
   return {
     status: off > 0 ? "released" : (fresh?.status ?? null),
     hz: fresh?.status === "connected" ? fresh.hz : null,
     releasedFor: off > 0 ? off : null,
     checkedAt: check?.at ?? null,
     mil: check?.mil === 1,
-    codes: rows.map((r) => ({ ...describeDtc(r.code), kind: r.kind, since: r.first_at })),
+    codes,
+    faults,
+    modules: mods.map((m) => ({
+      module: m.module,
+      name: UDS_MODULES[m.module] ?? m.module,
+      checkedAt: m.at,
+      ok: m.ok === 1,
+      count: udsRows.filter((r) => r.module === m.module).length,
+    })),
   };
 }

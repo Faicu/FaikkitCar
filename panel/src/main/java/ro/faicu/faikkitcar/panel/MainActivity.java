@@ -772,25 +772,27 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Codurile de eroare ale motorului, sus pe Acum, doar cand exista vreunul sau martorul e
-     * aprins (ca DtcCard.tsx pe site; cererea utilizatorului, 21.11: fara notificari).
+     * Erorile din toate modulele citite (motor, bord, climatronic, airbag), sus pe Acum, doar cand
+     * exista vreuna sau martorul e aprins (ca DtcCard.tsx pe site; cererea utilizatorului, 21.11:
+     * orice eroare, nu doar martorii din bord; fara notificari).
      */
     private void renderDtc() {
         JSONObject obd = live.optJSONObject("obd");
-        JSONArray codes = obd == null ? null : obd.optJSONArray("codes");
-        int n = codes == null ? 0 : codes.length();
+        JSONArray faults = obd == null ? null : obd.optJSONArray("faults");
+        int n = faults == null ? 0 : faults.length();
         if (obd == null || (n == 0 && !obd.optBoolean("mil"))) return;
         LinearLayout card = Ui.card(this, content);
         card.setBackground(Ui.round(this, 0x33F59E0B, 16));
-        card.addView(Ui.text(this, n == 1 ? "O eroare la motor" : n > 1 ? n + " erori la motor"
-                : "Martorul motorului e aprins", 18, Ui.WARN, true));
+        card.addView(Ui.text(this, n == 1 ? "O eroare" : n > 1 ? n + " erori" : "Martorul motorului e aprins", 18, Ui.WARN, true));
         for (int i = 0; i < n; i++) {
-            JSONObject c = codes.optJSONObject(i);
-            TextView t = Ui.text(this, c.optString("code") + " · " + c.optString("text"), 15, Ui.TEXT, false);
+            JSONObject f = faults.optJSONObject(i);
+            TextView t = Ui.text(this, f.optString("module") + " · " + f.optString("code") + " · " + f.optString("text"),
+                    15, Ui.TEXT, false);
             t.setPadding(0, dp(this, 8), 0, 0);
             card.addView(t);
-            card.addView(Ui.text(this, ("pending".equals(c.optString("kind")) ? "în așteptare (nu s-a confirmat încă)"
-                    : "memorată") + " · apărută " + Fmt.ago(c.optString("since")), 13, Ui.MUTED, false));
+            String st = f.optString("state");
+            card.addView(Ui.text(this, ("active".equals(st) ? "prezentă acum" : "stored".equals(st) ? "memorată (intermitentă)"
+                    : "în așteptare (nu s-a confirmat încă)") + " · apărută " + Fmt.ago(f.optString("since")), 13, Ui.MUTED, false));
         }
         String foot = (obd.optBoolean("mil") ? "Martorul motorului e aprins. " : "")
                 + (obd.isNull("checkedAt") ? "" : "Verificat " + Fmt.ago(obd.optString("checkedAt")) + ".");
@@ -822,14 +824,22 @@ public class MainActivity extends Activity {
         JSONArray codes = obd.optJSONArray("codes");
         String dtc;
         if (obd.isNull("checkedAt")) {
-            dtc = "Codurile de eroare nu au fost citite încă.";
+            dtc = "Erorile nu au fost citite încă.";
         } else {
             List<String> list = new ArrayList<>();
             for (int i = 0; codes != null && i < codes.length(); i++) list.add(codes.optJSONObject(i).optString("code"));
-            dtc = "Coduri de eroare: " + (list.isEmpty() ? "niciunul" : String.join(", ", list))
+            dtc = "Motorul (OBD): " + (list.isEmpty() ? "nicio eroare" : String.join(", ", list))
                     + (obd.optBoolean("mil") ? ", martorul aprins" : "") + " · verificat " + Fmt.ago(obd.optString("checkedAt"));
         }
         Ui.hint(this, card, dtc);
+        JSONArray mods = obd.optJSONArray("modules");
+        for (int i = 0; mods != null && i < mods.length(); i++) {
+            JSONObject m = mods.optJSONObject(i);
+            int c = m.optInt("count");
+            Ui.hint(this, card, m.optString("name") + ": " + (!m.optBoolean("ok") ? "n-a răspuns"
+                    : c == 0 ? "nicio eroare" : c == 1 ? "o eroare" : c + " erori")
+                    + " · verificat " + Fmt.ago(m.optString("checkedAt")));
+        }
         Ui.addButton(this, card, released ? "Reia acum" : "Eliberează 10 min (Car Scanner)", Ui.PRIMARY,
                 v -> mutate(() -> api.obdRelease(released ? 0 : 10),
                         released ? "OBD reluat" : "OBD eliberat 10 min: conectează Car Scanner"));

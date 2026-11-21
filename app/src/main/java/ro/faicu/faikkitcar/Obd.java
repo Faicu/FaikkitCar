@@ -172,6 +172,11 @@ final class Obd extends BluetoothGattCallback {
                 .put("hz", Math.round(o.rate * 10) / 10.0);
         long rel = o.releaseUntil - SystemClock.elapsedRealtime();
         if (rel > 0) j.put("rel", rel / 1000);
+        if (o.udsAt > 0) {
+            org.json.JSONObject m = new org.json.JSONObject();
+            for (java.util.Map.Entry<String, String> e : o.udsDtc.entrySet()) m.put(e.getKey(), e.getValue());
+            j.put("u", new org.json.JSONObject().put("at", o.udsAt).put("m", m));
+        }
         if (o.dtcAt > 0) {
             j.put("d", new org.json.JSONObject().put("at", o.dtcAt).put("mil", o.dtcMil)
                     .put("n", o.dtcCount).put("s", o.dtcStored).put("p", o.dtcPending));
@@ -538,6 +543,10 @@ final class Obd extends BluetoothGattCallback {
             lastStatusAt = now;
             readDtc();
         }
+        if (now - lastUdsAt >= UDS_DTC_MS) {
+            lastUdsAt = now;
+            readUdsDtc();
+        }
         if (now - rateAt >= 10_000) {
             rate = rateAt == 0 ? 0 : (cycles - rateCycles) * 1000.0 / (now - rateAt);
             rateAt = now;
@@ -559,6 +568,28 @@ final class Obd extends BluetoothGattCallback {
     private long rateAt;
     private int rateCycles;
     private volatile double rate;
+
+    /** Modulele care raspund la UDS prin priza OBD (21.11): motorul, bordul, climatronicul, airbag-ul. */
+    private static final int[][] UDS_MODULES = {{0x7E0, 0x7E8}, {0x714, 0x77E}, {0x746, 0x7B0}, {0x715, 0x77F}};
+    private static final long UDS_DTC_MS = 15 * 60_000;
+    private long lastUdsAt;
+    // Erorile tuturor modulelor (UDS 19 02 FF), brute in hex pe modul („-” = n-a raspuns); udsAt = ora.
+    private volatile long udsAt;
+    private volatile java.util.Map<String, String> udsDtc = new java.util.LinkedHashMap<>();
+
+    /** Erorile fiecarui modul UDS: o singura citire (19 02 = dupa stare), nu sterge nimic. */
+    private void readUdsDtc() throws InterruptedException {
+        java.util.Map<String, String> out = new java.util.LinkedHashMap<>();
+        for (int[] m : UDS_MODULES) {
+            if (!connected) return;
+            target(m[0], m[1]);
+            int[] r = strip(bytesOf(send("1902FF", 3_000)));
+            out.put(hex(m[0], 3), r.length >= 3 && r[0] == 0x59 && r[1] == 0x02 ? hexOf(r) : "-");
+        }
+        target(0x7E0, -1);
+        udsDtc = out;
+        udsAt = System.currentTimeMillis();
+    }
 
     private void readDtc() throws InterruptedException {
         mode01(send("01011", 1_000));
@@ -764,6 +795,7 @@ final class Obd extends BluetoothGattCallback {
         multiFails = 0;
         lastSlowAt = 0;
         lastStatusAt = 0;
+        lastUdsAt = 0;
         synchronized (this) {
             litersTotal = 0;
             lastSampleAt = 0;

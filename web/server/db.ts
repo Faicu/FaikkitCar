@@ -203,6 +203,23 @@ export function getDb(): DatabaseSync {
       last_at TEXT NOT NULL,
       cleared_at TEXT
     );
+    -- Erorile tuturor modulelor prin UDS (19 02, 1.1.101+): motor, bord, climatronic, airbag.
+    -- status = octetul de stare ISO 14229 la ultima citire; activ = cleared_at NULL.
+    CREATE TABLE IF NOT EXISTS obd_module_dtc (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      module TEXT NOT NULL,
+      code TEXT NOT NULL,
+      status INTEGER NOT NULL,
+      first_at TEXT NOT NULL,
+      last_at TEXT NOT NULL,
+      cleared_at TEXT
+    );
+    -- Ultima citire a fiecărui modul: când și dacă a răspuns.
+    CREATE TABLE IF NOT EXISTS obd_module_check (
+      module TEXT PRIMARY KEY,
+      at TEXT NOT NULL,
+      ok INTEGER NOT NULL
+    );
     -- Ultima citire a codurilor (un rând): când și dacă martorul motorului era aprins.
     CREATE TABLE IF NOT EXISTS obd_check (
       id INTEGER PRIMARY KEY CHECK (id = 1),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeDtc, dtcCode, parseDtcs } from "./dtc.ts";
+import { describeDtc, dtcCode, parseDtcs, parseUdsDtcs } from "./dtc.ts";
 
 describe("dtcCode", () => {
   it("decodes the system letter and digits", () => {
@@ -42,5 +42,24 @@ describe("describeDtc", () => {
     expect(d.known).toBe(false);
     expect(d.text).toMatch(/Aprinderea/);
     expect(describeDtc("U0155").text).toMatch(/Comunicarea/);
+  });
+});
+
+describe("parseUdsDtcs", () => {
+  it("reads an empty list", () => {
+    expect(parseUdsDtcs("5902FF")).toEqual([]);
+  });
+
+  it("reads codes with their status", () => {
+    // U1013 00, confirmat + defect acum (0x09); P0301 00 doar în așteptare (0x04); fără stare = sărit.
+    const r = parseUdsDtcs("5902FF" + "D0130009" + "03010004" + "01710000")!;
+    expect(r.map((d) => d.code)).toEqual(["U1013 00", "P0301 00"]);
+    expect(r[0]).toMatchObject({ sae: "U1013", active: true, confirmed: true, pending: false });
+    expect(r[1]).toMatchObject({ active: false, confirmed: false, pending: true });
+  });
+
+  it("rejects a negative answer", () => {
+    expect(parseUdsDtcs("7F1931")).toBeNull();
+    expect(parseUdsDtcs("-")).toBeNull();
   });
 });

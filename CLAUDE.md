@@ -463,5 +463,10 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   în memorie pe server; răspunsul la `/api/car/state` are `obdOff` (secunde), mașina închide legătura și scrie „OBD:
   eliberat … / reluat”. Site: `ObdCard.tsx` (`DtcCard` pe Acum doar cu erori, `ObdCard` pe Navigație); Panel:
   `renderDtc`/`renderObd`. Cardul de erori fără notificări (utilizatorul).
+  1.1.101: erorile tuturor modulelor UDS (cererea utilizatorului: orice eroare, nu doar martorii): `19 02 FF` la motor
+  7E0, bord 714, climatronic 746, airbag 715, la conectare și la 15 min (`o.u` = {at, m: {modul: hex sau „-”}}).
+  `parseUdsDtcs` (cod de 3 octeți „U1013 00” + starea ISO 14229: 0x01 acum, 0x04 în așteptare, 0x08 memorat, 0x80
+  martorul); `obd_module_dtc` / `obd_module_check`; `live.obd.faults` (toate, OBD-ul motorului doar dacă UDS nu-l are),
+  `live.obd.modules`. ABS, confort, gateway, direcția (TP2.0) nu se citesc.
 - Idei neîncepute: alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei,
   adaptor OBD2 pentru consum instantaneu.

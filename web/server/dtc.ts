@@ -187,3 +187,50 @@ export function describeDtc(code: string): Dtc {
   const fam = FAMILY.find(([re]) => re.test(code));
   return { code, text: fam ? `${fam[1]}: caută după cod` : "Cod necunoscut: caută după cod", known: false };
 }
+
+// ---------------------------------------------------------------------------
+// Erorile modulelor prin UDS (19 02 = după stare): „59 02 <masca> (<3 octeți cod> <stare>)…”.
+// Codul: primii 2 octeți ca la OBD (P/C/B/U + 4 cifre), al treilea = felul defectului (VW îl
+// afișează după cod, „U1013 00”). Starea (ISO 14229): bitul 0 = defect acum, 2 = în așteptare,
+// 3 = confirmat (memorat), 7 = cere martorul aprins.
+// ---------------------------------------------------------------------------
+
+export interface UdsDtc {
+  code: string; // „U1013 00”
+  sae: string; // „U1013” (pentru descriere și pentru a nu-l dubla cu OBD)
+  status: number;
+  active: boolean; // defectul e prezent acum
+  confirmed: boolean; // memorat
+  pending: boolean;
+  mil: boolean; // modulul cere martorul aprins
+}
+
+export function parseUdsDtcs(hex: string | null | undefined): UdsDtc[] | null {
+  if (typeof hex !== "string" || !/^([0-9A-Fa-f]{2})+$/.test(hex)) return null;
+  const b = hex.match(/../g)!.map((x) => parseInt(x, 16));
+  if (b[0] !== 0x59 || b[1] !== 0x02 || b.length < 3) return null;
+  const out: UdsDtc[] = [];
+  for (let i = 3; i + 3 < b.length; i += 4) {
+    const status = b[i + 3];
+    if ((b[i] === 0 && b[i + 1] === 0 && b[i + 2] === 0) || (status & 0x0d) === 0) continue; // fără nimic de arătat
+    const sae = dtcCode(b[i], b[i + 1]);
+    out.push({
+      code: `${sae} ${b[i + 2].toString(16).toUpperCase().padStart(2, "0")}`,
+      sae,
+      status,
+      active: (status & 0x01) !== 0,
+      confirmed: (status & 0x08) !== 0,
+      pending: (status & 0x04) !== 0,
+      mil: (status & 0x80) !== 0,
+    });
+  }
+  return out;
+}
+
+/** Modulele citite prin UDS (adresa de trimitere → numele de pe ecran). */
+export const UDS_MODULES: Record<string, string> = {
+  "7E0": "Motor",
+  "714": "Bord",
+  "746": "Climatronic",
+  "715": "Airbag",
+};

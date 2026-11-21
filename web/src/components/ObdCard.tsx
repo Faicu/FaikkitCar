@@ -12,27 +12,36 @@ const STATUS: Record<NonNullable<Obd["status"]>, string> = {
   off: "motor oprit (adaptorul e liber)",
 };
 
+const FAULT_STATE = {
+  active: "prezentă acum",
+  stored: "memorată (intermitentă)",
+  pending: "în așteptare (nu s-a confirmat încă)",
+} as const;
+
 /**
- * Codurile de eroare ale motorului, pe Acum: doar când există vreunul sau martorul e aprins
- * (cererea utilizatorului, 21.11: fără notificări, fără card când totul e în regulă).
+ * Erorile mașinii, pe Acum: din toate modulele citite (motorul prin OBD și UDS, bordul,
+ * climatronicul, airbag-ul), doar când există vreuna sau martorul motorului e aprins (cererea
+ * utilizatorului, 21.11: orice eroare, nu doar martorii din bord; fără notificări).
  */
 export function DtcCard({ obd }: { obd: Obd }) {
-  if (!obd.mil && obd.codes.length === 0) return null;
+  const faults = obd.faults ?? [];
+  if (!obd.mil && faults.length === 0) return null;
   return (
     <div className="space-y-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
         <p className="font-semibold">
-          {obd.codes.length === 1 ? "O eroare la motor" : obd.codes.length > 1 ? `${obd.codes.length} erori la motor` : "Martorul motorului e aprins"}
+          {faults.length === 1 ? "O eroare" : faults.length > 1 ? `${faults.length} erori` : "Martorul motorului e aprins"}
         </p>
       </div>
-      {obd.codes.map((c) => (
-        <div key={`${c.kind}-${c.code}`} className="text-sm">
+      {faults.map((f) => (
+        <div key={`${f.module}-${f.code}`} className="text-sm">
           <p>
-            <span className="font-mono font-semibold">{c.code}</span> · {c.text}
+            <span className="text-muted-foreground">{f.module}</span> · <span className="font-mono font-semibold">{f.code}</span>{" "}
+            · {f.text}
           </p>
           <p className="text-xs text-muted-foreground">
-            {c.kind === "pending" ? "în așteptare (nu s-a confirmat încă)" : "memorată"} · apărută {relativeTime(c.since)}
+            {FAULT_STATE[f.state]} · apărută {relativeTime(f.since)}
           </p>
         </div>
       ))}
@@ -74,9 +83,15 @@ export function ObdCard({ obd }: { obd: Obd }) {
       </div>
       <p className="text-xs text-muted-foreground">
         {obd.checkedAt
-          ? `Coduri de eroare: ${obd.codes.length === 0 ? "niciunul" : obd.codes.map((c) => c.code).join(", ")}${obd.mil ? ", martorul aprins" : ""} · verificat ${relativeTime(obd.checkedAt)}`
-          : "Codurile de eroare nu au fost citite încă."}
+          ? `Motorul (OBD): ${obd.codes.length === 0 ? "nicio eroare" : obd.codes.map((c) => c.code).join(", ")}${obd.mil ? ", martorul aprins" : ""} · verificat ${relativeTime(obd.checkedAt)}`
+          : "Erorile nu au fost citite încă."}
       </p>
+      {(obd.modules ?? []).map((m) => (
+        <p key={m.module} className="text-xs text-muted-foreground">
+          {m.name}: {!m.ok ? "n-a răspuns" : m.count === 0 ? "nicio eroare" : m.count === 1 ? "o eroare" : `${m.count} erori`} ·
+          verificat {relativeTime(m.checkedAt)}
+        </p>
+      ))}
       <button
         type="button"
         disabled={busy}
