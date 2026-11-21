@@ -232,6 +232,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   Tot atunci: cererile cu mai multe PID-uri cu „1” la sfârșit (1.1.100) primeau doar primul cadru CAN (turația și MAP,
   fără aer / injecție / pedală, deci niciun litru OBD pe puncte); cifra = numărul de cadre: `010C0B0F03492` (13 octeți,
   2 cadre), `0105044406070E3` (14 octeți, 3 cadre), confirmat 60–75 ms. Scanarea motorului în mers: ~2 DID/s.
+  Tot pe 21.11: scanarea stătea la ~1 min după conectare (1.1.103–1.1.104): `refreshJobs` reface lista cu obiecte noi,
+  iar buclele din `scanBlock` comparau obiectul (`job == j`); din 1.1.105 se lucrează pe obiectul în curs (`j = job`).
+  Erorile UDS ale motorului (`19 02 FF`, din 1.1.101, netestat până azi): motorul n-a răspuns la 21:16 (de văzut).
 - `MediaProbe` (02.11): test pentru controlul muzicii (YouTube Music) din Panel. Cu accesul la notificări
   (`KeepAliveListener`), `MediaSessionManager.getActiveSessions` + `MediaController`. Doar comanda internă
   `@media [play|pause|toggle|next|prev|stop|seek <s>|search <text>|key <tasta>|vol [n]]` prin `car-cmd.ts`.

@@ -563,6 +563,9 @@ final class Obd extends BluetoothGattCallback {
             return;
         }
         if (job == null || !job.key().equals(j.key())) startJob(j);
+        // Lista de la server se reface la fiecare minut cu obiecte noi: lucram mai departe pe cel in
+        // curs (buclele de mai jos compara obiectul; 21.11, cu cel nou scanarea statea dupa un minut).
+        j = job;
         long budget = moving ? 400 : 1_200;
         long wait = moving ? 500 : 1_500;
         long end = SystemClock.elapsedRealtime() + budget;
