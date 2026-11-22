@@ -388,6 +388,7 @@ function progress(p: ScanItem, now: string): boolean {
   if ((p.r ?? 0) !== r.round) return false;
   if (r.status === "done") return false;
   const next = Math.max(r.next, Math.trunc(p.n));
+  noteProgress(r.id, rateKey({ svc: r.svc as ScanSvc, kind: r.kind as ScanKind }), next);
   db.prepare(
     `UPDATE obd_scan_job SET next = ?, status = CASE status WHEN 'queued' THEN 'running' ELSE status END,
        started_at = COALESCE(started_at, ?), updated_at = ? WHERE id = ?`,
@@ -462,6 +463,66 @@ export function unresolved(tx: string, svc: string, first: number, last: number)
   return out;
 }
 
+// --- estimarea de timp ---------------------------------------------------------------------
+
+/** Ritmul (coduri/s) cât mașina scanează: din progresul primit, în memorie (se pierde la repornirea serverului). */
+const jobRate = new Map<number, { t: number; n: number; rate: number | null }>();
+const kindRate = new Map<string, number>();
+
+/** Până apare o măsurătoare: UDS pe interval ~40/s (22.11, cererile rapide), liste ~5/s, OBD-ul standard ~3/s. */
+const DEFAULT_RATE: Record<string, number> = { "22:r": 40, "22:l": 5 };
+
+function rateKey(j: Pick<ScanJob, "svc" | "kind">): string {
+  return `${j.svc}:${j.kind === "range" ? "r" : "l"}`;
+}
+
+/** Un progres primit: ritmul lucrării (medie exponențială) și cel al felului ei, pentru cele încă neîncepute. */
+export function noteProgress(id: number, key: string, n: number, t = Date.now()): void {
+  const prev = jobRate.get(id);
+  let rate = prev?.rate ?? null;
+  if (prev) {
+    const dt = (t - prev.t) / 1000;
+    const delta = n - prev.n;
+    // Pauzele (motorul oprit) și rafalele din coada trimisă târziu nu spun nimic despre ritm.
+    if (dt >= 3 && dt <= 90 && delta > 0) {
+      const inst = Math.min(150, delta / dt);
+      rate = rate === null ? inst : 0.7 * rate + 0.3 * inst;
+      kindRate.set(key, rate);
+    }
+  }
+  jobRate.set(id, { t, n, rate });
+}
+
+export function rateFor(j: Pick<ScanJob, "id" | "svc" | "kind">): number {
+  return jobRate.get(j.id)?.rate ?? kindRate.get(rateKey(j)) ?? DEFAULT_RATE[rateKey(j)] ?? 3;
+}
+
+export interface JobEta {
+  etaS: number; // cât mai are lucrarea de făcut
+  endsS: number; // până se termină, cu lucrările dinaintea ei din coadă
+}
+
+/**
+ * Timpul rămas la lucrările cu sfârșit (intervale și liste): nu urmăririle și buclele, care se reiau, nici
+ * cele oprite sau doar pe loc. Presupune motorul pornit tot timpul; `jobs` în ordinea cozii.
+ */
+export function jobEtas(
+  jobs: Array<Pick<ScanJob, "id" | "kind" | "status" | "parked" | "svc"> & { done: number; total: number }>,
+  rate: (j: { id: number; svc: ScanSvc; kind: ScanKind }) => number,
+): Map<number, JobEta> {
+  const out = new Map<number, JobEta>();
+  let sum = 0;
+  for (const j of jobs) {
+    if (j.status === "done" || j.status === "paused" || j.parked || j.kind === "watch" || j.kind === "loop") continue;
+    const r = rate(j);
+    if (!(r > 0)) continue;
+    const etaS = Math.max(0, (j.total - j.done) / r);
+    sum += etaS;
+    out.set(j.id, { etaS: Math.round(etaS), endsS: Math.round(sum) });
+  }
+  return out;
+}
+
 // --- pentru site ----------------------------------------------------------------------------
 
 export interface ScanModuleStats {
@@ -476,17 +537,19 @@ export interface ScanModuleStats {
 }
 
 export interface ScanOverview {
-  jobs: Array<ScanJob & { done: number; total: number }>;
+  jobs: Array<ScanJob & { done: number; total: number; etaS: number | null; endsS: number | null }>;
   modules: ScanModuleStats[];
   current: number | null; // lucrarea pe care o face mașina acum (prima din ordine)
 }
 
 export function readScanOverview(): ScanOverview {
   const db = getDb();
-  const jobs = rows().map((r) => {
+  const base = rows().map((r) => {
     const j = toJob(r);
     return { ...j, ...jobProgress(j), ids: j.kind === "range" ? null : j.ids };
   });
+  const etas = jobEtas(base, rateFor);
+  const jobs = base.map((j) => ({ ...j, etaS: etas.get(j.id)?.etaS ?? null, endsS: etas.get(j.id)?.endsS ?? null }));
   const stats = db
     .prepare(
       `SELECT tx, SUM(nrc IS NULL) AS codes, SUM(nrc IS NULL AND changes > 0) AS changing,

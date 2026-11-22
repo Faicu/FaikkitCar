@@ -47,6 +47,13 @@ function refusal(nrc: number): string {
   return `refuzat (${nrc.toString(16).toUpperCase()})`;
 }
 
+/** „sub 1 min”, „12 min”, „2 h 5 min”. */
+function duration(sec: number): string {
+  const m = Math.round(sec / 60);
+  if (m < 1) return "sub 1 min";
+  return m < 90 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+
 function JobRow({ job, current }: { job: Job; current: boolean }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -71,6 +78,8 @@ function JobRow({ job, current }: { job: Job; current: boolean }) {
           {job.parked ? " · doar pe loc" : ""}
           {watch && job.everyS ? ` · la fiecare pornire și la ${Math.round(job.everyS / 60)} min` : ""}
           {loop && job.round > 0 ? ` · trecerea ${job.round + 1}` : ""}
+          {job.etaS !== null ? ` · ~${duration(job.etaS)}` : ""}
+          {job.etaS !== null && job.endsS !== null && job.endsS - job.etaS >= 60 ? ` · gata peste ~${duration(job.endsS)}` : ""}
         </p>
         {job.status !== "done" && (
           <button

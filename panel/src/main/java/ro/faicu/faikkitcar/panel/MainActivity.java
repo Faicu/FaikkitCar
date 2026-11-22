@@ -881,6 +881,13 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** „sub 1 min”, „12 min”, „2 h 5 min”. */
+    private static String scanDuration(int sec) {
+        int m = Math.round(sec / 60f);
+        if (m < 1) return "sub 1 min";
+        return m < 90 ? m + " min" : (m / 60) + " h " + (m % 60) + " min";
+    }
+
     private void renderObdScan() {
         if (obdScan == null) return;
         LinearLayout card = Ui.card(this, content);
@@ -902,7 +909,10 @@ public class MainActivity extends Activity {
                     + ("watch".equals(j.optString("kind")) ? " · la " + Math.round(j.optInt("everyS") / 60.0) + " min" : "")
                     + (("loop".equals(j.optString("kind")) || "watch".equals(j.optString("kind"))) && j.optInt("round") > 0
                             ? " · trecerea " + (j.optInt("round") + 1) : "")
-                    + (total > 0 && !"watch".equals(j.optString("kind")) ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "");
+                    + (total > 0 && !"watch".equals(j.optString("kind")) ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "")
+                    + (j.isNull("etaS") ? "" : " · ~" + scanDuration(j.optInt("etaS")))
+                    + (j.isNull("etaS") || j.isNull("endsS") || j.optInt("endsS") - j.optInt("etaS") < 60 ? ""
+                            : " · gata peste ~" + scanDuration(j.optInt("endsS")));
             card.addView(Ui.text(this, line, 14, j.optInt("id") == current ? Ui.TEXT : Ui.MUTED, j.optInt("id") == current));
         }
         if (done > 0) Ui.hint(this, card, done == 1 ? "O lucrare terminată" : done + " lucrări terminate");

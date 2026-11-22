@@ -228,3 +228,35 @@ describe("jobs and results", () => {
     expect(scan.carScanJobs().some((j) => j.id === first.id)).toBe(true);
   });
 });
+
+describe("jobEtas", () => {
+  const job = (id: number, over: Partial<Parameters<typeof scan.jobEtas>[0][number]> = {}) => ({
+    id, kind: "range" as const, status: "queued" as const, parked: false, svc: "22" as const, done: 0, total: 1000, ...over,
+  });
+  it("adds the jobs ahead to the end time and skips watches, loops, paused and parked ones", () => {
+    const m = scan.jobEtas(
+      [
+        job(1, { kind: "watch", total: 20 }),
+        job(2, { status: "running", done: 500 }),
+        job(3, { status: "paused" }),
+        job(4, { parked: true }),
+        job(5, { kind: "loop", total: 99 }),
+        job(6, { total: 2000 }),
+        job(7, { status: "done", done: 1000 }),
+      ],
+      () => 10,
+    );
+    expect([...m.keys()]).toEqual([2, 6]);
+    expect(m.get(2)).toEqual({ etaS: 50, endsS: 50 });
+    expect(m.get(6)).toEqual({ etaS: 200, endsS: 250 });
+  });
+  it("measures the rate from progress, ignoring pauses and bursts", () => {
+    const j = { id: 901, svc: "22" as const, kind: "range" as const };
+    scan.noteProgress(901, "22:r", 1000, 0);
+    scan.noteProgress(901, "22:r", 1600, 10_000); // 60/s
+    scan.noteProgress(901, "22:r", 5000, 10_500); // rafală: dt < 3 s, ignorat
+    scan.noteProgress(901, "22:r", 9000, 600_000); // pauză: dt > 90 s, ignorat
+    expect(scan.jobEtas([{ ...j, status: "running", parked: false, done: 0, total: 600 }], (x) => scan.rateFor(x))
+      .get(901)?.etaS).toBe(10);
+  });
+});
