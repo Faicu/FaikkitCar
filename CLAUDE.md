@@ -230,7 +230,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (`r` ≠ `round`) e ignorat la orice lucrare. Refăcute pe 22.11 (copie `/root/backups/faikkitcar-before-requeue-20261122.db`):
   motorul de la 0000 (trecerea 1: 0000–469C fuseseră scanate fără inexistente și cu grupuri sărite; codurile găsite rămân),
   climatronicul 0000–FFFF (0000–0A3A importat din scanarea veche din aplicație, care sărea la fel), bordul încă o dată
-  0000–FFFF (lucrarea 14, după climatronic). Pe site / Panel la module: „N verificate că nu există”.
+  0000–FFFF (lucrarea 14). Pe site / Panel la module: „N verificate că nu există”. Ordinea de acum (22.11, utilizatorul):
+  urmăririle, OBD standard (01/09/06/02 + erorile, ~10 min), motorul, bordul (a doua trecere), climatronicul, buclele.
   Verificarea de după (22.11): la OBD-ul standard (01/09/06/02) recitirea de la sfârșit are doar cele lente (ce nu e
   suportat nu răspunde, nu e „pierdut”); o buclă / urmărire oprită de utilizator rămâne oprită după trecere; din 1.1.111
   o listă (urmărire, recitire) la care 5 coduri la rând nu primesc niciun răspuns trece modulul la „tace” până la

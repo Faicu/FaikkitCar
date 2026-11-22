@@ -66,11 +66,14 @@ describe("jobs and results", () => {
     scan.seedScanJobs("2026-11-21T00:00:00.000Z");
   });
 
-  it("seeds the order once, engine first", () => {
+  it("seeds the order once: the short standard OBD first, then the engine", () => {
     expect(scan.seedScanJobs()).toBe(0);
     const jobs = scan.carScanJobs();
     expect(jobs.map((j) => j.label)).toEqual(scan.SEED.slice(0, 3).map((s) => s.label));
-    expect(jobs[0]).toMatchObject({ tx: "7E0", rx: "7E8", svc: "22", kind: "range", first: 0, last: 0xffff, next: 0 });
+    expect(jobs[0]).toMatchObject({ tx: "7E0", svc: "01", kind: "range", first: 0, last: 0xff });
+    // Testele de mai jos lucrează pe motor: OBD-ul standard e gata.
+    getDb().prepare(`UPDATE obd_scan_job SET status = 'done' WHERE svc IN ('01', '09', '06', '02', 'dtc')`).run();
+    expect(scan.carScanJobs()[0]).toMatchObject({ tx: "7E0", rx: "7E8", svc: "22", kind: "range", first: 0, last: 0xffff, next: 0 });
   });
 
   it("stores results and progress; a resent batch does not move progress back", () => {
@@ -109,10 +112,10 @@ describe("jobs and results", () => {
     scan.saveScanItems([{ t: "p", j: engine.id, n: 0x10000, d: 1 }]);
     const [retry, next] = scan.carScanJobs();
     expect(retry).toMatchObject({ kind: "list", parked: true, parent: engine.id, ids: [0x0102], tx: "7E0" });
-    expect(next.label).toBe("OBD: valorile live");
+    expect(next.label).toBe("Bord: toate codurile (a doua trecere)");
     // Recitirea terminată nu mai face altă recitire.
     scan.saveScanItems([{ t: "p", j: retry.id, n: 1, d: 1 }]);
-    expect(scan.carScanJobs()[0].label).toBe("OBD: valorile live");
+    expect(scan.carScanJobs()[0].label).toBe("Bord: toate codurile (a doua trecere)");
   });
 
   it("fills a loop from the catalog and moves it to the end after each round", () => {

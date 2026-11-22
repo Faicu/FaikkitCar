@@ -129,20 +129,20 @@ interface Seed {
 }
 
 /**
- * Ordinea stabilită cu utilizatorul (21.11): motorul, OBD-ul standard, climatronicul, apoi recitirea în
- * buclă a codurilor găsite. 22.11: climatronicul de la 0000 și bordul încă o dată (scanările din
+ * Ordinea stabilită cu utilizatorul (22.11): OBD-ul standard (scurt), motorul, bordul, climatronicul
+ * (prioritate mică), apoi recitirea în buclă a codurilor găsite. 22.11: climatronicul de la 0000 și bordul încă o dată (scanările din
  * aplicație de pe 21.11, importate, săreau grupurile fără răspuns și nu notau codurile inexistente).
  * Airbag-ul nu interesează.
  */
 export const SEED: Seed[] = [
-  { label: "Motor: toate codurile", tx: "7E0", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
   { label: "OBD: valorile live", tx: "7E0", svc: "01", kind: "range", first: 0x00, last: 0xff },
   { label: "OBD: informațiile vehiculului", tx: "7E0", svc: "09", kind: "range", first: 0x00, last: 0xff },
   { label: "OBD: testele de la bord", tx: "7E0", svc: "06", kind: "range", first: 0x00, last: 0xff },
   { label: "OBD: datele de la apariția erorii", tx: "7E0", svc: "02", kind: "range", first: 0x00, last: 0xff },
   { label: "OBD: codurile de eroare", tx: "7E0", svc: "dtc", kind: "list", ids: [0x03, 0x07, 0x0a] },
-  { label: "Climatronic: toate codurile", tx: "746", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
+  { label: "Motor: toate codurile", tx: "7E0", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
   { label: "Bord: toate codurile (a doua trecere)", tx: "714", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
+  { label: "Climatronic: toate codurile", tx: "746", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
   { label: "Recitire: motor", tx: "7E0", svc: "22", kind: "loop" },
   { label: "Recitire: OBD live", tx: "7E0", svc: "01", kind: "loop" },
   { label: "Recitire: bord", tx: "714", svc: "22", kind: "loop" },

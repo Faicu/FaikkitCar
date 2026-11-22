@@ -14,16 +14,15 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 ## 1. Scanarea
 
-| Lucrarea | Stare (22.11, 07:54) |
+| Lucrarea | Stare (22.11, seara) |
 |---|---|
-| Motor (7E0), 0000–FFFF | 🔄 luat de la capăt pe 22.11 (prima trecere ajunsese la 469C, 679 de coduri găsite, păstrate) · ~1,5 h cu motorul pornit; pornește cu FaikkitCar 1.1.110 |
-| OBD standard: 01, 09, 06, 02, erorile | ⏳ la rând |
-| Climatronic (746), 0000–FFFF | ⏳ la rând (0000–0A3A refăcut: scanarea veche sărea grupurile fără răspuns) |
-| Bord (714), a doua trecere 0000–FFFF | ⏳ după climatronic (prima, din 21.11, sărea la fel; cele 170 de coduri rămân) |
-| Recitirea în buclă (motor, OBD 01, bord, climatronic) | ⏳ după scanări |
-| Bord (714), 0000–FFFF | ✅ 21.11 · 168 de coduri cu răspuns, 2 refuzate |
-
 | **Urmărirea candidaților** (bord 21 de coduri, motor 19) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11) |
+| OBD standard: 01, 09, 06, 02, erorile | ⏳ la rând, primul (~10 min) |
+| Motor (7E0), 0000–FFFF | 🔄 luat de la capăt pe 22.11 (prima trecere ajunsese la 469C, 679 de coduri găsite, păstrate) · ~1,5 h cu motorul pornit; pornește cu FaikkitCar 1.1.111 instalată |
+| Bord (714), a doua trecere 0000–FFFF | ⏳ după motor, ~1,5 h (prima, din 21.11, sărea la fel; cele 170 de coduri rămân) |
+| Climatronic (746), 0000–FFFF | ⏳ după bord, ~1,5 h (0000–0A3A refăcut: scanarea veche sărea grupurile fără răspuns) |
+| Recitirea în buclă (motor, OBD 01, bord, climatronic) | ⏳ după scanări |
+| Bord (714), prima trecere 0000–FFFF | ✅ 21.11 · 168 de coduri cu răspuns, 2 refuzate |
 
 **Fără coduri pierdute (din 22.11, aplicația 1.1.110):** se notează și codurile care **nu există** (tabela `obd_absent`), deci
 fiecare cod din 0000–FFFF ajunge într-una din stări: cu răspuns, refuzat, lent, inexistent. Ce n-a primit niciun răspuns
@@ -143,6 +142,7 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 20.11 | Adaptorul în mașină; UDS la motor; fără MAF / consum în OBD; modulele care răspund |
 | 21.11 | Bordul scanat complet; kilometraje în 1017–101A; litrii în 2206; scanarea mutată pe server |
 | 21.11 seara | Erorile climatronicului (B1091); erorile UDS ale motorului / airbag-ului citite (7F 19 78); becul ars = 2224 bitul 0x01; ceasul în 2216 / 2238 / 2239 |
+| 22.11 | Ordinea cozii: OBD standard întâi (scurt), apoi motorul, bordul, climatronicul |
 | 22.11 | Acoperirea completă: codurile inexistente notate (`obd_absent`), golurile recitite la sfârșit; motorul, climatronicul și bordul reluate de la 0000 cu noua aplicație (1.1.110), fiindcă scanările de până acum nu notau ce lipsește și săreau grupurile fără răspuns |
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
