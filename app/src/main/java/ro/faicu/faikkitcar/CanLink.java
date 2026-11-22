@@ -128,7 +128,6 @@ final class CanLink {
                         case INSTANT: instant = v; break;
                         case BELT: belt = v; break;
                         case HANDBRAKE:
-                            if (handbrake >= 0 && v != handbrake) logHandbrake("c103 " + handbrake + " -> " + v);
                             if (!handbrakeTrusted && (v == 0 || (handbrake >= 0 && v != handbrake))) {
                                 handbrakeTrusted = true;
                                 Prefs.setHandbrakeBoot(c, bootCount());
@@ -184,8 +183,8 @@ final class CanLink {
 
     /**
      * Cadru brut Raise (0x2E, comanda, lungime, date..., uneori precedat de 0xFF): 0x41 vine de
-     * la bord doar cu contactul pus; 0x41/1 are octetul de stare (0x20 = frana de mana TRASA:
-     * 161 parcat, 128 in mers pe 03.10; 0x80 sta pus si ziua, deci nu e faza scurta). Luminile
+     * la bord doar cu contactul pus; 0x41/1 are octetul de stare (doar trimis in puncte ca s41:
+     * 0x20 parea frana de mana, dar ramane in urma; frana e c103, confirmat 15.11). Luminile
      * (iluminarea bordului din 0x14) nu se mai citesc din 1.1.59: cadrul vine doar la schimbare,
      * deci dupa o repornire a aplicatiei starea ramanea necunoscuta ore intregi.
      */
@@ -195,11 +194,7 @@ final class CanLink {
         if (ints[o + 1] != 0x41) return;
         dashAt = SystemClock.elapsedRealtime();
         if (ints.length > o + 4 && ints[o + 3] == 1) {
-            int v = ints[o + 4];
-            if (status41 >= 0 && ((v ^ status41) & 0x20) != 0) {
-                logHandbrake("0x41/1 bitul 0x20 " + ((v & 0x20) != 0 ? "1 (trasa)" : "0 (eliberata)"));
-            }
-            status41 = v;
+            status41 = ints[o + 4];
         }
     }
 
@@ -228,11 +223,6 @@ final class CanLink {
         }
         // Fara cadere sub 12 V n-am prins demarorul (ex. bordul tacea la pornire, 08.10: 14,35 V).
         return min >= NO_CRANK_V ? Double.NaN : min;
-    }
-
-    /** Pana confirmam care cod e frana de mana: fiecare schimbare ajunge in jurnal. */
-    private void logHandbrake(String what) {
-        Prefs.log(c, "Frana de mana: " + what + " (c103=" + handbrake + ", 0x41/1=" + status41 + ")");
     }
 
     /** Litrii ajung doar in puncte (alimentarile le vede serverul din salturi). */
