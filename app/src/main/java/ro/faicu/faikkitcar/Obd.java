@@ -626,6 +626,18 @@ final class Obd extends BluetoothGattCallback {
                         pendingTries = 0;
                         result22(j, did, r);
                         scanNext++;
+                        // Niciun raspuns la 5 coduri la rand: modulul tace (ca la intervale), lista asteapta
+                        // reconectarea, altfel o urmarire de 21 de coduri ar tine scanarea pe loc ~1,5 min.
+                        if (r.length > 0) {
+                            scanSilent = 0;
+                        } else if (++scanSilent >= 5) {
+                            scanNext -= scanSilent;
+                            silentModules.add(j.tx);
+                            flushProgress(true);
+                            Prefs.log(c, "OBD: modulul " + hex(j.tx, 3) + " nu raspunde, lista lui asteapta reconectarea");
+                            job = null;
+                            break;
+                        }
                     }
                 } else {
                     scanRange(j, moving, wait, end);

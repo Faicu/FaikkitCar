@@ -231,6 +231,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   motorul de la 0000 (trecerea 1: 0000–469C fuseseră scanate fără inexistente și cu grupuri sărite; codurile găsite rămân),
   climatronicul 0000–FFFF (0000–0A3A importat din scanarea veche din aplicație, care sărea la fel), bordul încă o dată
   0000–FFFF (lucrarea 14, după climatronic). Pe site / Panel la module: „N verificate că nu există”.
+  Verificarea de după (22.11): la OBD-ul standard (01/09/06/02) recitirea de la sfârșit are doar cele lente (ce nu e
+  suportat nu răspunde, nu e „pierdut”); o buclă / urmărire oprită de utilizator rămâne oprită după trecere; din 1.1.111
+  o listă (urmărire, recitire) la care 5 coduri la rând nu primesc niciun răspuns trece modulul la „tace” până la
+  reconectare (altfel bordul tăcut ar fi ținut scanarea pe loc ~1,5 min la fiecare 2 min).
 - **Totul cu OBD e de test, separat de restul (cererea utilizatorului, 21.11):** fără adaptor sau cu comutatorul oprit,
   călătoriile, costurile și aplicațiile merg ca înainte. Călătoriile și consumul vin din GPS + CAN; litrii OBD doar se
   strâng pe puncte (`Obd.take()` → null când e oprit). Nu se leagă nimic de bază de OBD: coada punctelor (`PointQueue`)

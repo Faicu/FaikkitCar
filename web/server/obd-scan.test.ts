@@ -195,6 +195,28 @@ describe("jobs and results", () => {
     expect(scan.carScanJobsFor(true, 10, later).some((j) => !j.label.startsWith("Urmărire:"))).toBe(true);
   });
 
+  it("does not re-read unsupported OBD PIDs after a standard OBD range", () => {
+    const obd01 = scan.carScanJobs(10).find((j) => j.label === "OBD: valorile live");
+    if (!obd01) {
+      // Terminată deja într-un test de mai sus: o refacem.
+      getDb().prepare(`UPDATE obd_scan_job SET status = 'running' WHERE label = 'OBD: valorile live'`).run();
+    }
+    const j = scan.carScanJobs(20).find((x) => x.label === "OBD: valorile live")!;
+    scan.saveScanItems([
+      { t: "r", j: j.id, x: "7E0", s: "01", i: 0x0c, v: "0BB8" },
+      { t: "p", j: j.id, r: j.round, n: 0x100, d: 1 },
+    ]);
+    expect(scan.carScanJobs(20).some((x) => x.parent === j.id)).toBe(false);
+  });
+
+  it("keeps a paused watch paused after its pass", () => {
+    const w = scan.carScanJobs(20, Date.now() + 10 * 60_000).find((x) => x.label === scan.WATCH[1].label)!;
+    scan.setScanJobPaused(w.id, true);
+    scan.saveScanItems([{ t: "p", j: w.id, r: w.round, n: w.ids!.length, d: 1 }]);
+    expect(scan.readScanOverview().jobs.find((x) => x.id === w.id)?.status).toBe("paused");
+    scan.setScanJobPaused(w.id, false);
+  });
+
   it("skips paused jobs", () => {
     const [first] = scan.carScanJobs();
     scan.setScanJobPaused(first.id, true);

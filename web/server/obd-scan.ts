@@ -197,7 +197,7 @@ function resting(r: Pick<JobRow, "kind" | "every_s" | "pass_at">, now: number): 
  */
 export function carScanJobsFor(absent: boolean, max = 3, now = Date.now()): ScanJob[] {
   if (absent) return carScanJobs(max, now);
-  return carScanJobs(10, now).filter((j) => j.label.startsWith("Urmărire:")).slice(0, max);
+  return carScanJobs(max, now, true);
 }
 
 /** Pune ordinea de la început, o singură dată (tabela goală). */
@@ -246,12 +246,13 @@ function catalogIds(tx: string, svc: string): number[] {
  * pe toată trecerea: progresul e un index în ea); până are ceva în catalog (modulul nescanat
  * încă) e sărită.
  */
-export function carScanJobs(max = 3, now = Date.now()): ScanJob[] {
+export function carScanJobs(max = 3, now = Date.now(), onlyWatch = false): ScanJob[] {
   const db = getDb();
   const out: ScanJob[] = [];
   for (const r of rows()) {
     if (out.length >= max) break;
     if (r.status !== "queued" && r.status !== "running") continue;
+    if (onlyWatch && r.kind !== "watch") continue;
     if (resting(r, now)) continue;
     if (r.kind === "loop" && (!r.ids || r.ids === "[]")) {
       const ids = catalogIds(r.tx, r.svc);
@@ -400,26 +401,34 @@ function progress(p: ScanItem, now: string): boolean {
  * scanare de interval, codurile rămase lente (în mers nu se așteaptă după ele) se recitesc
  * într-o lucrare doar pe loc, imediat după.
  */
+/** O buclă / urmărire oprită de utilizator rămâne oprită și după trecerea terminată. */
+const KEEP_PAUSED = `CASE status WHEN 'paused' THEN 'paused' ELSE 'queued' END`;
+
 export function finishJob(j: ScanJob, now = new Date().toISOString()): void {
   const db = getDb();
   const maxOrd = (db.prepare(`SELECT MAX(ord) AS m FROM obd_scan_job`).get() as { m: number }).m;
   if (j.kind === "watch") {
     // Aceeași listă, același loc în față; pauza până la trecerea următoare.
     db.prepare(
-      `UPDATE obd_scan_job SET next = 0, round = round + 1, pass_at = ?, status = 'queued', updated_at = ? WHERE id = ?`,
+      `UPDATE obd_scan_job SET next = 0, round = round + 1, pass_at = ?, status = ${KEEP_PAUSED}, updated_at = ? WHERE id = ?`,
     ).run(now, now, j.id);
     return;
   }
   if (j.kind === "loop") {
     db.prepare(
-      `UPDATE obd_scan_job SET next = 0, round = round + 1, ids = ?, ord = ?, status = 'queued', updated_at = ?
+      `UPDATE obd_scan_job SET next = 0, round = round + 1, ids = ?, ord = ?, status = ${KEEP_PAUSED}, updated_at = ?
        WHERE id = ?`,
     ).run(JSON.stringify(catalogIds(j.tx, j.svc)), maxOrd + 1, now, j.id);
     return;
   }
   db.prepare(`UPDATE obd_scan_job SET status = 'done', done_at = ?, updated_at = ? WHERE id = ?`).run(now, now, j.id);
   if (j.kind !== "range" || j.parent !== null) return;
-  const slow = unresolved(j.tx, j.svc, j.first ?? 0, j.last ?? 0);
+  // La UDS se știe și ce nu există (obd_absent), deci și ce s-a pierdut; la OBD-ul standard (01/09/06/02)
+  // ce nu e suportat nu răspunde deloc, deci rămân doar cele lente.
+  const slow = j.svc === "22"
+    ? unresolved(j.tx, j.svc, j.first ?? 0, j.last ?? 0)
+    : (db.prepare(`SELECT id FROM obd_code WHERE tx = ? AND svc = ? AND nrc = ? AND id BETWEEN ? AND ? ORDER BY id`)
+      .all(j.tx, j.svc, NRC_SLOW, j.first ?? 0, j.last ?? 0) as Array<{ id: number }>).map((r) => r.id);
   if (slow.length === 0) return;
   // Imediat după lucrarea terminată, înaintea următoarei.
   const after = db
