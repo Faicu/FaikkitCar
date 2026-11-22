@@ -8,15 +8,15 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 22.11.2026 (analiza codurilor găsite: valorile comparate cu CAN / OBD / revizia din aceeași clipă)
+**Ultima actualizare:** 22.11.2026, 10:00 (scanarea motorului din drumul de dimineață, 07:43–07:54)
 
 ---
 
 ## 1. Scanarea
 
-| Lucrarea | Stare (21.11, ~22:00) |
+| Lucrarea | Stare (22.11, 07:54) |
 |---|---|
-| Motor (7E0), 0000–FFFF | 🔄 până la 31B0 (19%) · 546 de coduri cu răspuns |
+| Motor (7E0), 0000–FFFF | 🔄 până la 469C (28%) · 679 de coduri cu răspuns, 42 lente (recitite pe loc) · mai e ~1 h cu motorul pornit |
 | OBD standard: 01, 09, 06, 02, erorile | ⏳ la rând |
 | Climatronic (746), 0A3B–FFFF (0000–0A3A gata) | ⏳ la rând |
 | Recitirea în buclă (motor, OBD 01, bord, climatronic) | ⏳ după scanări |
@@ -96,6 +96,9 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | Motor 1154 | 750 pe loc, 800 în mers | turația de relanti cerută? |
 | Motor 117D | 23 la relanti, 43 la sarcină (MAP 109 kPa) | sarcina / clapeta? |
 | Motor 1189–118F | 7 valori ~490–540, toate cresc puțin în 24 s de accelerare | temperaturi modelate (evacuare / catalizator)? |
+| Motor **3D73** | 0x85 → 0,75 × 133 − 48 = 51,75 °C, lichidul de răcire OBD 51 °C (o singură citire, 22.11) | temperatura motorului (formula VW) |
+| Motor 4183 | 0x5D − 40 = 53 °C, lichidul OBD 53 °C (o citire) | altă temperatură a motorului |
+| Motor 406A | 0x02E4 = 740 la relanti 749 rpm (o citire) | relantiul cerut (ca 1154) |
 | Motor 1036 | 0x000377F7 = 227.319 | un kilometraj de la un eveniment vechi (~18.600 km în urmă)? |
 | Motor 11F4–11FD, 16DF | text: „mec_open_cps”, „no_error” (×9), „SA3O6010 CBK0191” | stări ale unor teste / un cod intern |
 | Bord 100A, 1014, 220C, 202F, 220D | variază singure (100A 92 → 90, 202F 93 → 97) | temperaturi, tensiuni? |
@@ -133,4 +136,5 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 20.11 | Adaptorul în mașină; UDS la motor; fără MAF / consum în OBD; modulele care răspund |
 | 21.11 | Bordul scanat complet; kilometraje în 1017–101A; litrii în 2206; scanarea mutată pe server |
 | 21.11 seara | Erorile climatronicului (B1091); erorile UDS ale motorului / airbag-ului citite (7F 19 78); becul ars = 2224 bitul 0x01; ceasul în 2216 / 2238 / 2239 |
+| 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 | Analiza codurilor: intervalul reviziei în bord (2260 / 2261 / 2243 / 2244, potrivite cu revizia din 19.10), kilometrajul în motor (121C, 15D4), temperaturile și turația în motor (1000–1002, 117C); 1007 ≈ contorul de consum, 2205 ≈ frâna de mână |
