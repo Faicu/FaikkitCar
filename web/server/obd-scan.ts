@@ -153,18 +153,19 @@ export const SEED: Seed[] = [
  * Urmărirea candidaților (22.11, cererea utilizatorului): codurile bănuite (OBD-CODURI.md, „Candidați”)
  * recitite la fiecare pornire și apoi la 2 minute, înaintea scanării, ca să le putem lega de CAN / OBD
  * din aceeași clipă (1007 la prima pornire după o oprire lungă, 2205 cu frâna, 202F cu lichidul de răcire).
- * O trecere ține câteva secunde; restul timpului merge scanarea.
+ * O trecere ține câteva secunde; restul timpului merge scanarea. Doar ce nu e sigur: ce s-a confirmat
+ * (OBD-CODURI.md, secțiunea 3) iese din listă (22.11: rezervor, bec, revizie, kilometraje, turație, temperaturi).
  */
 export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
   {
     label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 120,
-    ids: [0x1007, 0x1009, 0x100a, 0x1014, 0x1019, 0x101a, 0x2203, 0x2205, 0x2206, 0x2208, 0x220c, 0x220d,
-      0x2224, 0x2243, 0x2260, 0x2275, 0x202f, 0xf405, 0xf40c, 0xf40d, 0xf442],
+    ids: [0x1007, 0x1009, 0x100a, 0x1014, 0x1019, 0x101a, 0x2203, 0x2205, 0x2208, 0x220c, 0x220d, 0x2275,
+      0x202f, 0xf405, 0xf442],
   },
   {
     label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 120,
-    ids: [0x1000, 0x1001, 0x1002, 0x1154, 0x117c, 0x117d, 0x1189, 0x118a, 0x118b, 0x118c, 0x118d, 0x118e,
-      0x118f, 0x121c, 0x15d4, 0x2206, 0x3d73, 0x406a, 0x4183],
+    ids: [0x1154, 0x117d, 0x1189, 0x118a, 0x118b, 0x118c, 0x118d, 0x118e, 0x118f, 0x2206, 0x3d73, 0x406a,
+      0x4183],
   },
 ];
 
