@@ -22,6 +22,8 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 | Recitirea în buclă (motor, OBD 01, bord, climatronic) | ⏳ după scanări |
 | Bord (714), 0000–FFFF | ✅ 21.11 · 168 de coduri cu răspuns, 2 refuzate |
 
+| **Urmărirea candidaților** (bord 21 de coduri, motor 19) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11) |
+
 Viteza: ~6 coduri/s pe loc, ~2 coduri/s în mers. Ordinea și progresul: `obd_scan_job` (detalii în `CLAUDE.md`).
 
 ## 2. Modulele
@@ -136,5 +138,6 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 20.11 | Adaptorul în mașină; UDS la motor; fără MAF / consum în OBD; modulele care răspund |
 | 21.11 | Bordul scanat complet; kilometraje în 1017–101A; litrii în 2206; scanarea mutată pe server |
 | 21.11 seara | Erorile climatronicului (B1091); erorile UDS ale motorului / airbag-ului citite (7F 19 78); becul ars = 2224 bitul 0x01; ceasul în 2216 / 2238 / 2239 |
+| 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 | Analiza codurilor: intervalul reviziei în bord (2260 / 2261 / 2243 / 2244, potrivite cu revizia din 19.10), kilometrajul în motor (121C, 15D4), temperaturile și turația în motor (1000–1002, 117C); 1007 ≈ contorul de consum, 2205 ≈ frâna de mână |

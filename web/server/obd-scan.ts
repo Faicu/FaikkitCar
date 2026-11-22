@@ -12,11 +12,13 @@ import { HTTPException } from "hono/http-exception";
 import { getDb } from "./db.ts";
 
 export type ScanSvc = "22" | "01" | "02" | "06" | "09" | "dtc";
-export type ScanKind = "range" | "list" | "loop";
+export type ScanKind = "range" | "list" | "loop" | "watch";
 export type ScanStatus = "queued" | "running" | "done" | "paused";
 
 /** Refuzul „lent / fără răspuns” (nu e un cod UDS: acelea sunt un octet). */
 export const NRC_SLOW = 256;
+/** „Codul nu există” (7F 22 31): trimis doar de recitiri, ca să scoată din catalog un cod lent. */
+export const NRC_MISSING = 0x31;
 
 export const SCAN_MODULES: Record<string, { name: string; rx: string }> = {
   "7E0": { name: "Motor", rx: "7E8" },
@@ -41,6 +43,8 @@ export interface ScanJob {
   round: number;
   parked: boolean; // doar cu mașina pe loc (recitirea celor lente)
   parent: number | null;
+  everyS: number | null; // watch: la câte secunde se reia
+  passAt: string | null; // watch: ultima trecere
   status: ScanStatus;
   createdAt: string;
   startedAt: string | null;
@@ -63,6 +67,8 @@ interface JobRow {
   round: number;
   parked: number;
   parent: number | null;
+  every_s: number | null;
+  pass_at: string | null;
   status: string;
   created_at: string;
   started_at: string | null;
@@ -86,6 +92,8 @@ function toJob(r: JobRow): ScanJob {
     round: r.round,
     parked: r.parked === 1,
     parent: r.parent,
+    everyS: r.every_s ?? null,
+    passAt: r.pass_at ?? null,
     status: r.status as ScanStatus,
     createdAt: r.created_at,
     startedAt: r.started_at,
@@ -136,6 +144,47 @@ export const SEED: Seed[] = [
   { label: "Recitire: climatronic", tx: "746", svc: "22", kind: "loop" },
 ];
 
+/**
+ * Urmărirea candidaților (22.11, cererea utilizatorului): codurile bănuite (OBD-CODURI.md, „Candidați”)
+ * recitite la fiecare pornire și apoi la 2 minute, înaintea scanării, ca să le putem lega de CAN / OBD
+ * din aceeași clipă (1007 la prima pornire după o oprire lungă, 2205 cu frâna, 202F cu lichidul de răcire).
+ * O trecere ține câteva secunde; restul timpului merge scanarea.
+ */
+export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
+  {
+    label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 120,
+    ids: [0x1007, 0x1009, 0x100a, 0x1014, 0x1019, 0x101a, 0x2203, 0x2205, 0x2206, 0x2208, 0x220c, 0x220d,
+      0x2224, 0x2243, 0x2260, 0x2275, 0x202f, 0xf405, 0xf40c, 0xf40d, 0xf442],
+  },
+  {
+    label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 120,
+    ids: [0x1000, 0x1001, 0x1002, 0x1154, 0x117c, 0x117d, 0x1189, 0x118a, 0x118b, 0x118c, 0x118d, 0x118e,
+      0x118f, 0x121c, 0x15d4, 0x2206, 0x3d73, 0x406a, 0x4183],
+  },
+];
+
+/** Pune lucrările de urmărire care lipsesc (după etichetă); cele existente rămân cum le-a lăsat utilizatorul. */
+export function seedWatchJobs(now = new Date().toISOString()): number {
+  const db = getDb();
+  const has = db.prepare(`SELECT 1 FROM obd_scan_job WHERE label = ?`);
+  const ins = db.prepare(
+    `INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, ids, every_s, status, created_at)
+     VALUES (?, ?, ?, ?, ?, 'watch', ?, ?, 'queued', ?)`,
+  );
+  let n = 0;
+  for (const w of WATCH) {
+    if (has.get(w.label)) continue;
+    ins.run(w.ord, w.label, w.tx, SCAN_MODULES[w.tx].rx, w.svc, JSON.stringify(w.ids), w.everyS, now);
+    n++;
+  }
+  return n;
+}
+
+/** O lucrare de urmărire în pauza dintre treceri. */
+function resting(r: Pick<JobRow, "kind" | "every_s" | "pass_at">, now: number): boolean {
+  return r.kind === "watch" && r.pass_at !== null && now - Date.parse(r.pass_at) < (r.every_s ?? 0) * 1000;
+}
+
 /** Pune ordinea de la început, o singură dată (tabela goală). */
 export function seedScanJobs(now = new Date().toISOString()): number {
   const db = getDb();
@@ -162,11 +211,16 @@ function rows(): JobRow[] {
     .all() as unknown as JobRow[];
 }
 
-/** Codurile bune din catalog pentru o recitire (lista unei treceri noi). */
+/**
+ * Codurile din catalog pentru o recitire (lista unei treceri noi): cele bune și cele refuzate doar
+ * de condiții (0x21 ocupat, 0x22 condiții neîndeplinite, 0x24 ordinea cererii), care pot răspunde
+ * altă dată (motorul pornit / cald, în mers). Nu cele cu acces refuzat (0x33) și nici cele lente
+ * (au recitirea lor, doar pe loc).
+ */
 function catalogIds(tx: string, svc: string): number[] {
   return (
     getDb()
-      .prepare(`SELECT id FROM obd_code WHERE tx = ? AND svc = ? AND nrc IS NULL ORDER BY id`)
+      .prepare(`SELECT id FROM obd_code WHERE tx = ? AND svc = ? AND (nrc IS NULL OR nrc IN (0x21, 0x22, 0x24)) ORDER BY id`)
       .all(tx, svc) as Array<{ id: number }>
   ).map((r) => r.id);
 }
@@ -177,12 +231,13 @@ function catalogIds(tx: string, svc: string): number[] {
  * pe toată trecerea: progresul e un index în ea); până are ceva în catalog (modulul nescanat
  * încă) e sărită.
  */
-export function carScanJobs(max = 3): ScanJob[] {
+export function carScanJobs(max = 3, now = Date.now()): ScanJob[] {
   const db = getDb();
   const out: ScanJob[] = [];
   for (const r of rows()) {
     if (out.length >= max) break;
     if (r.status !== "queued" && r.status !== "running") continue;
+    if (resting(r, now)) continue;
     if (r.kind === "loop" && (!r.ids || r.ids === "[]")) {
       const ids = catalogIds(r.tx, r.svc);
       if (ids.length === 0) continue;
@@ -190,7 +245,9 @@ export function carScanJobs(max = 3): ScanJob[] {
       r.next = 0;
       db.prepare(`UPDATE obd_scan_job SET ids = ?, next = 0 WHERE id = ?`).run(r.ids, r.id);
     }
-    out.push(toJob(r));
+    // Mașina știe doar range / list / loop: urmărirea e pentru ea o buclă (trecerile au `round`).
+    const j = toJob(r);
+    out.push(j.kind === "watch" ? { ...j, kind: "loop" } : j);
   }
   return out;
 }
@@ -245,6 +302,7 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
     `UPDATE obd_code SET value = ?, nrc = ?, last_at = ?, reads = reads + 1, changes = changes + ?
      WHERE tx = ? AND svc = ? AND id = ?`,
   );
+  const delCode = db.prepare(`DELETE FROM obd_code WHERE tx = ? AND svc = ? AND id = ?`);
   const insSample = db.prepare(`INSERT INTO obd_sample (tx, svc, id, at, value) VALUES (?, ?, ?, ?, ?)`);
   let ok = 0;
   let skipped = 0;
@@ -273,6 +331,12 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
       }
       const at = typeof raw.at === "number" && Number.isFinite(raw.at) ? new Date(raw.at).toISOString() : now;
       const prev = getCode.get(tx, svc, id) as { value: string | null; nrc: number | null } | undefined;
+      if (nrc === NRC_MISSING) {
+        // O recitire a aflat că un cod lent nu există: iese din catalog (unul bun rămâne).
+        if (prev && prev.value === null) delCode.run(tx, svc, id);
+        ok++;
+        continue;
+      }
       const u = codeUpdate(prev, value, nrc);
       if (prev) updCode.run(u.value, u.nrc, at, u.changed ? 1 : 0, tx, svc, id);
       else insCode.run(tx, svc, id, u.value, u.nrc, at, at);
@@ -293,7 +357,7 @@ function progress(p: ScanItem, now: string): boolean {
   const r = db.prepare(`SELECT * FROM obd_scan_job WHERE id = ?`).get(p.j) as JobRow | undefined;
   if (!r || typeof p.n !== "number") return false;
   // Progresul unei treceri vechi a buclei (retrimis din coadă) nu mai contează.
-  if (r.kind === "loop" && (p.r ?? 0) !== r.round) return false;
+  if ((r.kind === "loop" || r.kind === "watch") && (p.r ?? 0) !== r.round) return false;
   if (r.status === "done") return false;
   const next = Math.max(r.next, Math.trunc(p.n));
   db.prepare(
@@ -312,6 +376,13 @@ function progress(p: ScanItem, now: string): boolean {
 export function finishJob(j: ScanJob, now = new Date().toISOString()): void {
   const db = getDb();
   const maxOrd = (db.prepare(`SELECT MAX(ord) AS m FROM obd_scan_job`).get() as { m: number }).m;
+  if (j.kind === "watch") {
+    // Aceeași listă, același loc în față; pauza până la trecerea următoare.
+    db.prepare(
+      `UPDATE obd_scan_job SET next = 0, round = round + 1, pass_at = ?, status = 'queued', updated_at = ? WHERE id = ?`,
+    ).run(now, now, j.id);
+    return;
+  }
   if (j.kind === "loop") {
     db.prepare(
       `UPDATE obd_scan_job SET next = 0, round = round + 1, ids = ?, ord = ?, status = 'queued', updated_at = ?
@@ -382,7 +453,9 @@ export function readScanOverview(): ScanOverview {
       samples: samples.find((x) => x.tx === tx)?.n ?? 0,
     };
   });
-  const current = jobs.find((j) => (j.status === "queued" || j.status === "running") && !(j.kind === "loop" && !j.ids?.length));
+  const now = Date.now();
+  const current = jobs.find((j) => (j.status === "queued" || j.status === "running") && !(j.kind === "loop" && !j.ids?.length)
+    && !resting({ kind: j.kind, every_s: j.everyS, pass_at: j.passAt }, now));
   return { jobs, modules, current: current?.id ?? null };
 }
 

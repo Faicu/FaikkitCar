@@ -60,7 +60,8 @@ function JobRow({ job, current }: { job: Job; current: boolean }) {
       setBusy(false);
     }
   };
-  const loop = job.kind === "loop";
+  const loop = job.kind === "loop" || job.kind === "watch";
+  const watch = job.kind === "watch";
   return (
     <div className="space-y-1">
       <div className="flex items-baseline gap-2 text-sm">
@@ -68,6 +69,7 @@ function JobRow({ job, current }: { job: Job; current: boolean }) {
         <p className="text-xs text-muted-foreground">
           {current ? "acum" : STATUS[job.status]}
           {job.parked ? " · doar pe loc" : ""}
+          {watch && job.everyS ? ` · la fiecare pornire și la ${Math.round(job.everyS / 60)} min` : ""}
           {loop && job.round > 0 ? ` · trecerea ${job.round + 1}` : ""}
         </p>
         {job.status !== "done" && (
@@ -81,7 +83,7 @@ function JobRow({ job, current }: { job: Job; current: boolean }) {
           </button>
         )}
       </div>
-      {job.status !== "done" && job.total > 0 && (
+      {job.status !== "done" && job.total > 0 && !watch && (
         <div className="flex items-center gap-2">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
             <div className="h-full rounded-full bg-sky-500" style={{ width: `${pct}%` }} />

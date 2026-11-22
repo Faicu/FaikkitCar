@@ -315,6 +315,8 @@ final class Obd extends BluetoothGattCallback {
     private static final long JOBS_MS = 60_000;
     /** Refuzul „lent / fara raspuns” (serverul: NRC_SLOW). */
     private static final int NRC_SLOW = 256;
+    /** „Codul nu exista”: trimis doar din recitiri, ca serverul sa scoata un cod lent din catalog. */
+    private static final int NRC_MISSING = 0x31;
     private static final long PROGRESS_MS = 15_000;
 
     /** O lucrare de la server: interval (range), lista (list) sau recitirea in bucla (loop). */
@@ -342,6 +344,12 @@ final class Obd extends BluetoothGattCallback {
     /** Modulele care n-au raspuns in sesiunea asta: lucrarile lor asteapta reconectarea. */
     private final java.util.Set<Integer> silentModules = new java.util.HashSet<>();
     private Job job;
+    /**
+     * Unde a ajuns fiecare lucrare in procesul asta (cheia = id:trecere). Lista de la server poate fi
+     * veche de un minut: fara asta, dupa o urmarire (la 2 min, 22.11) scanarea s-ar fi reluat de unde
+     * era la ultima lista si ar fi recitit codurile de atunci.
+     */
+    private final java.util.Map<String, Integer> reachedHere = new java.util.concurrent.ConcurrentHashMap<>();
     /** range: urmatorul cod; list/loop: urmatorul index. */
     private int scanNext;
     /** Codurile unui grup de 3 care a raspuns: recitite pe rand, ca sa stim al cui e raspunsul. */
@@ -408,12 +416,16 @@ final class Obd extends BluetoothGattCallback {
                 for (int i = 0; i < a.length(); i++) list.add(parseJob(a.getJSONObject(i)));
                 jobs = list;
                 jobsError = null;
+                // Ce nu mai e in lista a ajuns la server: nu mai trebuie tinut minte.
+                java.util.Set<String> keys = new java.util.HashSet<>();
+                for (Job x : list) keys.add(x.key());
                 synchronized (finishedHere) {
-                    // Ce nu mai e in lista a ajuns la server: nu mai trebuie tinut minte.
-                    java.util.Set<String> keys = new java.util.HashSet<>();
-                    for (Job x : list) keys.add(x.key());
                     finishedHere.retainAll(keys);
                 }
+                // Treceri vechi ale buclelor: nu mai trebuie tinute minte (lucrarea in curs ramane).
+                Job cur = job;
+                if (cur != null) keys.add(cur.key());
+                reachedHere.keySet().retainAll(keys);
             } catch (Exception e) {
                 jobsError = e.getClass().getSimpleName();
                 Log.w(TAG, "OBD: lucrarile de scanare nu s-au luat", e);
@@ -471,6 +483,8 @@ final class Obd extends BluetoothGattCallback {
         progressSent = -1;
         android.content.SharedPreferences p = c.getSharedPreferences("obd", Context.MODE_PRIVATE);
         int here = j.key().equals(p.getString("scanJob", "")) ? p.getInt("scanNext", 0) : 0;
+        Integer mem = reachedHere.get(j.key());
+        if (mem != null) here = Math.max(here, mem);
         scanNext = Math.max(j.range() ? Math.max(j.first, j.next) : j.next, here);
     }
 
@@ -489,6 +503,7 @@ final class Obd extends BluetoothGattCallback {
         if (j == null) return;
         int n = reached();
         long t = SystemClock.elapsedRealtime();
+        reachedHere.put(j.key(), n);
         if (n == progressSent || (!now && t - progressAt < PROGRESS_MS)) return;
         c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit()
                 .putString("scanJob", j.key()).putInt("scanNext", n).apply();
@@ -592,7 +607,8 @@ final class Obd extends BluetoothGattCallback {
                         int[] r = read22(did, wait);
                         if (isSlow(r) && !moving && ++pendingTries < 3) continue;
                         pendingTries = 0;
-                        result22(j, did, r);
+                        if (isMissing(r)) result(j, did, r, 0, NRC_MISSING);
+                        else result22(j, did, r);
                         scanNext++;
                     }
                 } else {
@@ -624,6 +640,10 @@ final class Obd extends BluetoothGattCallback {
             if (b.length > 0 && b[0] != 0x62 && !(b[0] == 0x7F && b.length >= 3 && b[1] == 0x22)) b = new int[0];
             scanNext = from + n;
             if (b.length == 0) {
+                // Niciun raspuns (motorul se opreste, modulul ocupat): codurile nu se pierd, ci intra la
+                // „lente” si serverul le reciteste pe loc la sfarsitul intervalului (22.11: pana acum
+                // grupurile fara raspuns erau sarite, cu exceptia a 20 la rand).
+                for (int i = 0; i < n; i++) result(j, from + i, b, 0, NRC_SLOW);
                 if (scanSilent++ == 0) scanSilentFrom = from;
                 if (scanSilent >= 20) {
                     // Modulul nu raspunde (ex. climatronicul inca adormit): reluam la reconectare.

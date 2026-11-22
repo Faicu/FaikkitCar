@@ -113,18 +113,48 @@ describe("jobs and results", () => {
     const db = getDb();
     db.prepare(`UPDATE obd_scan_job SET status = 'done' WHERE kind <> 'loop'`).run();
     const [loop] = scan.carScanJobs();
-    expect(loop).toMatchObject({ label: "Recitire: motor", kind: "loop", ids: [0x0100], round: 0 });
+    // 0x0101 a fost refuzat de condiții (0x22): se reîncearcă; 0x0102 (lent) are recitirea lui.
+    expect(loop).toMatchObject({ label: "Recitire: motor", kind: "loop", ids: [0x0100, 0x0101], round: 0 });
     // Progresul unei treceri vechi (retrimis) e ignorat.
     expect(scan.saveScanItems([{ t: "p", j: loop.id, r: 5, n: 1 }]).skipped).toBe(1);
     scan.saveScanItems([
       { t: "r", j: loop.id, x: "7E0", s: "22", i: 0x0100, v: "0A1C", at: Date.parse("2026-11-22T11:00:00Z") },
-      { t: "p", j: loop.id, r: 0, n: 1, d: 1 },
+      { t: "p", j: loop.id, r: 0, n: 2, d: 1 },
     ]);
     const jobs = scan.carScanJobs(10);
     expect(jobs.at(-1)).toMatchObject({ id: loop.id, round: 1, next: 0 });
     const code = scan.readScanCodes("7E0").find((c) => c.id === 0x0100);
     expect(code).toMatchObject({ value: "0A1C", changes: 1 });
     expect(scan.readScanSamples("7E0", "22", 0x0100).map((s) => s.value)).toEqual(["0A1C", "0A1B"]);
+  });
+
+  it("re-reads a refused code in a loop and drops a slow code found missing", () => {
+    const [loop] = scan.carScanJobs();
+    scan.saveScanItems([
+      { t: "r", j: loop.id, x: "7E0", s: "22", i: 0x0300, n: 0x22 },
+      { t: "r", j: loop.id, x: "7E0", s: "22", i: 0x0301, n: scan.NRC_SLOW },
+      { t: "r", j: loop.id, x: "7E0", s: "22", i: 0x0301, n: scan.NRC_MISSING },
+      { t: "r", j: loop.id, x: "7E0", s: "22", i: 0x0100, n: scan.NRC_MISSING }, // bun: rămâne
+      { t: "p", j: loop.id, r: loop.round, n: loop.ids!.length, d: 1 },
+    ]);
+    const codes = scan.readScanCodes("7E0");
+    expect(codes.some((c) => c.id === 0x0301)).toBe(false);
+    expect(codes.find((c) => c.id === 0x0100)?.value).toBe("0A1C");
+    expect(scan.carScanJobs(10).find((j) => j.id === loop.id)?.ids).toEqual([0x0100, 0x0101, 0x0300]);
+  });
+
+  it("puts the watch jobs first, as loops for the car, and rests them between passes", () => {
+    expect(scan.seedWatchJobs("2026-11-22T00:00:00.000Z")).toBe(scan.WATCH.length);
+    expect(scan.seedWatchJobs()).toBe(0);
+    const t0 = Date.parse("2026-11-22T12:00:00Z");
+    const [w] = scan.carScanJobs(3, t0);
+    expect(w).toMatchObject({ label: scan.WATCH[0].label, tx: "714", kind: "loop", round: 0, ids: scan.WATCH[0].ids });
+    scan.saveScanItems([{ t: "p", j: w.id, r: 0, n: w.ids!.length, d: 1 }]);
+    const passAt = Date.now();
+    const rest = scan.carScanJobs(10, passAt + 60_000);
+    expect(rest.some((j) => j.id === w.id)).toBe(false);
+    const back = scan.carScanJobs(3, passAt + 121_000);
+    expect(back[0]).toMatchObject({ id: w.id, round: 1, next: 0, ids: scan.WATCH[0].ids });
   });
 
   it("skips paused jobs", () => {

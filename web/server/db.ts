@@ -229,7 +229,8 @@ export function getDb(): DatabaseSync {
 
     -- Scanarea OBD (obd-scan.ts): lucrările în ordine (ord); mașina le ia de aici și raportează
     -- progresul (next) prin aceeași coadă ca rezultatele. kind: range = first..last, list = ids
-    -- (JSON), loop = recitirea codurilor găsite, la nesfârșit (round = a câta trecere).
+    -- (JSON), loop = recitirea codurilor găsite, la nesfârșit (round = a câta trecere), watch = o listă
+    -- fixă recitită la every_s secunde (pass_at = ultima trecere), înaintea celorlalte.
     CREATE TABLE IF NOT EXISTS obd_scan_job (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ord REAL NOT NULL,
@@ -327,6 +328,9 @@ export function getDb(): DatabaseSync {
   ]) {
     if (!cols("trip_point").includes(col)) db.exec(`ALTER TABLE trip_point ADD COLUMN ${col} ${type}`);
   }
+  // Scanarea OBD: lucrările „watch” (22.11) se reiau la fiecare every_s secunde; pass_at = ultima trecere.
+  if (!cols("obd_scan_job").includes("every_s")) db.exec(`ALTER TABLE obd_scan_job ADD COLUMN every_s INTEGER`);
+  if (!cols("obd_scan_job").includes("pass_at")) db.exec(`ALTER TABLE obd_scan_job ADD COLUMN pass_at TEXT`);
   // Lucrările de service pe articole (piese, manoperă, reduceri; JSON) și unde s-au făcut.
   if (!cols("service").includes("items")) db.exec(`ALTER TABLE service ADD COLUMN items TEXT`);
   if (!cols("service").includes("shop")) db.exec(`ALTER TABLE service ADD COLUMN shop TEXT`);

@@ -36,7 +36,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
   (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`, `signal.test.ts`, `music.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
-  utilizatorul `faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
+  utilizatorul `Faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
   APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
   (= secretul GitHub `CI_TOKEN`, doar `POST /api/*/apk`). Repo-ul e privat din 17.10 (cheia mașinii
   ajunsese în APK-urile publice).
@@ -215,6 +215,13 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (reluată de la primul grup tăcut). `@obd scan` = starea. Site: `ObdScanCard.tsx` pe Navigație (lucrările cu progresul,
   „Oprește”/„Reia” = `POST /api/obd/scan/:id {paused}`, modulele, catalogul `GET /api/obd/codes/:tx`, istoricul
   `GET /api/obd/samples/:tx/:svc/:id`). Panel: `renderObdScan` (lucrările, modulele; fără catalog).
+  22.11 (revizia cozii, cererea utilizatorului): lucrările `watch` (`WATCH`, `seedWatchJobs`, coloanele `every_s`/`pass_at`):
+  candidații din bord și motor (`OBD-CODURI.md`) recitiți la fiecare pornire și apoi la 2 min, înaintea scanării (mașina le
+  vede ca `loop`; între treceri serverul nu le trimite). Buclele recitesc și refuzurile 0x21/0x22/0x24. Din 1.1.108:
+  grupurile fără niciun răspuns intră la „lente” (până atunci erau sărite, deci coduri pierdute la oprirea motorului /
+  modul ocupat; ce s-a pierdut înainte nu se mai știe); o recitire care găsește 7F 22 31 trimite `n: 0x31` și serverul
+  scoate codul lent din catalog; `reachedHere` ține progresul fiecărei lucrări în proces (fără el, după fiecare urmărire
+  scanarea s-ar fi reluat de la `next` din lista veche de un minut).
 - **Totul cu OBD e de test, separat de restul (cererea utilizatorului, 21.11):** fără adaptor sau cu comutatorul oprit,
   călătoriile, costurile și aplicațiile merg ca înainte. Călătoriile și consumul vin din GPS + CAN; litrii OBD doar se
   strâng pe puncte (`Obd.take()` → null când e oprit). Nu se leagă nimic de bază de OBD: coada punctelor (`PointQueue`)

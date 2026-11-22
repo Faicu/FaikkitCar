@@ -12,6 +12,7 @@ import {
   readScanSamples,
   saveScanItems,
   seedScanJobs,
+  seedWatchJobs,
   setScanJobPaused,
 } from "./obd-scan.ts";
 import { createReadStream } from "node:fs";
@@ -616,6 +617,7 @@ app.get("*", serveStatic({ path: `${dist}index.html` }));
 // Ordinea scanării OBD, o singură dată (tabela goală). E de test: o eroare aici nu oprește serverul.
 try {
   seedScanJobs();
+  seedWatchJobs();
 } catch (e) {
   console.error("Scanarea OBD: ordinea nu s-a pus", e);
 }

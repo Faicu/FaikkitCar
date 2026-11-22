@@ -899,8 +899,10 @@ public class MainActivity extends Activity {
             String line = j.optString("label") + " · "
                     + (j.optInt("id") == current ? "acum" : "paused".equals(st) ? "oprită" : "running".equals(st) ? "în curs" : "la rând")
                     + (j.optBoolean("parked") ? " · doar pe loc" : "")
-                    + ("loop".equals(j.optString("kind")) && j.optInt("round") > 0 ? " · trecerea " + (j.optInt("round") + 1) : "")
-                    + (total > 0 ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "");
+                    + ("watch".equals(j.optString("kind")) ? " · la " + Math.round(j.optInt("everyS") / 60.0) + " min" : "")
+                    + (("loop".equals(j.optString("kind")) || "watch".equals(j.optString("kind"))) && j.optInt("round") > 0
+                            ? " · trecerea " + (j.optInt("round") + 1) : "")
+                    + (total > 0 && !"watch".equals(j.optString("kind")) ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "");
             card.addView(Ui.text(this, line, 14, j.optInt("id") == current ? Ui.TEXT : Ui.MUTED, j.optInt("id") == current));
         }
         if (done > 0) Ui.hint(this, card, done == 1 ? "O lucrare terminată" : done + " lucrări terminate");
