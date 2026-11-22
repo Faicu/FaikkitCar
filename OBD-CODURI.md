@@ -131,7 +131,11 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 - `7F 22 31` = codul nu există; `7F 22 22` = există, dar condiții neîndeplinite; `7F 22 33` = acces refuzat.
 - Mai multe PID-uri OBD pe o cerere: cifra de la sfârșit = numărul de cadre CAN așteptate (`010C0B0F03492`,
   `0105044406070E3`); cu „1” vine doar primul cadru.
-- Mai multe DID-uri pe o cerere (până la 3) merg la motor, bord și climatronic.
+- Mai multe DID-uri pe o cerere (până la 3) merg la motor, bord și climatronic. Peste 3 (cerere > 7 octeți, adică pe
+  mai multe cadre CAN) motorul nu răspunde deloc (testat 22.11 cu 4–8).
+- Cifra „1” la sfârșitul unei cereri `22` (`22<DID><DID><DID>1`): adaptorul predă după primul răspuns și nu mai
+  așteaptă ~200 ms, deci 36–38 ms în loc de 244. Răspunsul pe mai multe cadre vine tăiat (doar primul), așa că
+  scanarea (1.1.113) acceptă din cererea rapidă doar `7F 22 31`; orice altceva se reciteste fără cifră.
 - Stiva Bluetooth a navigației se poate bloca (adaptorul se vede, dar nu acceptă legătura): aplicația repornește
   singură Bluetooth-ul Android (din 1.1.104).
 
@@ -146,4 +150,5 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 22.11 | Acoperirea completă: codurile inexistente notate (`obd_absent`), golurile recitite la sfârșit; motorul, climatronicul și bordul reluate de la 0000 cu noua aplicație (1.1.110), fiindcă scanările de până acum nu notau ce lipsește și săreau grupurile fără răspuns |
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
+| 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
 | 22.11 | Analiza codurilor: intervalul reviziei în bord (2260 / 2261 / 2243 / 2244, potrivite cu revizia din 19.10), kilometrajul în motor (121C, 15D4), temperaturile și turația în motor (1000–1002, 117C); 1007 ≈ contorul de consum, 2205 ≈ frâna de mână |
