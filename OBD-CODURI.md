@@ -17,11 +17,11 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 | Lucrarea | Stare (22.11, seara) |
 |---|---|
 | **Urmărirea candidaților** (bord 15 coduri, motor 14: doar ce nu e sigur, secțiunea 4) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11) |
-| OBD standard: 01, 09, 06, 02, erorile | ⏳ la rând, primul (~10 min) |
+| OBD standard: 01, 09, 06, 02, erorile | ✅ 22.11, 18:00–18:05 · 01: 38 de PID-uri, 06: 16 teste, erorile: 2 coduri, 09 și 02: nimic nou |
 | Motor (7E0), 0000–FFFF | ✅ 22.11, 19:07 · 763 de coduri cu răspuns (2 refuzate, 0x36), 64.773 inexistente, 0 lente: toate cele 65.536 au o stare |
-| Bord (714), a doua trecere 0000–FFFF | ⏳ după motor, ~1,5 h (prima, din 21.11, sărea la fel; cele 170 de coduri rămân) |
-| Climatronic (746), 0000–FFFF | ⏳ după bord, ~1,5 h (0000–0A3A refăcut: scanarea veche sărea grupurile fără răspuns) |
-| Recitirea în buclă (motor, OBD 01, bord, climatronic) | ⏳ după scanări |
+| Bord (714), a doua trecere 0000–FFFF | 🔄 78 % (51.351 / 65.536) la 22.11, 19:30 · aceleași 170 de coduri ca prima trecere, 51.219 inexistente, 0 lente · ~15–50 coduri/s; restul (~5 min) la următoarea pornire |
+| Climatronic (746), 0000–FFFF | ⏳ după bord, ~20–30 min cu metoda rapidă (0000–0A3A refăcut: scanarea veche sărea grupurile fără răspuns) |
+| Recitirea în buclă (motor, OBD 01, bord, climatronic) | 🔄 motorul, prima trecere: 654 / 763 (22.11, 19:30); bordul a început; reiau după bord și climatronic. Scopul: multe citiri ale fiecărui cod, comparate cu OBD / CAN (consumul) |
 | Bord (714), prima trecere 0000–FFFF | ✅ 21.11 · 168 de coduri cu răspuns, 2 refuzate |
 
 **Fără coduri pierdute (din 22.11, aplicația 1.1.110):** se notează și codurile care **nu există** (tabela `obd_absent`), deci
