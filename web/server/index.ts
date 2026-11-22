@@ -6,7 +6,7 @@
 
 import { obdEnabled, saveObd, setObdEnabled } from "./obd.ts";
 import {
-  carScanJobs,
+  carScanJobsFor,
   readScanCodes,
   readScanOverview,
   readScanSamples,
@@ -172,7 +172,7 @@ app.get("/api/car/music/wait", async (c) => {
 // Scanarea OBD (obd-scan.ts): lucrările de făcut, în ordine, și rezultatele din coada mașinii.
 app.get("/api/car/obd/scan", (c) => {
   requireCarToken(c);
-  return c.json({ jobs: carScanJobs() });
+  return c.json({ jobs: carScanJobsFor((c.req.query("cap") ?? "").split(",").includes("absent")) });
 });
 
 app.post("/api/car/obd/scan", async (c) => {

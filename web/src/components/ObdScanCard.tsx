@@ -206,6 +206,7 @@ export function ObdScanCard() {
               {m.codes} coduri · {m.changing} se schimbă
               {m.refused > 0 ? ` · ${m.refused} refuzate` : ""}
               {m.slow > 0 ? ` · ${m.slow} lente` : ""}
+              {m.absent > 0 ? ` · ${m.absent} verificate că nu există` : ""}
             </span>
           </button>
         ))}

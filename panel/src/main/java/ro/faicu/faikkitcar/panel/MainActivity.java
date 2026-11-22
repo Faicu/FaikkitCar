@@ -911,7 +911,8 @@ public class MainActivity extends Activity {
             JSONObject m = mods.optJSONObject(i);
             Ui.hint(this, card, m.optString("name") + ": " + m.optInt("codes") + " coduri · " + m.optInt("changing") + " se schimbă"
                     + (m.optInt("refused") > 0 ? " · " + m.optInt("refused") + " refuzate" : "")
-                    + (m.optInt("slow") > 0 ? " · " + m.optInt("slow") + " lente" : ""));
+                    + (m.optInt("slow") > 0 ? " · " + m.optInt("slow") + " lente" : "")
+                    + (m.optInt("absent") > 0 ? " · " + m.optInt("absent") + " nu există" : ""));
         }
         Ui.hint(this, card, "Catalogul cu valorile și istoricul lor e pe site (Navigație), unde se pot și opri lucrările.");
     }

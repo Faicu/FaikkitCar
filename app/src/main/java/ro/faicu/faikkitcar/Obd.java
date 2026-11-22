@@ -397,7 +397,8 @@ final class Obd extends BluetoothGattCallback {
         Thread t = new Thread(() -> {
             java.net.HttpURLConnection conn = null;
             try {
-                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN).openConnection();
+                // Serverul da scanarile pe intervale doar aplicatiilor care noteaza si codurile inexistente.
+                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN + "?cap=absent").openConnection();
                 conn.setConnectTimeout(10_000);
                 conn.setReadTimeout(20_000);
                 conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
@@ -552,9 +553,25 @@ final class Obd extends BluetoothGattCallback {
         }
     }
 
-    /** Raspunsul la 22 (o lista de un cod): bun, refuz (cu cod), lent, sau lipsa (nimic de scris). */
+    /**
+     * Codurile care nu exista (7F 22 31), `count` la rand de la `from`: si ele se noteaza (22.11), ca
+     * serverul sa stie exact ce s-a verificat si sa reciteasca doar ce n-a primit un raspuns clar.
+     */
+    private void missing(Job j, int from, int count) {
+        try {
+            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "r").put("j", j.id).put("x", hex(j.tx, 3))
+                    .put("s", j.svc).put("i", from).put("n", NRC_MISSING).put("c", count)
+                    .put("at", System.currentTimeMillis()));
+        } catch (org.json.JSONException ignored) {
+        }
+    }
+
+    /** Raspunsul la 22 (o lista de un cod): bun, refuz (cu cod), lent sau inexistent. */
     private void result22(Job j, int did, int[] r) {
-        if (isMissing(r)) return;
+        if (isMissing(r)) {
+            missing(j, did, 1);
+            return;
+        }
         if (isSlow(r)) result(j, did, r, 0, NRC_SLOW);
         else if (r[0] == 0x7F) result(j, did, r, 0, r[2]);
         else result(j, did, r, 3, -1);
@@ -607,8 +624,7 @@ final class Obd extends BluetoothGattCallback {
                         int[] r = read22(did, wait);
                         if (isSlow(r) && !moving && ++pendingTries < 3) continue;
                         pendingTries = 0;
-                        if (isMissing(r)) result(j, did, r, 0, NRC_MISSING);
-                        else result22(j, did, r);
+                        result22(j, did, r);
                         scanNext++;
                     }
                 } else {
@@ -657,7 +673,8 @@ final class Obd extends BluetoothGattCallback {
             } else {
                 scanSilent = 0;
             }
-            if (!isMissing(b)) for (int i = 0; i < n; i++) scanPending.add(from + i);
+            if (isMissing(b)) missing(j, from, n);
+            else if (b.length > 0) for (int i = 0; i < n; i++) scanPending.add(from + i);
         }
         if (job == j && scanNext > j.last && scanPending.isEmpty()) finishJob("gata");
     }

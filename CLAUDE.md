@@ -217,11 +217,20 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `GET /api/obd/samples/:tx/:svc/:id`). Panel: `renderObdScan` (lucrările, modulele; fără catalog).
   22.11 (revizia cozii, cererea utilizatorului): lucrările `watch` (`WATCH`, `seedWatchJobs`, coloanele `every_s`/`pass_at`):
   candidații din bord și motor (`OBD-CODURI.md`) recitiți la fiecare pornire și apoi la 2 min, înaintea scanării (mașina le
-  vede ca `loop`; între treceri serverul nu le trimite). Buclele recitesc și refuzurile 0x21/0x22/0x24. Din 1.1.108:
+  vede ca `loop`; între treceri serverul nu le trimite). Buclele recitesc și refuzurile 0x21/0x22/0x24. Din 1.1.109:
   grupurile fără niciun răspuns intră la „lente” (până atunci erau sărite, deci coduri pierdute la oprirea motorului /
   modul ocupat; ce s-a pierdut înainte nu se mai știe); o recitire care găsește 7F 22 31 trimite `n: 0x31` și serverul
   scoate codul lent din catalog; `reachedHere` ține progresul fiecărei lucrări în proces (fără el, după fiecare urmărire
   scanarea s-ar fi reluat de la `next` din lista veche de un minut).
+  **Acoperirea completă** (22.11, cererea utilizatorului: să nu pierdem coduri și să nu repetăm munca): din 1.1.110
+  aplicația trimite și codurile care nu există (`n: 0x31`, `c` = câte la rând, un grup de 3) → tabela `obd_absent`;
+  orice cod e deci bun / refuzat / lent (`obd_code`) sau inexistent (`obd_absent`), iar ce nu e în niciuna n-a primit
+  răspuns. La sfârșitul unui interval, `unresolved()` (lente + negăsite nicăieri) intră în recitirea doar pe loc. Aplicațiile
+  fără `?cap=absent` la `GET /api/car/obd/scan` primesc doar urmăririle (`carScanJobsFor`). Progresul cu altă trecere
+  (`r` ≠ `round`) e ignorat la orice lucrare. Refăcute pe 22.11 (copie `/root/backups/faikkitcar-before-requeue-20261122.db`):
+  motorul de la 0000 (trecerea 1: 0000–469C fuseseră scanate fără inexistente și cu grupuri sărite; codurile găsite rămân),
+  climatronicul 0000–FFFF (0000–0A3A importat din scanarea veche din aplicație, care sărea la fel), bordul încă o dată
+  0000–FFFF (lucrarea 14, după climatronic). Pe site / Panel la module: „N verificate că nu există”.
 - **Totul cu OBD e de test, separat de restul (cererea utilizatorului, 21.11):** fără adaptor sau cu comutatorul oprit,
   călătoriile, costurile și aplicațiile merg ca înainte. Călătoriile și consumul vin din GPS + CAN; litrii OBD doar se
   strâng pe puncte (`Obd.take()` → null când e oprit). Nu se leagă nimic de bază de OBD: coada punctelor (`PointQueue`)

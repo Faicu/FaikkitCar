@@ -100,6 +100,12 @@ describe("jobs and results", () => {
 
   it("queues a parked-only re-read of the slow codes right after a finished range", () => {
     const [engine] = scan.carScanJobs();
+    // Restul intervalului verificat: nu există (altfel ar intra toate la recitit, ca pierdute).
+    const db = getDb();
+    const abs = db.prepare(`INSERT INTO obd_absent (tx, svc, id, at) VALUES ('7E0', '22', ?, 'x')`);
+    db.exec("BEGIN");
+    for (let id = 0; id <= 0xffff; id++) if (id < 0x0100 || id > 0x0102) abs.run(id);
+    db.exec("COMMIT");
     scan.saveScanItems([{ t: "p", j: engine.id, n: 0x10000, d: 1 }]);
     const [retry, next] = scan.carScanJobs();
     expect(retry).toMatchObject({ kind: "list", parked: true, parent: engine.id, ids: [0x0102], tx: "7E0" });
@@ -155,6 +161,38 @@ describe("jobs and results", () => {
     expect(rest.some((j) => j.id === w.id)).toBe(false);
     const back = scan.carScanJobs(3, passAt + 121_000);
     expect(back[0]).toMatchObject({ id: w.id, round: 1, next: 0, ids: scan.WATCH[0].ids });
+  });
+
+  it("records missing codes in groups and re-reads what got no clear answer", () => {
+    const db = getDb();
+    const ins = db.prepare(
+      `INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, first, last, status, created_at)
+       VALUES (0.05, 'Test: interval', '746', '7B0', '22', 'range', 8192, 8199, 'running', '2026-11-22T00:00:00Z')`,
+    );
+    const id = Number(ins.run().lastInsertRowid);
+    scan.saveScanItems([
+      { t: "r", j: id, x: "746", s: "22", i: 0x2000, n: scan.NRC_MISSING, c: 3 },
+      { t: "r", j: id, x: "746", s: "22", i: 0x2003, v: "01" },
+      { t: "r", j: id, x: "746", s: "22", i: 0x2004, n: scan.NRC_MISSING },
+      { t: "r", j: id, x: "746", s: "22", i: 0x2005, n: scan.NRC_SLOW },
+      // 0x2006, 0x2007: niciun răspuns (pierdute)
+    ]);
+    expect(scan.unresolved("746", "22", 0x2000, 0x2007)).toEqual([0x2005, 0x2006, 0x2007]);
+    expect(scan.readScanOverview().modules.find((m) => m.tx === "746")?.absent).toBe(4);
+    scan.saveScanItems([{ t: "p", j: id, n: 0x2008, d: 1 }]);
+    const retry = scan.carScanJobs(10).find((j) => j.parent === id);
+    expect(retry).toMatchObject({ kind: "list", parked: true, ids: [0x2005, 0x2006, 0x2007] });
+    // Un cod bun găsit mai târziu iese dintre cele care nu există.
+    scan.saveScanItems([{ t: "r", j: retry!.id, x: "746", s: "22", i: 0x2004, v: "02" }]);
+    expect(scan.readScanOverview().modules.find((m) => m.tx === "746")?.absent).toBe(3);
+  });
+
+  it("gives an old app only the watch lists", () => {
+    const later = Date.now() + 10 * 60_000;
+    const old = scan.carScanJobsFor(false, 3, later);
+    expect(old.length).toBeGreaterThan(0);
+    expect(old.every((j) => j.label.startsWith("Urmărire:"))).toBe(true);
+    expect(scan.carScanJobsFor(true, 10, later).some((j) => !j.label.startsWith("Urmărire:"))).toBe(true);
   });
 
   it("skips paused jobs", () => {

@@ -277,6 +277,16 @@ export function getDb(): DatabaseSync {
     );
     CREATE INDEX IF NOT EXISTS idx_obd_sample ON obd_sample(tx, svc, id, at);
 
+    -- Codurile care nu există (7F 22 31), notate din 1.1.110 (22.11): cu ele și catalogul se știe
+    -- exact ce s-a verificat; ce nu e în niciuna dintre tabele n-a primit încă un răspuns clar.
+    CREATE TABLE IF NOT EXISTS obd_absent (
+      tx TEXT NOT NULL,
+      svc TEXT NOT NULL,
+      id INTEGER NOT NULL,
+      at TEXT NOT NULL,
+      PRIMARY KEY (tx, svc, id)
+    );
+
     -- Avertizarea de bec ars de pe bord (DID 2224, bitul 0x01 din primul octet; un rând):
     -- since = de când e aprinsă (NULL = stinsă), at = ultima citire.
     CREATE TABLE IF NOT EXISTS obd_lamp (

@@ -17,7 +17,10 @@ export type ScanStatus = "queued" | "running" | "done" | "paused";
 
 /** Refuzul „lent / fără răspuns” (nu e un cod UDS: acelea sunt un octet). */
 export const NRC_SLOW = 256;
-/** „Codul nu există” (7F 22 31): trimis doar de recitiri, ca să scoată din catalog un cod lent. */
+/**
+ * „Codul nu există” (7F 22 31): intră în obd_absent (din 1.1.110 și în scanarea pe intervale, cu `c` =
+ * câte coduri la rând acoperă, un grup de 3); un cod lent fără valoare iese din catalog.
+ */
 export const NRC_MISSING = 0x31;
 
 export const SCAN_MODULES: Record<string, { name: string; rx: string }> = {
@@ -126,9 +129,10 @@ interface Seed {
 }
 
 /**
- * Ordinea stabilită cu utilizatorul (21.11): motorul, OBD-ul standard, restul climatronicului
- * (0000–0A3A sunt importate din scanarea de pe 21.11), apoi recitirea în buclă a codurilor găsite.
- * Bordul (714) e scanat complet pe 21.11 (importat). Airbag-ul nu interesează.
+ * Ordinea stabilită cu utilizatorul (21.11): motorul, OBD-ul standard, climatronicul, apoi recitirea în
+ * buclă a codurilor găsite. 22.11: climatronicul de la 0000 și bordul încă o dată (scanările din
+ * aplicație de pe 21.11, importate, săreau grupurile fără răspuns și nu notau codurile inexistente).
+ * Airbag-ul nu interesează.
  */
 export const SEED: Seed[] = [
   { label: "Motor: toate codurile", tx: "7E0", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
@@ -137,7 +141,8 @@ export const SEED: Seed[] = [
   { label: "OBD: testele de la bord", tx: "7E0", svc: "06", kind: "range", first: 0x00, last: 0xff },
   { label: "OBD: datele de la apariția erorii", tx: "7E0", svc: "02", kind: "range", first: 0x00, last: 0xff },
   { label: "OBD: codurile de eroare", tx: "7E0", svc: "dtc", kind: "list", ids: [0x03, 0x07, 0x0a] },
-  { label: "Climatronic: restul codurilor", tx: "746", svc: "22", kind: "range", first: 0x0a3b, last: 0xffff },
+  { label: "Climatronic: toate codurile", tx: "746", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
+  { label: "Bord: toate codurile (a doua trecere)", tx: "714", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
   { label: "Recitire: motor", tx: "7E0", svc: "22", kind: "loop" },
   { label: "Recitire: OBD live", tx: "7E0", svc: "01", kind: "loop" },
   { label: "Recitire: bord", tx: "714", svc: "22", kind: "loop" },
@@ -183,6 +188,16 @@ export function seedWatchJobs(now = new Date().toISOString()): number {
 /** O lucrare de urmărire în pauza dintre treceri. */
 function resting(r: Pick<JobRow, "kind" | "every_s" | "pass_at">, now: number): boolean {
   return r.kind === "watch" && r.pass_at !== null && now - Date.parse(r.pass_at) < (r.every_s ?? 0) * 1000;
+}
+
+/**
+ * Lucrările pentru mașină după ce știe aplicația: `absent` = trimite și codurile care nu există
+ * (`?cap=absent`, 1.1.110+). Cele mai vechi primesc doar urmăririle (liste fixe): o scanare pe
+ * interval cu ele ar lăsa iar goluri neștiute (22.11).
+ */
+export function carScanJobsFor(absent: boolean, max = 3, now = Date.now()): ScanJob[] {
+  if (absent) return carScanJobs(max, now);
+  return carScanJobs(10, now).filter((j) => j.label.startsWith("Urmărire:")).slice(0, max);
 }
 
 /** Pune ordinea de la început, o singură dată (tabela goală). */
@@ -268,6 +283,7 @@ export interface ScanItem {
   n?: number;
   r?: number;
   d?: number;
+  c?: number; // la n = 0x31: câte coduri la rând, de la i
   at?: number;
 }
 
@@ -303,6 +319,8 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
      WHERE tx = ? AND svc = ? AND id = ?`,
   );
   const delCode = db.prepare(`DELETE FROM obd_code WHERE tx = ? AND svc = ? AND id = ?`);
+  const insAbsent = db.prepare(`INSERT OR IGNORE INTO obd_absent (tx, svc, id, at) VALUES (?, ?, ?, ?)`);
+  const delAbsent = db.prepare(`DELETE FROM obd_absent WHERE tx = ? AND svc = ? AND id = ?`);
   const insSample = db.prepare(`INSERT INTO obd_sample (tx, svc, id, at, value) VALUES (?, ?, ?, ?, ?)`);
   let ok = 0;
   let skipped = 0;
@@ -332,11 +350,19 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
       const at = typeof raw.at === "number" && Number.isFinite(raw.at) ? new Date(raw.at).toISOString() : now;
       const prev = getCode.get(tx, svc, id) as { value: string | null; nrc: number | null } | undefined;
       if (nrc === NRC_MISSING) {
-        // O recitire a aflat că un cod lent nu există: iese din catalog (unul bun rămâne).
-        if (prev && prev.value === null) delCode.run(tx, svc, id);
+        const count = typeof raw.c === "number" && Number.isInteger(raw.c) ? Math.max(1, Math.min(16, raw.c)) : 1;
+        for (let k = id; k < id + count && k <= 0xffff; k++) {
+          const p = k === id ? prev : (getCode.get(tx, svc, k) as typeof prev);
+          // Un cod lent / refuzat fără valoare iese din catalog; unul bun rămâne (răspunsul de acum e o
+          // excepție, nu înseamnă că nu există).
+          if (p && p.value !== null) continue;
+          if (p) delCode.run(tx, svc, k);
+          insAbsent.run(tx, svc, k, at);
+        }
         ok++;
         continue;
       }
+      if (value !== null) delAbsent.run(tx, svc, id);
       const u = codeUpdate(prev, value, nrc);
       if (prev) updCode.run(u.value, u.nrc, at, u.changed ? 1 : 0, tx, svc, id);
       else insCode.run(tx, svc, id, u.value, u.nrc, at, at);
@@ -356,8 +382,9 @@ function progress(p: ScanItem, now: string): boolean {
   const db = getDb();
   const r = db.prepare(`SELECT * FROM obd_scan_job WHERE id = ?`).get(p.j) as JobRow | undefined;
   if (!r || typeof p.n !== "number") return false;
-  // Progresul unei treceri vechi a buclei (retrimis din coadă) nu mai contează.
-  if ((r.kind === "loop" || r.kind === "watch") && (p.r ?? 0) !== r.round) return false;
+  // Progresul unei treceri vechi (retrimis din coadă) nu mai contează: la bucle, și la un interval
+  // luat de la capăt (22.11: motorul, trecerea 1, ca progresul vechi de pe disc să nu-l sară).
+  if ((p.r ?? 0) !== r.round) return false;
   if (r.status === "done") return false;
   const next = Math.max(r.next, Math.trunc(p.n));
   db.prepare(
@@ -392,11 +419,7 @@ export function finishJob(j: ScanJob, now = new Date().toISOString()): void {
   }
   db.prepare(`UPDATE obd_scan_job SET status = 'done', done_at = ?, updated_at = ? WHERE id = ?`).run(now, now, j.id);
   if (j.kind !== "range" || j.parent !== null) return;
-  const slow = (
-    db
-      .prepare(`SELECT id FROM obd_code WHERE tx = ? AND svc = ? AND nrc = ? AND id BETWEEN ? AND ? ORDER BY id`)
-      .all(j.tx, j.svc, NRC_SLOW, j.first ?? 0, j.last ?? 0) as Array<{ id: number }>
-  ).map((r) => r.id);
+  const slow = unresolved(j.tx, j.svc, j.first ?? 0, j.last ?? 0);
   if (slow.length === 0) return;
   // Imediat după lucrarea terminată, înaintea următoarei.
   const after = db
@@ -409,6 +432,27 @@ export function finishJob(j: ScanJob, now = new Date().toISOString()): void {
   ).run(ord, `${j.label}: recitirea celor lente`, j.tx, j.rx, j.svc, JSON.stringify(slow), j.id, now);
 }
 
+/**
+ * Codurile dintr-un interval fără un răspuns clar: cele lente și cele care nu apar nicăieri (nici în
+ * catalog, nici printre cele care nu există), adică pierdute pe drum. Se recitesc pe loc, unul câte unul.
+ */
+export function unresolved(tx: string, svc: string, first: number, last: number): number[] {
+  const db = getDb();
+  const known = new Map<number, number | null>();
+  for (const r of db
+    .prepare(`SELECT id, nrc FROM obd_code WHERE tx = ? AND svc = ? AND id BETWEEN ? AND ?`)
+    .all(tx, svc, first, last) as Array<{ id: number; nrc: number | null }>) known.set(r.id, r.nrc);
+  for (const r of db
+    .prepare(`SELECT id FROM obd_absent WHERE tx = ? AND svc = ? AND id BETWEEN ? AND ?`)
+    .all(tx, svc, first, last) as Array<{ id: number }>) if (!known.has(r.id)) known.set(r.id, -1);
+  const out: number[] = [];
+  for (let id = first; id <= last; id++) {
+    const k = known.get(id);
+    if (k === undefined || k === NRC_SLOW) out.push(id);
+  }
+  return out;
+}
+
 // --- pentru site ----------------------------------------------------------------------------
 
 export interface ScanModuleStats {
@@ -418,6 +462,7 @@ export interface ScanModuleStats {
   changing: number; // valoarea s-a schimbat măcar o dată
   refused: number; // există, dar refuzat (condiții, acces)
   slow: number; // lente / fără răspuns
+  absent: number; // verificate: nu există
   samples: number;
 }
 
@@ -441,6 +486,7 @@ export function readScanOverview(): ScanOverview {
     )
     .all(NRC_SLOW, NRC_SLOW) as Array<{ tx: string; codes: number; changing: number; refused: number; slow: number }>;
   const samples = db.prepare(`SELECT tx, COUNT(*) AS n FROM obd_sample GROUP BY tx`).all() as Array<{ tx: string; n: number }>;
+  const absent = db.prepare(`SELECT tx, COUNT(*) AS n FROM obd_absent WHERE svc = '22' GROUP BY tx`).all() as Array<{ tx: string; n: number }>;
   const modules = Object.entries(SCAN_MODULES).map(([tx, m]) => {
     const s = stats.find((x) => x.tx === tx);
     return {
@@ -450,6 +496,7 @@ export function readScanOverview(): ScanOverview {
       changing: s?.changing ?? 0,
       refused: s?.refused ?? 0,
       slow: s?.slow ?? 0,
+      absent: absent.find((x) => x.tx === tx)?.n ?? 0,
       samples: samples.find((x) => x.tx === tx)?.n ?? 0,
     };
   });
