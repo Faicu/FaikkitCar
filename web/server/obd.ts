@@ -9,6 +9,7 @@
 
 import { getDb } from "./db.ts";
 import { describeDtc, parseDtcs, parseUdsDtcs, UDS_MODULES } from "./dtc.ts";
+import { scanRateNow } from "./obd-scan.ts";
 
 export type ObdStatus = "connected" | "searching" | "off" | "disabled";
 
@@ -41,6 +42,7 @@ export interface ObdModule {
 export interface ObdLive {
   status: ObdStatus | null; // null = nicio stare recentă de la mașină
   hz: number | null; // citiri ale motorului pe secundă
+  scanHz: number | null; // scanarea: coduri pe secundă (null = nu scanează)
   enabled: boolean; // comutatorul „OBD (teste)”: oprit = adaptorul liber, nu se citește nimic
   checkedAt: string | null; // ultima citire a codurilor
   mil: boolean; // martorul motorului aprins la ultima citire
@@ -219,6 +221,7 @@ export function readObd(now = Date.now()): ObdLive {
   return {
     status: !enabled ? "disabled" : (fresh?.status ?? null),
     hz: enabled && fresh?.status === "connected" ? fresh.hz : null,
+    scanHz: enabled && fresh?.status === "connected" ? scanRateNow() : null,
     enabled,
     checkedAt: check?.at ?? null,
     mil: check?.mil === 1,

@@ -816,7 +816,10 @@ public class MainActivity extends Activity {
         String st = obd.isNull("status") ? "" : obd.optString("status");
         String status;
         switch (st) {
-            case "connected": status = "conectat" + (obd.isNull("hz") ? "" : " · " + Fmt.num(obd.optDouble("hz"), 1) + " citiri/s"); break;
+            case "connected":
+                status = "conectat" + (!obd.isNull("scanHz") && obd.has("scanHz") ? " · scanează " + obd.optInt("scanHz") + " coduri/s"
+                        : obd.isNull("hz") ? "" : " · " + Fmt.num(obd.optDouble("hz"), 1) + " citiri/s");
+                break;
             case "searching": status = "caută adaptorul"; break;
             case "off": status = "motor oprit (adaptorul e liber)"; break;
             case "disabled": status = "oprit (adaptorul e liber)"; break;

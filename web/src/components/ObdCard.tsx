@@ -80,7 +80,8 @@ export function ObdCard({ obd }: { obd: Obd }) {
         <p className="font-semibold">Adaptorul OBD (teste)</p>
         <p className="ml-auto text-xs text-muted-foreground">
           {status}
-          {obd.status === "connected" && obd.hz !== null ? ` · ${num(obd.hz, 1)} citiri/s` : ""}
+          {obd.status === "connected" && obd.scanHz !== null ? ` · scanează ${obd.scanHz} coduri/s` : ""}
+          {obd.status === "connected" && obd.scanHz === null && obd.hz !== null ? ` · ${num(obd.hz, 1)} citiri/s` : ""}
         </p>
       </div>
       {obd.enabled && (

@@ -250,12 +250,12 @@ describe("jobEtas", () => {
     expect(m.get(2)).toEqual({ etaS: 50, endsS: 50 });
     expect(m.get(6)).toEqual({ etaS: 200, endsS: 250 });
   });
-  it("measures the rate from progress, ignoring pauses and bursts", () => {
+  it("measures the rate over 30 s windows, ignoring pauses and bursts", () => {
     const j = { id: 901, svc: "22" as const, kind: "range" as const };
     scan.noteProgress(901, "22:r", 1000, 0);
-    scan.noteProgress(901, "22:r", 1600, 10_000); // 60/s
-    scan.noteProgress(901, "22:r", 5000, 10_500); // rafală: dt < 3 s, ignorat
-    scan.noteProgress(901, "22:r", 9000, 600_000); // pauză: dt > 90 s, ignorat
+    scan.noteProgress(901, "22:r", 2500, 5_000); // rafală la 5 s: încă în fereastră
+    scan.noteProgress(901, "22:r", 2800, 30_000); // 1800 în 30 s = 60/s
+    scan.noteProgress(901, "22:r", 9000, 600_000); // pauză: fereastra de la capăt, ritmul rămâne
     expect(scan.jobEtas([{ ...j, status: "running", parked: false, done: 0, total: 600 }], (x) => scan.rateFor(x))
       .get(901)?.etaS).toBe(10);
   });

@@ -466,9 +466,14 @@ export function unresolved(tx: string, svc: string, first: number, last: number)
 
 // --- estimarea de timp ---------------------------------------------------------------------
 
-/** Ritmul (coduri/s) cât mașina scanează: din progresul primit, în memorie (se pierde la repornirea serverului). */
-const jobRate = new Map<number, { t: number; n: number; rate: number | null }>();
+/**
+ * Ritmul (coduri/s) cât mașina scanează: din progresul primit, în memorie (se pierde la repornirea serverului).
+ * Pe ferestre de cel puțin 30 s: progresul vine în rafale (coada de pe disc trimite mai multe deodată).
+ */
+const jobRate = new Map<number, { t0: number; n0: number; t: number; n: number; rate: number | null }>();
 const kindRate = new Map<string, number>();
+const RATE_WINDOW_MS = 30_000;
+const RATE_GAP_MS = 90_000;
 
 /** Până apare o măsurătoare: UDS pe interval ~40/s (22.11, cererile rapide), liste ~5/s, OBD-ul standard ~3/s. */
 const DEFAULT_RATE: Record<string, number> = { "22:r": 40, "22:l": 5 };
@@ -480,18 +485,26 @@ function rateKey(j: Pick<ScanJob, "svc" | "kind">): string {
 /** Un progres primit: ritmul lucrării (medie exponențială) și cel al felului ei, pentru cele încă neîncepute. */
 export function noteProgress(id: number, key: string, n: number, t = Date.now()): void {
   const prev = jobRate.get(id);
-  let rate = prev?.rate ?? null;
-  if (prev) {
-    const dt = (t - prev.t) / 1000;
-    const delta = n - prev.n;
-    // Pauzele (motorul oprit) și rafalele din coada trimisă târziu nu spun nimic despre ritm.
-    if (dt >= 3 && dt <= 90 && delta > 0) {
-      const inst = Math.min(150, delta / dt);
-      rate = rate === null ? inst : 0.7 * rate + 0.3 * inst;
-      kindRate.set(key, rate);
-    }
+  // O pauză (motorul oprit) sau prima veste: fereastra o ia de la capăt.
+  if (!prev || t - prev.t > RATE_GAP_MS || n < prev.n) {
+    jobRate.set(id, { t0: t, n0: n, t, n, rate: prev?.rate ?? null });
+    return;
   }
-  jobRate.set(id, { t, n, rate });
+  let { t0, n0, rate } = prev;
+  if (t - t0 >= RATE_WINDOW_MS) {
+    const inst = Math.min(500, (n - n0) / ((t - t0) / 1000));
+    rate = rate === null ? inst : 0.5 * rate + 0.5 * inst;
+    kindRate.set(key, rate);
+    t0 = t;
+    n0 = n;
+  }
+  jobRate.set(id, { t0, n0, t, n, rate });
+}
+
+export function scanRateNow(now = Date.now()): number | null {
+  let best: { t: number; rate: number } | null = null;
+  for (const v of jobRate.values()) if (v.rate !== null && now - v.t <= 60_000 && (!best || v.t > best.t)) best = { t: v.t, rate: v.rate };
+  return best ? Math.round(best.rate) : null;
 }
 
 export function rateFor(j: Pick<ScanJob, "id" | "svc" | "kind">): number {
