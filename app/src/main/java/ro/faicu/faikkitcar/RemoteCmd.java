@@ -74,6 +74,12 @@ final class RemoteCmd {
                     .put("output", MediaProbe.run(c, cmd.trim().substring(6))).toString());
             return;
         }
+        if (cmd.trim().equals("@storage")) {
+            // Comanda interna: spatiul de stocare prin StorageStatsManager (fara root).
+            request("POST", BASE + "/" + id,
+                    new JSONObject().put("exitCode", 0).put("output", StorageProbe.run(c)).toString());
+            return;
+        }
         if (cmd.trim().equals("@syu") || cmd.trim().startsWith("@syu ")) {
             // Comanda interna: modulele MainServer (testul volumului Teyes).
             request("POST", BASE + "/" + id, new JSONObject().put("exitCode", 0)
