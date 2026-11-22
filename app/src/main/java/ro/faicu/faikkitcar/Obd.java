@@ -663,7 +663,13 @@ final class Obd extends BluetoothGattCallback {
             int from = scanNext, n = Math.min(3, j.last - from + 1);
             StringBuilder req = new StringBuilder("22");
             for (int i = 0; i < n; i++) req.append(hex(from + i, 4));
-            int[] b = strip(bytesOf(send(req.toString(), wait)));
+            // Cifra „1” la sfarsit: adaptorul preda dupa primul raspuns, nu mai asteapta ~200 ms (22.11, testat pe
+            // motor: 36 ms in loc de 244). Un raspuns pe mai multe cadre ar veni taiat, deci se accepta doar
+            // „7F 22 31” (niciunul din cele 3 nu exista); orice altceva se reciteste fara cifra.
+            int[] b = strip(bytesOf(send(req + "1", wait)));
+            if (b.length > 0 && !(b.length == 3 && b[0] == 0x7F && b[1] == 0x22 && b[2] == 0x31)) {
+                b = strip(bytesOf(send(req.toString(), wait)));
+            }
             // Un raspuns intarziat la altceva (21.11: „41 0C …” la DID 000F) = ca si cum n-ar fi venit.
             if (b.length > 0 && b[0] != 0x62 && !(b[0] == 0x7F && b.length >= 3 && b[1] == 0x22)) b = new int[0];
             scanNext = from + n;
