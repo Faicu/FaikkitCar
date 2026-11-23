@@ -54,7 +54,14 @@ function duration(sec: number): string {
   return m < 90 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
-function JobRow({ job, current }: { job: Job; current: boolean }) {
+/** Grupele de pe card (23.11): urmăririle scurte, scanările cu progres, recitirile fără sfârșit. */
+const GROUPS: Array<{ title: string; prefix: string; has: (j: Job) => boolean }> = [
+  { title: "Urmăriri", prefix: "Urmărire: ", has: (j) => j.kind === "watch" },
+  { title: "Scanări", prefix: "", has: (j) => j.kind === "range" || j.kind === "list" },
+  { title: "Recitiri", prefix: "Recitire: ", has: (j) => j.kind === "loop" },
+];
+
+function JobRow({ job, current, prefix }: { job: Job; current: boolean; prefix: string }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const pct = job.total > 0 ? Math.round((job.done / job.total) * 100) : 0;
@@ -72,11 +79,13 @@ function JobRow({ job, current }: { job: Job; current: boolean }) {
   return (
     <div className="space-y-1">
       <div className="flex items-baseline gap-2 text-sm">
-        <p className={current ? "font-semibold" : ""}>{job.label}</p>
+        <p className={current ? "font-semibold" : ""}>
+          {prefix && job.label.startsWith(prefix) ? job.label.slice(prefix.length) : job.label}
+        </p>
         <p className="text-xs text-muted-foreground">
           {current ? "acum" : STATUS[job.status]}
           {job.parked ? " · doar pe loc" : ""}
-          {watch && job.everyS ? ` · la fiecare pornire și la ${Math.round(job.everyS / 60)} min` : ""}
+          {watch ? (job.everyS ? ` · la ${Math.round(job.everyS / 60)} min` : " · fără pauză") : ""}
           {loop && job.round > 0 ? ` · trecerea ${job.round + 1}` : ""}
           {job.etaS !== null ? ` · ~${duration(job.etaS)}` : ""}
           {job.etaS !== null && job.endsS !== null && job.endsS - job.etaS >= 60 ? ` · gata peste ~${duration(job.endsS)}` : ""}
@@ -182,13 +191,20 @@ export function ObdScanCard() {
       <div className="flex items-center gap-2">
         <ScanSearch className="h-4 w-4 shrink-0 text-sky-400" />
         <p className="font-semibold">Scanarea OBD</p>
-        <p className="ml-auto text-xs text-muted-foreground">cu motorul pornit, pe loc și în mers</p>
+        <p className="ml-auto text-xs text-muted-foreground">{data.current === null ? "așteaptă motorul pornit" : "rulează"}</p>
       </div>
-      <div className="space-y-3">
-        {active.map((j) => (
-          <JobRow key={j.id} job={j} current={j.id === data.current} />
-        ))}
-      </div>
+      {GROUPS.map((g) => {
+        const jobs = active.filter(g.has);
+        if (jobs.length === 0) return null;
+        return (
+          <div key={g.title} className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.title}</p>
+            {jobs.map((j) => (
+              <JobRow key={j.id} job={j} current={j.id === data.current} prefix={g.prefix} />
+            ))}
+          </div>
+        );
+      })}
       {done.length > 0 && (
         <div className="space-y-1">
           <button type="button" onClick={() => setShowDone(!showDone)} className="text-xs text-sky-400">

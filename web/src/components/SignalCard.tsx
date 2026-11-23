@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Signal } from "lucide-react";
+import { ChevronDown, Signal } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 import { api, day, esc, hm, num, shortDuration, type SignalSummary } from "../api";
@@ -22,14 +22,37 @@ function pct(x: number): string {
  * Semnalul mobil al navigației (cartela din Teyes): harta pe pătrate de ~200 m (verde = bun,
  * roșu = fără internet), benzile folosite și căderile de internet din mers.
  */
+const OPEN_KEY = "unit.signalOpen";
+
 export function SignalCard() {
   const [days, setDays] = useState(30);
+  // Pliat implicit (23.11, cererea utilizatorului): antetul arată doar rezumatul.
+  const [open, setOpen] = useState(() => localStorage.getItem(OPEN_KEY) === "1");
   const { data } = useQuery({ queryKey: ["signal", days], queryFn: () => api.signal(days), staleTime: 60_000 });
+  const toggle = () => {
+    localStorage.setItem(OPEN_KEY, open ? "0" : "1");
+    setOpen(!open);
+  };
+  const summary = !data || data.points === 0 ? ""
+    : `${data.offline > 0 ? `fără internet ${pct(data.offline)}` : "internet tot timpul"}${data.ops.length ? ` · ${data.ops.map((o) => o.op).join(", ")}` : ""}`;
+  if (!open) {
+    return (
+      <button type="button" onClick={toggle} className="flex w-full items-center gap-2 rounded-2xl glass-card px-4 py-3 text-left">
+        <Signal className="h-4 w-4 shrink-0 text-sky-400" />
+        <span className="font-semibold">Semnal mobil</span>
+        {summary && <span className="truncate text-sm text-muted-foreground">· {summary}</span>}
+        <ChevronDown className="ml-auto h-4 w-4 shrink-0" />
+      </button>
+    );
+  }
   return (
     <div className="space-y-3 rounded-2xl glass-card p-4">
       <div className="flex items-center gap-2">
-        <Signal className="h-4 w-4 shrink-0 text-sky-400" />
-        <p className="font-semibold">Semnal mobil</p>
+        <button type="button" onClick={toggle} className="flex items-center gap-2 text-left">
+          <Signal className="h-4 w-4 shrink-0 text-sky-400" />
+          <span className="font-semibold">Semnal mobil</span>
+          <ChevronDown className="h-4 w-4 shrink-0 rotate-180" />
+        </button>
         <div className="ml-auto flex gap-1">
           {PERIODS.map((d) => (
             <button

@@ -116,6 +116,11 @@ final class Api {
         return new JSONObject(call("GET", "/api/obd/scan", null, true));
     }
 
+    /** Opreste / reia o lucrare de scanare (ca pe site). */
+    void obdScanPause(int id, boolean paused) throws Exception {
+        call("POST", "/api/obd/scan/" + id, new JSONObject().put("paused", paused), true);
+    }
+
     void saveRefuel(JSONObject r) throws Exception {
         call("POST", "/api/refuels", r, true);
     }

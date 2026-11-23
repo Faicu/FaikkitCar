@@ -34,7 +34,7 @@ export function DtcCard({ obd }: { obd: Obd }) {
           {faults.length === 1 ? "O eroare" : faults.length > 1 ? `${faults.length} erori` : "Martorul motorului e aprins"}
         </p>
       </div>
-      {faults.map((f) => (
+      {faults.map((f, i) => (
         <div key={`${f.module}-${f.code}`} className="text-sm">
           <p>
             <span className="text-muted-foreground">{f.module}</span> · <span className="font-mono font-semibold">{f.code}</span>{" "}
@@ -43,7 +43,8 @@ export function DtcCard({ obd }: { obd: Obd }) {
           <p className="text-xs text-muted-foreground">
             {FAULT_STATE[f.state]} · apărută {relativeTime(f.since)}
           </p>
-          {f.detail && <p className="mt-1 text-xs">{f.detail}</p>}
+          {/* Același text la mai multe intrări ale aceluiași cod (B1091 71 / 72): o singură dată, la ultima. */}
+          {f.detail && faults.slice(i + 1).every((g) => g.detail !== f.detail) && <p className="mt-1 text-xs">{f.detail}</p>}
         </div>
       ))}
       <p className="text-xs text-muted-foreground">
@@ -78,7 +79,7 @@ export function ObdCard({ obd }: { obd: Obd }) {
     <div className="space-y-3 rounded-2xl glass-card p-4">
       <div className="flex items-center gap-2">
         <Plug className={`h-4 w-4 shrink-0 ${obd.status === "connected" ? "text-sky-400" : "text-muted-foreground"}`} />
-        <p className="font-semibold">Adaptorul OBD (teste)</p>
+        <p className="font-semibold">Adaptorul</p>
         <p className="ml-auto text-xs text-muted-foreground">
           {status}
           {obd.status === "connected" && obd.scanHz !== null ? ` · scanează ${obd.scanHz} coduri/s` : ""}
@@ -87,15 +88,15 @@ export function ObdCard({ obd }: { obd: Obd }) {
       </div>
       {obd.enabled && (
         <>
-          <p className="text-xs text-muted-foreground">
-            {obd.checkedAt
-              ? `Motorul (OBD): ${obd.codes.length === 0 ? "nicio eroare" : obd.codes.map((c) => c.code).join(", ")}${obd.mil ? ", martorul aprins" : ""} · verificat ${relativeTime(obd.checkedAt)}`
-              : "Erorile nu au fost citite încă."}
-          </p>
+          {!obd.checkedAt && (obd.modules ?? []).length === 0 && (
+            <p className="text-xs text-muted-foreground">Erorile nu au fost citite încă.</p>
+          )}
           {(obd.modules ?? []).map((m) => (
             <p key={m.module} className="text-xs text-muted-foreground">
-              {m.name}: {!m.ok ? "n-a răspuns" : m.count === 0 ? "nicio eroare" : m.count === 1 ? "o eroare" : `${m.count} erori`} ·
-              verificat {relativeTime(m.checkedAt)}
+              {m.name}: {!m.ok ? "n-a răspuns" : m.count === 0 ? "nicio eroare" : m.count === 1 ? "o eroare" : `${m.count} erori`}
+              {/* Motorul se citește și prin OBD standard: aceeași linie. */}
+              {m.module === "7E0" && obd.codes.length > 0 ? ` · OBD: ${obd.codes.map((c) => c.code).join(", ")}` : ""}
+              {m.module === "7E0" && obd.mil ? " · martorul aprins" : ""} · verificat {relativeTime(m.checkedAt)}
             </p>
           ))}
         </>

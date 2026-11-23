@@ -502,7 +502,7 @@ public class MainActivity extends Activity {
             scroll.post(() -> scroll.scrollTo(0, 0));
             return;
         }
-        String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|" + Store.obdTestsOpen(this) + "|"
+        String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|" + Store.obdTestsOpen(this) + "|" + Store.signalOpen(this) + "|"
                 + (newerApk != null) + "|" + Updater.silentRefused(this) + "|"
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == UNIT ? live + "|" + unitHistoryAt + "|" + signalAt + "|" + signalDays
@@ -816,7 +816,9 @@ public class MainActivity extends Activity {
                     : "în așteptare (nu s-a confirmat încă)") + " · apărută " + Fmt.ago(f.optString("since")), 13, Ui.MUTED, false));
             // Ce inseamna si ce faci, pentru codurile lamurite (23.11: clapeta climatronicului).
             String detail = f.optString("detail", "");
-            if (!detail.isEmpty()) {
+            boolean repeated = false;
+            for (int k = i + 1; k < n; k++) repeated |= detail.equals(faults.optJSONObject(k).optString("detail", ""));
+            if (!detail.isEmpty() && !repeated) {
                 TextView d = Ui.text(this, detail, 13, Ui.TEXT, false);
                 d.setPadding(0, dp(this, 4), 0, 0);
                 card.addView(d);
@@ -840,7 +842,7 @@ public class MainActivity extends Activity {
         if (obd == null) return;
         boolean on = obd.optBoolean("enabled", true);
         LinearLayout card = Ui.card(this, content);
-        Ui.title(this, card, "Adaptorul OBD (teste)");
+        Ui.title(this, card, "Adaptorul");
         String st = obd.isNull("status") ? "" : obd.optString("status");
         String status;
         switch (st) {
@@ -855,23 +857,20 @@ public class MainActivity extends Activity {
         }
         card.addView(Ui.text(this, status, 15, Ui.TEXT, false));
         if (on) {
+            // Un rand pe modul; motorul citit si prin OBD standard intra pe randul lui (23.11, fara dubluri).
             JSONArray codes = obd.optJSONArray("codes");
-            String dtc;
-            if (obd.isNull("checkedAt")) {
-                dtc = "Erorile nu au fost citite încă.";
-            } else {
-                List<String> list = new ArrayList<>();
-                for (int i = 0; codes != null && i < codes.length(); i++) list.add(codes.optJSONObject(i).optString("code"));
-                dtc = "Motorul (OBD): " + (list.isEmpty() ? "nicio eroare" : String.join(", ", list))
-                        + (obd.optBoolean("mil") ? ", martorul aprins" : "") + " · verificat " + Fmt.ago(obd.optString("checkedAt"));
-            }
-            Ui.hint(this, card, dtc);
+            List<String> list = new ArrayList<>();
+            for (int i = 0; codes != null && i < codes.length(); i++) list.add(codes.optJSONObject(i).optString("code"));
             JSONArray mods = obd.optJSONArray("modules");
+            if (mods == null || mods.length() == 0) Ui.hint(this, card, "Erorile nu au fost citite încă.");
             for (int i = 0; mods != null && i < mods.length(); i++) {
                 JSONObject m = mods.optJSONObject(i);
                 int c = m.optInt("count");
+                boolean engine = "7E0".equals(m.optString("module"));
                 Ui.hint(this, card, m.optString("name") + ": " + (!m.optBoolean("ok") ? "n-a răspuns"
                         : c == 0 ? "nicio eroare" : c == 1 ? "o eroare" : c + " erori")
+                        + (engine && !list.isEmpty() ? " · OBD: " + String.join(", ", list) : "")
+                        + (engine && obd.optBoolean("mil") ? " · martorul aprins" : "")
                         + " · verificat " + Fmt.ago(m.optString("checkedAt")));
             }
         }
@@ -924,27 +923,51 @@ public class MainActivity extends Activity {
         LinearLayout card = Ui.card(this, content);
         Ui.title(this, card, "Scanarea OBD");
         JSONArray jobs = obdScan.optJSONArray("jobs");
+        // „acum” doar cat masina e conectata (serverul trimite current null altfel).
         int current = obdScan.isNull("current") ? -1 : obdScan.optInt("current");
         int done = 0;
-        for (int i = 0; jobs != null && i < jobs.length(); i++) {
-            JSONObject j = jobs.optJSONObject(i);
-            String st = j.optString("status");
-            if ("done".equals(st)) {
-                done++;
-                continue;
+        for (int i = 0; jobs != null && i < jobs.length(); i++) if ("done".equals(jobs.optJSONObject(i).optString("status"))) done++;
+        // Pe grupe, ca pe site (23.11): urmaririle scurte, scanarile cu progres, recitirile fara sfarsit.
+        String[][] groups = {{"Urmăriri", "watch", "Urmărire: "}, {"Scanări", "range list", ""}, {"Recitiri", "loop", "Recitire: "}};
+        for (String[] g : groups) {
+            boolean first = true;
+            for (int i = 0; jobs != null && i < jobs.length(); i++) {
+                JSONObject j = jobs.optJSONObject(i);
+                String st = j.optString("status");
+                String kind = j.optString("kind");
+                if ("done".equals(st) || !(" " + g[1] + " ").contains(" " + kind + " ")) continue;
+                if (first) {
+                    TextView h = Ui.text(this, g[0].toUpperCase(java.util.Locale.ROOT), 12, Ui.MUTED, true);
+                    h.setPadding(0, dp(this, 10), 0, dp(this, 2));
+                    card.addView(h);
+                    first = false;
+                }
+                boolean watch = "watch".equals(kind);
+                int total = j.optInt("total");
+                String label = j.optString("label");
+                if (!g[2].isEmpty() && label.startsWith(g[2])) label = label.substring(g[2].length());
+                boolean cur = j.optInt("id") == current;
+                String line = label + " · "
+                        + (cur ? "acum" : "paused".equals(st) ? "oprită" : "running".equals(st) ? "în curs" : "la rând")
+                        + (j.optBoolean("parked") ? " · doar pe loc" : "")
+                        + (watch ? (j.optInt("everyS") > 0 ? " · la " + Math.round(j.optInt("everyS") / 60.0) + " min" : " · fără pauză") : "")
+                        + (("loop".equals(kind) || watch) && j.optInt("round") > 0 ? " · trecerea " + (j.optInt("round") + 1) : "")
+                        + (total > 0 && !watch ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "")
+                        + (j.isNull("etaS") ? "" : " · ~" + scanDuration(j.optInt("etaS")))
+                        + (j.isNull("etaS") || j.isNull("endsS") || j.optInt("endsS") - j.optInt("etaS") < 60 ? ""
+                                : " · gata peste ~" + scanDuration(j.optInt("endsS")));
+                LinearLayout row = new LinearLayout(this);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.addView(Ui.text(this, line, 14, cur ? Ui.TEXT : Ui.MUTED, cur), new LinearLayout.LayoutParams(0, -2, 1));
+                int id = j.optInt("id");
+                boolean paused = "paused".equals(st);
+                String name = label;
+                row.addView(rowMenu(new String[] {paused ? "Reia" : "Oprește"}, new Runnable[] {() -> {
+                    obdScanAt = 0;
+                    mutate(() -> api.obdScanPause(id, !paused), (paused ? "Reluată: " : "Oprită: ") + name);
+                }}));
+                card.addView(row);
             }
-            int total = j.optInt("total");
-            String line = j.optString("label") + " · "
-                    + (j.optInt("id") == current ? "acum" : "paused".equals(st) ? "oprită" : "running".equals(st) ? "în curs" : "la rând")
-                    + (j.optBoolean("parked") ? " · doar pe loc" : "")
-                    + ("watch".equals(j.optString("kind")) ? " · la " + Math.round(j.optInt("everyS") / 60.0) + " min" : "")
-                    + (("loop".equals(j.optString("kind")) || "watch".equals(j.optString("kind"))) && j.optInt("round") > 0
-                            ? " · trecerea " + (j.optInt("round") + 1) : "")
-                    + (total > 0 && !"watch".equals(j.optString("kind")) ? " · " + Math.round(j.optInt("done") * 100.0 / total) + "%" : "")
-                    + (j.isNull("etaS") ? "" : " · ~" + scanDuration(j.optInt("etaS")))
-                    + (j.isNull("etaS") || j.isNull("endsS") || j.optInt("endsS") - j.optInt("etaS") < 60 ? ""
-                            : " · gata peste ~" + scanDuration(j.optInt("endsS")));
-            card.addView(Ui.text(this, line, 14, j.optInt("id") == current ? Ui.TEXT : Ui.MUTED, j.optInt("id") == current));
         }
         if (done > 0) Ui.hint(this, card, done == 1 ? "O lucrare terminată" : done + " lucrări terminate");
         JSONArray mods = obdScan.optJSONArray("modules");
@@ -976,9 +999,34 @@ public class MainActivity extends Activity {
 
     private void renderSignal() {
         LinearLayout card = Ui.card(this, content);
+        boolean open = Store.signalOpen(this);
+        if (!open) {
+            // Pliat (cererea utilizatorului, 23.11): doar rezumatul; atingerea il deschide.
+            JSONObject s = signal != null && signalLoadedDays == signalDays ? signal : null;
+            String sum = "";
+            if (s != null && s.optInt("points") > 0) {
+                double off = s.optDouble("offline", 0);
+                List<String> ops = new ArrayList<>();
+                JSONArray opArr = s.optJSONArray("ops");
+                for (int i = 0; opArr != null && i < opArr.length(); i++) ops.add(opArr.optJSONObject(i).optString("op"));
+                sum = " · " + (off > 0 ? "fără internet " + pct(off) : "internet tot timpul")
+                        + (ops.isEmpty() ? "" : " · " + String.join(", ", ops));
+            }
+            card.addView(Ui.text(this, "Semnal mobil" + sum + "  ▾", 16, Ui.TEXT, true));
+            card.setOnClickListener(v -> {
+                Store.setSignalOpen(this, true);
+                render();
+            });
+            return;
+        }
         LinearLayout head = new LinearLayout(this);
         head.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        head.addView(Ui.text(this, "Semnal mobil", 18, Ui.TEXT, true), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView title = Ui.text(this, "Semnal mobil  ▴", 18, Ui.TEXT, true);
+        title.setOnClickListener(v -> {
+            Store.setSignalOpen(this, false);
+            render();
+        });
+        head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         for (int d : SIGNAL_DAYS) {
             TextView p = Ui.text(this, d + " zile", 12, d == signalDays ? Ui.ACCENT : Ui.MUTED, d == signalDays);
             if (d == signalDays) p.setBackground(Ui.round(this, 0x2E38BDF8, 99));

@@ -60,7 +60,9 @@ activă, separată. Remote Control: `claude.service` (sursa în
 - Pagini: Acum (`Now.tsx`: starea, călătoria în curs cu harta live `LiveTripMap.tsx`,
   rezervorul, „Unde e mașina” când nu merge, rândul „Navigația” din `live.unitHealth`), Călătorii
   (`Trips.tsx` + `TripView.tsx`), Costuri (`Costs.tsx`), Navigație (`Unit.tsx`: erorile, `UnitCard.tsx` cu
-  aceeași stare live, semnalul, apoi „Teste OBD” închis implicit; la fel în Panel, `renderObdTests`; 23.11), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
+  aceeași stare live, semnalul, apoi „Teste OBD” închis implicit; semnalul
+  pliat și el; lucrările de scanare pe grupe Urmăriri / Scanări / Recitiri, „Oprește / Reia” și în Panel (meniul „⋯”);
+  „acum” doar cu adaptorul conectat (`/api/obd/scan` dă `current` null altfel); la fel în Panel, `renderObdTests`; 23.11), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
 - Testarea (03.11, cererea utilizatorului): fără emulator și fără servere/simulatoare de test. Utilizatorul
   testează efectiv aplicațiile, iar pe navigație se verifică prin comenzile la distanță (`car-cmd.ts`).
   Emulatorul și imaginile lui au fost șterse; rămân doar uneltele de build. Verificări locale: `npx vitest run`,

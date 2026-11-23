@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import { carAlerts } from "./flap.ts";
-import { obdEnabled, saveObd, setObdEnabled } from "./obd.ts";
+import { obdEnabled, readObd, saveObd, setObdEnabled } from "./obd.ts";
 import {
   carScanJobs,
   readScanCodes,
@@ -328,7 +328,9 @@ app.post("/api/obd/enabled", async (c) => {
 // Scanarea OBD pe site: lucrările cu progresul, catalogul pe module, istoricul unui cod.
 app.get("/api/obd/scan", (c) => {
   requireUser(c);
-  return c.json(readScanOverview());
+  const o = readScanOverview();
+  // „acum” doar cât mașina e chiar conectată la adaptor (altfel e doar prima la rând).
+  return c.json(readObd().status === "connected" ? o : { ...o, current: null });
 });
 
 app.get("/api/obd/codes/:tx", (c) => {
