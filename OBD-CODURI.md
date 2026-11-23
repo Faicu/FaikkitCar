@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 22.11.2026, 19:20 (motorul scanat complet și analizat; urmărirea redusă la codurile nesigure)
+**Ultima actualizare:** 23.11.2026, 09:20 (pornirea la rece: uleiul, lichidul; TRIP-ul nu e în bord; climatronicul la 46 %)
 
 ---
 
@@ -19,8 +19,8 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 | **Urmărirea candidaților** (bord 15 coduri, motor 14: doar ce nu e sigur, secțiunea 4) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11) |
 | OBD standard: 01, 09, 06, 02, erorile | ✅ 22.11, 18:00–18:05 · 01: 38 de PID-uri, 06: 16 teste, erorile: 2 coduri, 09 și 02: nimic nou |
 | Motor (7E0), 0000–FFFF | ✅ 22.11, 19:07 · 763 de coduri cu răspuns (2 refuzate, 0x36), 64.773 inexistente, 0 lente: toate cele 65.536 au o stare |
-| Bord (714), a doua trecere 0000–FFFF | 🔄 78 % (51.351 / 65.536) la 22.11, 19:30 · aceleași 170 de coduri ca prima trecere, 51.219 inexistente, 0 lente · ~15–50 coduri/s; restul (~5 min) la următoarea pornire |
-| Climatronic (746), 0000–FFFF | ⏳ după bord, ~20–30 min cu metoda rapidă (0000–0A3A refăcut: scanarea veche sărea grupurile fără răspuns) |
+| Bord (714), a doua trecere 0000–FFFF | ✅ 23.11, 08:49 · aceleași 170 de coduri ca prima trecere, 65.366 inexistente, 0 lente |
+| Climatronic (746), 0000–FFFF | 🔄 46 % (30.140 / 65.536) la 23.11, 09:17 · 284 de coduri (62 cu valori, 55 refuzate, 138 lente), 29.910 inexistente |
 | Recitirea în buclă (motor, OBD 01, bord, climatronic) | 🔄 motorul, prima trecere: 654 / 763 (22.11, 19:30); bordul a început; reiau după bord și climatronic. Scopul: multe citiri ale fiecărui cod, comparate cu OBD / CAN (consumul) |
 | Bord (714), prima trecere 0000–FFFF | ✅ 21.11 · 168 de coduri cu răspuns, 2 refuzate |
 
@@ -100,6 +100,9 @@ Motorul după 469C (scanat 22.11): doar identificarea și oglinzile OBD.
 
 ### Climatronic (746)
 
+23.11, scanarea la 46 %: 284 de coduri, din care 62 cu valori în 2600–2655 (blocul de valori de măsură: perechi stânga / dreapta, câteva în jur de 0xE3 = 227), 55 refuzate „condiții” (0x22), 138 lente (modulul ocupat; recitite pe loc la sfârșit). Interpretarea după recitirea în buclă.
+
+
 Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate „condiții neîndeplinite”).
 
 ## 4. Candidați (bănuiți, neconfirmați)
@@ -109,12 +112,13 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | Bord **1007** | 22.11 seara: **NU e consumul.** 74 min la relanti pe loc (~0,8 L după OBD) → 0 creștere; la prima citire după 12 h de oprire era 17.579 (nu aproape de 0). Creșterile nu urmează nici litrii, nici distanța: +219 pe 1,9 km la 40–70 km/h, +363 pe 1,2 km cu frânări și opriri, +114 pe 120 m de manevre la parcare, 0 la relanti. Înainte (21.11): ~2.900 pe litru estimat, dar doar în mers | crește doar în mers, mai mult cu frânări / manevre: legat de frână sau de direcție? (de verificat: frâna apăsată pe loc) |
 | Bord 1009 | 603 → 624 → 647 (~0,48 pe minut de mers) | timpul din memoria calculatorului de bord, în minute? |
 | Bord **2205**, bitul 0x01 din primul octet | 1 la 4 citiri pe loc cu frâna trasă, 0 la 4 citiri în mers (și 0x0028 la 41, 49, 54 km/h, 21.11) | **frâna de mână trasă** (sau „mașina stă”); de verificat cu frâna trasă în mers / eliberată pe loc |
-| Bord **202F** | 146–151; − 50 dă 96–101 °C, cu 1–3 °C peste lichidul de răcire OBD | o temperatură a motorului (lichidul, cum îl arată bordul, sau uleiul cu − 60 = 86–91 °C) |
+| Bord **202F** | 23.11, pornire la rece (lichidul OBD 31 → 86 °C): 68 → 132; ieri cald 143 la lichid 95. Cu x − 50: 18 °C când lichidul avea 31, apoi rămâne în urmă și ajunge aproape de lichid la cald | **temperatura uleiului** (x − 50 °C?): rămâne în urmă la încălzire, ca uleiul. De verificat cu ecranul „Temperatura uleiului” din bord |
 | Bord 1017 / 1018 / 1019 / 101A | kilometraje în formatul cu cuvintele de 16 biți inversate (`C0 62 00 03` = 245.858). 1019 = ultima intrare, 101A = cea dinainte (se mută la o intrare nouă), cu un contor 00 / 01 / 02 la 245.836, 245.858, 245.878; 245.858 și 245.878 au fost **în mijlocul drumurilor**, deci 1018 NU e „kilometrajul de la ultima oprire” (cum credeam pe 21.11); după kilometraj, mereu `10 91 11 4D` | un jurnal de evenimente al bordului (o avertizare / o eroare cu kilometrajul ei?). Ipoteză: `10 91` ar putea fi legat de eroarea climatronicului B1091 (clapeta blocată, apare în mers), neverificat |
 | Bord 224B, 2250 / 2251, 2290 / 2291 | +1 deodată cu zilele reviziei (22, 65, 17) | numărători de zile de la alte evenimente |
 | Motor 1154 | exact 750 la toate citirile pe loc, 800 la toate în mers (5 citiri, 2 zile, rece și cald) | turația de relanti cerută (mai mare în mers) |
 | Motor 117D | 23 la relanti, 25–36 la mers încet, 43 la sarcină (MAP 109 kPa), **63 cu injecția tăiată** (frână de motor, sarcina 0) | nu e sarcina (e maximă când sarcina e 0); avansul aprinderii / un unghi? |
-| Motor 1189–118F | 7 valori ~519–540, toate se mișcă împreună cu câteva unități: scad cât se încălzește motorul (1189: 527 rece → 519 cald) și urcă odată cu tensiunea (533 la 14,55 V) | nu temperaturi de evacuare (ar crește); tensiuni (~0,027 V pe unitate?) |
+| Motor 1189–118F (23.11) | cu pornirea la rece se vede clar: scad cu ~1 la fiecare 5 °C de lichid (118D: R² 0,94 pe 78 °C) | o mărime care scade cu temperatura motorului (frecarea / pierderile modelate?), nu tensiuni |
+| Motor 1189–118F (22.11) | 7 valori ~519–540, toate se mișcă împreună cu câteva unități: scad cât se încălzește motorul (1189: 527 rece → 519 cald) și urcă odată cu tensiunea (533 la 14,55 V) | nu temperaturi de evacuare (ar crește); tensiuni (~0,027 V pe unitate?) |
 | Motor **3D73** | 0x85 → 0,75 × 133 − 48 = 51,75 °C, lichidul de răcire OBD 51 °C (o singură citire, 22.11) | temperatura motorului (formula VW) |
 | Motor 4183 | 0x5D − 40 = 53 °C, lichidul OBD 53 °C (o citire) | altă temperatură a motorului |
 | Motor 406A | **cu semn**: −2.500 … +1.400 la relanti (−2.500 cu motorul rece, în jur de 0…+1.300 cald, sare de la o citire la alta), **0 cu injecția tăiată**; 740 de dimineață a fost o coincidență | nu e relantiul cerut; o corecție a regulatorului de relanti (cuplu)? |
@@ -123,8 +127,10 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | Bord 100A, 1014, 220C, 202F, 220D | variază singure (100A 92 → 90, 202F 93 → 97) | temperaturi, tensiuni? |
 | Bord 2224, al doilea octet | 02 → 06 după schimbarea becului | necunoscut |
 | Bord 2203, 2208, 220C, 2273, 2275, 2277, 2294, 2295, 2297, 2299 | diferă între citiri (2275: 0B pe loc, 07 în mers) | senzori? |
-| Bord F405, F442 | BD → B9, 8B → 8A | oglinzi OBD (temperatură, tensiune?) |
-| Motor 1749 | 126 / 121 / 141 → 46,5 / 42,75 / 57,75 °C cu formula VW, cu ~6–7 °C peste aerul admis OBD (39 / 36 / 51) | temperatura din galeria de admisie (după intercooler)? |
+| Bord **F405** | 39 de citiri, 31–96 °C, rece și cald: ≈ 0,76 × x − 43 față de lichidul OBD (R² 0,996) | **temperatura lichidului de răcire** (în formatul bordului) |
+| Bord F442 | 8B → 8D | tensiune? |
+| Motor 1749 (23.11) | la pornirea la rece = aerul admis (80 → 12 °C), apoi crește odată cu motorul, mai repede decât aerul admis | temperatura din galeria de admisie (încălzită de motor)? |
+| Motor 1749 (22.11) | 126 / 121 / 141 → 46,5 / 42,75 / 57,75 °C cu formula VW, cu ~6–7 °C peste aerul admis OBD (39 / 36 / 51) | temperatura din galeria de admisie (după intercooler)? |
 | Motor | cantitatea injectată (consum exact) | **nu e după 469C** (acolo doar identificarea și oglinzile OBD); dacă există, e printre codurile 10xx–3Exx: se vede abia din recitirea în buclă (multe citiri, comparate cu litrii OBD) |
 
 ## 5. Erorile citite (stare la 21.11)
@@ -165,6 +171,7 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 23.11 | Pornire la rece: bord F405 = lichidul de răcire, 202F probabil uleiul (x − 50); motorul 1189–118F scad cu temperatura; TRIP-ul (80,4 / 80,6) și consumul mediu (49,9) NU sunt în codurile bordului citite în sesiunea implicită; climatronicul la 46 % |
 | 22.11 seara | Bord 1007 NU e contorul de consum (nu crește la relanti, nu se resetează după 12 h) |
 | 22.11 seara | Motorul complet (763 de coduri). Analiza cu OBD / CAN din aceleași clipe: 11CF / 11D1 = lichidul de răcire și 1001 / 1002 = aerul admis (confirmate), 1000 / 1748 = afară; 406A NU e relantiul cerut (corecție cu semn, 0 la injecția tăiată); după 469C doar identificare și oglinzi OBD (F4xx, F6xx, F8xx) |
 | 22.11 seara | Urmărirea redusă la ce nu e sigur (bord 21 → 15 coduri, motor 19 → 13); confirmate și mutate în secțiunea 3: motor 1000, 1001 / 1002, 117C |
