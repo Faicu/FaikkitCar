@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
-import { haversineKm } from "./trip-math.ts";
+import { gpsJumps, haversineKm, type PointRow } from "./trip-math.ts";
 
 export interface SignalRow {
   t: number; // epoch ms
@@ -253,12 +253,19 @@ export function readSignal(days: number): SignalSummary {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const rows = getDb()
     .prepare(
-      `SELECT device_at, lat, lon, net, rat, ch, sig, op FROM trip_point
+      `SELECT device_at, lat, lon, acc, gps_speed, can_speed, net, rat, ch, sig, op FROM trip_point
        WHERE device_at >= ? AND net IS NOT NULL ORDER BY device_at`,
     )
-    .all(since) as Array<Omit<SignalRow, "t"> & { device_at: string }>;
+    .all(since) as unknown as Array<Omit<SignalRow, "t"> & Pick<PointRow, "device_at" | "acc" | "gps_speed" | "can_speed">>;
+  const bad = gpsJumps(rows);
   return summarizeSignal(
-    rows.map(({ device_at, ...r }) => ({ ...r, t: Date.parse(device_at) })),
+    rows.map(({ device_at, acc, gps_speed, can_speed, ...r }, i) => ({
+      ...r,
+      // Un fix GPS fals nu apare pe hartă, dar semnalul punctului rămâne în statistici.
+      lat: bad[i] ? null : r.lat,
+      lon: bad[i] ? null : r.lon,
+      t: Date.parse(device_at),
+    })),
     since,
   );
 }

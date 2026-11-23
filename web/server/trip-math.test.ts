@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { analyze, canScale, findGaps, sameTrip, shapeOf, viaPlaces, type PointRow } from "./trip-math.ts";
+import { analyze, canScale, findGaps, gpsJumps, sameTrip, shapeOf, viaPlaces, type PointRow } from "./trip-math.ts";
 
 const T0 = Date.parse("2026-10-02T04:40:00Z");
 
@@ -258,5 +258,32 @@ describe("viaPlaces", () => {
     expect(viaPlaces("Serviciu", ["Serviciu", "Petrom Virtuții", "Acasă"], "Acasă")).toEqual(["Petrom Virtuții"]);
     expect(viaPlaces(null, ["Lidl", null, "Lidl"], null)).toEqual(["Lidl"]);
     expect(viaPlaces("Acasă", [], "Acasă")).toEqual([]);
+  });
+});
+
+describe("gpsJumps", () => {
+  it("fix fals de 25 km cu mașina pe loc (23.11): ascuns până revine aproape de ultimul bun", () => {
+    const rows = [
+      p(0, 14, 0),
+      p(5, 12, 0.02),
+      p(10, 2, 0.03),
+      p(66, 25, 25_000 / 1000 * 1), // 25 km est după 56 s
+      p(71, 25, 25),
+      p(76, 25, 25.1),
+      p(480, 30, 24), // după un gol de ~6,7 min, tot departe
+      p(620, 7, 0.1), // revine la locul real
+      p(625, 8, 0.15),
+    ];
+    expect(gpsJumps(rows)).toEqual([false, false, false, true, true, true, true, false, false]);
+  });
+
+  it("mers normal, cu un gol de 30 s la 90 km/h: niciun punct ascuns", () => {
+    const rows = [p(0, 90, 0), p(5, 90, 0.125), p(10, 90, 0.25), p(40, 90, 1.0), p(45, 90, 1.125)];
+    expect(gpsJumps(rows)).toEqual([false, false, false, false, false]);
+  });
+
+  it("după 20 min fără un punct bun următorul e acceptat", () => {
+    const rows = [p(0, 0, 0), p(60, 0, 40), p(1300, 0, 40)];
+    expect(gpsJumps(rows)).toEqual([false, true, false]);
   });
 });

@@ -20,6 +20,7 @@ import {
   pos,
   sameTrip,
   viaPlaces,
+  gpsJumps,
   shapeOf,
   speedOf,
   type PointRow,
@@ -420,8 +421,9 @@ export function readTripPoints(start: string, end: string): TripPoint[] {
        WHERE device_at BETWEEN ? AND ? ORDER BY device_at`,
     )
     .all(start, end) as unknown as PointRow[];
-  return rows.map((r) => {
-    const p = pos(r);
+  const bad = gpsJumps(rows);
+  return rows.map((r, i) => {
+    const p = bad[i] ? null : pos(r);
     return {
       t: r.device_at,
       lat: p ? p[0] : null,
@@ -440,8 +442,11 @@ export const readTripShapes = memo((): Record<string, Array<[number, number]>> =
   const trips = readTrips(60);
   if (!trips.length) return {};
   const rows = getDb()
-    .prepare(`SELECT device_at, lat, lon, acc FROM trip_point WHERE device_at >= ? ORDER BY device_at`)
+    .prepare(
+      `SELECT device_at, lat, lon, acc, gps_speed, can_speed FROM trip_point WHERE device_at >= ? ORDER BY device_at`,
+    )
     .all(trips[trips.length - 1].start) as unknown as PointRow[];
+  const bad = gpsJumps(rows);
   const out: Record<string, Array<[number, number]>> = {};
   let i = 0;
   // Călătoriile vin cele mai noi primele; punctele, în ordine: le parcurgem de la cea mai veche.
@@ -449,7 +454,7 @@ export const readTripShapes = memo((): Record<string, Array<[number, number]>> =
     while (i < rows.length && rows[i].device_at < t.start) i++;
     const pts: Array<[number, number]> = [];
     for (let j = i; j < rows.length && rows[j].device_at <= t.end; j++) {
-      const p = pos(rows[j]);
+      const p = bad[j] ? null : pos(rows[j]);
       if (p) pts.push(p);
     }
     if (pts.length >= 2) out[t.start] = shapeOf(pts);

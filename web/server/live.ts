@@ -320,9 +320,9 @@ export function readLiveRoute(after?: string, orLast = false): LiveRoute | null 
   const current = readLive().trip;
   const trip = current ?? (orLast ? (readTrips(1)[0] ?? null) : null);
   if (!trip) return null;
-  const from = after && after > trip.start ? after : trip.start;
   const points: LiveRoute["points"] = [];
-  for (const p of readTripPoints(from, "9999")) {
+  // De la începutul călătoriei chiar și cu `after`: filtrul fixurilor false are nevoie de ultimul punct bun.
+  for (const p of readTripPoints(trip.start, "9999")) {
     if (p.lat === null || p.lon === null || (after && p.t <= after)) continue;
     points.push([p.t, Math.round(p.lat * 1e6) / 1e6, Math.round(p.lon * 1e6) / 1e6]);
   }

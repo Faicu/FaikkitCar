@@ -144,6 +144,44 @@ export function pos(r: PointRow): [number, number] | null {
   return [r.lat, r.lon];
 }
 
+/**
+ * Fixurile GPS false (04.11–23.11: azi 07:02–07:10, 14 puncte la 25 km de Acasă, cu mașina pe loc: kilometrajul
+ * n-a mișcat). Un punct e fals dacă e mai departe de ultimul bun decât se putea ajunge: drumul din viteze
+ * (CAN, altfel GPS) cu 20% + 300 m, iar peste goluri (≥ 60 s fără puncte) 130 km/h. După 20 min fără un punct
+ * bun, următorul e acceptat, ca o greșeală să nu ascundă tot restul drumului. Doar pentru hărți (traseu, miniatură,
+ * semnal): distanța și costul nu depind de ele (`analyze` dă același rezultat cu și fără). `rows` crescător.
+ */
+export function gpsJumps(
+  rows: Array<Pick<PointRow, "device_at" | "lat" | "lon" | "acc" | "gps_speed" | "can_speed">>,
+): boolean[] {
+  const bad = new Array<boolean>(rows.length).fill(false);
+  let ref: [number, number] | null = null;
+  let refAt = 0;
+  let allowed = 0; // km ce se pot parcurge de la `ref`
+  let prevAt = 0;
+  let prevV = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const at = Date.parse(r.device_at);
+    if (i > 0) {
+      const dt = at - prevAt;
+      allowed += dt >= POINT_GAP_MS ? (130 * dt) / 3_600_000 : (prevV * 1.2 * dt) / 3_600_000;
+    }
+    prevAt = at;
+    prevV = speedOf(r as PointRow) ?? 0;
+    const p = pos(r as PointRow);
+    if (!p) continue;
+    if (ref && at - refAt < 20 * 60_000 && haversineKm(ref, p) > allowed + 0.3) {
+      bad[i] = true;
+      continue;
+    }
+    ref = p;
+    refAt = at;
+    allowed = 0;
+  }
+  return bad;
+}
+
 export function haversineKm(a: [number, number], b: [number, number]): number {
   const rad = Math.PI / 180;
   const dLat = (b[0] - a[0]) * rad;
