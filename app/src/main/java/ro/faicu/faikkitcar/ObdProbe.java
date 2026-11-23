@@ -107,6 +107,9 @@ final class ObdProbe {
     static boolean forbidden(String cmd) {
         String u = cmd.toUpperCase();
         if (u.startsWith("AT") || u.startsWith("ST")) return false;
+        // Din serviciul 10 doar sesiunea extinsă (10 03, pentru valorile care apar doar acolo) și
+        // întoarcerea la cea implicită (10 01); modulul revine singur după ~5 s fără mesaje (23.11).
+        if (u.matches("10 ?0[13][0-9A-F]?")) return false;
         for (String f : FORBIDDEN) if (u.startsWith(f)) return true;
         return false;
     }

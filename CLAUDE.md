@@ -141,7 +141,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   deci un adaptor OBD2 BLE se poate citi direct din aplicație; ales vLinker MC+.
 - `ObdProbe` (20.11, 1.1.90): adaptorul OBD2 BLE vLinker MC+ (se anunță „vLinker MC-IOS”, `C5:57:46:DD:88:83`, fără
   asociere). Comanda internă `@obd` (setul implicit) / `@obd <comenzi ELM…>` / `@obd reset` (Bluetooth Android oprit și
-  pornit) prin `car-cmd.ts`; doar citiri (04/10/2E/31/14/11/27/28/85 refuzate). GATT: serviciul `18f0`, notificări `2af0`,
+  pornit) prin `car-cmd.ts`; doar citiri (04/10/2E/31/14/11/27/28/85 refuzate; din 1.1.114 permise doar `10 03` sesiunea extinsă și `10 01` întoarcerea, pentru testul cantității injectate, 23.11). GATT: serviciul `18f0`, notificări `2af0`,
   scriere `2af1` (mai e `e7810a71…`/`bef8d6c9…`, nefolosit). STN1151 v4.3.2, ELM327 v2.2, ~40 ms pe comandă, ~100 ms
   răspunsul motorului. Protocol A6 (CAN 11 biți 500k), motorul răspunde pe 7E8. VIN WVWZZZ1KZDW032311.
   PID-uri suportate: 01 03–07 0B–0F 11 13 15 1C 1F 21 23 2E 30 31 33 34 3C 41–47 49 4A 4C 56; **fără MAF (10) și fără

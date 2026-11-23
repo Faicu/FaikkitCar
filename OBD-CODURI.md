@@ -146,7 +146,9 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 ## 6. Cum se citesc (detalii tehnice)
 
 - CAN 11 biți 500k (protocolul ELM 6). Alt modul: `ATSH<tx> ATCRA<rx> ATFCSH<tx>` (în ordinea asta).
-- UDS: `22 <DID>` citire, `19 02 FF` erori. Doar citiri: nimic din 04, 10, 2E, 31, 14, 11, 27, 28, 85.
+- UDS: `22 <DID>` citire, `19 02 FF` erori. Doar citiri: nimic din 04, 10, 2E, 31, 14, 11, 27, 28, 85; din 1.1.114 doar în testele
+  manuale (`@obd`) `10 03` (sesiunea extinsă: valori care în sesiunea implicită răspund „nu există”, căutăm acolo cantitatea
+  injectată) și `10 01`. Scanarea automată rămâne în sesiunea implicită.
 - Răspunsul poate începe cu `7F <serviciul> 78` (așteaptă) sau `7F 22 21` (ocupat): se aruncă, vine răspunsul după.
 - `7F 22 31` = codul nu există; `7F 22 22` = există, dar condiții neîndeplinite; `7F 22 33` = acces refuzat.
 - Mai multe PID-uri OBD pe o cerere: cifra de la sfârșit = numărul de cadre CAN așteptate (`010C0B0F03492`,
