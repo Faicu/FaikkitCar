@@ -285,7 +285,7 @@ final class Obd extends BluetoothGattCallback {
             }
             disconnectQuiet();
             failures++;
-            nextTryAt = SystemClock.elapsedRealtime() + Math.min(120_000, 10_000L * failures);
+            nextTryAt = SystemClock.elapsedRealtime() + Math.min(15_000, 5_000L * failures);
             if (noAnswer) silentFailures++;
             else silentFailures = 0;
             if (silentFailures >= STUCK_FAILURES) unstick();

@@ -158,7 +158,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 - `Obd` (21.11, 1.1.92): legătura permanentă cu adaptorul, **fără comutator** (cererea utilizatorului): cu motorul pornit
   (turația CAN > 300) se conectează singur la adresa știută (`obd/addr`, implicit cea din test), la 60 s după oprirea
   motorului îl eliberează (Car Scanner îl poate lua; adaptorul reapare în scanare după 1–3 min). Fără adaptor: reîncearcă
-  la 10 s … 2 min, în jurnal o dată „OBD: adaptorul nu raspunde”. Init `ATZ ATE0 ATL0 ATS0 ATH0 ATSP6 ATSH7E0`, `0100`.
+  la 5 s … 15 s (din 1.1.115; înainte 10 s … 2 min), în jurnal o dată „OBD: adaptorul nu raspunde”. Init `ATZ ATE0 ATL0 ATS0 ATH0 ATSP6 ATSH7E0`, `0100`.
   Ciclul: `010C0B0F0349` (turație, MAP, aer admis, starea injecției, pedala), la 2 s `0105044406070E`, la 5 min `0101`
   (coduri / martor, în jurnal la schimbare); după 3 eșecuri trece pe PID-uri unul câte unul. Consumul din aerul aspirat:
   MAP × 1,197 L × rpm/120 × VE 0,85 / (R × T) / (14,7 × λ cerut) / 745 g/L; 0 la injecția tăiată (starea 4, pedala în
