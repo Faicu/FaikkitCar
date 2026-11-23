@@ -106,7 +106,7 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 
 | DID | Ce e | Valori citite |
 |---|---|---|
-| **262E / 262F** | **Poziția clapetei de distribuție** (parbriz → picioare → față; probabil motorul pe care îl are eroarea B1091 și angrenajul din spatele unității radio) | parbriz (MAX) 19/00 · AUTO la încălzire 72–85 / 55–6B · doar picioare 96/78 · față + picioare C4/A5 · doar față, AUTO la 18 °C, LO DB/BE (gurile din mijloc deschise la ≥ ~C4) |
+| **262E / 262F** | **Clapeta de distribuție: 262E = poziția reală (al doilea octet), 262F = poziția cerută.** Când merge, 262E ≈ 262F + 0x1D (parbriz 19/00 … față DB/BE). 23.11 18:00, „față” + LO: **262E 89 / 262F BE** = clapeta rămasă pe drum, gurile din mijloc fără aer, B1091 71 din nou activă (stare 09). Motorul pe care îl are B1091 | parbriz (MAX) 19/00 · AUTO la încălzire 72–85 / 55–6B · doar picioare 96/78 · față + picioare C4/A5 · doar față, AUTO la 18 °C, LO DB/BE (gurile din mijloc deschise la ≥ ~C4) |
 | **261E / 261F** | **Clapeta de recirculare** | aer proaspăt 0071 / 59 · recirculare (și LO) 0018 / 00; 263B = 00 → 03–04 odată cu ea |
 | **2601 / 2602 / 2603 / 2604** | **Compresorul / cererea de A/C** | A/C pornit ~67 / 67 / 09 / 0B (cresc ușor la cerere mare); A/C oprit 00 / 00 / 00 / 00 (2600: 00 → 06) |
 | **2617 / 2618** | **Comanda ventilatorului** | minim 22/0A · AUTO 2A/1F–31/32 · HI 45/66 · MAX parbriz 59/9B · ventilator maxim sau LO 7D/FA |
@@ -124,9 +124,9 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 | 2606 / 2607 | 19/00 în AUTO și în distribuțiile manuale (față, picioare); 3F/32 la MAX, recirculare, LO, HI, ventilator minim manual |
 | 2632 / 2633 | 0055/3B AUTO 23 °C · 003C/22 AUTO 18 °C · 001B/00 manual și LO · 00D6/BA MAX · 007D/62 HI |
 
-**Erori:** B1091 71 (activă) / 72 (memorată): motorașul clapetei de distribuție față. După calibrarea din butoane (23.11, ~16:50) `71` a trecut la memorată (stare 8), iar clapeta parcurge toată plaja. Gurile din mijloc le închide calculatorul în AUTO la încălzire (cald cerut); se deschid sub ~18 °C sau cu butonul „față”.
+**Erori:** B1091 71 / 72: motorașul clapetei de distribuție față. După calibrarea din butoane (23.11, ~16:50) `71` a trecut la memorată (stare 8) și clapeta a parcurs toată plaja ~1 h; la 18:00 s-a blocat iar (262E 89 față de 262F BE) și `71` a redevenit activă (09). **Defect intermitent al motorașului / angrenajului**, calibrarea l-a ascuns doar temporar. În AUTO la încălzire calculatorul cere oricum gurile din mijloc închise; se deschid sub ~18 °C sau cu butonul „față”.
 
-**Cum verifici dacă se strică din nou:** citești 262E/262F după ce apeși un buton de distribuție; dacă valoarea nu ajunge în intervalul din tabel (de ex. rămâne ~7D cu „față” apăsat), clapeta nu se mișcă.
+**Cum verifici:** 262E − 262F (al doilea octet) trebuie să fie ~0x19–0x1F; altfel clapeta nu a ajuns unde i s-a cerut.
 
 ## 4. Candidați (bănuiți, neconfirmați)
 
@@ -205,6 +205,7 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
 | 23.11 | Pornire la rece: bord F405 = lichidul de răcire, 202F probabil uleiul (x − 50); motorul 1189–118F scad cu temperatura; TRIP-ul (80,4 / 80,6) și consumul mediu (49,9) NU sunt în codurile bordului citite în sesiunea implicită; climatronicul la 46 % |
+| 23.11 18:00 | Climatronic: 262E = poziția reală, 262F = cea cerută; clapeta blocată iar (89 / BE), B1091 71 activă din nou: motorașul e defect intermitent |
 | 23.11 17:50 | Drumul de test pentru injecție: 20EB/20EC nu sunt cantitatea injectată (nu scad la 0 la injecția tăiată, plafon 11127); 2061/2062 candidatul principal; seria deasă e citită doar o dată pe minut |
 | 23.11 17:00 | Climatronic: clapeta spre față = 262E/262F; B1091 71 nu mai e activă după calibrarea din butoane; centrul închis în AUTO la 23 °C e normal, se deschide la 18 °C |
 | 22.11 seara | Bord 1007 NU e contorul de consum (nu crește la relanti, nu se resetează după 12 h) |
