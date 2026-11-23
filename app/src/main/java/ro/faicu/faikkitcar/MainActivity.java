@@ -815,6 +815,10 @@ public class MainActivity extends Activity {
         toggle(voice, "Avertizare retea mobila", "La 30 s de mers, daca reteaua nu mai e pe LTE only "
                 + "(poate cobori pe 2G, fara internet)", Prefs.netAlertEnabled(this),
                 on -> Prefs.setNetAlertEnabled(this, on));
+        Ui.divider(this, voice);
+        toggle(voice, "Avertizare defecte", "Defectele gasite prin OBD (acum: clapeta de aer a climatronicului blocata), "
+                + "la 30 s de mers sau cand apar in mers, o data pe drum", Prefs.faultAlertEnabled(this),
+                on -> Prefs.setFaultAlertEnabled(this, on));
         Ui.addButton(this, voice, "Asculta salutul acum", Ui.SECONDARY,
                 v -> Speaker.say(this, Greeting.salute(this, CanLink.get(this).temp()), false));
 

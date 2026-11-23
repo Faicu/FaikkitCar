@@ -244,7 +244,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   **Clapeta climatronicului** (23.11): motorașul V426 (B1091) se blochează intermitent (punct mort). Urmărirea
   „clapeta de distribuție” (746, 262E reală / 262F cerută, la 1 min, prima în coadă) → `flap.ts` (`obd_flap`, testat în
   `flap.test.ts`): reală − cerută în afara 0x10–0x28, cu aceeași cerere, la 2 citiri la ≥ 30 s = defect „Climatronic ·
-  clapeta” în `live.obd.faults` până la o citire bună. Fără aplicație nouă (urmărirea merge din 1.1.110).
+  clapeta” în `live.obd.faults` până la o citire bună, cu `detail` (ce înseamnă / ce faci; și B1091 din `DTC_DETAIL`),
+  afișat pe site (`DtcCard`) și în Panel (`renderDtc`). Vocal în mașină (1.1.118): răspunsul la `/api/car/state` are
+  `alerts` [{id, say}] (doar cu OBD pornit); `TripRecorder` le spune la salutul de 30 s (ca rețeaua mobilă) sau imediat
+  dacă apar în mers, o dată pe drum după id; comutator Setări → In mers „Avertizare defecte” (`Prefs.faultAlertEnabled`).
   Urmărirea fără pauză (`every_s` 0, seria deasă a candidaților injecției): serverul o trimite cu `again`, iar mașina
   (din 1.1.117, `Obd.nextPass`) o reia singură imediat; înainte, o trecere pe minut (lista se ia la 60 s). Ține pe loc
   lucrările de după ea (o oprești din site / Panel).

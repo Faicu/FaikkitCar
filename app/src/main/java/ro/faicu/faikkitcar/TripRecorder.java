@@ -67,6 +67,8 @@ final class TripRecorder implements LocationListener {
     private long engineOffSince;
     private boolean greeted;
     private boolean doorAlerted;
+    /** Defectele spuse in drumul asta (o data pe drum fiecare, ca reteaua mobila). */
+    private final java.util.Set<String> spokenAlerts = new java.util.HashSet<>();
 
     private TripRecorder(Context c) {
         this.c = c.getApplicationContext();
@@ -331,6 +333,7 @@ final class TripRecorder implements LocationListener {
         movingMs = 0;
         greeted = false;
         doorAlerted = false;
+        spokenAlerts.clear();
     }
 
     /** Salutul dupa 30 s de mers, avertizarea de usa deschisa si GPS-ul pornit doar cand trebuie. */
@@ -350,13 +353,18 @@ final class TripRecorder implements LocationListener {
             // „LTE only” se pierde uneori dupa somn (01.11): o spunem odata cu salutul.
             boolean netWarn = Prefs.netAlertEnabled(c)
                     && CellSignal.modeCode >= 0 && CellSignal.modeCode != CellSignal.LTE_ONLY;
+            String faults = newAlerts();
+            String extra = (netWarn ? " " + Greeting.networkMode() : "") + (faults.isEmpty() ? "" : " " + faults);
             if (Prefs.greetEnabled(c)) {
-                String text = Greeting.salute(c, can.temp());
-                Speaker.say(c, netWarn ? text + " " + Greeting.networkMode() : text, false);
-            } else if (netWarn) {
-                Speaker.say(c, Greeting.networkMode(), true);
+                Speaker.say(c, Greeting.salute(c, can.temp()) + extra, false);
+            } else if (!extra.isEmpty()) {
+                Speaker.say(c, extra.trim(), true);
             }
             if (netWarn) Prefs.log(c, "Retea mobila: avertizare vorbita, tipul " + CellSignal.modeCode);
+        } else if (greeted) {
+            // Un defect aparut in mers (clapeta se blocheaza din cand in cand): spus imediat, o data.
+            String faults = newAlerts();
+            if (!faults.isEmpty()) Speaker.say(c, faults, false);
         }
 
         java.util.List<Integer> open = can.openDoors();
@@ -367,6 +375,19 @@ final class TripRecorder implements LocationListener {
             Prefs.log(c, "Usa deschisa in mers: " + open);
             if (Prefs.doorAlertEnabled(c)) Speaker.say(c, Greeting.doorOpen(open), true);
         }
+    }
+
+    /** Defectele de la server inca nespuse in drumul asta (si le marcheaza), sau "". */
+    private String newAlerts() {
+        if (!Prefs.faultAlertEnabled(c)) return "";
+        StringBuilder sb = new StringBuilder();
+        for (LiveState.Alert a : LiveState.alerts()) {
+            if (!spokenAlerts.add(a.id)) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(a.say);
+            Prefs.log(c, "Avertizare defect vorbita: " + a.id);
+        }
+        return sb.toString();
     }
 
     private void stopGps() {

@@ -793,6 +793,13 @@ public class MainActivity extends Activity {
             String st = f.optString("state");
             card.addView(Ui.text(this, ("active".equals(st) ? "prezentă acum" : "stored".equals(st) ? "memorată (intermitentă)"
                     : "în așteptare (nu s-a confirmat încă)") + " · apărută " + Fmt.ago(f.optString("since")), 13, Ui.MUTED, false));
+            // Ce inseamna si ce faci, pentru codurile lamurite (23.11: clapeta climatronicului).
+            String detail = f.optString("detail", "");
+            if (!detail.isEmpty()) {
+                TextView d = Ui.text(this, detail, 13, Ui.TEXT, false);
+                d.setPadding(0, dp(this, 4), 0, 0);
+                card.addView(d);
+            }
         }
         String foot = (obd.optBoolean("mil") ? "Martorul motorului e aprins. " : "")
                 + (obd.isNull("checkedAt") ? "" : "Verificat " + Fmt.ago(obd.optString("checkedAt")) + ".");

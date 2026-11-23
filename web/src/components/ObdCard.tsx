@@ -43,6 +43,7 @@ export function DtcCard({ obd }: { obd: Obd }) {
           <p className="text-xs text-muted-foreground">
             {FAULT_STATE[f.state]} · apărută {relativeTime(f.since)}
           </p>
+          {f.detail && <p className="mt-1 text-xs">{f.detail}</p>}
         </div>
       ))}
       <p className="text-xs text-muted-foreground">

@@ -67,10 +67,38 @@ final class LiveState {
                 if (resp != null) fastUntil = resp.optBoolean("fast") ? SystemClock.elapsedRealtime() + 20_000 : 0;
                 // Comutatorul „OBD (teste)” din site / Panel / Setari (lipsa = pornit).
                 if (resp != null) Obd.setEnabled(resp.optBoolean("obd", true));
+                // Defectele de spus vocal (clapeta climatronicului, 23.11); lipsa = niciunul.
+                if (resp != null) setAlerts(resp.optJSONArray("alerts"));
             } finally {
                 busy.set(false);
             }
         });
+    }
+
+    /** Un defect de spus vocal: id-ul (acelasi cat dureaza defectul) si textul. */
+    static final class Alert {
+        final String id, say;
+
+        Alert(String id, String say) {
+            this.id = id;
+            this.say = say;
+        }
+    }
+
+    private static volatile java.util.List<Alert> alerts = java.util.Collections.emptyList();
+
+    static java.util.List<Alert> alerts() {
+        return alerts;
+    }
+
+    private static void setAlerts(org.json.JSONArray a) {
+        java.util.List<Alert> list = new java.util.ArrayList<>();
+        for (int i = 0; a != null && i < a.length(); i++) {
+            JSONObject o = a.optJSONObject(i);
+            if (o == null || o.optString("id").isEmpty() || o.optString("say").isEmpty()) continue;
+            list.add(new Alert(o.optString("id"), o.optString("say")));
+        }
+        alerts = list;
     }
 
     /** Trimite starea; intoarce raspunsul serverului (cmd, apk) sau null. */

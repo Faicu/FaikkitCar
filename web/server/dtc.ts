@@ -183,6 +183,14 @@ const FAMILY: Array<[RegExp, string]> = [
   [/^U/, "Comunicarea între module"],
 ];
 
+/** Ce înseamnă și ce faci, pentru codurile pe care le-am lămurit pe mașina asta (site, Panel). */
+export const DTC_DETAIL: Record<string, string> = {
+  B1091:
+    "Motorașul V426 al clapetei de distribuție față (gurile de aer din mijloc) se oprește în anumite poziții (punct mort, 23.11). "
+    + "O mișcare ușoară a rotiței albe din spatele navigației îl deblochează; calibrarea doar îl mută. De schimbat motorașul V426 "
+    + "(cu potențiometrul G642), apoi calibrarea. Alerta „clapeta” arată când e blocată chiar acum.",
+};
+
 export function describeDtc(code: string): Dtc {
   const text = KNOWN[code];
   if (text) return { code, text, known: true };

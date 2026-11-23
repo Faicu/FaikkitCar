@@ -4,6 +4,7 @@
 // login) și site-ul (web/dist). Rulează direct cu Node ≥ 22.18 (tipurile TS se șterg).
 // ---------------------------------------------------------------------------
 
+import { carAlerts } from "./flap.ts";
 import { obdEnabled, saveObd, setObdEnabled } from "./obd.ts";
 import {
   carScanJobsFor,
@@ -143,6 +144,8 @@ app.post("/api/car/state", async (c) => {
     fast: hasViewer(),
     // `obd` = comutatorul „OBD (teste)”: false = mașina lasă adaptorul și nu citește nimic.
     obd: obdEnabled(),
+    // `alerts` = defectele de spus vocal în mașină (o dată pe drum, după id): clapeta climatronicului (23.11).
+    alerts: obdEnabled() ? carAlerts() : [],
   });
 });
 

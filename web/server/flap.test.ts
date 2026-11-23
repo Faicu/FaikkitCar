@@ -51,7 +51,10 @@ describe("flap", () => {
     expect(readObd().faults.some((f) => f.code === "clapeta")).toBe(false);
     scan.saveScanItems(pair(60, "0089", "BE"));
     expect(readObd().faults.find((f) => f.code === "clapeta")).toMatchObject({ module: "Climatronic", state: "active" });
+    expect(readObd().faults.find((f) => f.code === "clapeta")?.detail).toContain("cerută BE, cea reală 89");
+    expect(flap.carAlerts()).toEqual([{ id: `clapeta:${new Date(at + 300).toISOString()}`, say: expect.stringContaining("Clapeta de aer") }]);
     scan.saveScanItems(pair(120, "00DB", "BE"));
     expect(readObd().faults.some((f) => f.code === "clapeta")).toBe(false);
+    expect(flap.carAlerts()).toEqual([]);
   });
 });

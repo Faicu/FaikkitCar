@@ -76,6 +76,35 @@ export function noteFlapItems(items: Array<{ x?: unknown; s?: unknown; i?: unkno
   }
 }
 
+const hex = (n: number) => n.toString(16).toUpperCase().padStart(2, "0");
+
+/** Defectul pentru cardul de erori (site, Panel) cât clapeta e blocată. */
+export function flapFault(): { module: string; code: string; text: string; known: boolean; state: "active"; since: string; detail: string } | null {
+  const f = readFlap();
+  if (!f?.since) return null;
+  return {
+    module: "Climatronic",
+    code: "clapeta",
+    text: "Clapeta de distribuție față blocată: motorașul V426",
+    known: true,
+    state: "active",
+    since: f.since,
+    detail: `Poziția cerută ${hex(f.demand)}, cea reală ${hex(f.actual)} (când merge, reala e cu ~1D peste). `
+      + `Gurile de aer din mijloc nu primesc aer cum ai cerut. O mișcare ușoară a rotiței albe din spatele navigației `
+      + `o deblochează de obicei; dispare de aici la prima citire bună (urmărirea o verifică la 1 minut).`,
+  };
+}
+
+/** Pentru mașină (răspunsul la /api/car/state): ce se spune vocal, o dată pe drum, cu id-ul defectului. */
+export function carAlerts(): Array<{ id: string; say: string }> {
+  const f = readFlap();
+  if (!f?.since) return [];
+  return [{
+    id: `clapeta:${f.since}`,
+    say: "Atenție! Clapeta de aer din față a climatronicului s-a blocat. Gurile din mijloc nu primesc aer. Motorașul trebuie schimbat.",
+  }];
+}
+
 export function readFlap(): FlapRow | null {
   const r = getDb().prepare(`SELECT at, actual, demand, bad_from, since FROM obd_flap WHERE id = 1`).get() as
     | { at: string; actual: number; demand: number; bad_from: string | null; since: string | null }

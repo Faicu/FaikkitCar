@@ -8,8 +8,8 @@
 // ---------------------------------------------------------------------------
 
 import { getDb } from "./db.ts";
-import { describeDtc, parseDtcs, parseUdsDtcs, UDS_MODULES } from "./dtc.ts";
-import { readFlap } from "./flap.ts";
+import { describeDtc, DTC_DETAIL, parseDtcs, parseUdsDtcs, UDS_MODULES } from "./dtc.ts";
+import { flapFault } from "./flap.ts";
 import { scanRateNow } from "./obd-scan.ts";
 
 export type ObdStatus = "connected" | "searching" | "off" | "disabled";
@@ -30,6 +30,7 @@ export interface ObdFault {
   known: boolean;
   state: "active" | "stored" | "pending"; // defect acum / memorat / în așteptare
   since: string;
+  detail?: string; // ce înseamnă și ce faci (site, Panel)
 }
 
 export interface ObdModule {
@@ -207,24 +208,15 @@ export function readObd(now = Date.now()): ObdLive {
       known: d.known,
       state: r.status & 0x01 ? "active" : r.status & 0x08 ? "stored" : "pending",
       since: r.first_at,
+      ...(DTC_DETAIL[sae] ? { detail: DTC_DETAIL[sae] } : {}),
     };
   });
   const lamp = db.prepare(`SELECT since FROM obd_lamp WHERE id = 1`).get() as { since: string | null } | undefined;
   if (lamp?.since) {
     faults.push({ module: "Bord", code: "bec", text: "Bec ars: vezi pe bord care", known: true, state: "active", since: lamp.since });
   }
-  const flap = readFlap();
-  if (flap?.since) {
-    const hex = (n: number) => n.toString(16).toUpperCase().padStart(2, "0");
-    faults.push({
-      module: "Climatronic",
-      code: "clapeta",
-      text: `Clapeta de distribuție față blocată (cerută ${hex(flap.demand)}, reală ${hex(flap.actual)}): motorașul V426`,
-      known: true,
-      state: "active",
-      since: flap.since,
-    });
-  }
+  const flap = flapFault();
+  if (flap) faults.push(flap);
   // Codurile OBD ale motorului, doar dacă citirea UDS a motorului nu le are deja.
   const engineUds = new Set(udsRows.filter((r) => r.module === "7E0").map((r) => r.code.split(" ")[0]));
   for (const c of codes) {

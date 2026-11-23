@@ -157,6 +157,15 @@ final class Prefs {
         sp(c).edit().putBoolean("door_alert", on).apply();
     }
 
+    /** Defectele gasite prin OBD, spuse vocal (23.11: clapeta climatronicului); de la server, `alerts`. */
+    static boolean faultAlertEnabled(Context c) {
+        return sp(c).getBoolean("fault_alert", true);
+    }
+
+    static void setFaultAlertEnabled(Context c, boolean on) {
+        sp(c).edit().putBoolean("fault_alert", on).apply();
+    }
+
     /** Propunerea actualizarii la pornirea masinii (Updater.offerAtStart). */
     static boolean autoUpdateEnabled(Context c) {
         return sp(c).getBoolean("auto_update", true);
