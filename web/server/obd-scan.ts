@@ -48,6 +48,8 @@ export interface ScanJob {
   parent: number | null;
   everyS: number | null; // watch: la câte secunde se reia
   passAt: string | null; // watch: ultima trecere
+  /** Pentru mașină: urmărirea fără pauză (everyS 0), reluată de ea imediat, fără să aștepte lista. */
+  again?: boolean;
   status: ScanStatus;
   createdAt: string;
   startedAt: string | null;
@@ -271,8 +273,9 @@ export function carScanJobs(max = 3, now = Date.now(), onlyWatch = false): ScanJ
       db.prepare(`UPDATE obd_scan_job SET ids = ?, next = 0 WHERE id = ?`).run(r.ids, r.id);
     }
     // Mașina știe doar range / list / loop: urmărirea e pentru ea o buclă (trecerile au `round`).
+    // Fără pauză (seria deasă, 23.11): mașina o reia singură, altfel trecerile veneau o dată pe minut.
     const j = toJob(r);
-    out.push(j.kind === "watch" ? { ...j, kind: "loop" } : j);
+    out.push(j.kind === "watch" ? { ...j, kind: "loop", ...(j.everyS === 0 ? { again: true } : {}) } : j);
   }
   return out;
 }

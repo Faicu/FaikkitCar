@@ -241,6 +241,9 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   identic). ~40–60 coduri/s la motor; peste 3 DID-uri pe cerere motorul nu răspunde. Serverul măsoară ritmul din progres
   (`noteProgress`, ferestre de 30 s, în memorie) → `etaS`/`endsS` la lucrări (site și Panel: „~9 min · gata peste …”) și
   `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (bord 15, motor 14).
+  Urmărirea fără pauză (`every_s` 0, seria deasă a candidaților injecției): serverul o trimite cu `again`, iar mașina
+  (din 1.1.117, `Obd.nextPass`) o reia singură imediat; înainte, o trecere pe minut (lista se ia la 60 s). Ține pe loc
+  lucrările de după ea (o oprești din site / Panel).
   Stare 23.11: motorul și bordul complete (fiecare cod din 0000–FFFF are o stare), climatronicul **oprit la 46 %** ca
   „Recitire: motor” să ruleze întâi: **ținta utilizatorului e consumul exact (cantitatea injectată)**. Analiza: scripturile
   `web/scripts/obd-analyze/analyze.cjs` (fiecare cod care se schimbă, potrivit liniar cu OBD/CAN din `trip_point`) și

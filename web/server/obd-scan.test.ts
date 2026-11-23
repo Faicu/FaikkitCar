@@ -164,6 +164,10 @@ describe("jobs and results", () => {
     expect(rest.some((j) => j.id === w.id)).toBe(false);
     const back = scan.carScanJobs(3, passAt + 121_000);
     expect(back[0]).toMatchObject({ id: w.id, round: 1, next: 0, ids: scan.WATCH[0].ids });
+    expect(back[0].again).toBeUndefined();
+    // Fără pauză: mașina o reia singură (`again`).
+    const dense = scan.carScanJobs(10, passAt + 121_000).find((j) => scan.WATCH.find((x) => x.label === j.label)?.everyS === 0);
+    expect(dense?.again).toBe(true);
   });
 
   it("records missing codes in groups and re-reads what got no clear answer", () => {

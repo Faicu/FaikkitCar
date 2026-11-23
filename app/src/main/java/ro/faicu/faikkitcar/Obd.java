@@ -325,6 +325,8 @@ final class Obd extends BluetoothGattCallback {
         String svc, kind, label;
         int[] ids;
         boolean parked;
+        /** Urmarirea fara pauza (seria deasa, 23.11): o reluam aici imediat, nu la lista urmatoare. */
+        boolean again;
 
         String key() {
             return id + ":" + round;
@@ -350,6 +352,11 @@ final class Obd extends BluetoothGattCallback {
      * era la ultima lista si ar fi recitit codurile de atunci.
      */
     private final java.util.Map<String, Integer> reachedHere = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Trecerea la care a ajuns aici fiecare urmarire fara pauza: lista de la server poate ramane in
+     * urma (progresul e inca in coada), iar progresul cu o trecere veche serverul il ignora.
+     */
+    private final java.util.Map<Integer, Integer> againRound = new java.util.concurrent.ConcurrentHashMap<>();
     /** range: urmatorul cod; list/loop: urmatorul index. */
     private int scanNext;
     /** Codurile unui grup de 3 care a raspuns: recitite pe rand, ca sa stim al cui e raspunsul. */
@@ -453,6 +460,7 @@ final class Obd extends BluetoothGattCallback {
         j.last = o.optInt("last");
         j.next = o.optInt("next");
         j.parked = o.optBoolean("parked");
+        j.again = o.optBoolean("again");
         org.json.JSONArray ids = o.optJSONArray("ids");
         j.ids = new int[ids == null ? 0 : ids.length()];
         for (int i = 0; i < j.ids.length; i++) j.ids[i] = ids.getInt(i);
@@ -476,6 +484,10 @@ final class Obd extends BluetoothGattCallback {
     /** Lucrarea aleasa devine cea in curs: de unde a ramas (aici sau pe server, cel mai departe). */
     private void startJob(Job j) {
         flushProgress(true);
+        if (j.again) {
+            Integer r = againRound.get(j.id);
+            if (r != null && r > j.round) j.round = r;
+        }
         job = j;
         scanPending.clear();
         pendingTries = 0;
@@ -536,6 +548,24 @@ final class Obd extends BluetoothGattCallback {
         Uploader.kick(c);
     }
 
+    /**
+     * Urmarirea fara pauza: trecerea terminata ajunge la server (trece la urmatoarea), iar aici o
+     * luam de la capat imediat. Inainte (23.11) asteptam lista noua, deci o trecere pe minut.
+     */
+    private void nextPass(Job j) {
+        try {
+            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round)
+                    .put("n", j.ids.length).put("d", 1));
+        } catch (org.json.JSONException ignored) {
+        }
+        reachedHere.remove(j.key());
+        j.round++;
+        againRound.put(j.id, j.round);
+        scanNext = 0;
+        progressSent = -1;
+        scanSilent = 0;
+    }
+
     private void result(Job j, int id, int[] data, int from, int nrc) {
         try {
             org.json.JSONObject o = new org.json.JSONObject().put("t", "r").put("j", j.id).put("x", hex(j.tx, 3))
@@ -594,7 +624,10 @@ final class Obd extends BluetoothGattCallback {
             }
             return;
         }
-        if (job == null || !job.key().equals(j.key())) startJob(j);
+        // O urmarire reluata aici are trecerea inaintea listei de la server: ramane aceeasi lucrare.
+        boolean same = job != null && (job.key().equals(j.key())
+                || (j.again && job.again && job.id == j.id && java.util.Arrays.equals(job.ids, j.ids)));
+        if (!same) startJob(j);
         // Lista de la server se reface la fiecare minut cu obiecte noi: lucram mai departe pe cel in
         // curs (buclele de mai jos compara obiectul; 21.11, cu cel nou scanarea statea dupa un minut).
         j = job;
@@ -617,6 +650,10 @@ final class Obd extends BluetoothGattCallback {
                 } else if (!j.range()) {
                     while (connected && job == j && SystemClock.elapsedRealtime() < end) {
                         if (scanNext >= j.ids.length) {
+                            if (j.again) {
+                                nextPass(j);
+                                continue;
+                            }
                             finishJob("gata");
                             break;
                         }
