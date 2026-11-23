@@ -10,6 +10,7 @@
 import { HTTPException } from "hono/http-exception";
 
 import { getDb } from "./db.ts";
+import { noteFlapItems } from "./flap.ts";
 
 export type ScanSvc = "22" | "01" | "02" | "06" | "09" | "dtc";
 export type ScanKind = "range" | "list" | "loop" | "watch";
@@ -159,6 +160,12 @@ export const SEED: Seed[] = [
  * (OBD-CODURI.md, secțiunea 3) iese din listă (22.11: rezervor, bec, revizie, kilometraje, turație, temperaturi).
  */
 export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
+  {
+    // 23.11: alerta pentru motorașul V426 (B1091, se blochează din când în când): poziția reală și cea cerută
+    // a clapetei de distribuție, la 1 minut, înaintea oricărei alte lucrări (flap.ts).
+    label: "Urmărire: clapeta de distribuție (climatronic)", tx: "746", svc: "22", kind: "watch", ord: 0.05, everyS: 60,
+    ids: [0x262e, 0x262f],
+  },
   {
     label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 120,
     ids: [0x1007, 0x1009, 0x100a, 0x1014, 0x1019, 0x101a, 0x2203, 0x2205, 0x2208, 0x220c, 0x220d, 0x2275,
@@ -387,6 +394,7 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
     db.exec("ROLLBACK");
     throw e;
   }
+  noteFlapItems(items as ScanItem[]);
   return { ok, skipped };
 }
 

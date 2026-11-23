@@ -162,6 +162,8 @@ const KNOWN: Record<string, string> = {
   P2279: "Priză de aer în admisie",
   P2293: "Regulatorul presiunii benzinei: performanță",
   P2563: "Turbo: senzorul de poziție al supapei de reglare",
+  // Climatronic Golf 6 (746), 23.11: motorașul V426 se blochează (punct mort), clapeta nu ajunge unde i se cere.
+  B1091: "Climatronic: motorașul clapetei de distribuție față (V426)",
 };
 
 // După familie, cât nu e în listă (cifrele 2–3 ale codurilor P0 / P2).

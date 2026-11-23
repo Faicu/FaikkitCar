@@ -157,10 +157,10 @@ describe("jobs and results", () => {
     expect(scan.seedWatchJobs()).toBe(0);
     const t0 = Date.parse("2026-11-22T12:00:00Z");
     const [w] = scan.carScanJobs(3, t0);
-    expect(w).toMatchObject({ label: scan.WATCH[0].label, tx: "714", kind: "loop", round: 0, ids: scan.WATCH[0].ids });
+    expect(w).toMatchObject({ label: scan.WATCH[0].label, tx: scan.WATCH[0].tx, kind: "loop", round: 0, ids: scan.WATCH[0].ids });
     scan.saveScanItems([{ t: "p", j: w.id, r: 0, n: w.ids!.length, d: 1 }]);
     const passAt = Date.now();
-    const rest = scan.carScanJobs(10, passAt + 60_000);
+    const rest = scan.carScanJobs(10, passAt + 30_000);
     expect(rest.some((j) => j.id === w.id)).toBe(false);
     const back = scan.carScanJobs(3, passAt + 121_000);
     expect(back[0]).toMatchObject({ id: w.id, round: 1, next: 0, ids: scan.WATCH[0].ids });

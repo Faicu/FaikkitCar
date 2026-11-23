@@ -9,6 +9,7 @@
 
 import { getDb } from "./db.ts";
 import { describeDtc, parseDtcs, parseUdsDtcs, UDS_MODULES } from "./dtc.ts";
+import { readFlap } from "./flap.ts";
 import { scanRateNow } from "./obd-scan.ts";
 
 export type ObdStatus = "connected" | "searching" | "off" | "disabled";
@@ -211,6 +212,18 @@ export function readObd(now = Date.now()): ObdLive {
   const lamp = db.prepare(`SELECT since FROM obd_lamp WHERE id = 1`).get() as { since: string | null } | undefined;
   if (lamp?.since) {
     faults.push({ module: "Bord", code: "bec", text: "Bec ars: vezi pe bord care", known: true, state: "active", since: lamp.since });
+  }
+  const flap = readFlap();
+  if (flap?.since) {
+    const hex = (n: number) => n.toString(16).toUpperCase().padStart(2, "0");
+    faults.push({
+      module: "Climatronic",
+      code: "clapeta",
+      text: `Clapeta de distribuție față blocată (cerută ${hex(flap.demand)}, reală ${hex(flap.actual)}): motorașul V426`,
+      known: true,
+      state: "active",
+      since: flap.since,
+    });
   }
   // Codurile OBD ale motorului, doar dacă citirea UDS a motorului nu le are deja.
   const engineUds = new Set(udsRows.filter((r) => r.module === "7E0").map((r) => r.code.split(" ")[0]));

@@ -34,7 +34,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
 - Node rulează direct `server/index.ts` (Hono, `node:sqlite`; tipurile TS se șterg, deci doar
   sintaxă ștergibilă și importuri cu `.ts`). Site: React + Vite + Tailwind în `web/src`, construit
   în `web/dist`: `npm run build`, apoi `systemctl restart faikkitcar`. Teste: `npx vitest run`
-  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`, `signal.test.ts`, `music.test.ts`), `npx tsc --noEmit`.
+  (`trip-math.test.ts`, `fuel-model.test.ts`, `commute.test.ts`, `unit.test.ts`, `signal.test.ts`, `music.test.ts`, `flap.test.ts`), `npx tsc --noEmit`.
 - `/opt/faikkitcar/.env` (nu în git): `PORT=3001`, `ADMIN_USER`/`ADMIN_PASS` (login site + Panel,
   utilizatorul `Faicu`), `SESSION_SECRET`, `CAR_TOKEN` (= secretul GitHub `VW_LOG_TOKEN`, intră în
   APK), `CAR_TOKEN_OLD` (opțional, doar la o rotire a cheii, cât mașina are aplicația cu cheia veche; scoasă pe 18.10), `CI_TOKEN`
@@ -241,6 +241,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   identic). ~40–60 coduri/s la motor; peste 3 DID-uri pe cerere motorul nu răspunde. Serverul măsoară ritmul din progres
   (`noteProgress`, ferestre de 30 s, în memorie) → `etaS`/`endsS` la lucrări (site și Panel: „~9 min · gata peste …”) și
   `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (bord 15, motor 14).
+  **Clapeta climatronicului** (23.11): motorașul V426 (B1091) se blochează intermitent (punct mort). Urmărirea
+  „clapeta de distribuție” (746, 262E reală / 262F cerută, la 1 min, prima în coadă) → `flap.ts` (`obd_flap`, testat în
+  `flap.test.ts`): reală − cerută în afara 0x10–0x28, cu aceeași cerere, la 2 citiri la ≥ 30 s = defect „Climatronic ·
+  clapeta” în `live.obd.faults` până la o citire bună. Fără aplicație nouă (urmărirea merge din 1.1.110).
   Urmărirea fără pauză (`every_s` 0, seria deasă a candidaților injecției): serverul o trimite cu `again`, iar mașina
   (din 1.1.117, `Obd.nextPass`) o reia singură imediat; înainte, o trecere pe minut (lista se ia la 60 s). Ține pe loc
   lucrările de după ea (o oprești din site / Panel).

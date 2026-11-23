@@ -296,6 +296,17 @@ export function getDb(): DatabaseSync {
       since TEXT
     );
 
+    -- Clapeta de distribuție față a climatronicului (262E reală / 262F cerută, un rând; flap.ts):
+    -- bad_from = prima citire nepotrivită, since = blocată confirmat (NULL = merge).
+    CREATE TABLE IF NOT EXISTS obd_flap (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      at TEXT NOT NULL,
+      actual INTEGER NOT NULL,
+      demand INTEGER NOT NULL,
+      bad_from TEXT,
+      since TEXT
+    );
+
     -- Setări simple (cheie → valoare): obd_enabled = comutatorul „OBD (teste)” („0” = oprit).
     CREATE TABLE IF NOT EXISTS setting (
       key TEXT PRIMARY KEY,
