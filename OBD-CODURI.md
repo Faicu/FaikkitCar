@@ -130,6 +130,8 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 
 Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub traversa metalică a bordului): `docs/foto/2026-11-23-climatronic-rotita-clapeta-distributie.jpg`. Motorașul nu se vede de acolo.
 
+**Decizia utilizatorului (23.11):** motorașul nu se schimbă (montajul cere planșa de bord jos); se descurcă cu butonul „față” / rotița albă, iar alerta „clapeta” îl anunță când se blochează.
+
 **Cum verifici:** 262E − 262F (al doilea octet) trebuie să fie ~0x19–0x1F; altfel clapeta nu a ajuns unde i s-a cerut. **Alerta automată** (23.11): urmărirea „clapeta de distribuție” le citește la 1 minut; o nepotrivire cu aceeași cerere la ≥ 30 s apare pe site / Panel ca „Climatronic · clapeta” (server `flap.ts`).
 
 ## 4. Candidați (bănuiți, neconfirmați)
