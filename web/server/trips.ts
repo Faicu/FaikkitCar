@@ -106,6 +106,7 @@ const HISTORY_DAYS = 400;
 // Plecarea e locul unde a parcat la sfârșitul drumului anterior, dacă primul fix GPS e la
 // cel mult atât de el (GPS-ul prinde semnal uneori abia după câteva sute de metri).
 const PARKED_MATCH_KM = 0.3;
+const PARKED_MATCH_NOFIX_KM = 1;
 
 function num(x: unknown): number | null {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
@@ -290,8 +291,12 @@ const allTrips = memo((): Trip[] => {
     cold = m.coldEnd;
     endedAt = Date.parse(m.end);
     // Unde a plecat: unde a parcat ultima dată, dacă primul fix e aproape (fix întârziat).
+    // Fără GPS la început (pornire la rece) primul fix poate fi mai departe: ~1 km.
+    const noFixAtStart = pos(r[0]) === null;
     const from =
-      parkedAt && m.startPos && haversineKm(parkedAt, m.startPos) <= PARKED_MATCH_KM
+      parkedAt &&
+      m.startPos &&
+      haversineKm(parkedAt, m.startPos) <= (noFixAtStart ? PARKED_MATCH_NOFIX_KM : PARKED_MATCH_KM)
         ? parkedAt
         : m.startPos;
     parkedAt = m.endPos ?? parkedAt;
