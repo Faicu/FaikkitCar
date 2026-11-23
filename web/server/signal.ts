@@ -242,7 +242,8 @@ export function summarizeSignal(rows: SignalRow[], since: string): SignalSummary
     bands: [...bandCount]
       .sort((a, b) => b[1] - a[1])
       .map(([band, c]) => ({ band, share: share(c), sig: median(bandSig.get(band) ?? []) })),
-    ops: [...opCount].sort((a, b) => b[1] - a[1]).map(([op, c]) => ({ op, share: share(c) })),
+    // Sub 1% din timp nu e „rețeaua ta”: 04.11, 40 s pe o celulă raportată Orange (B28), cartela fiind Digi.
+    ops: [...opCount].sort((a, b) => b[1] - a[1]).map(([op, c]) => ({ op, share: share(c) })).filter((o) => o.share >= 0.01),
     cells,
     zones: zones.reverse().slice(0, 20),
   };
