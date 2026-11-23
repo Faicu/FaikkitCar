@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 23.11.2026, 17:20 (clapeta climatronicului: 262E/262F; B1091 nu mai e activă după calibrare)
+**Ultima actualizare:** 23.11.2026, 18:00 (clapeta climatronicului: 262E/262F; B1091 nu mai e activă după calibrare)
 
 ---
 
@@ -107,6 +107,20 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 
 **23.11, 17:00–17:15, parcat, motorul pornit, apăsat butoanele (citirea celor 91 de coduri cu valori, 22XXXX pe 746/7B0):**
 **262E/262F = poziția clapetei de distribuție spre față (gurile din mijloc și laterale)**. 262E (octetul al doilea) / 262F: AUTO la 23 °C și 7 °C afară 7D/60 (gurile din mijloc închise: aerul la parbriz și picioare), doar picioare 96/78, față + picioare C4/A5, doar față DB/BE, **AUTO la 18 °C DB/BE** (gurile din mijloc deschise, utilizatorul a confirmat aerul). 2632/2633 (0051/3B în AUTO la 23 °C, 003C/22 la 18 °C, 001B/00 în orice mod manual) = alt reglaj legat de AUTO / temperatura cerută, nu poziția clapetei. Restul codurilor 2600–2655 se schimbă singure (temperaturi) sau cu câteva unități. Citirile brute: `/root/clima-{auto,fata,fata-picioare,picioare,auto18}.txt`.
+
+**23.11, a doua serie (aceleași condiții, 91 de coduri, stări: AUTO 23 °C, MAX parbriz, recirculare, A/C oprit, LO, HI, ventilator minim / maxim manual):**
+
+| DID | Ce e | Valori |
+|---|---|---|
+| 262E / 262F | clapeta de distribuție spre față | parbriz 19/00 · AUTO cald 7D/60 · picioare 96/78 · față + picioare C4/A5 · față și AUTO la 18 °C / LO DB/BE |
+| 261E / 261F | clapeta de recirculare | aer proaspăt 0071/59 · recirculare (și LO) 0018/00; 263B = 00 → 03–04 odată cu ea |
+| 2601–2604 | compresorul / cererea A/C | A/C pornit 67/67/09/0B ; A/C oprit 00 / 00 / 00 / 00 (2600: 00 → 06) |
+| 2617 / 2618 | comanda ventilatorului | minim 22/0A · AUTO 2A/1F–31/32 · HI 45/66 · MAX parbriz 59/9B · LO cu ventilator mare 7D/FA |
+| 2622/2623 (stânga), 2626/2627 (dreapta) | clapetele de temperatură (ipoteză probabilă) | LO 17/00 și 1A/00 · A/C oprit BF/A3 și C9/AE · AUTO 23 °C E4/C6 și E0/C7 · HI E6/C8 și E3/C8; în AUTO urmăresc ce cere calculatorul, se mișcă cu temperatura cabinei |
+| 2606 / 2607 | neclar | 19/00 în AUTO și moduri de distribuție manuale; 3F/32 la MAX, recirculare, LO, HI, ventilator minim manual |
+| 2632 / 2633 | neclar | 0055/3B AUTO 23 °C · 003C/22 AUTO 18 °C · 001B/00 manual și LO · 00D6/BA MAX · 007D/62 HI |
+
+Fișierele brute: `/root/clima-*.txt`.
 
 ## 4. Candidați (bănuiți, neconfirmați)
 
