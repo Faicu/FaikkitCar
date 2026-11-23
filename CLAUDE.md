@@ -261,7 +261,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
 - **21.11 seara, prima pornire cu 1.1.103** (de la 1.1.99, mașina nu primise 1.1.100–1.1.102): stiva Bluetooth a navigației
   rămăsese blocată (adaptorul apărea în `@bluetooth` la −46 dBm, dar orice `connectGatt` expira fără callback, și din
   `@obd`; „cod 0”); `@obd reset` a rezolvat-o (conectat la ~20 s). Din 1.1.104 `Obd.unstick()`: după 4 conectări la rând
-  fără niciun răspuns (`noAnswer`), dacă adaptorul se vede în scanarea BLE (8 s), oprește și pornește Bluetooth-ul Android,
+  fără niciun răspuns (`noAnswer`), oprește și pornește Bluetooth-ul Android,
   cel mult o dată la 30 min (fără adaptor nu face nimic; în jurnal „OBD: Bluetooth repornit …” / „nu se vede”).
   Tot atunci: cererile cu mai multe PID-uri cu „1” la sfârșit (1.1.100) primeau doar primul cadru CAN (turația și MAP,
   fără aer / injecție / pedală, deci niciun litru OBD pe puncte); cifra = numărul de cadre: `010C0B0F03492` (13 octeți,

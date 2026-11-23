@@ -1026,12 +1026,12 @@ final class Obd extends BluetoothGattCallback {
         if (unstickAt != 0 && now - unstickAt < UNSTICK_EVERY_MS) return;
         unstickAt = now;
         String addr = c.getSharedPreferences("obd", Context.MODE_PRIVATE).getString("addr", DEFAULT_ADDR);
-        if (!advertising(addr)) {
-            Prefs.log(c, "OBD: adaptorul nu se vede in scanare, nu repornesc Bluetooth-ul");
-            return;
-        }
+        // 23.11: scanarea de 8 s nu l-a gasit la 11:01, desi la 11:09 era la -52 dBm si doar stiva era blocata;
+        // reporneste oricum (cel mult o data la 30 min), scanarea doar intra in jurnal.
+        boolean seen = advertising(addr);
+        if (!seen) Prefs.log(c, "OBD: adaptorul nu se vede in scanare, repornesc Bluetooth-ul oricum");
         String r = ObdProbe.reset(c);
-        Prefs.log(c, "OBD: Bluetooth repornit (adaptorul se vedea, dar nu accepta legatura): " + r.replace("\n", "; "));
+        Prefs.log(c, "OBD: Bluetooth repornit (" + (seen ? "adaptorul se vedea" : "adaptorul nu se vedea") + ", dar nu accepta legatura): " + r.replace("\n", "; "));
         failures = 0;
         silentFailures = 0;
         failLogged = false;
