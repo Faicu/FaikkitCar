@@ -128,6 +128,8 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 
 **Diagnostic 23.11 seara:** motorașul se oprește în anumite poziții fără niciun zgomot și pornește din nou după o mișcare mică a rotiței cu mâna (când se aude, se și mișcă; angrenajul nu sare) = punct mort în motoraș (perii / colector). De schimbat: **V426**, motorul clapetei de distribuție față, cu potențiometrul G642 (manualul Golf 6 Climatronic: se scoate planșa de bord, apoi „basic setting” cu tester; calibrarea din butoane + 262E/262F pentru verificare).
 
+Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub traversa metalică a bordului): `docs/foto/2026-11-23-climatronic-rotita-clapeta-distributie.jpg`. Motorașul nu se vede de acolo.
+
 **Cum verifici:** 262E − 262F (al doilea octet) trebuie să fie ~0x19–0x1F; altfel clapeta nu a ajuns unde i s-a cerut.
 
 ## 4. Candidați (bănuiți, neconfirmați)
