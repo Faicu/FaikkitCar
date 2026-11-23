@@ -236,6 +236,17 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   suportat nu răspunde, nu e „pierdut”); o buclă / urmărire oprită de utilizator rămâne oprită după trecere; din 1.1.111
   o listă (urmărire, recitire) la care 5 coduri la rând nu primesc niciun răspuns trece modulul la „tace” până la
   reconectare (altfel bordul tăcut ar fi ținut scanarea pe loc ~1,5 min la fiecare 2 min).
+  **Scanarea rapidă** (1.1.113, 22.11): cererea `22` de grup cu cifra „1” la sfârșit (36 ms în loc de 244); din ea se
+  acceptă doar `7F 22 31`, orice altceva se recitește fără cifră (verificat pe motor 0000–21FC față de o copie a bazei:
+  identic). ~40–60 coduri/s la motor; peste 3 DID-uri pe cerere motorul nu răspunde. Serverul măsoară ritmul din progres
+  (`noteProgress`, ferestre de 30 s, în memorie) → `etaS`/`endsS` la lucrări (site și Panel: „~9 min · gata peste …”) și
+  `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (bord 15, motor 14).
+  Stare 23.11: motorul și bordul complete (fiecare cod din 0000–FFFF are o stare), climatronicul **oprit la 46 %** ca
+  „Recitire: motor” să ruleze întâi: **ținta utilizatorului e consumul exact (cantitatea injectată)**. Analiza: scripturile
+  `web/scripts/obd-analyze/analyze.cjs` (fiecare cod care se schimbă, potrivit liniar cu OBD/CAN din `trip_point`) și
+  `series.cjs` (seria unui cod cu OBD/CAN alături): `runuser -u faikkitcar -- node web/scripts/obd-analyze/analyze.cjs
+  data/faikkitcar.db 7E0 5`. Dacă bucla nu găsește cantitatea injectată: testul cu sesiunea extinsă (`@obd 1003 22…`,
+  permisă din 1.1.114 doar în testele manuale).
 - **Totul cu OBD e de test, separat de restul (cererea utilizatorului, 21.11):** fără adaptor sau cu comutatorul oprit,
   călătoriile, costurile și aplicațiile merg ca înainte. Călătoriile și consumul vin din GPS + CAN; litrii OBD doar se
   strâng pe puncte (`Obd.take()` → null când e oprit). Nu se leagă nimic de bază de OBD: coada punctelor (`PointQueue`)
