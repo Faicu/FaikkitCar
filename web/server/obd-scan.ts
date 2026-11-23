@@ -208,16 +208,6 @@ function resting(r: Pick<JobRow, "kind" | "every_s" | "pass_at">, now: number): 
   return r.kind === "watch" && r.pass_at !== null && now - Date.parse(r.pass_at) < (r.every_s ?? 0) * 1000;
 }
 
-/**
- * Lucrările pentru mașină după ce știe aplicația: `absent` = trimite și codurile care nu există
- * (`?cap=absent`, 1.1.110+). Cele mai vechi primesc doar urmăririle (liste fixe): o scanare pe
- * interval cu ele ar lăsa iar goluri neștiute (22.11).
- */
-export function carScanJobsFor(absent: boolean, max = 3, now = Date.now()): ScanJob[] {
-  if (absent) return carScanJobs(max, now);
-  return carScanJobs(max, now, true);
-}
-
 /** Pune ordinea de la început, o singură dată (tabela goală). */
 export function seedScanJobs(now = new Date().toISOString()): number {
   const db = getDb();
@@ -264,13 +254,12 @@ function catalogIds(tx: string, svc: string): number[] {
  * pe toată trecerea: progresul e un index în ea); până are ceva în catalog (modulul nescanat
  * încă) e sărită.
  */
-export function carScanJobs(max = 3, now = Date.now(), onlyWatch = false): ScanJob[] {
+export function carScanJobs(max = 3, now = Date.now()): ScanJob[] {
   const db = getDb();
   const out: ScanJob[] = [];
   for (const r of rows()) {
     if (out.length >= max) break;
     if (r.status !== "queued" && r.status !== "running") continue;
-    if (onlyWatch && r.kind !== "watch") continue;
     if (resting(r, now)) continue;
     if (r.kind === "loop" && (!r.ids || r.ids === "[]")) {
       const ids = catalogIds(r.tx, r.svc);

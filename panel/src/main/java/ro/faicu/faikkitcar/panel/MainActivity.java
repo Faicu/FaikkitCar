@@ -502,7 +502,7 @@ public class MainActivity extends Activity {
             scroll.post(() -> scroll.scrollTo(0, 0));
             return;
         }
-        String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|"
+        String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|" + Store.obdTestsOpen(this) + "|"
                 + (newerApk != null) + "|" + Updater.silentRefused(this) + "|"
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == UNIT ? live + "|" + unitHistoryAt + "|" + signalAt + "|" + signalDays
@@ -752,23 +752,44 @@ public class MainActivity extends Activity {
         card.addView(row, rlp);
     }
 
-    /** Fila Navigatie: performanta navigatiei Teyes, din aceeasi stare live ca Acum. */
+    /**
+     * Fila Navigatie: erorile masinii intai, apoi performanta navigatiei Teyes (aceeasi stare live ca
+     * Acum) si semnalul; adaptorul OBD si scanarea (de test) stranse jos, inchise implicit (ca pe site).
+     */
     private void renderUnit() {
         if (live == null) {
             Ui.hint(this, content, "Se încarcă...");
             return;
         }
+        renderDtc();
         JSONObject unit = live.optJSONObject("unit");
         if (unit == null) {
-            Ui.hint(this, Ui.card(this, content), "Nicio măsurare încă: apare de la FaikkitCar 1.1.62, cât navigația e trează.");
+            Ui.hint(this, Ui.card(this, content), "Nicio măsurare încă: apare cât navigația e trează.");
         } else {
             UnitCard.render(this, content, unit, live.optJSONObject("unitHealth"), unitHistory);
             loadUnitHistory();
         }
-        renderDtc();
-        renderObd();
         renderSignal();
         loadSignal();
+        renderObdTests();
+    }
+
+    /** Antetul „Teste OBD” (atingerea il deschide / inchide) si, deschis, adaptorul si scanarea. */
+    private void renderObdTests() {
+        JSONObject obd = live.optJSONObject("obd");
+        if (obd == null) return;
+        boolean open = Store.obdTestsOpen(this);
+        String st = obd.isNull("status") ? "" : obd.optString("status");
+        String status = !obd.optBoolean("enabled", true) ? "oprit"
+                : "connected".equals(st) ? "conectat" : "searching".equals(st) ? "caută adaptorul"
+                : "off".equals(st) ? "motor oprit" : "fără semnal";
+        LinearLayout head = Ui.card(this, content);
+        head.addView(Ui.text(this, "Teste OBD · " + status + (open ? "  ▴" : "  ▾"), 16, Ui.TEXT, true));
+        head.setOnClickListener(v -> {
+            Store.setObdTestsOpen(this, !open);
+            render();
+        });
+        if (open) renderObd();
     }
 
     /**
@@ -977,7 +998,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (s.optInt("points") == 0) {
-            Ui.hint(this, card, "Nicio măsurare încă: apare de la FaikkitCar 1.1.64, pe drumurile făcute de atunci.");
+            Ui.hint(this, card, "Nicio măsurare încă în perioada aleasă.");
             return;
         }
         double off = s.optDouble("offline", 0);

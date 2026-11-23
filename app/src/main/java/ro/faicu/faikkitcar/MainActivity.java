@@ -828,10 +828,13 @@ public class MainActivity extends Activity {
                 + "atingere (Instalati) la ~1 minut dupa pornirea masinii sau imediat ce apare, daca e contactul pus",
                 Prefs.autoUpdateEnabled(this),
                 on -> Prefs.setAutoUpdateEnabled(this, on));
-        Ui.hint(this, sys, "Afisare peste alte aplicatii: " + (Updater.canShowLater(this)
-                ? "data (ok)"
-                : "NU. Fara ea, confirmarea apare doar imediat la pornire"));
-        if (!Updater.canShowLater(this)) {
+        // Permisiunile si setarile Android: cele in regula pe un singur rand, doar ce lipseste cu
+        // explicatie si buton (cererea utilizatorului, 01.11 si 23.11: fara aglomeratie).
+        List<String> ok = new ArrayList<>();
+        if (Updater.canShowLater(this)) {
+            ok.add("afisare peste aplicatii");
+        } else {
+            Ui.hint(this, sys, "Afisare peste alte aplicatii: NU. Fara ea, confirmarea actualizarii apare doar imediat la pornire");
             Ui.addButton(this, sys, "Afisare peste alte aplicatii", Ui.SECONDARY, v -> {
                 try {
                     startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -841,18 +844,19 @@ public class MainActivity extends Activity {
                 }
             });
         }
-        Ui.hint(this, sys, "Acces la notificari: " + (KeepAliveListener.granted(this)
-                ? "dat (ok): prioritate mai mare, repornire de catre sistem"
-                : "NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie (notificarile nu se citesc)"));
-        // Butoanele apar doar cand e ceva de rezolvat (cererea utilizatorului, 01.11).
-        if (!KeepAliveListener.granted(this)) {
+        if (KeepAliveListener.granted(this)) {
+            ok.add("acces la notificari");
+        } else {
+            Ui.hint(this, sys, "Acces la notificari: NU. Da-l ca Android sa nu ne omoare cand ramane fara memorie "
+                    + "(notificarile nu se citesc)");
             Ui.addButton(this, sys, "Acces la notificari", Ui.SECONDARY, v -> startActivity(
                     new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
         }
-        Ui.hint(this, sys, "Acces la datele de utilizare: " + (Music.usageGranted(this)
-                ? "dat (ok): dupa o piesa pornita din Panel revine aplicatia de dinainte (Waze)"
-                : "NU. Da-l ca dupa o piesa pornita din Panel sa revina aplicatia de dinainte (Waze), nu ecranul principal"));
-        if (!Music.usageGranted(this)) {
+        if (Music.usageGranted(this)) {
+            ok.add("date de utilizare");
+        } else {
+            Ui.hint(this, sys, "Acces la datele de utilizare: NU. Da-l ca dupa o piesa pornita din Panel sa revina "
+                    + "aplicatia de dinainte (Waze), nu ecranul principal");
             Ui.addButton(this, sys, "Acces la datele de utilizare", Ui.SECONDARY, v -> {
                 try {
                     startActivity(new Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS));
@@ -861,36 +865,23 @@ public class MainActivity extends Activity {
                 }
             });
         }
-        // Adaptorul OBD (teste): legatura e automata cu motorul pornit; comutatorul (pornit implicit,
-        // tinut pe server, ca in Panel si pe site) il opreste de tot, ex. pentru Car Scanner.
-        Ui.hint(this, sys, "Adaptor OBD (teste): " + Obd.statusText());
-        boolean obdOn = Obd.enabled();
-        Ui.addButton(this, sys, obdOn ? "Opreste OBD" : "Porneste OBD", Ui.SECONDARY, v -> {
-            new Thread(() -> {
-                boolean ok = Obd.requestEnabled(!obdOn);
-                runOnUiThread(() -> {
-                    toast(!ok ? "Fara legatura cu serverul, incearca din nou"
-                            : obdOn ? "OBD oprit: adaptorul e liber (Car Scanner)" : "OBD pornit");
-                    refresh();
-                });
-            }).start();
-        });
-        Ui.hint(this, sys, "Optimizare baterie: " + (batteryOk() ? "dezactivata (ok)" : "ACTIVA"));
-        if (!batteryOk()) Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
-        toggle(sys, "Comenzi de la distanta (teste)", "Lasa serverul sa ruleze comenzi pe navigatie, "
-                + "fara root, pentru diagnostic. Porneste-l doar cand facem teste; fiecare comanda apare in jurnal",
-                Prefs.remoteCmdEnabled(this), on -> {
-                    Prefs.setRemoteCmdEnabled(this, on);
-                    Prefs.log(this, "Comenzi de la distanta: " + (on ? "pornite" : "oprite"));
-                });
+        if (batteryOk()) {
+            ok.add("optimizarea bateriei oprita");
+        } else {
+            Ui.hint(this, sys, "Optimizare baterie: ACTIVA");
+            Ui.addButton(this, sys, "Optimizarea bateriei", Ui.SECONDARY, v -> askBattery());
+        }
         // Pe drumuri cu 4G slab, modemul coboara pe 2G („G”), unde nu se incarca nimic. Cu „LTE only”
         // ramane pe 4G. Setarile Teyes nu au mereu optiunea; ecranul ascuns „Informatii telefon” o are.
         String mode = CellSignal.networkMode(this);
-        Ui.hint(this, sys, "Retea mobila, tipul preferat: " + mode + (mode.contains("LTE only") ? " (ok)"
-                : ". Pentru internet fara caderi pe 2G alege „LTE only” in ecranul de mai jos"));
-        if (!mode.contains("LTE only")) {
+        if (mode.contains("LTE only")) {
+            ok.add("retea LTE only");
+        } else {
+            Ui.hint(this, sys, "Retea mobila, tipul preferat: " + mode
+                    + ". Pentru internet fara caderi pe 2G alege „LTE only” in ecranul de mai jos");
             Ui.addButton(this, sys, "Informatii telefon (tipul de retea)", Ui.SECONDARY, v -> CellSignal.openRadioInfo(this));
         }
+        if (!ok.isEmpty()) Ui.hint(this, sys, "In regula: " + String.join(", ", ok));
         if (!serviceRunning()) {
             Ui.hint(this, sys, "Serviciul: OPRIT");
             Ui.addButton(this, sys, "Porneste serviciul", Ui.SECONDARY, v -> {
@@ -899,6 +890,30 @@ public class MainActivity extends Activity {
                 ui.postDelayed(this::refresh, 800);
             });
         }
+
+        // Ce tine de teste, separat si jos: adaptorul OBD, comenzile de la distanta, sonda CAN.
+        LinearLayout tests = Ui.card(this, col);
+        Ui.title(this, tests, "Teste");
+        // Adaptorul OBD: legatura e automata cu motorul pornit; comutatorul (pornit implicit, tinut pe
+        // server, ca in Panel si pe site) il opreste de tot, ex. pentru Car Scanner.
+        Ui.hint(this, tests, "Adaptor OBD: " + Obd.statusText());
+        boolean obdOn = Obd.enabled();
+        Ui.addButton(this, tests, obdOn ? "Opreste OBD" : "Porneste OBD", Ui.SECONDARY, v -> {
+            new Thread(() -> {
+                boolean ok2 = Obd.requestEnabled(!obdOn);
+                runOnUiThread(() -> {
+                    toast(!ok2 ? "Fara legatura cu serverul, incearca din nou"
+                            : obdOn ? "OBD oprit: adaptorul e liber (Car Scanner)" : "OBD pornit");
+                    refresh();
+                });
+            }).start();
+        });
+        toggle(tests, "Comenzi de la distanta", "Lasa serverul sa ruleze comenzi pe navigatie, "
+                + "fara root, pentru diagnostic. Porneste-l doar cand facem teste; fiecare comanda apare in jurnal",
+                Prefs.remoteCmdEnabled(this), on -> {
+                    Prefs.setRemoteCmdEnabled(this, on);
+                    Prefs.log(this, "Comenzi de la distanta: " + (on ? "pornite" : "oprite"));
+                });
 
         buildProbe(col);
     }

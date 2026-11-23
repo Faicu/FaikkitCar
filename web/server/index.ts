@@ -7,7 +7,7 @@
 import { carAlerts } from "./flap.ts";
 import { obdEnabled, saveObd, setObdEnabled } from "./obd.ts";
 import {
-  carScanJobsFor,
+  carScanJobs,
   readScanCodes,
   readScanOverview,
   readScanSamples,
@@ -166,16 +166,14 @@ app.post("/api/car/music", async (c) => {
 // Cu ?ack=<ultima comandă primită>&epoch=<al serverului>: comenzile rămân până la confirmare.
 app.get("/api/car/music/wait", async (c) => {
   requireCarToken(c);
-  const ack = c.req.query("ack");
-  if (ack === undefined) return c.json(await takeMusic());
-  const cmds = await takeMusic(Number(ack) || 0, Number(c.req.query("epoch")) || 0);
+  const cmds = await takeMusic(Number(c.req.query("ack")) || 0, Number(c.req.query("epoch")) || 0);
   return c.json({ epoch: MUSIC_EPOCH, cmds });
 });
 
 // Scanarea OBD (obd-scan.ts): lucrările de făcut, în ordine, și rezultatele din coada mașinii.
 app.get("/api/car/obd/scan", (c) => {
   requireCarToken(c);
-  return c.json({ jobs: carScanJobsFor((c.req.query("cap") ?? "").split(",").includes("absent")) });
+  return c.json({ jobs: carScanJobs() });
 });
 
 app.post("/api/car/obd/scan", async (c) => {

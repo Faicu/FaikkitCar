@@ -46,7 +46,7 @@ export function SignalCard() {
         <div className="h-40 skeleton-sweep rounded-2xl" />
       ) : data.points === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nicio măsurare încă: apare de la FaikkitCar 1.1.64, pe drumurile făcute de atunci.
+          Nicio măsurare încă în perioada aleasă.
         </p>
       ) : (
         <SignalBody data={data} />

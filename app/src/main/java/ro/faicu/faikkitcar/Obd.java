@@ -404,8 +404,7 @@ final class Obd extends BluetoothGattCallback {
         Thread t = new Thread(() -> {
             java.net.HttpURLConnection conn = null;
             try {
-                // Serverul da scanarile pe intervale doar aplicatiilor care noteaza si codurile inexistente.
-                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN + "?cap=absent").openConnection();
+                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN).openConnection();
                 conn.setConnectTimeout(10_000);
                 conn.setReadTimeout(20_000);
                 conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);

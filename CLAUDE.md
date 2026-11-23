@@ -11,9 +11,8 @@ ums512_1h10_Natv`, ecran lat, fără selector de fișiere).
 ## Proiectul
 
 Repo `Faicu/FaikkitCar` (fost `welcometovw`/„VW Welcome”), pe server în `/opt/faikkitcar`.
-Separat complet de FaikkitBox (`/opt/faikkitbox`): nimic despre mașină acolo. Migrarea din
-Importul datelor din FaikkitBox în FaikkitCar s-a încheiat pe 01.10.2026 (`web/scripts/import-faikkitbox.ts`;
-copie de siguranță în `/root/backups/faikkitcar-20261001-215730`); FaikkitBox rămâne o aplicație
+Separat complet de FaikkitBox (`/opt/faikkitbox`): nimic despre mașină acolo. Importul datelor din
+FaikkitBox s-a încheiat pe 01.10.2026 (`web/scripts/import-faikkitbox.ts`); FaikkitBox rămâne o aplicație
 activă, separată. Remote Control: `claude.service` (sursa în
 `/opt/faikkit/deploy`) pornește câte o sesiune tmux pentru fiecare proiect.
 
@@ -60,8 +59,8 @@ activă, separată. Remote Control: `claude.service` (sursa în
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
 - Pagini: Acum (`Now.tsx`: starea, călătoria în curs cu harta live `LiveTripMap.tsx`,
   rezervorul, „Unde e mașina” când nu merge, rândul „Navigația” din `live.unitHealth`), Călătorii
-  (`Trips.tsx` + `TripView.tsx`), Costuri (`Costs.tsx`), Navigație (`Unit.tsx` + `UnitCard.tsx`,
-  aceeași stare live), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
+  (`Trips.tsx` + `TripView.tsx`), Costuri (`Costs.tsx`), Navigație (`Unit.tsx`: erorile, `UnitCard.tsx` cu
+  aceeași stare live, semnalul, apoi „Teste OBD” închis implicit; la fel în Panel, `renderObdTests`; 23.11), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
 - Testarea (03.11, cererea utilizatorului): fără emulator și fără servere/simulatoare de test. Utilizatorul
   testează efectiv aplicațiile, iar pe navigație se verifică prin comenzile la distanță (`car-cmd.ts`).
   Emulatorul și imaginile lui au fost șterse; rămân doar uneltele de build. Verificări locale: `npx vitest run`,
@@ -227,7 +226,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   orice cod e deci bun / refuzat / lent (`obd_code`) sau inexistent (`obd_absent`), iar ce nu e în niciuna n-a primit
   răspuns. La sfârșitul unui interval, `unresolved()` (lente + negăsite nicăieri) intră în recitirea doar pe loc. Aplicațiile
   fără `?cap=absent` la `GET /api/car/obd/scan` primesc doar urmăririle (`carScanJobsFor`). Progresul cu altă trecere
-  (`r` ≠ `round`) e ignorat la orice lucrare. Refăcute pe 22.11 (copie `/root/backups/faikkitcar-before-requeue-20261122.db`):
+  (`r` ≠ `round`) e ignorat la orice lucrare. Refăcute pe 22.11:
   motorul de la 0000 (trecerea 1: 0000–469C fuseseră scanate fără inexistente și cu grupuri sărite; codurile găsite rămân),
   climatronicul 0000–FFFF (0000–0A3A importat din scanarea veche din aplicație, care sărea la fel), bordul încă o dată
   0000–FFFF (lucrarea 14). Pe site / Panel la module: „N verificate că nu există”. Ordinea de acum (22.11, utilizatorul):
@@ -248,6 +247,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   afișat pe site (`DtcCard`) și în Panel (`renderDtc`). Vocal în mașină (1.1.118): răspunsul la `/api/car/state` are
   `alerts` [{id, say}] (doar cu OBD pornit); `TripRecorder` le spune la salutul de 30 s (ca rețeaua mobilă) sau imediat
   dacă apar în mers, o dată pe drum după id; comutator Setări → In mers „Avertizare defecte” (`Prefs.faultAlertEnabled`).
+  Setări → Sistem (23.11): permisiunile în regulă pe un singur rând, doar ce lipsește cu buton; OBD și comenzile de la
+  distanță în cardul „Teste”. Serverul nu mai are ramuri pentru aplicațiile vechi (`?cap=absent`, muzica fără `ack`).
   Urmărirea fără pauză (`every_s` 0, seria deasă a candidaților injecției): serverul o trimite cu `again`, iar mașina
   (din 1.1.117, `Obd.nextPass`) o reia singură imediat; înainte, o trecere pe minut (lista se ia la 60 s). Ține pe loc
   lucrările de după ea (o oprești din site / Panel).
@@ -346,8 +347,7 @@ volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după
   Confirmat pe Teyes 28.10: Digi pe EARFCN 3650 (B8 900).
   29.10: `getAllCellInfo` a dat 19 min aceeași celulă (EARFCN 525, −117 dBm) în mers = copie veche;
   din 1.1.65 `requestCellInfoUpdate` la fiecare punct, puterea din `getSignalStrength`, `ca` = vechimea
-  citirii (coloana `cell_age`). Cele 134 de puncte înghețate: câmpurile de semnal golite (copie în
-  `/root/backups/faikkitcar-semnal-inghetat-20261029.json`). Confirmat cu 1.1.66 (29.10): `ca` 5 s în mers, semnal variabil.
+  citirii (coloana `cell_age`). Cele 134 de puncte înghețate: câmpurile de semnal golite. Confirmat cu 1.1.66 (29.10): `ca` 5 s în mers, semnal variabil.
   Panel: harta semnalului are `setDestroyMode(false)` (fără ea rămânea goală după prima redesenare, 1.0.27).
   30.10: utilizatorul vede „G” când pică internetul = modemul coboară pe 2G (GPRS); `signal.ts` socotește
   2G drept fără internet. 1.1.67: Setări → Sistem arată tipul de rețea preferat (`preferred_network_mode`)

@@ -26,4 +26,13 @@ final class Store {
     static void setHideIdle(Context c, boolean on) {
         sp(c).edit().putBoolean("hide_idle", on).apply();
     }
+
+    /** Sectiunea „Teste OBD” de pe fila Navigatie deschisa (inchisa implicit, ca pe site). */
+    static boolean obdTestsOpen(Context c) {
+        return sp(c).getBoolean("obd_tests_open", false);
+    }
+
+    static void setObdTestsOpen(Context c, boolean on) {
+        sp(c).edit().putBoolean("obd_tests_open", on).apply();
+    }
 }

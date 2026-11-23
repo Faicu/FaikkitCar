@@ -194,14 +194,6 @@ describe("jobs and results", () => {
     expect(scan.readScanOverview().modules.find((m) => m.tx === "746")?.absent).toBe(3);
   });
 
-  it("gives an old app only the watch lists", () => {
-    const later = Date.now() + 10 * 60_000;
-    const old = scan.carScanJobsFor(false, 3, later);
-    expect(old.length).toBeGreaterThan(0);
-    expect(old.every((j) => j.label.startsWith("Urmărire:"))).toBe(true);
-    expect(scan.carScanJobsFor(true, 10, later).some((j) => !j.label.startsWith("Urmărire:"))).toBe(true);
-  });
-
   it("does not re-read unsupported OBD PIDs after a standard OBD range", () => {
     const obd01 = scan.carScanJobs(10).find((j) => j.label === "OBD: valorile live");
     if (!obd01) {

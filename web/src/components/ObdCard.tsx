@@ -5,7 +5,7 @@ import { api, num, relativeTime, type Live } from "../api";
 
 type Obd = Live["obd"];
 
-const STATUS: Record<NonNullable<Obd["status"]>, string> = {
+export const STATUS: Record<NonNullable<Obd["status"]>, string> = {
   connected: "conectat",
   searching: "caută adaptorul",
   off: "motor oprit (adaptorul e liber)",
