@@ -165,8 +165,15 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
   {
     label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 120,
     // 23.11: scoase ce s-a lămurit sau nu ajută la consum (118A–118F, 3D73, 4183, 406A, 2206: OBD-CODURI.md);
-    // adăugați cei 6 care cresc cu sarcina (20EB/20EC, 2061/2062, 209A, 204C): candidați pentru cantitatea injectată.
-    ids: [0x1154, 0x117d, 0x118d, 0x1749, 0x20eb, 0x20ec, 0x2061, 0x2062, 0x209a, 0x204c],
+    // candidații pentru cantitatea injectată sunt în seria deasă de mai jos.
+    ids: [0x1154, 0x117d, 0x118d, 0x1749],
+  },
+  {
+    // 23.11: seria deasă pentru cantitatea injectată: cei 6 care cresc cu sarcina, fără pauză între treceri
+    // (la sfârșitul listei mașina cere imediat lista nouă), ~o trecere la 2–3 s. Ține scanarea în așteptare
+    // cât există; „Oprește” de pe site / Panel când ajung datele din drumuri (relanti, accelerare, frână de motor).
+    label: "Urmărire: serie deasă, candidații injecției (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.15, everyS: 0,
+    ids: [0x20eb, 0x20ec, 0x2061, 0x2062, 0x209a, 0x204c],
   },
 ];
 
