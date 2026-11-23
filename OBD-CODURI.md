@@ -98,29 +98,35 @@ Motorul după 469C (scanat 22.11): doar identificarea și oglinzile OBD.
   OBD 09** (VIN, CALID, CVN, numele). Nimic nou față de ce citim deja prin OBD.
 - 58DE = 0x0115 (277), singurul cod necunoscut din zonă.
 
-### Climatronic (746)
+### Climatronic (746 / 7B0, 5K0907044GK)
 
-23.11, scanarea la 46 %: 284 de coduri, din care 62 cu valori în 2600–2655 (blocul de valori de măsură: perechi stânga / dreapta, câteva în jur de 0xE3 = 227), 55 refuzate „condiții” (0x22), 138 lente (modulul ocupat; recitite pe loc la sfârșit). Interpretarea după recitirea în buclă.
+Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCSD300000 ATFCSM1). 91 de coduri au valori (0100–1000, 2600–27DA). Scanarea completă e la 46 % (30.140 / 65.536). Confirmate pe 23.11, parcat, motorul pornit, câte o schimbare la butoane și o citire (`/root/clima-*.txt`).
 
+**Confirmate** (valoare mare = al doilea octet; ambele octeți urmează aceeași mișcare):
 
-Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate „condiții neîndeplinite”).
+| DID | Ce e | Valori citite |
+|---|---|---|
+| **262E / 262F** | **Poziția clapetei de distribuție** (parbriz → picioare → față; probabil motorul pe care îl are eroarea B1091 și angrenajul din spatele unității radio) | parbriz (MAX) 19/00 · AUTO la încălzire 72–85 / 55–6B · doar picioare 96/78 · față + picioare C4/A5 · doar față, AUTO la 18 °C, LO DB/BE (gurile din mijloc deschise la ≥ ~C4) |
+| **261E / 261F** | **Clapeta de recirculare** | aer proaspăt 0071 / 59 · recirculare (și LO) 0018 / 00; 263B = 00 → 03–04 odată cu ea |
+| **2601 / 2602 / 2603 / 2604** | **Compresorul / cererea de A/C** | A/C pornit ~67 / 67 / 09 / 0B (cresc ușor la cerere mare); A/C oprit 00 / 00 / 00 / 00 (2600: 00 → 06) |
+| **2617 / 2618** | **Comanda ventilatorului** | minim 22/0A · AUTO 2A/1F–31/32 · HI 45/66 · MAX parbriz 59/9B · ventilator maxim sau LO 7D/FA |
 
-**23.11, 17:00–17:15, parcat, motorul pornit, apăsat butoanele (citirea celor 91 de coduri cu valori, 22XXXX pe 746/7B0):**
-**262E/262F = poziția clapetei de distribuție spre față (gurile din mijloc și laterale)**. 262E (octetul al doilea) / 262F: AUTO la 23 °C și 7 °C afară 7D/60 (gurile din mijloc închise: aerul la parbriz și picioare), doar picioare 96/78, față + picioare C4/A5, doar față DB/BE, **AUTO la 18 °C DB/BE** (gurile din mijloc deschise, utilizatorul a confirmat aerul). 2632/2633 (0051/3B în AUTO la 23 °C, 003C/22 la 18 °C, 001B/00 în orice mod manual) = alt reglaj legat de AUTO / temperatura cerută, nu poziția clapetei. Restul codurilor 2600–2655 se schimbă singure (temperaturi) sau cu câteva unități. Citirile brute: `/root/clima-{auto,fata,fata-picioare,picioare,auto18}.txt`.
-
-**23.11, a doua serie (aceleași condiții, 91 de coduri, stări: AUTO 23 °C, MAX parbriz, recirculare, A/C oprit, LO, HI, ventilator minim / maxim manual):**
+**Aproape sigure** (au mers la capete la LO / HI / A/C oprit, dar în AUTO se mișcă cu cererea calculatorului, deci nu sunt un punct fix):
 
 | DID | Ce e | Valori |
 |---|---|---|
-| 262E / 262F | clapeta de distribuție spre față | parbriz 19/00 · AUTO cald 7D/60 · picioare 96/78 · față + picioare C4/A5 · față și AUTO la 18 °C / LO DB/BE |
-| 261E / 261F | clapeta de recirculare | aer proaspăt 0071/59 · recirculare (și LO) 0018/00; 263B = 00 → 03–04 odată cu ea |
-| 2601–2604 | compresorul / cererea A/C | A/C pornit 67/67/09/0B ; A/C oprit 00 / 00 / 00 / 00 (2600: 00 → 06) |
-| 2617 / 2618 | comanda ventilatorului | minim 22/0A · AUTO 2A/1F–31/32 · HI 45/66 · MAX parbriz 59/9B · LO cu ventilator mare 7D/FA |
-| 2622/2623 (stânga), 2626/2627 (dreapta) | clapetele de temperatură (ipoteză probabilă) | LO 17/00 și 1A/00 · A/C oprit BF/A3 și C9/AE · AUTO 23 °C E4/C6 și E0/C7 · HI E6/C8 și E3/C8; în AUTO urmăresc ce cere calculatorul, se mișcă cu temperatura cabinei |
-| 2606 / 2607 | neclar | 19/00 în AUTO și moduri de distribuție manuale; 3F/32 la MAX, recirculare, LO, HI, ventilator minim manual |
-| 2632 / 2633 | neclar | 0055/3B AUTO 23 °C · 003C/22 AUTO 18 °C · 001B/00 manual și LO · 00D6/BA MAX · 007D/62 HI |
+| 2622 / 2623 (stânga), 2626 / 2627 (dreapta) | clapetele de temperatură | LO 17/00 și 1A/00 · A/C oprit BF/A3 și C9/AE · AUTO 23 °C E0–E4 / C6–C7 (coboară spre C1 pe măsură ce cabina se încălzește) · HI E6/C8 și E3/C8 |
 
-Fișierele brute: `/root/clima-*.txt`.
+**Neclare** (se schimbă, fără înțeles):
+
+| DID | Valori |
+|---|---|
+| 2606 / 2607 | 19/00 în AUTO și în distribuțiile manuale (față, picioare); 3F/32 la MAX, recirculare, LO, HI, ventilator minim manual |
+| 2632 / 2633 | 0055/3B AUTO 23 °C · 003C/22 AUTO 18 °C · 001B/00 manual și LO · 00D6/BA MAX · 007D/62 HI |
+
+**Erori:** B1091 71 (activă) / 72 (memorată): motorașul clapetei de distribuție față. După calibrarea din butoane (23.11, ~16:50) `71` a trecut la memorată (stare 8), iar clapeta parcurge toată plaja. Gurile din mijloc le închide calculatorul în AUTO la încălzire (cald cerut); se deschid sub ~18 °C sau cu butonul „față”.
+
+**Cum verifici dacă se strică din nou:** citești 262E/262F după ce apeși un buton de distribuție; dacă valoarea nu ajunge în intervalul din tabel (de ex. rămâne ~7D cu „față” apăsat), clapeta nu se mișcă.
 
 ## 4. Candidați (bănuiți, neconfirmați)
 
