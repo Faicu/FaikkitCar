@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 23.11.2026, 09:20 (pornirea la rece: uleiul, lichidul; TRIP-ul nu e în bord; climatronicul la 46 %)
+**Ultima actualizare:** 23.11.2026, 17:20 (clapeta climatronicului: 262E/262F; B1091 nu mai e activă după calibrare)
 
 ---
 
@@ -105,6 +105,9 @@ Motorul după 469C (scanat 22.11): doar identificarea și oglinzile OBD.
 
 Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate „condiții neîndeplinite”).
 
+**23.11, 17:00–17:15, parcat, motorul pornit, apăsat butoanele (citirea celor 91 de coduri cu valori, 22XXXX pe 746/7B0):**
+**262E/262F = poziția clapetei de distribuție spre față (gurile din mijloc și laterale)**. 262E (octetul al doilea) / 262F: AUTO la 23 °C și 7 °C afară 7D/60 (gurile din mijloc închise: aerul la parbriz și picioare), doar picioare 96/78, față + picioare C4/A5, doar față DB/BE, **AUTO la 18 °C DB/BE** (gurile din mijloc deschise, utilizatorul a confirmat aerul). 2632/2633 (0051/3B în AUTO la 23 °C, 003C/22 la 18 °C, 001B/00 în orice mod manual) = alt reglaj legat de AUTO / temperatura cerută, nu poziția clapetei. Restul codurilor 2600–2655 se schimbă singure (temperaturi) sau cu câteva unități. Citirile brute: `/root/clima-{auto,fata,fata-picioare,picioare,auto18}.txt`.
+
 ## 4. Candidați (bănuiți, neconfirmați)
 
 | Modul / DID | Ce am văzut | Bănuială |
@@ -141,7 +144,7 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 
 | Modul | Cod | Ce e | Stare |
 |---|---|---|---|
-| Climatronic | **B1091 71** | motorașul clapetei de distribuție a aerului față: blocat | prezentă; simptom confirmat (aer la centru lipsă), de calibrat / reparat |
+| Climatronic | **B1091 71** | motorașul clapetei de distribuție a aerului față: blocat | 23.11: după calibrarea din butoane `71` a trecut la starea 8 (nu mai e activă, memorată); clapeta se mișcă pe toată plaja (262E/262F), în AUTO la 18 °C iese aer și pe gurile din mijloc. La 23 °C în AUTO le închide calculatorul (încălzire: parbriz + picioare), nu e defecțiune |
 | Climatronic | B1091 72 | același motoraș, blocat deschis | memorată |
 | Motor | – | 63 de intrări, toate „test neterminat” (0x40/0x50): calculatorul resetat de curând | fără erori |
 | Airbag | – | o intrare, status 0x10 | fără erori |
@@ -181,6 +184,7 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
 | 23.11 | Pornire la rece: bord F405 = lichidul de răcire, 202F probabil uleiul (x − 50); motorul 1189–118F scad cu temperatura; TRIP-ul (80,4 / 80,6) și consumul mediu (49,9) NU sunt în codurile bordului citite în sesiunea implicită; climatronicul la 46 % |
+| 23.11 17:00 | Climatronic: clapeta spre față = 262E/262F; B1091 71 nu mai e activă după calibrarea din butoane; centrul închis în AUTO la 23 °C e normal, se deschide la 18 °C |
 | 22.11 seara | Bord 1007 NU e contorul de consum (nu crește la relanti, nu se resetează după 12 h) |
 | 22.11 seara | Motorul complet (763 de coduri). Analiza cu OBD / CAN din aceleași clipe: 11CF / 11D1 = lichidul de răcire și 1001 / 1002 = aerul admis (confirmate), 1000 / 1748 = afară; 406A NU e relantiul cerut (corecție cu semn, 0 la injecția tăiată); după 469C doar identificare și oglinzi OBD (F4xx, F6xx, F8xx) |
 | 22.11 seara | Urmărirea redusă la ce nu e sigur (bord 21 → 15 coduri, motor 19 → 13); confirmate și mutate în secțiunea 3: motor 1000, 1001 / 1002, 117C |
