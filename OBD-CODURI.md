@@ -126,6 +126,8 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 
 **Erori:** B1091 71 / 72: motorașul clapetei de distribuție față. După calibrarea din butoane (23.11, ~16:50) `71` a trecut la memorată (stare 8) și clapeta a parcurs toată plaja ~1 h; la 18:00 s-a blocat iar (262E 89 față de 262F BE) și `71` a redevenit activă (09). **Defect intermitent al motorașului / angrenajului**, calibrarea l-a ascuns doar temporar. În AUTO la încălzire calculatorul cere oricum gurile din mijloc închise; se deschid sub ~18 °C sau cu butonul „față”.
 
+**Diagnostic 23.11 seara:** motorașul se oprește în anumite poziții fără niciun zgomot și pornește din nou după o mișcare mică a rotiței cu mâna (când se aude, se și mișcă; angrenajul nu sare) = punct mort în motoraș (perii / colector). De schimbat: **V426**, motorul clapetei de distribuție față, cu potențiometrul G642 (manualul Golf 6 Climatronic: se scoate planșa de bord, apoi „basic setting” cu tester; calibrarea din butoane + 262E/262F pentru verificare).
+
 **Cum verifici:** 262E − 262F (al doilea octet) trebuie să fie ~0x19–0x1F; altfel clapeta nu a ajuns unde i s-a cerut.
 
 ## 4. Candidați (bănuiți, neconfirmați)
