@@ -149,6 +149,9 @@ Nimic interpretat încă (25 de coduri cu răspuns până la 0A3A, 14 refuzate �
 - UDS: `22 <DID>` citire, `19 02 FF` erori. Doar citiri: nimic din 04, 10, 2E, 31, 14, 11, 27, 28, 85; din 1.1.114 doar în testele
   manuale (`@obd`) `10 03` (sesiunea extinsă: valori care în sesiunea implicită răspund „nu există”, căutăm acolo cantitatea
   injectată) și `10 01`. Scanarea automată rămâne în sesiunea implicită.
+  **Test 23.11, sesiunea extinsă pe motor** (7E0, `10 03` → `50 03 003201F4`, motor pornit pe loc; `3E00` ține sesiunea, la ~50 de cereri;
+  grupuri de 3 cu „1”, ~36 ms): 0x1000–0x17FF și 0x2000–0x21FF dau **aceleași coduri** ca sesiunea implicită (309 găsite, toate în catalog, 0 noi).
+  Rămase netestate: 0x2200–0x2BFF, 0x3900–0x3EFF, 0x4000–0x44FF, 0xF100–0xF8FF (login-ul pentru `car-cmd.ts` a dat 429).
 - Răspunsul poate începe cu `7F <serviciul> 78` (așteaptă) sau `7F 22 21` (ocupat): se aruncă, vine răspunsul după.
 - `7F 22 31` = codul nu există; `7F 22 22` = există, dar condiții neîndeplinite; `7F 22 33` = acces refuzat.
 - Mai multe PID-uri OBD pe o cerere: cifra de la sfârșit = numărul de cadre CAN așteptate (`010C0B0F03492`,
