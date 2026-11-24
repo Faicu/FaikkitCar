@@ -243,8 +243,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (`noteProgress`, ferestre de 30 s, în memorie) → `etaS`/`endsS` la lucrări (site și Panel: „~9 min · gata peste …”) și
   `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (24.11: bord 14, motor 11, la 30 s; clapeta la 60 s); din 1.1.121 serverul le trimite cu `ctx` și mașina pune lângă fiecare citire valorile OBD din aceeași clipă (`e`: vechimea, rpm, MAP, aer, lichid, sarcina, viteza CAN, pedala, avansul 0E, lambda, injecția, corecția 06; fără citiri în plus) → tabela `obd_read` (toate citirile, nu doar schimbările), analiza cu `web/scripts/obd-analyze/reads.cjs`; din 1.1.122 (`?rest=1`) serverul trimite și urmăririle în pauză, cu `restS`, iar mașina le reia singură la timp (`restHere`; până atunci, cu lista la 60 s, cele de 30 s veneau la ~75 s); `seedWatchJobs` schimbă la pornirea serverului lista unei urmăriri existente când `WATCH` diferă (trecere nouă, oprirea păstrată).
   **Clapeta climatronicului** (23.11): motorașul V426 (B1091) se blochează intermitent (punct mort). Urmărirea
-  „clapeta de distribuție” (746, 262E reală / 262F cerută, la 1 min, prima în coadă) → `flap.ts` (`obd_flap`, testat în
-  `flap.test.ts`): reală − cerută în afara 0x10–0x28, cu aceeași cerere, la 2 citiri la ≥ 30 s = defect „Climatronic ·
+  „clapeta de distribuție” (746, 262E reală / 262F cerută, la 30 s din 24.11, prima în coadă) → `flap.ts` (`obd_flap`, testat în
+  `flap.test.ts`): reală − cerută în afara 0x10–0x28, cu aceeași cerere sau aceeași poziție reală (24.11), la 2 citiri la ≥ 30 s = defect „Climatronic ·
   clapeta” în `live.obd.faults` până la o citire bună, cu `detail` (ce înseamnă / ce faci; și B1091 din `DTC_DETAIL`),
   afișat pe site (`DtcCard`) și în Panel (`renderDtc`). Vocal în mașină (1.1.118): răspunsul la `/api/car/state` are
   `alerts` [{id, say}] (doar cu OBD pornit); `TripRecorder` le spune la salutul de 30 s (ca rețeaua mobilă) sau imediat

@@ -160,11 +160,11 @@ describe("jobs and results", () => {
     expect(w).toMatchObject({ label: scan.WATCH[0].label, tx: scan.WATCH[0].tx, kind: "loop", round: 0, ids: scan.WATCH[0].ids });
     scan.saveScanItems([{ t: "p", j: w.id, r: 0, n: w.ids!.length, d: 1 }]);
     const passAt = Date.now();
-    const rest = scan.carScanJobs(10, passAt + 30_000);
+    const rest = scan.carScanJobs(10, passAt + 15_000);
     expect(rest.some((j) => j.id === w.id)).toBe(false);
     // Mașina nouă (`rest`): urmărirea în pauză rămâne în listă, cu cât mai are, fără să ocupe un loc.
-    const resting = scan.carScanJobs(1, passAt + 30_000, true);
-    const pending = scan.WATCH[0].everyS * 1000 - 30_000;
+    const resting = scan.carScanJobs(1, passAt + 15_000, true);
+    const pending = scan.WATCH[0].everyS * 1000 - 15_000;
     expect(resting.find((j) => j.id === w.id)).toMatchObject({ round: 1, kind: "loop", restS: Math.ceil(pending / 1000) });
     expect(resting.filter((j) => j.restS === undefined)).toHaveLength(1);
     const back = scan.carScanJobs(3, passAt + 121_000);

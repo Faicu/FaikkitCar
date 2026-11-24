@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
 // Clapeta de distribuție față a climatronicului (motorașul V426, eroarea B1091; 23.11): poziția reală
-// (DID 262E, al doilea octet) și cea cerută (DID 262F), citite de urmărirea „clapeta” la 1 minut.
+// (DID 262E, al doilea octet) și cea cerută (DID 262F), citite de urmărirea „clapeta” la 30 s (din 24.11; înainte 1 min).
 // Când merge, reala e cu ~0x1D peste cea cerută (0x19–0x1F în toate pozițiile); blocată, rămâne pe drum
-// (89 față de BE, 1A față de 94 pe 23.11). Alerta: aceeași cerere, nepotrivită la două citiri la cel puțin
-// 30 s una de alta (clapeta se mișcă în câteva secunde, deci nu e o mișcare prinsă la jumătate).
+// (89 față de BE, 1A față de 94 pe 23.11). Alerta: aceeași cerere sau aceeași poziție reală, nepotrivită la două
+// citiri la cel puțin 30 s una de alta (clapeta se mișcă în câteva secunde, deci nu e o mișcare prinsă la jumătate).
 // Ca becul ars: rândul rămâne cu mașina oprită, până la o citire bună. Server-only (node:sqlite).
 // ---------------------------------------------------------------------------
 
@@ -39,7 +39,10 @@ export interface FlapRow {
 export function nextFlap(prev: FlapRow | null, at: string, actual: number, demand: number): FlapRow {
   if (flapOk(actual, demand)) return { at, actual, demand, badFrom: null, since: null };
   const sameDemand = prev !== null && prev.badFrom !== null && Math.abs(prev.demand - demand) <= 2;
-  const badFrom = sameDemand ? prev!.badFrom! : at;
+  // Sau reala n-a plecat deloc, deși cererea s-a schimbat (24.11, la încălzire: AUTO schimbă cererea
+  // la fiecare minut, iar clapeta stătea pe 21 de la cererea 06 la 20).
+  const sameActual = prev !== null && prev.badFrom !== null && Math.abs(prev.actual - actual) <= 2;
+  const badFrom = sameDemand || sameActual ? prev!.badFrom! : at;
   const confirmed = Date.parse(at) - Date.parse(badFrom) >= CONFIRM_MS;
   const since = prev?.since ?? (confirmed ? badFrom : null);
   return { at, actual, demand, badFrom, since };
@@ -91,7 +94,7 @@ export function flapFault(): { module: string; code: string; text: string; known
     since: f.since,
     detail: `Poziția cerută ${hex(f.demand)}, cea reală ${hex(f.actual)} (când merge, reala e cu ~1D peste). `
       + `Gurile de aer din mijloc nu primesc aer cum ai cerut. O mișcare ușoară a rotiței albe din spatele navigației `
-      + `o deblochează de obicei; dispare de aici la prima citire bună (urmărirea o verifică la 1 minut).`,
+      + `o deblochează de obicei; dispare de aici la prima citire bună (urmărirea o verifică la 30 s).`,
   };
 }
 

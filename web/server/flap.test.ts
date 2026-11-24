@@ -33,12 +33,22 @@ describe("flap", () => {
     r = flap.nextFlap(r, t(10), 0x89, 0xbe);
     expect(r.since).toBeNull();
     // Altă cerere: clapeta abia pleacă, se numără de la capăt.
-    r = flap.nextFlap(r, t(20), 0x89, 0x40);
+    r = flap.nextFlap(r, t(20), 0x70, 0x40);
     expect(r.badFrom).toBe(t(20));
-    r = flap.nextFlap(r, t(60), 0x89, 0x41);
+    r = flap.nextFlap(r, t(60), 0x70, 0x41);
     expect(r.since).toBe(t(20));
     r = flap.nextFlap(r, t(120), 0x5d, 0x41);
     expect(r).toMatchObject({ badFrom: null, since: null });
+  });
+
+  it("confirms a flap that does not move while the demand changes (AUTO warming up, 24.11)", () => {
+    const t = (s: number) => new Date(Date.parse("2026-11-24T19:10:00Z") + s * 1000).toISOString();
+    let r = flap.nextFlap(null, t(0), 0x21, 0x06);
+    expect(r.badFrom).toBeNull();
+    r = flap.nextFlap(r, t(30), 0x21, 0x20);
+    expect(r).toMatchObject({ badFrom: t(30), since: null });
+    r = flap.nextFlap(r, t(60), 0x21, 0x3a);
+    expect(r.since).toBe(t(30));
   });
 
   it("turns scan results into a Climatronic fault", () => {

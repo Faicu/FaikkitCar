@@ -167,7 +167,7 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
   {
     // 23.11: alerta pentru motorașul V426 (B1091, se blochează din când în când): poziția reală și cea cerută
     // a clapetei de distribuție, la 1 minut, înaintea oricărei alte lucrări (flap.ts).
-    label: "Urmărire: clapeta de distribuție (climatronic)", tx: "746", svc: "22", kind: "watch", ord: 0.05, everyS: 60,
+    label: "Urmărire: clapeta de distribuție (climatronic)", tx: "746", svc: "22", kind: "watch", ord: 0.05, everyS: 30,
     ids: [0x262e, 0x262f],
   },
   {

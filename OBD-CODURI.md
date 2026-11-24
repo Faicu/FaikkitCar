@@ -18,7 +18,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 |---|---|
 | **Urmărirea candidaților** (bord 14 coduri, motor 11: doar ce nu e sigur, secțiunea 5; lista se schimbă singură la pornirea serverului după `WATCH`) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11). 24.11: scoase din bord cele confirmate (1014, 2205, 202F, F405), adăugate 2294 / 2296 / 229A |
 | **Citirile cu motorul din aceeași clipă** (din aplicația 1.1.121, 24.11) | Urmăririle de bord și motor la **30 s** (înainte 2 min); fiecare citire vine cu valorile OBD din clipa ei (turația, MAP, aerul admis, lichidul, sarcina, viteza, pedala, avansul, lambda, injecția, corecția) și se păstrează toată (`obd_read`), nu doar schimbările. Analiza: `web/scripts/obd-analyze/reads.cjs` (perechi exacte, deci merge și pentru aer / sarcină / avans) |
-| Urmărirea „clapeta de distribuție” (climatronic 262E / 262F) | 🔁 la 1 min, prima în coadă; alerta „Climatronic · clapeta” |
+| Urmărirea „clapeta de distribuție” (climatronic 262E / 262F) | 🔁 la 30 s (din 24.11), prima în coadă; alerta „Climatronic · clapeta” |
 | Seria deasă a candidaților injecției (motor, lucrarea 17) | ⏸ oprită din 23.11; 24.11: candidații ei nu sunt cantitatea injectată, iar estimarea OBD se potrivește cu bordul (secțiunea 4) |
 | OBD standard: 01, 09, 06, 02, erorile | ✅ 22.11, 18:00–18:05 · 01: 38 de PID-uri, 06: 16 teste, erorile: 2 coduri, 09 și 02: nimic nou |
 | Motor (7E0), 0000–FFFF | ✅ 22.11, 19:07 · 763 de coduri cu răspuns (2 refuzate, 0x36), 64.773 inexistente, 0 lente: toate cele 65.536 au o stare |
@@ -145,6 +145,8 @@ Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCS
 Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub traversa metalică a bordului): `docs/foto/2026-11-23-climatronic-rotita-clapeta-distributie.jpg`. Motorașul nu se vede de acolo.
 
 **Decizia utilizatorului (23.11):** motorașul nu se schimbă (montajul cere planșa de bord jos); se descurcă cu butonul „față” / rotița albă, iar alerta „clapeta” îl anunță când se blochează.
+
+**24.11 seara:** la pornire (19:10–19:15, AUTO la încălzire) reala a rămas în urmă: 21 la cererea 06 și tot 21 la cererea 20, apoi 58 la 4B, ajunsă la ~19:15. Butonul „față” la ~19:49: cererea BE, reala tot 7B cel puțin până la 19:49:50 (fără aer în primele secunde, spune utilizatorul), la 19:50:44 DB, adică s-a deblocat singură în ≤ 1 min. Dimineața (07:10–08:19) reala a stat pe 82/83, cu cererea între 61 și 6D (în toleranță, deci neclar). Alerta: din 24.11 și când reala nu se mișcă deloc între două citiri, deși cererea s-a schimbat; urmărirea la 30 s.
 
 **Cum verifici:** 262E − 262F (al doilea octet) trebuie să fie ~0x19–0x1F; altfel clapeta nu a ajuns unde i s-a cerut. **Alerta automată** (23.11): urmărirea „clapeta de distribuție” le citește la 1 minut; o nepotrivire cu aceeași cerere la ≥ 30 s apare pe site / Panel ca „Climatronic · clapeta” (server `flap.ts`).
 
