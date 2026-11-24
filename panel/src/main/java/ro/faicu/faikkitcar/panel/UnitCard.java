@@ -78,6 +78,7 @@ final class UnitCard {
         card.addView(spark(c, u, history, "cpu", "%", "procesor", 100));
         card.addView(spark(c, u, history, "memAvail", "MB", "RAM liber", u.isNull("memTotal") ? Double.NaN : u.optDouble("memTotal")));
         card.addView(spark(c, u, history, "temp", "°C", "temperatură", Double.NaN));
+        if (u.has("sysMb") && !u.isNull("sysMb")) card.addView(spark(c, u, history, "sysMb", "MB", "Android", Double.NaN));
 
         List<String> facts = new ArrayList<>();
         if (!u.isNull("memTotal")) facts.add(Fmt.num(u.optDouble("memTotal") / 1024, 1) + " GB memorie");

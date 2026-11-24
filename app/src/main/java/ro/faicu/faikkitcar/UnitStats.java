@@ -19,8 +19,9 @@ import java.util.Map;
  * Performanta navigatiei, trimisa cu starea de acum (LiveState, cheia „u”): procesorul (din
  * /proc/stat, intre doua trimiteri), memoria si swap-ul (/proc/meminfo), temperatura cea mai
  * mare a procesorului (zonele termice), de cand ruleaza, memoria si adj-ul nostru, spatiul
- * liber, iar la 30 s procesele care consuma cel mai mult. Toate se pot citi fara root pe Teyes
- * (verificat cu comenzile la distanta, 20–21.10). Apelat doar de pe firul LiveState.
+ * liber, memoria lui system_server, iar la 30 s procesele care consuma cel mai mult. Toate se pot
+ * citi fara root pe Teyes (verificat cu comenzile la distanta, 20–21.10). Apelat doar de pe firul
+ * LiveState.
  */
 final class UnitStats {
     private static final long TOP_EVERY_MS = 30_000;
@@ -31,6 +32,7 @@ final class UnitStats {
     private static long topAt;
     private static long topTotal = -1;
     private static Map<Integer, Long> topTicks = new HashMap<>();
+    private static int sysPid;
 
     private UnitStats() {}
 
@@ -64,6 +66,8 @@ final class UnitStats {
             u.put("awake", SystemClock.uptimeMillis() / 1000); // fara somn
             long[] own = statm(android.os.Process.myPid());
             if (own != null) u.put("am", own[1]);
+            long sys = systemServerMb();
+            if (sys >= 0) u.put("sys", sys);
             String adj = read("/proc/self/oom_score_adj", 32);
             if (adj != null) u.put("adj", Integer.parseInt(adj.trim()));
             StatFs fs = new StatFs(Environment.getDataDirectory().getPath());
@@ -130,6 +134,48 @@ final class UnitStats {
             }
         }
         return max;
+    }
+
+    /**
+     * Memoria anonima a lui system_server (RssAnon + VmSwap, MB). 24.11: 1,84 GB dupa o zi (normal
+     * ~250 MB), crestea cu memoria plina si aplicatia omorata la cateva minute; statm nu o arata,
+     * fiindca cea mai mare parte era in swap.
+     */
+    private static long systemServerMb() {
+        if (sysPid == 0 || !isSystemServer(sysPid)) {
+            sysPid = 0;
+            File[] dirs = new File("/proc").listFiles();
+            if (dirs == null) return -1;
+            for (File d : dirs) {
+                String n = d.getName();
+                if (n.isEmpty() || n.charAt(0) < '0' || n.charAt(0) > '9') continue;
+                int pid = Integer.parseInt(n);
+                if (isSystemServer(pid)) {
+                    sysPid = pid;
+                    break;
+                }
+            }
+            if (sysPid == 0) return -1;
+        }
+        String st = read("/proc/" + sysPid + "/status", 4096);
+        if (st == null) return -1;
+        long kb = 0;
+        boolean found = false;
+        for (String line : st.split("\n")) {
+            if (!line.startsWith("RssAnon:") && !line.startsWith("VmSwap:")) continue;
+            String[] f = line.substring(line.indexOf(':') + 1).trim().split("\\s+");
+            try {
+                kb += Long.parseLong(f[0]);
+                found = true;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return found ? Math.round(kb / 1024.0) : -1;
+    }
+
+    private static boolean isSystemServer(int pid) {
+        String cmd = read("/proc/" + pid + "/cmdline", 64);
+        return cmd != null && cmd.startsWith("system_server");
     }
 
     /** {rss, propriu (rss − partajat)} in MB, din /proc/<pid>/statm (pagini de 4 KB). */

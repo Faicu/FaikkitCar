@@ -43,7 +43,7 @@ export function UnitCard({ unit, health }: { unit: UnitStats | null; health: Liv
         </p>
       )}
       {health?.level === "ok" && <p className="text-sm">{health.text[0].toUpperCase() + health.text.slice(1)}</p>}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Spark
           label="procesor"
           unit="%"
@@ -63,6 +63,16 @@ export function UnitCard({ unit, health }: { unit: UnitStats | null; health: Liv
           max={unit.memTotal ?? undefined}
         />
         <Spark label="temperatură" unit="°C" now={unit.temp} digits={0} history={history} pick={(p) => p.temp} />
+        {unit.sysMb != null && (
+          <Spark
+            label="Android"
+            unit="MB"
+            now={unit.sysMb}
+            digits={0}
+            history={history}
+            pick={(p) => p.sysMb ?? null}
+          />
+        )}
       </div>
       {facts.length > 0 && <p className="text-xs text-muted-foreground">{facts.join(" · ")}</p>}
       {awake && procs.length > 0 && (

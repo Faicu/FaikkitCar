@@ -32,6 +32,7 @@ export interface UnitStats {
   awake: number | null; // s de la pornire, fără somn
   appMb: number | null; // memoria proprie a FaikkitCar
   appAdj: number | null; // oom_score_adj al FaikkitCar (mai mare = omorât mai devreme)
+  sysMb?: number | null; // memoria anonimă a system_server (RAM + swap), MB, 1.1.120+
   diskGb: number | null; // liber în /data
   netMode?: number | null; // tipul de rețea preferat al modemului (RILConstants, 11 = LTE only), 1.1.70+
   procs: UnitProc[] | null; // null = nemăsurate în trimiterea asta
@@ -43,7 +44,7 @@ export interface UnitHealth {
   text: string; // „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele
 }
 
-export type UnitPoint = Pick<UnitStats, "at" | "cpu" | "memAvail" | "swapFree" | "temp">;
+export type UnitPoint = Pick<UnitStats, "at" | "cpu" | "memAvail" | "swapFree" | "temp" | "sysMb">;
 
 const HISTORY_EVERY_MS = 30_000;
 const KEEP_DAYS = 90;
@@ -114,6 +115,7 @@ export function saveUnit(u: unknown): void {
     awake: num(x.awake),
     appMb: num(x.am),
     appAdj: num(x.adj),
+    sysMb: num(x.sys),
     diskGb: num(x.disk),
     netMode: num(x.nm),
     procs: lastProcs,
@@ -133,6 +135,8 @@ export function saveUnit(u: unknown): void {
 export const UNIT_STALE_MS = 90_000;
 // Primele minute după pornire procesorul e ocupat cu pornirea aplicațiilor: nu e o problemă.
 const BOOT_S = 180;
+// Peste atât, memoria lui system_server nu mai e normală (după repornire ~250 MB).
+const SYS_SWOLLEN_MB = 1000;
 
 function fmt(n: number, digits = 0): string {
   return n.toLocaleString("ro-RO", { maximumFractionDigits: digits });
@@ -154,6 +158,11 @@ export function unitHealth(u: UnitStats | null, cpuAvg: number | null, now = Dat
     else if (u.memAvail < 600) warn.push(`memorie puțină (${u.memAvail}\u00a0MB liberi)`);
   }
   if (u.swapTotal && u.swapFree !== null && u.swapFree / u.swapTotal < 0.1) warn.push("swap plin");
+  // 24.11: system_server ajunsese la 1,84 GB într-o zi (normal ~250 MB) și umpluse memoria;
+  // se golește doar la repornirea navigației.
+  if (u.sysMb !== null && u.sysMb !== undefined && u.sysMb >= SYS_SWOLLEN_MB) {
+    warn.push(`Android umflat (${fmt(u.sysMb)}\u00a0MB): repornește navigația`);
+  }
   if (u.temp !== null) {
     if (u.temp >= 80) bad.push(`fierbinte (${fmt(u.temp)}\u00a0°C)`);
     else if (u.temp >= 70) warn.push(`caldă (${fmt(u.temp)}\u00a0°C)`);
@@ -211,6 +220,6 @@ export function readUnitHistory(minutes: number): UnitPoint[] {
   }>;
   return rows.map((r) => {
     const s = JSON.parse(r.data) as UnitStats;
-    return { at: s.at, cpu: s.cpu, memAvail: s.memAvail, swapFree: s.swapFree, temp: s.temp };
+    return { at: s.at, cpu: s.cpu, memAvail: s.memAvail, swapFree: s.swapFree, temp: s.temp, sysMb: s.sysMb ?? null };
   });
 }

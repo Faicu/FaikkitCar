@@ -335,7 +335,7 @@ volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după
   Când navigația nu e accesibilă prin `car-cmd.ts` (limita de login), comenzile se pot pune direct în `car_cmd`.
 - `UnitStats` (22.10, 1.1.62): performanța navigației în cheia `u` a stării live (`/proc/stat` între
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
-  `oom_score_adj` proprii, spațiul liber; la 30 s procesele de top după procesor și memorie
+  `oom_score_adj` proprii, spațiul liber, din 1.1.120 `sys` = memoria anonimă a lui `system_server` (RssAnon + VmSwap; 24.11 ajunsese la 1,84 GB într-o zi și umpluse memoria, avertizare de la 1000 MB); la 30 s procesele de top după procesor și memorie
   proprie). Serverul (`unit.ts`): ultima în memorie (`live.unit`), istoricul la 30 s în `unit_stat`.
   `unitHealth` (pur, `unit.test.ts`) dă starea pe scurt; numele proceselor (`procLabel`) tot acolo.
   Site `UnitCard.tsx`, Panel `UnitCard.java`. Emulatorul (Android 10) nu lasă aplicația să citească

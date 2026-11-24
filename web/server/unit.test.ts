@@ -71,6 +71,13 @@ describe("unitHealth", () => {
     expect(unitHealth(unit(), 85, NOW)?.text).toBe("procesor ocupat (85%)");
   });
 
+  it("system_server umflat", () => {
+    expect(unitHealth(unit({ sysMb: 400 }), 25, NOW)?.level).toBe("ok");
+    expect(unitHealth(unit({ sysMb: 1840 }), 25, NOW)?.text).toBe(
+      "Android umflat (1.840\u00a0MB): repornește navigația",
+    );
+  });
+
   it("swap plin, temperatura, spațiul", () => {
     expect(unitHealth(unit({ swapFree: 100, temp: 72, diskGb: 0.6 }), 25, NOW)?.text).toBe(
       "swap plin · caldă (72\u00a0°C) · spațiu puțin (0,6\u00a0GB)",
