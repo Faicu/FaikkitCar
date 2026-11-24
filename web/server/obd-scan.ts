@@ -163,21 +163,30 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
   },
   {
     label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 30,
-    // 23.11: scoase ce s-a lămurit sau nu ajută la consum (118A–118F, 3D73, 4183, 406A, 2206: OBD-CODURI.md);
-    // candidații pentru cantitatea injectată sunt în seria deasă de mai jos.
-    // 24.11 (analiza): intră cei care urmează presiunea din galerie / sarcina (1200, 13B1, 16E2, 29D1, 39C3, 39CB,
-    // 4111), cu prea puține citiri în sarcină ca să fie siguri.
-    // 24.11 (Car Scanner): 118D e adaptarea axei cu came, scos; intră cele cu nume, dar cu formula nesigură:
-    // 155A cuplul (≈ × 0,03 N·m, de verificat față de litrii OBD), 2006 nivelul uleiului, 1314 „masa de aer”.
-    ids: [0x1154, 0x117d, 0x1200, 0x13b1, 0x16e2, 0x1749, 0x29d1, 0x39c3, 0x39cb, 0x4111, 0x155a, 0x2006, 0x1314],
+    // 25.11: scoase mărimile de aer / sarcină (16E2, 4111, 29D1, 1200, 39C3, 39CB, 13B1: urmează MAP-ul, ~140 de
+    // citiri fiecare), rămân cele cu nume sau formulă nesigură (155A cuplul, 2006 nivelul uleiului, 1314) și intră
+    // candidații analizei din 25.11 (corelație 0,77–0,95 cu litrii OBD, dar pe 10–20 de puncte): 1746 / 1747, 1246,
+    // 150A, 12E9, 13E2, 13C1, 106B, 13B9.
+    ids: [0x1154, 0x117d, 0x1749, 0x155a, 0x2006, 0x1314, 0x1746, 0x1747, 0x1246, 0x150a, 0x12e9, 0x13e2, 0x13c1,
+      0x106b, 0x13b9],
   },
   {
     // 25.11: climatronicul, cele 37 de coduri care se schimbă și n-au nume (temperatura din habitaclu, soarele,
     // vaporizatorul, clapetele de temperatură), cu valorile OBD alături (afară, lichidul); ~9 s pe trecere.
-    label: "Urmărire: climatronic (candidații)", tx: "746", svc: "22", kind: "watch", ord: 0.25, everyS: 60,
+    label: "Urmărire: climatronic (candidații)", tx: "746", svc: "22", kind: "watch", ord: 0.25, everyS: 120,
     ids: [0x0285, 0x0286, 0x2600, 0x2602, 0x2603, 0x2604, 0x2605, 0x2606, 0x2607, 0x2609, 0x260a, 0x260c, 0x260d,
       0x260f, 0x2610, 0x2612, 0x2613, 0x2614, 0x2615, 0x261a, 0x261d, 0x2622, 0x2623, 0x2624, 0x2626, 0x2627, 0x2630,
       0x2631, 0x2632, 0x2633, 0x2634, 0x263b, 0x263f, 0x264e, 0x2650, 0x2654, 0x2695],
+  },
+  {
+    // 25.11: consumul exact. Candidații pentru cantitatea injectată, citiți la 10 s cu valorile OBD din aceeași clipă
+    // (seria deasă de pe 23.11 nu le avea, deci 2061 / 2062 fuseseră respinse pe date prost aliniate). 2062 crește
+    // cu sarcina (187 la 5 L/h, 242 la 12, 393 la 15) și ieșea cu rpm cel mai bine (R² 0,72); 2061 = 2 × 2062;
+    // fiecare ar putea fi timpul de injecție (0,01 ms: 1,5 ms la relanti). Alături: presiunea din rampă (F423,
+    // ×10 kPa) și tensiunea (F442, ×0,001 V), care intră în debitul injectoarelor. Test: consum ≈ k × (timp − t0)
+    // × rpm × f(presiune); la injecția tăiată trebuie să fie 0.
+    label: "Urmărire: timpul de injecție (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.15, everyS: 10,
+    ids: [0x2061, 0x2062, 0x209a, 0x20eb, 0x20ec, 0x204c, 0xf423, 0xf442],
   },
 ];
 
