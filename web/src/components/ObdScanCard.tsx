@@ -137,15 +137,20 @@ function Samples({ tx, code }: { tx: string; code: ScanCode }) {
 
 function Catalog({ tx }: { tx: string }) {
   const [onlyChanging, setOnlyChanging] = useState(false);
+  const [onlyKnown, setOnlyKnown] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const { data } = useQuery({ queryKey: ["obd-codes", tx], queryFn: () => api.obdCodes(tx), staleTime: 30_000 });
   if (!data) return <div className="h-20 skeleton-sweep rounded-xl" />;
-  const codes = onlyChanging ? data.filter((c) => c.changes > 0) : data;
+  const codes = data.filter((c) => (!onlyChanging || c.changes > 0) && (!onlyKnown || c.name));
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
         <input type="checkbox" checked={onlyChanging} onChange={(e) => setOnlyChanging(e.target.checked)} />
         Doar cele care se schimbă
+      </label>
+      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <input type="checkbox" checked={onlyKnown} onChange={(e) => setOnlyKnown(e.target.checked)} />
+        Doar cele cunoscute ({data.filter((c) => c.name).length})
       </label>
       <div className="max-h-96 space-y-1 overflow-y-auto">
         {codes.length === 0 && <p className="text-xs text-muted-foreground">Nimic încă.</p>}
@@ -160,6 +165,12 @@ function Catalog({ tx }: { tx: string }) {
                   <span className="text-muted-foreground">{SVC[c.svc] ?? c.svc}</span>{" "}
                   {b ? b.spaced : <span className="text-amber-400">{refusal(c.nrc ?? 0)}</span>}
                 </p>
+                {c.name && (
+                  <p className="text-xs">
+                    <span className="text-sky-300">{c.name}</span>
+                    {c.shown ? <span className="font-semibold"> · {c.shown}</span> : null}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {b?.text ? `„${b.text}” · ` : ""}
                   {c.changes > 0 ? `s-a schimbat de ${c.changes} ori · ` : ""}

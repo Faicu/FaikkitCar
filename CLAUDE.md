@@ -213,7 +213,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   (`JsonlQueue`, separată de punctele de traseu), trimise de `Uploader.flushScan` la `POST /api/car/obd/scan`; progresul și pe disc
   (`obd/scanJob`, `scanNext`, la ~15 s), deci după o repornire se reia de la cel mai departe dintre server și mașină. Progresul unei
   treceri vechi a buclei e ignorat. 20 de grupuri fără răspuns la rând = modulul tace: lucrarea așteaptă reconectarea
-  (reluată de la primul grup tăcut). `@obd scan` = starea. Site: `ObdScanCard.tsx` pe Navigație (lucrările cu progresul,
+  (reluată de la primul grup tăcut). `@obd scan` = starea. Site: `ObdScanCard.tsx` pe Navigație (catalogul cu numele codurilor confirmate din `obd-names.ts`, 24.11; lucrările cu progresul,
   „Oprește”/„Reia” = `POST /api/obd/scan/:id {paused}`, modulele, catalogul `GET /api/obd/codes/:tx`, istoricul
   `GET /api/obd/samples/:tx/:svc/:id`). Panel: `renderObdScan` (lucrările, modulele; fără catalog).
   22.11 (revizia cozii, cererea utilizatorului): lucrările `watch` (`WATCH`, `seedWatchJobs`, coloanele `every_s`/`pass_at`):

@@ -11,6 +11,7 @@ import { HTTPException } from "hono/http-exception";
 
 import { getDb } from "./db.ts";
 import { noteFlapItems } from "./flap.ts";
+import { knownCode } from "./obd-names.ts";
 
 export type ScanSvc = "22" | "01" | "02" | "06" | "09" | "dtc";
 export type ScanKind = "range" | "list" | "loop" | "watch";
@@ -184,7 +185,9 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     // candidații pentru cantitatea injectată sunt în seria deasă de mai jos.
     // 24.11 (analiza): intră cei care urmează presiunea din galerie / sarcina (1200, 13B1, 16E2, 29D1, 39C3, 39CB,
     // 4111), cu prea puține citiri în sarcină ca să fie siguri.
-    ids: [0x1154, 0x117d, 0x118d, 0x1200, 0x13b1, 0x16e2, 0x1749, 0x29d1, 0x39c3, 0x39cb, 0x4111],
+    // 24.11 (Car Scanner): 118D e adaptarea axei cu came, scos; intră cele cu nume, dar cu formula nesigură:
+    // 155A cuplul (≈ × 0,03 N·m, de verificat față de litrii OBD), 2006 nivelul uleiului, 1314 „masa de aer”.
+    ids: [0x1154, 0x117d, 0x1200, 0x13b1, 0x16e2, 0x1749, 0x29d1, 0x39c3, 0x39cb, 0x4111, 0x155a, 0x2006, 0x1314],
   },
   {
     // 23.11: seria deasă pentru cantitatea injectată: cei 6 care cresc cu sarcina, fără pauză între treceri
@@ -669,6 +672,9 @@ export interface ScanCode {
   lastAt: string;
   reads: number;
   changes: number;
+  /** Codurile confirmate (obd-names.ts): ce e și valoarea pe înțeles. */
+  name?: string;
+  shown?: string | null;
 }
 
 export function readScanCodes(tx: string): ScanCode[] {
@@ -686,16 +692,20 @@ export function readScanCodes(tx: string): ScanCode[] {
       reads: number;
       changes: number;
     }>
-  ).map((r) => ({
-    svc: r.svc,
-    id: r.id,
-    value: r.value,
-    nrc: r.nrc,
-    firstAt: r.first_at,
-    lastAt: r.last_at,
-    reads: r.reads,
-    changes: r.changes,
-  }));
+  ).map((r) => {
+    const k = knownCode(tx, r.svc, r.id, r.value);
+    return {
+      svc: r.svc,
+      id: r.id,
+      value: r.value,
+      nrc: r.nrc,
+      firstAt: r.first_at,
+      lastAt: r.last_at,
+      reads: r.reads,
+      changes: r.changes,
+      ...(k ? { name: k.name, shown: k.shown } : {}),
+    };
+  });
 }
 
 export function readScanSamples(tx: string, svc: string, id: number, limit = 500): Array<{ at: string; value: string }> {
