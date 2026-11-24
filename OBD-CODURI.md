@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 24.11.2026, 09:40 (bordul comparat cu ecranul: 1014 = temperatura de afară, 2205 = frâna de mână, 202F = uleiul)
+**Ultima actualizare:** 24.11.2026, 09:45 (bordul comparat cu ecranul: 1014 = temperatura de afară, 2205 = frâna de mână, 202F = uleiul; consumul de pe ecran față de OBD)
 
 ---
 
@@ -161,7 +161,9 @@ Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub trave
 | Motor 11F4–11FD, 16DF | text: „mec_open_cps”, „no_error” (×9), „SA3O6010 CBK0191” | stări ale unor teste / un cod intern |
 | Bord 100A, 220C, 220D | variază singure; 100A 7F → 99 cât se încălzește motorul și iar 7F (24.11), deci nu e uleiul; 220C 67 → 74 lent | temperaturi, tensiuni? |
 | Bord F442 (24.11) | 0x87–0x8B cu tensiunea CAN 14,0–14,3 V | tensiunea × 0,1 (cu întârziere)? |
-| Bordul: kilometrajul și TRIP-ul de pe ecran | 24.11: ecranul 245.942 km / trip 97,9; niciun cod nu are 245.942 (doar 1018 / 1019 = 245.938, ultima intrare din jurnalul bordului) și nici 979 / 9.790 | nu sunt în codurile citite din sesiunea implicită; kilometrajul exact îl dă motorul (121C). Fulgul (polei sub ~4 °C) negăsit |
+| Bordul: kilometrajul, TRIP-ul și memoria 1 de pe ecran | 24.11: ecranul 245.942 km / trip 97,9 / timpul de mers 1 h 42 min (de la primul contact, 07:59); niciun cod nu are 245.942 (doar 1018 / 1019 = 245.938, ultima intrare din jurnalul bordului), nici 979 / 9.790, nici 102 min / 6.120 s; 1009 (629–646 de 3 zile) nu e timpul | nu sunt în codurile citite din sesiunea implicită; kilometrajul exact îl dă motorul (121C). Fulgul (polei sub ~4 °C) negăsit |
+| **Consumul de pe bord față de estimarea OBD** (24.11, pe loc, cald, fără sarcină) | relanti 747 rpm, MAP 31: ecranul 0,7 L/h, OBD 0,69–0,72 · ~2.090 rpm stabil, MAP 24: ecranul **1,3** L/h (1,6 cât accelera), OBD ~1,5 | estimarea OBD e exactă la relanti și cu ~15 % peste la turație mare fără sarcină (randamentul volumetric fix 0,85 e prea mare la MAP mic?). De comparat în mers, cu sarcină |
+| Motor **2061 / 2062** (24.11, 45 de citiri la 0,5 s) | 2061 = 2 × 2062 exact; relanti 155 / 78, cât accelerează 265–270, la ~2.090 rpm stabil (MAP 24) 246 / 123, fix 13 s | **nu e cantitatea pe cursă** (aerul pe cursă a scăzut, 2061 a crescut) și nici L/h (×1,6 față de ×1,86 pe ecran); urmărește pedala: timpul de injecție cu decalaj fix / o comandă? |
 | Bord 2224, al doilea octet | 02 → 06 după schimbarea becului | necunoscut |
 | Bord 2203, 2208, 220C, 2273, 2275, 2277, 2294, 2295, 2297, 2299 | diferă între citiri (2275: 0B pe loc, 07 în mers) | senzori? |
 | Bord **F405** | 39 de citiri, 31–96 °C, rece și cald: ≈ 0,76 × x − 43 față de lichidul OBD (R² 0,996) | **temperatura lichidului de răcire** (în formatul bordului) |
@@ -212,6 +214,7 @@ Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub trave
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 24.11 09:45 | Consumul de pe ecran („Consumption” L/h) față de OBD: relanti 0,7 / 0,7, ~2.090 rpm fără sarcină 1,3 / ~1,5; 2061 / 2062 nu sunt cantitatea injectată; timpul de mers al memoriei 1 nu e în bord |
 | 24.11 09:40 | Bordul față de ecran (pe loc, motorul pornit): **1014 = temperatura de afară** (x / 2 − 50), **2205 bitul 0x01 = frâna de mână** (eliberată pe loc → 0), **202F = uleiul** (x − 58, nu x − 50: ecranul 86 °C la 0x90, 87 °C la 0x91); kilometrajul (245.942) și TRIP-ul (97,9) de pe ecran nu sunt în codurile bordului |
 | 24.11 | Climatronicul complet (08:13): nimic nou între 27DB și F15A; identificarea: F187 / F191 = 5K0907044GK, F189 = software 1212, F1A3 = hardware H19, F197 = „Climatronic”, F19E = `EV_Climatronic`, F1AA = J255, F18B = 12 06 16 (data fabricației?), F17C = seria `BHB-00116.06.1200980656` |
 | 23.11 | Pornire la rece: bord F405 = lichidul de răcire, 202F probabil uleiul (x − 50); motorul 1189–118F scad cu temperatura; TRIP-ul (80,4 / 80,6) și consumul mediu (49,9) NU sunt în codurile bordului citite în sesiunea implicită; climatronicul la 46 % |
