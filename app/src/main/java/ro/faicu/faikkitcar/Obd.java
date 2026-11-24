@@ -334,6 +334,10 @@ final class Obd extends BluetoothGattCallback {
         boolean again;
         /** Urmaririle (24.11): langa fiecare citire, valorile OBD din aceeasi clipa (`e`). */
         boolean ctx;
+        /** Urmarirea cu pauza: la cate secunde se reia (-1 = nu e urmarire cu pauza). */
+        int everyS = -1;
+        /** Pana cand sta in pauza (elapsedRealtime); 0 = de facut acum. */
+        long restUntil;
 
         String key() {
             return id + ":" + round;
@@ -364,6 +368,11 @@ final class Obd extends BluetoothGattCallback {
      * urma (progresul e inca in coada), iar progresul cu o trecere veche serverul il ignora.
      */
     private final java.util.Map<Integer, Integer> againRound = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Urmaririle cu pauza terminate aici (24.11): id → {trecerea urmatoare, pana cand sta}. O reluam
+     * singuri la timp; inainte asteptam lista de la server (la 60 s), deci cele de 30 s veneau la ~75 s.
+     */
+    private final java.util.Map<Integer, long[]> restHere = new java.util.concurrent.ConcurrentHashMap<>();
     /** range: urmatorul cod; list/loop: urmatorul index. */
     private int scanNext;
     /** Codurile unui grup de 3 care a raspuns: recitite pe rand, ca sa stim al cui e raspunsul. */
@@ -398,6 +407,8 @@ final class Obd extends BluetoothGattCallback {
             }
             out.append("\n  #").append(x.id).append(" ").append(x.label).append(x.parked ? " (doar pe loc)" : "")
                     .append(done ? " [terminata aici]" : "")
+                    .append(x.restUntil > SystemClock.elapsedRealtime()
+                            ? " [pauza " + (x.restUntil - SystemClock.elapsedRealtime()) / 1000 + " s]" : "")
                     .append(silentModules.contains(x.tx) ? " [modulul tace]" : "");
         }
         out.append("\nNetrimise: ").append(SCAN_QUEUE.size(c));
@@ -411,7 +422,7 @@ final class Obd extends BluetoothGattCallback {
         Thread t = new Thread(() -> {
             java.net.HttpURLConnection conn = null;
             try {
-                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN).openConnection();
+                conn = (java.net.HttpURLConnection) new java.net.URL(URL_SCAN + "?rest=1").openConnection();
                 conn.setConnectTimeout(10_000);
                 conn.setReadTimeout(20_000);
                 conn.setRequestProperty("Authorization", "Bearer " + BuildConfig.VW_LOG_TOKEN);
@@ -427,7 +438,21 @@ final class Obd extends BluetoothGattCallback {
                 if (code != 200) throw new java.io.IOException("HTTP " + code);
                 org.json.JSONArray a = new org.json.JSONObject(sb.toString()).getJSONArray("jobs");
                 java.util.List<Job> list = new java.util.ArrayList<>();
-                for (int i = 0; i < a.length(); i++) list.add(parseJob(a.getJSONObject(i)));
+                long at = SystemClock.elapsedRealtime();
+                for (int i = 0; i < a.length(); i++) list.add(parseJob(a.getJSONObject(i), at));
+                // Serverul poate fi in urma cu trecerea (progresul e inca in coada): ramane cea de aici.
+                java.util.Set<Integer> ids = new java.util.HashSet<>();
+                for (Job x : list) {
+                    ids.add(x.id);
+                    long[] rh = restHere.get(x.id);
+                    if (rh == null || x.everyS <= 0) continue;
+                    if (rh[0] > x.round) {
+                        x.round = (int) rh[0];
+                        x.next = 0;
+                    }
+                    if (rh[0] == x.round) x.restUntil = Math.max(x.restUntil, rh[1]);
+                }
+                restHere.keySet().retainAll(ids);
                 jobs = list;
                 jobsError = null;
                 // Ce nu mai e in lista a ajuns la server: nu mai trebuie tinut minte.
@@ -453,7 +478,7 @@ final class Obd extends BluetoothGattCallback {
         t.start();
     }
 
-    private static Job parseJob(org.json.JSONObject o) throws org.json.JSONException {
+    private static Job parseJob(org.json.JSONObject o, long at) throws org.json.JSONException {
         Job j = new Job();
         j.id = o.getInt("id");
         j.round = o.optInt("round");
@@ -468,6 +493,8 @@ final class Obd extends BluetoothGattCallback {
         j.parked = o.optBoolean("parked");
         j.again = o.optBoolean("again");
         j.ctx = o.optBoolean("ctx");
+        j.everyS = o.isNull("everyS") ? -1 : o.optInt("everyS", -1);
+        if (o.has("restS")) j.restUntil = at + o.getLong("restS") * 1000;
         org.json.JSONArray ids = o.optJSONArray("ids");
         j.ids = new int[ids == null ? 0 : ids.length()];
         for (int i = 0; i < j.ids.length; i++) j.ids[i] = ids.getInt(i);
@@ -476,7 +503,9 @@ final class Obd extends BluetoothGattCallback {
 
     /** Prima lucrare potrivita acum, in ordinea serverului. */
     private Job pickJob(boolean moving) {
+        long now = SystemClock.elapsedRealtime();
         for (Job j : jobs) {
+            if (j.restUntil > now) continue;
             synchronized (finishedHere) {
                 if (finishedHere.contains(j.key())) continue;
             }
@@ -548,6 +577,17 @@ final class Obd extends BluetoothGattCallback {
             finishedHere.add(j.key());
         }
         c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit().remove("scanJob").remove("scanNext").apply();
+        if (j.everyS > 0) {
+            // Trecerea urmatoare, dupa pauza: si in lista de acum (poate fi alt obiect decat cel in curs).
+            long until = SystemClock.elapsedRealtime() + j.everyS * 1000L;
+            restHere.put(j.id, new long[]{j.round + 1, until});
+            for (Job x : jobs) {
+                if (x.id != j.id || x.round != j.round) continue;
+                x.round++;
+                x.next = 0;
+                x.restUntil = until;
+            }
+        }
         // Buclele se termina des (la fiecare trecere): doar lucrarile adevarate intra in jurnal.
         if (!j.kind.equals("loop")) Prefs.log(c, "OBD: scanarea „" + j.label + "” " + why + ", " + scanFound + " coduri");
         job = null;

@@ -53,6 +53,8 @@ export interface ScanJob {
   again?: boolean;
   /** Urmăririle: valorile OBD din clipa citirii lângă fiecare rezultat (`e`, tabela obd_read). */
   ctx?: boolean;
+  /** Pentru mașină: urmărirea în pauză, reluată de ea peste atâtea secunde (cu `round` de acum). */
+  restS?: number;
   status: ScanStatus;
   createdAt: string;
   startedAt: string | null;
@@ -278,13 +280,22 @@ function catalogIds(tx: string, svc: string): number[] {
  * pe toată trecerea: progresul e un index în ea); până are ceva în catalog (modulul nescanat
  * încă) e sărită.
  */
-export function carScanJobs(max = 3, now = Date.now()): ScanJob[] {
+export function carScanJobs(max = 3, now = Date.now(), rest = false): ScanJob[] {
   const db = getDb();
   const out: ScanJob[] = [];
+  let n = 0;
   for (const r of rows()) {
-    if (out.length >= max) break;
+    if (n >= max) break;
     if (r.status !== "queued" && r.status !== "running") continue;
-    if (resting(r, now)) continue;
+    // În pauză: tot în listă, cu cât mai are (`restS`), ca mașina s-o reia singură la timp; altfel
+    // o lua abia la lista următoare (la 60 s), deci urmăririle de 30 s veneau la ~75 s (24.11).
+    // Nu ocupă locurile lucrărilor de făcut acum.
+    if (resting(r, now)) {
+      if (!rest) continue;
+      const restS = Math.ceil(((r.every_s ?? 0) * 1000 - (now - Date.parse(r.pass_at!))) / 1000);
+      out.push({ ...toJob(r), kind: "loop", ctx: true, restS });
+      continue;
+    }
     if (r.kind === "loop" && (!r.ids || r.ids === "[]")) {
       const ids = catalogIds(r.tx, r.svc);
       if (ids.length === 0) continue;
@@ -297,6 +308,7 @@ export function carScanJobs(max = 3, now = Date.now()): ScanJob[] {
     const j = toJob(r);
     // Urmăririle: `ctx` = mașina pune lângă fiecare citire valorile OBD din aceeași clipă (obd_read, 24.11).
     out.push(j.kind === "watch" ? { ...j, kind: "loop", ctx: true, ...(j.everyS === 0 ? { again: true } : {}) } : j);
+    n++;
   }
   return out;
 }

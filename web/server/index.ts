@@ -173,7 +173,8 @@ app.get("/api/car/music/wait", async (c) => {
 // Scanarea OBD (obd-scan.ts): lucrările de făcut, în ordine, și rezultatele din coada mașinii.
 app.get("/api/car/obd/scan", (c) => {
   requireCarToken(c);
-  return c.json({ jobs: carScanJobs() });
+  // `rest=1` (din 1.1.122): mașina știe să aștepte pauza unei urmăriri; aplicația veche le-ar lua imediat.
+  return c.json({ jobs: carScanJobs(3, Date.now(), c.req.query("rest") === "1") });
 });
 
 app.post("/api/car/obd/scan", async (c) => {
