@@ -37,6 +37,7 @@ final class Obd extends BluetoothGattCallback {
     private static final String DEFAULT_ADDR = "C5:57:46:DD:88:83";
     private static final long RELEASE_MS = 60_000;
     private static final long SLOW_MS = 2_000;
+    private static final long CYCLE_MS = 250;
     private static final long STATUS_MS = 5 * 60_000;
     /** Incercari fara niciun raspuns de la stiva (~1,5 min) dupa care verificam daca e blocata. */
     private static final int STUCK_FAILURES = 4;
@@ -290,7 +291,9 @@ final class Obd extends BluetoothGattCallback {
             }
             disconnectQuiet();
             failures++;
-            nextTryAt = SystemClock.elapsedRealtime() + Math.min(15_000, 5_000L * failures);
+            // 5, 10, 15 s, apoi cel mult o data pe minut (25.11: cat adaptorul e ocupat de Car Scanner sau
+            // lipseste, fiecare incercare inregistreaza un client GATT nou in stiva Bluetooth).
+            nextTryAt = SystemClock.elapsedRealtime() + (failures <= 3 ? 5_000L * failures : Math.min(60_000, 15_000L * (failures - 2)));
             if (noAnswer) silentFailures++;
             else silentFailures = 0;
             if (silentFailures >= STUCK_FAILURES) unstick();
@@ -300,12 +303,18 @@ final class Obd extends BluetoothGattCallback {
             }
             return false;
         }
+        long cycleStart = SystemClock.elapsedRealtime();
         synchronized (io) {
             poll();
         }
         // Scanarea, cu motorul pornit: in mers bucati scurte (consumul ramane acoperit).
         double kmh = CanLink.get(c).speed();
         if (connected) scanBlock(Double.isNaN(kmh) || kmh >= 1);
+        flushQueue(false);
+        // Cel mult ~4 cicluri pe secunda (25.11: fara scanare ajungea la 15/s, adica ~20 de cereri BLE pe
+        // secunda fara folos; consumul se integreaza la fel de bine la 4 Hz).
+        long rest = CYCLE_MS - (SystemClock.elapsedRealtime() - cycleStart);
+        if (rest > 0) Thread.sleep(rest);
         return true;
     }
 
@@ -318,6 +327,34 @@ final class Obd extends BluetoothGattCallback {
     static final JsonlQueue SCAN_QUEUE = new JsonlQueue("obd_scan.jsonl", 100_000);
     private static final String URL_SCAN = VwStatus.BASE + "/api/car/obd/scan";
     private static final long JOBS_MS = 60_000;
+    /**
+     * Rezultatele si progresul se strang in memorie si se scriu pe disc deodata, la cel mult 5 s (25.11: la
+     * scanare ajungeau ~40 de deschideri ale fisierului pe secunda). La o cadere se pierd cel mult 5 s,
+     * pe care serverul le reciteste (progresul de pe server e in urma lor).
+     */
+    private static final long QUEUE_FLUSH_MS = 5_000;
+    private final java.util.List<org.json.JSONObject> queued = new java.util.ArrayList<>();
+    private long queuedAt;
+
+    private void queue(org.json.JSONObject o) {
+        synchronized (queued) {
+            queued.add(o);
+        }
+    }
+
+    /** Ce s-a strans, pe disc (de unde il ia Uploader); `force` = acum, altfel cel mult o data la 5 s. */
+    private void flushQueue(boolean force) {
+        long now = SystemClock.elapsedRealtime();
+        if (!force && now - queuedAt < QUEUE_FLUSH_MS) return;
+        queuedAt = now;
+        java.util.List<org.json.JSONObject> out;
+        synchronized (queued) {
+            if (queued.isEmpty()) return;
+            out = new java.util.ArrayList<>(queued);
+            queued.clear();
+        }
+        SCAN_QUEUE.addAll(c, out);
+    }
     /** Refuzul „lent / fara raspuns” (serverul: NRC_SLOW). */
     private static final int NRC_SLOW = 256;
     /** „Codul nu exista”: trimis doar din recitiri, ca serverul sa scoata un cod lent din catalog. */
@@ -330,8 +367,6 @@ final class Obd extends BluetoothGattCallback {
         String svc, kind, label;
         int[] ids;
         boolean parked;
-        /** Urmarirea fara pauza (seria deasa, 23.11): o reluam aici imediat, nu la lista urmatoare. */
-        boolean again;
         /** Urmaririle (24.11): langa fiecare citire, valorile OBD din aceeasi clipa (`e`). */
         boolean ctx;
         /** Urmarirea cu pauza: la cate secunde se reia (-1 = nu e urmarire cu pauza). */
@@ -367,11 +402,6 @@ final class Obd extends BluetoothGattCallback {
      * era la ultima lista si ar fi recitit codurile de atunci.
      */
     private final java.util.Map<String, Integer> reachedHere = new java.util.concurrent.ConcurrentHashMap<>();
-    /**
-     * Trecerea la care a ajuns aici fiecare urmarire fara pauza: lista de la server poate ramane in
-     * urma (progresul e inca in coada), iar progresul cu o trecere veche serverul il ignora.
-     */
-    private final java.util.Map<Integer, Integer> againRound = new java.util.concurrent.ConcurrentHashMap<>();
     /**
      * Urmaririle cu pauza terminate aici (24.11): id → {trecerea urmatoare, pana cand sta}. O reluam
      * singuri la timp; inainte asteptam lista de la server (la 60 s), deci cele de 30 s veneau la ~75 s.
@@ -495,7 +525,6 @@ final class Obd extends BluetoothGattCallback {
         j.last = o.optInt("last");
         j.next = o.optInt("next");
         j.parked = o.optBoolean("parked");
-        j.again = o.optBoolean("again");
         j.ctx = o.optBoolean("ctx");
         j.everyS = o.isNull("everyS") ? -1 : o.optInt("everyS", -1);
         if (o.has("restS")) j.restUntil = at + o.getLong("restS") * 1000;
@@ -515,6 +544,9 @@ final class Obd extends BluetoothGattCallback {
         long now = SystemClock.elapsedRealtime();
         for (Job j : jobs) {
             if (j.restUntil > now) continue;
+            // Urmarirea terminata aici sta in pauza si daca lista e mai veche decat trecerea ei.
+            long[] rh = restHere.get(j.id);
+            if (rh != null && rh[1] > now) continue;
             synchronized (finishedHere) {
                 if (finishedHere.contains(j.key())) continue;
             }
@@ -529,10 +561,6 @@ final class Obd extends BluetoothGattCallback {
     /** Lucrarea aleasa devine cea in curs: de unde a ramas (aici sau pe server, cel mai departe). */
     private void startJob(Job j) {
         flushProgress(true);
-        if (j.again) {
-            Integer r = againRound.get(j.id);
-            if (r != null && r > j.round) j.round = r;
-        }
         job = j;
         scanPending.clear();
         pendingTries = 0;
@@ -563,14 +591,16 @@ final class Obd extends BluetoothGattCallback {
         long t = SystemClock.elapsedRealtime();
         reachedHere.put(j.key(), n);
         if (n == progressSent || (!now && t - progressAt < PROGRESS_MS)) return;
-        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit()
-                .putString("scanJob", j.key()).putInt("scanNext", n).apply();
         progressAt = t;
         progressSent = n;
         try {
-            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round).put("n", n));
+            queue(new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round).put("n", n));
         } catch (org.json.JSONException ignored) {
         }
+        // Intai rezultatele pe disc, apoi locul de reluare: dupa o cadere nu sarim peste ce nu s-a scris.
+        flushQueue(true);
+        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit()
+                .putString("scanJob", j.key()).putInt("scanNext", n).apply();
     }
 
     private void finishJob(String why) {
@@ -578,14 +608,15 @@ final class Obd extends BluetoothGattCallback {
         scanNext = j.range() ? j.last + 1 : j.ids.length;
         scanPending.clear();
         try {
-            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round)
+            queue(new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round)
                     .put("n", scanNext).put("d", 1));
         } catch (org.json.JSONException ignored) {
         }
         synchronized (finishedHere) {
             finishedHere.add(j.key());
         }
-        c.getSharedPreferences("obd", Context.MODE_PRIVATE).edit().remove("scanJob").remove("scanNext").apply();
+        android.content.SharedPreferences prefs = c.getSharedPreferences("obd", Context.MODE_PRIVATE);
+        if (prefs.contains("scanJob")) prefs.edit().remove("scanJob").remove("scanNext").apply();
         if (j.everyS > 0) {
             // Trecerea urmatoare, dupa pauza: si in lista de acum (poate fi alt obiect decat cel in curs).
             long until = SystemClock.elapsedRealtime() + j.everyS * 1000L;
@@ -600,26 +631,10 @@ final class Obd extends BluetoothGattCallback {
         // Buclele se termina des (la fiecare trecere): doar lucrarile adevarate intra in jurnal.
         if (!j.kind.equals("loop")) Prefs.log(c, "OBD: scanarea „" + j.label + "” " + why + ", " + scanFound + " coduri");
         job = null;
-        jobsAt = 0; // lista noua cat mai repede
+        // Dupa o lucrare adevarata, lista noua cat mai repede; o urmarire se reia singura (restHere).
+        if (j.everyS <= 0) jobsAt = 0;
+        flushQueue(true);
         Uploader.kick(c);
-    }
-
-    /**
-     * Urmarirea fara pauza: trecerea terminata ajunge la server (trece la urmatoarea), iar aici o
-     * luam de la capat imediat. Inainte (23.11) asteptam lista noua, deci o trecere pe minut.
-     */
-    private void nextPass(Job j) {
-        try {
-            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "p").put("j", j.id).put("r", j.round)
-                    .put("n", j.ids.length).put("d", 1));
-        } catch (org.json.JSONException ignored) {
-        }
-        reachedHere.remove(j.key());
-        j.round++;
-        againRound.put(j.id, j.round);
-        scanNext = 0;
-        progressSent = -1;
-        scanSilent = 0;
     }
 
     private void result(Job j, int id, int[] data, int from, int nrc) {
@@ -635,7 +650,7 @@ final class Obd extends BluetoothGattCallback {
                 scanFound++;
             }
             if (j.ctx) o.put("e", context());
-            SCAN_QUEUE.add(c, o);
+            queue(o);
         } catch (org.json.JSONException ignored) {
         }
     }
@@ -674,7 +689,7 @@ final class Obd extends BluetoothGattCallback {
      */
     private void missing(Job j, int from, int count) {
         try {
-            SCAN_QUEUE.add(c, new org.json.JSONObject().put("t", "r").put("j", j.id).put("x", hex(j.tx, 3))
+            queue(new org.json.JSONObject().put("t", "r").put("j", j.id).put("x", hex(j.tx, 3))
                     .put("s", j.svc).put("i", from).put("n", NRC_MISSING).put("c", count)
                     .put("at", System.currentTimeMillis()));
         } catch (org.json.JSONException ignored) {
@@ -709,10 +724,7 @@ final class Obd extends BluetoothGattCallback {
             }
             return;
         }
-        // O urmarire reluata aici are trecerea inaintea listei de la server: ramane aceeasi lucrare.
-        boolean same = job != null && (job.key().equals(j.key())
-                || (j.again && job.again && job.id == j.id && java.util.Arrays.equals(job.ids, j.ids)));
-        if (!same) startJob(j);
+        if (job == null || !job.key().equals(j.key())) startJob(j);
         // Lista de la server se reface la fiecare minut cu obiecte noi: lucram mai departe pe cel in
         // curs (buclele de mai jos compara obiectul; 21.11, cu cel nou scanarea statea dupa un minut).
         j = job;
@@ -735,10 +747,6 @@ final class Obd extends BluetoothGattCallback {
                 } else if (!j.range()) {
                     while (connected && job == j && SystemClock.elapsedRealtime() < end) {
                         if (scanNext >= j.ids.length) {
-                            if (j.again) {
-                                nextPass(j);
-                                continue;
-                            }
                             finishJob("gata");
                             break;
                         }
@@ -1338,6 +1346,7 @@ final class Obd extends BluetoothGattCallback {
     }
 
     private void disconnect(String why) {
+        flushQueue(true);
         boolean was = session;
         session = false;
         double total;

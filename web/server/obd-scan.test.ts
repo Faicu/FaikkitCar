@@ -169,11 +169,16 @@ describe("jobs and results", () => {
     expect(resting.filter((j) => j.restS === undefined)).toHaveLength(1);
     const back = scan.carScanJobs(3, passAt + 121_000);
     expect(back[0]).toMatchObject({ id: w.id, round: 1, next: 0, ids: scan.WATCH[0].ids });
-    expect(back[0].again).toBeUndefined();
     expect(back[0].ctx).toBe(true);
-    // Fără pauză: mașina o reia singură (`again`).
-    const dense = scan.carScanJobs(10, passAt + 121_000).find((j) => scan.WATCH.find((x) => x.label === j.label)?.everyS === 0);
-    expect(dense?.again).toBe(true);
+  });
+
+  it("drops watch jobs that are no longer in WATCH", () => {
+    scan.seedWatchJobs("2026-11-22T00:00:00.000Z");
+    const db = getDb();
+    db.prepare(`INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, ids, every_s, status, created_at)
+      VALUES (0.15, 'Urmărire: veche', '7E0', '7E8', '22', 'watch', '[1]', 0, 'paused', '2026-11-22')`).run();
+    expect(scan.seedWatchJobs()).toBe(1);
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM obd_scan_job WHERE kind = 'watch'`).get()).toEqual({ n: scan.WATCH.length });
   });
 
   it("updates the codes of an existing watch job when WATCH changes, keeping it paused", () => {

@@ -50,8 +50,6 @@ export interface ScanJob {
   parent: number | null;
   everyS: number | null; // watch: la câte secunde se reia
   passAt: string | null; // watch: ultima trecere
-  /** Pentru mașină: urmărirea fără pauză (everyS 0), reluată de ea imediat, fără să aștepte lista. */
-  again?: boolean;
   /** Urmăririle: valorile OBD din clipa citirii lângă fiecare rezultat (`e`, tabela obd_read). */
   ctx?: boolean;
   /** Pentru mașină: urmărirea în pauză, reluată de ea peste atâtea secunde (cu `round` de acum). */
@@ -190,13 +188,12 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     ids: [0x1154, 0x117d, 0x1200, 0x13b1, 0x16e2, 0x1749, 0x29d1, 0x39c3, 0x39cb, 0x4111, 0x155a, 0x2006, 0x1314],
   },
   {
-    // 23.11: seria deasă pentru cantitatea injectată: cei 6 care cresc cu sarcina, fără pauză între treceri
-    // (la sfârșitul listei mașina cere imediat lista nouă), ~o trecere la 2–3 s. Ține scanarea în așteptare
-    // cât există; „Oprește” de pe site / Panel când ajung datele din drumuri (relanti, accelerare, frână de motor).
-    // 24.11: oprită; 20EB / 20EC și 2061 / 2062 s-au dovedit altceva (OBD-CODURI.md), iar estimarea din aerul
-    // aspirat se potrivește cu consumul de pe bord.
-    label: "Urmărire: serie deasă, candidații injecției (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.15, everyS: 0,
-    ids: [0x20eb, 0x20ec, 0x2061, 0x2062, 0x209a, 0x204c],
+    // 25.11: climatronicul, cele 37 de coduri care se schimbă și n-au nume (temperatura din habitaclu, soarele,
+    // vaporizatorul, clapetele de temperatură), cu valorile OBD alături (afară, lichidul); ~9 s pe trecere.
+    label: "Urmărire: climatronic (candidații)", tx: "746", svc: "22", kind: "watch", ord: 0.25, everyS: 60,
+    ids: [0x0285, 0x0286, 0x2600, 0x2602, 0x2603, 0x2604, 0x2605, 0x2606, 0x2607, 0x2609, 0x260a, 0x260c, 0x260d,
+      0x260f, 0x2610, 0x2612, 0x2613, 0x2614, 0x2615, 0x261a, 0x261d, 0x2622, 0x2623, 0x2624, 0x2626, 0x2627, 0x2630,
+      0x2631, 0x2632, 0x2633, 0x2634, 0x263b, 0x263f, 0x264e, 0x2650, 0x2654, 0x2695],
   },
 ];
 
@@ -229,6 +226,12 @@ export function seedWatchJobs(now = new Date().toISOString()): number {
     ins.run(w.ord, w.label, w.tx, SCAN_MODULES[w.tx].rx, w.svc, JSON.stringify(w.ids), w.everyS, now);
     n++;
   }
+  // Urmăririle scoase din WATCH (25.11: seria deasă a injecției) dispar din coadă; citirile lor rămân.
+  const labels = WATCH.map((w) => w.label);
+  n += Number(
+    db.prepare(`DELETE FROM obd_scan_job WHERE kind = 'watch' AND label NOT IN (${labels.map(() => "?").join(", ")})`)
+      .run(...labels).changes,
+  );
   return n;
 }
 
@@ -306,11 +309,10 @@ export function carScanJobs(max = 3, now = Date.now(), rest = false): ScanJob[] 
       r.next = 0;
       db.prepare(`UPDATE obd_scan_job SET ids = ?, next = 0 WHERE id = ?`).run(r.ids, r.id);
     }
-    // Mașina știe doar range / list / loop: urmărirea e pentru ea o buclă (trecerile au `round`).
-    // Fără pauză (seria deasă, 23.11): mașina o reia singură, altfel trecerile veneau o dată pe minut.
+    // Mașina știe doar range / list / loop: urmărirea e pentru ea o buclă (trecerile au `round`), reluată de ea
+    // după `everyS`. `ctx` = lângă fiecare citire valorile OBD din aceeași clipă (obd_read, 24.11).
     const j = toJob(r);
-    // Urmăririle: `ctx` = mașina pune lângă fiecare citire valorile OBD din aceeași clipă (obd_read, 24.11).
-    out.push(j.kind === "watch" ? { ...j, kind: "loop", ctx: true, ...(j.everyS === 0 ? { again: true } : {}) } : j);
+    out.push(j.kind === "watch" ? { ...j, kind: "loop", ctx: true } : j);
     n++;
   }
   return out;
