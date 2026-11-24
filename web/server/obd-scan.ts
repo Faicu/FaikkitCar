@@ -168,8 +168,10 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
   },
   {
     label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 120,
-    ids: [0x1007, 0x1009, 0x100a, 0x1014, 0x1019, 0x101a, 0x2203, 0x2205, 0x2208, 0x220c, 0x220d, 0x2275,
-      0x202f, 0xf405, 0xf442],
+    // 24.11: confirmate la mașină și scoase: 1014 afară, 2205 frâna de mână, 202F uleiul, F405 lichidul de răcire;
+    // intră 2294 / 2296 / 229A (lângă autonomia 2297 și consumul mediu 2299, încă neclare).
+    ids: [0x1007, 0x1009, 0x100a, 0x1019, 0x101a, 0x2203, 0x2208, 0x220c, 0x220d, 0x2275, 0x2294, 0x2296,
+      0x229a, 0xf442],
   },
   {
     label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 120,
@@ -181,22 +183,39 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     // 23.11: seria deasă pentru cantitatea injectată: cei 6 care cresc cu sarcina, fără pauză între treceri
     // (la sfârșitul listei mașina cere imediat lista nouă), ~o trecere la 2–3 s. Ține scanarea în așteptare
     // cât există; „Oprește” de pe site / Panel când ajung datele din drumuri (relanti, accelerare, frână de motor).
+    // 24.11: oprită; 20EB / 20EC și 2061 / 2062 s-au dovedit altceva (OBD-CODURI.md), iar estimarea din aerul
+    // aspirat se potrivește cu consumul de pe bord.
     label: "Urmărire: serie deasă, candidații injecției (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.15, everyS: 0,
     ids: [0x20eb, 0x20ec, 0x2061, 0x2062, 0x209a, 0x204c],
   },
 ];
 
-/** Pune lucrările de urmărire care lipsesc (după etichetă); cele existente rămân cum le-a lăsat utilizatorul. */
+/**
+ * Pune lucrările de urmărire care lipsesc (după etichetă). La cele existente schimbă doar lista de coduri, dacă
+ * `WATCH` s-a schimbat (24.11: ce s-a confirmat iese), cu o trecere nouă (`round` + 1, ca mașina să nu-și
+ * aplice progresul pe lista veche); oprirea / pornirea rămâne cum a lăsat-o utilizatorul.
+ */
 export function seedWatchJobs(now = new Date().toISOString()): number {
   const db = getDb();
-  const has = db.prepare(`SELECT 1 FROM obd_scan_job WHERE label = ?`);
+  const has = db.prepare(`SELECT id, ids FROM obd_scan_job WHERE label = ?`);
+  const setIds = db.prepare(
+    `UPDATE obd_scan_job SET ids = ?, next = 0, round = round + 1, updated_at = ? WHERE id = ?`,
+  );
   const ins = db.prepare(
     `INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, ids, every_s, status, created_at)
      VALUES (?, ?, ?, ?, ?, 'watch', ?, ?, 'queued', ?)`,
   );
   let n = 0;
   for (const w of WATCH) {
-    if (has.get(w.label)) continue;
+    const cur = has.get(w.label) as { id: number; ids: string | null } | undefined;
+    if (cur) {
+      const ids = JSON.stringify(w.ids);
+      if (cur.ids !== ids) {
+        setIds.run(ids, now, cur.id);
+        n++;
+      }
+      continue;
+    }
     ins.run(w.ord, w.label, w.tx, SCAN_MODULES[w.tx].rx, w.svc, JSON.stringify(w.ids), w.everyS, now);
     n++;
   }

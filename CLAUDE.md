@@ -241,7 +241,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   acceptă doar `7F 22 31`, orice altceva se recitește fără cifră (verificat pe motor 0000–21FC față de o copie a bazei:
   identic). ~40–60 coduri/s la motor; peste 3 DID-uri pe cerere motorul nu răspunde. Serverul măsoară ritmul din progres
   (`noteProgress`, ferestre de 30 s, în memorie) → `etaS`/`endsS` la lucrări (site și Panel: „~9 min · gata peste …”) și
-  `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (bord 15, motor 14).
+  `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (24.11: bord 14, motor 4); `seedWatchJobs` schimbă la pornirea serverului lista unei urmăriri existente când `WATCH` diferă (trecere nouă, oprirea păstrată).
   **Clapeta climatronicului** (23.11): motorașul V426 (B1091) se blochează intermitent (punct mort). Urmărirea
   „clapeta de distribuție” (746, 262E reală / 262F cerută, la 1 min, prima în coadă) → `flap.ts` (`obd_flap`, testat în
   `flap.test.ts`): reală − cerută în afara 0x10–0x28, cu aceeași cerere, la 2 citiri la ≥ 30 s = defect „Climatronic ·
@@ -286,6 +286,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   lungimea mesajului pe mai multe cadre doar de unde începe (înainte se tăiau ultimii 3 octeți după un `7F 19 78`).
   Răspunsul real al motorului (21.11): 63 de intrări, toate 0x40/0x50 (test neterminat de la ștergere), nicio eroare;
   airbag-ul una, 0x10 (testat în `dtc.test.ts`).
+  **24.11, testele la mașină** (bordul comparat cu ecranul, `OBD-CODURI.md`): 1014 afară (x/2 − 50), 2205 bitul 0x01 frâna de mână, 202F uleiul (x − 58), 2297 autonomia, 2299 consumul mediu pe termen lung (×0,1), 2224 și 0x04 avariile / 0x40 faza lungă, 224D…2291 lumina de afară; memoria 1, TRIP-ul, semnalizarea, faza scurtă nu sunt în bord. Consumul OBD din aerul aspirat se potrivește cu bordul (relanti 0,7 / 0,7 L/h, dimineața 1,48 / 1,49 L), deci seria deasă a injecției (lucrarea 17) e oprită. Citirea întregului bord înainte / după o acțiune: `/root/bordsnap/snap.sh <nume>` + `diff.sh` (comenzile puse direct în `car_cmd` când login-ul dă 429).
   **Becul ars** (21.11, proiectorul dreapta față): becurile le supraveghează BCM-ul (TP2.0, necitit), bordul doar afișează
   mesajul, fără eroare UDS. Găsit prin citiri ale bordului înainte / după (`/root/obd-714-snapshot-2…4`): **DID 2224,
   bitul 0x01 din primul octet** (20 02 bun → 21 02 ars → 20 06 schimbat; al doilea octet necunoscut). Din 1.1.107 se

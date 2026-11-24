@@ -170,6 +170,22 @@ describe("jobs and results", () => {
     expect(dense?.again).toBe(true);
   });
 
+  it("updates the codes of an existing watch job when WATCH changes, keeping it paused", () => {
+    scan.seedWatchJobs("2026-11-22T00:00:00.000Z");
+    const db = getDb();
+    const w = scan.WATCH[1];
+    db.prepare(`UPDATE obd_scan_job SET ids = ?, next = 3, status = 'paused' WHERE label = ?`).run("[1,2,3,4]", w.label);
+    const before = db.prepare(`SELECT round FROM obd_scan_job WHERE label = ?`).get(w.label) as { round: number };
+    expect(scan.seedWatchJobs()).toBe(1);
+    const row = db.prepare(`SELECT ids, next, round, status FROM obd_scan_job WHERE label = ?`).get(w.label) as {
+      ids: string; next: number; round: number; status: string;
+    };
+    expect(JSON.parse(row.ids)).toEqual(w.ids);
+    expect(row).toMatchObject({ next: 0, round: before.round + 1, status: "paused" });
+    expect(scan.seedWatchJobs()).toBe(0);
+    db.prepare(`UPDATE obd_scan_job SET status = 'queued' WHERE label = ?`).run(w.label);
+  });
+
   it("records missing codes in groups and re-reads what got no clear answer", () => {
     const db = getDb();
     const ins = db.prepare(
