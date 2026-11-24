@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 24.11.2026, 09:50 (2297 = autonomia; bordul comparat cu ecranul: 1014 = temperatura de afară, 2205 = frâna de mână, 202F = uleiul; consumul de pe ecran față de OBD)
+**Ultima actualizare:** 24.11.2026, 10:20 (2224 = martorii: avarii, faza lungă; lumina de afară; 2297 = autonomia; bordul comparat cu ecranul: 1014 = temperatura de afară, 2205 = frâna de mână, 202F = uleiul; consumul de pe ecran față de OBD)
 
 ---
 
@@ -47,7 +47,8 @@ Viteza: din 1.1.113 ~40–60 coduri/s la motor (cererile cu cifra „1”, secț
 
 | DID | Ce e | Cum se citește | Confirmat |
 |---|---|---|---|
-| **2224** | Avertizarea de **bec ars** de pe bord | bitul 0x01 din primul octet (20 02 bun → 21 02 ars → 20 06 schimbat) | 21.11, proiectorul dreapta față. Folosit în aplicație din 1.1.107: „Bord · bec” pe Navigație |
+| **2224** | **Martorii bordului**, primul octet: 0x01 **bec ars**, 0x04 **avariile**, 0x40 **faza lungă** (0x20 mereu aprins) | 20 02 normal · 21 02 bec ars · 24 02 avarii · 60 02 faza lungă | 0x01: 21.11, proiectorul dreapta față (în aplicație din 1.1.107, „Bord · bec”). 0x04 și 0x40: 24.11, pornite / oprite pe loc, câte 2 citiri. Semnalizarea simplă, faza scurtă, frâna de picior și marșarierul **nu** apar în bord |
+| **224D–224F, 2250 / 2251, 2259–225B, 2290 / 2291** | **Lumina de afară** (senzorul de lumină / ploaie de la oglindă), câteva niveluri, probabil pentru iluminarea bordului | 2250: ~64 noaptea, 74 → 112 pe 24.11 dimineața, 114 → **168** cu blitzul telefonului pe senzor și înapoi la 112 imediat după; salturile 138 / 142 / 200 = soare direct | 24.11: blitz pe senzor → toată grupa crește (224D 25 → 56, 2290 40 → 53), apoi revine. Nu sunt numărători de zile (cum credeam pe 22.11) |
 | **2206** | Litrii din rezervor | 1 octet, litri (0x34 = 52) | 21.11, la fel ca CAN c104 |
 | **2260** | **Km până la revizia de ulei** | 2 octeți, km, rotunjit în sus la 100: 0x38A4 = 14.500 → 0x3840 = 14.400 | 22.11: 15.000 − (km de acum − 245.313 de la revizia din 19.10) = 14.419 → 14.500 și 14.396 → 14.400 |
 | **2261** | **Zile până la revizia de ulei** | 2 octeți: 0x014D = 333 → 0x014C = 332 | 22.11: 365 − 33 de zile de la 19.10 |
@@ -145,7 +146,7 @@ Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub trave
 | Bord **1007** | 22.11 seara: **NU e consumul.** 74 min la relanti pe loc (~0,8 L după OBD) → 0 creștere; la prima citire după 12 h de oprire era 17.579 (nu aproape de 0). Creșterile nu urmează nici litrii, nici distanța: +219 pe 1,9 km la 40–70 km/h, +363 pe 1,2 km cu frânări și opriri, +114 pe 120 m de manevre la parcare, 0 la relanti. Înainte (21.11): ~2.900 pe litru estimat, dar doar în mers | crește doar în mers, mai mult cu frânări / manevre: legat de frână sau de direcție? (de verificat: frâna apăsată pe loc) |
 | Bord 1009 | 603 → 624 → 647 (~0,48 pe minut de mers) | timpul din memoria calculatorului de bord, în minute? |
 | Bord 1017 / 1018 / 1019 / 101A | kilometraje în formatul cu cuvintele de 16 biți inversate (`C0 62 00 03` = 245.858). 1019 = ultima intrare, 101A = cea dinainte (se mută la o intrare nouă), cu un contor 00 / 01 / 02 la 245.836, 245.858, 245.878; 245.858 și 245.878 au fost **în mijlocul drumurilor**, deci 1018 NU e „kilometrajul de la ultima oprire” (cum credeam pe 21.11); după kilometraj, mereu `10 91 11 4D` | un jurnal de evenimente al bordului (o avertizare / o eroare cu kilometrajul ei?). Ipoteză: `10 91` ar putea fi legat de eroarea climatronicului B1091 (clapeta blocată, apare în mers), neverificat |
-| Bord 224B, 2250 / 2251, 2290 / 2291 | +1 deodată cu zilele reviziei (22, 65, 17) | numărători de zile de la alte evenimente |
+| Bord 224B | +1 deodată cu zilele reviziei | o numărătoare de zile? (2250 / 2251, 2290 / 2291 s-au dovedit lumina de afară, 24.11) |
 | Motor 1154 | exact 750 la toate citirile pe loc, 800 la toate în mers (5 citiri, 2 zile, rece și cald) | turația de relanti cerută (mai mare în mers) |
 | Motor 117D | 23 la relanti, 25–36 la mers încet, 43 la sarcină (MAP 109 kPa), **63 cu injecția tăiată** (frână de motor, sarcina 0) | nu e sarcina (e maximă când sarcina e 0); avansul aprinderii / un unghi? |
 | Motor 1189–118F (23.11) | cu pornirea la rece se vede clar: scad cu ~1 la fiecare 5 °C de lichid (118D: R² 0,94 pe 78 °C) | o mărime care scade cu temperatura motorului (frecarea / pierderile modelate?), nu tensiuni |
@@ -166,7 +167,9 @@ Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub trave
 | Bord **2294** (24.11) | 0x01E5 = 485, coboară cu ~1 la câteva minute (519 ieri seara → 485), mereu lângă 2297 | **autonomia nerotunjită** (2297 = ea rotunjită la 10)? 2296 (~2.500) și 229A (~370) scad și ele încet: legate de calculul autonomiei? |
 | **Consumul de pe bord față de estimarea OBD** (24.11, pe loc, cald, fără sarcină) | relanti 747 rpm, MAP 31: ecranul 0,7 L/h, OBD 0,69–0,72 · ~2.090 rpm stabil, MAP 24: ecranul **1,3** L/h (1,6 cât accelera), OBD ~1,5 ; memoria 1 de la 07:59 (pornire la rece, 3 km, mult relanti): 49,3 L/100 × 3 km = **1,48 L** pe bord, OBD **1,49 L** (distanța e rotunjită la km, deci 1,2–1,7 L) ; drumul scurt de după resetarea memoriei 1 (09:5x–09:57, < 1 km prin parcare și oraș): ecranul 12,3 L/100, OBD 12,4–13,3 L/100 (după momentul resetării, ~0,5–0,9 km, 0,07–0,12 L) | estimarea OBD e exactă la relanti, în mers scurt prin oraș la ±8 %, pe toată dimineața se potrivește cu bordul, și cu ~15 % peste la turație mare fără sarcină (randamentul volumetric fix 0,85 e prea mare la MAP mic?). De comparat în mers, cu sarcină |
 | Motor **2061 / 2062** (24.11, 45 de citiri la 0,5 s) | 2061 = 2 × 2062 exact; relanti 155 / 78, cât accelerează 265–270, la ~2.090 rpm stabil (MAP 24) 246 / 123, fix 13 s | **nu e cantitatea pe cursă** (aerul pe cursă a scăzut, 2061 a crescut) și nici L/h (×1,6 față de ×1,86 pe ecran); urmărește pedala: timpul de injecție cu decalaj fix / o comandă? |
-| Bord 2224, al doilea octet | 02 → 06 după schimbarea becului | necunoscut |
+| Bord 2224, al doilea octet; 220D | 02 ↔ 06 (bitul 0x04) și 220D 5565 ↔ 5465, odată cu blitzul pe senzorul de lumină (24.11) și din când în când singure | legate de lumina de afară („zi”?), nu de becul schimbat |
+| Bord **2275** | `0B` → `0A` la prima citire pe faza scurtă, apoi `0A` la orice poziție a comutatorului (0, faza scurtă, AUTO); `07` în mers | nu e comutatorul luminilor; necunoscut |
+| Bord **1007** (24.11) | nu se schimbă pe loc la frâna de picior, la volan, la marșarier | crește doar în mers: de citit într-un drum |
 | Bord 2203, 2208, 220C, 2273, 2275, 2277, 2294, 2295, 2297, 2299 | diferă între citiri (2275: 0B pe loc, 07 în mers) | senzori? |
 | Bord **F405** | 39 de citiri, 31–96 °C, rece și cald: ≈ 0,76 × x − 43 față de lichidul OBD (R² 0,996) | **temperatura lichidului de răcire** (în formatul bordului) |
 | Motor 1749 (23.11) | la pornirea la rece = aerul admis (80 → 12 °C), apoi crește odată cu motorul, mai repede decât aerul admis | temperatura din galeria de admisie (încălzită de motor)? |
@@ -216,6 +219,7 @@ Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub trave
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 24.11 10:20 | Teste pe loc (citirea întregului bord înainte / după): **2224 0x04 = avariile, 0x40 = faza lungă**; grupa 224D…2291 = **lumina de afară** (blitz pe senzor); semnalizarea, faza scurtă, frâna de picior, marșarierul, volanul nu apar în bord |
 | 24.11 09:57 | Memoria 1 resetată, drum scurt: consumul mediu pe ecran 12,3 L/100, estimarea OBD 12,4–13,3 L/100 (în mers, prima comparație) |
 | 24.11 09:47 | **2297 = autonomia** (490 km, ca pe ecran); memoria 1 (3 km, 49,3 L/100 = 1,48 L) față de OBD 1,49 L de la 07:59 |
 | 24.11 09:45 | Consumul de pe ecran („Consumption” L/h) față de OBD: relanti 0,7 / 0,7, ~2.090 rpm fără sarcină 1,3 / ~1,5; 2061 / 2062 nu sunt cantitatea injectată; timpul de mers al memoriei 1 nu e în bord |
