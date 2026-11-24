@@ -16,7 +16,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 | Lucrarea | Stare (24.11) |
 |---|---|
-| **Urmărirea candidaților** (bord 14 coduri, motor 4: doar ce nu e sigur, secțiunea 5; lista se schimbă singură la pornirea serverului după `WATCH`) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11). 24.11: scoase din bord cele confirmate (1014, 2205, 202F, F405), adăugate 2294 / 2296 / 229A |
+| **Urmărirea candidaților** (bord 14 coduri, motor 11: doar ce nu e sigur, secțiunea 5; lista se schimbă singură la pornirea serverului după `WATCH`) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11). 24.11: scoase din bord cele confirmate (1014, 2205, 202F, F405), adăugate 2294 / 2296 / 229A |
 | Urmărirea „clapeta de distribuție” (climatronic 262E / 262F) | 🔁 la 1 min, prima în coadă; alerta „Climatronic · clapeta” |
 | Seria deasă a candidaților injecției (motor, lucrarea 17) | ⏸ oprită din 23.11; 24.11: candidații ei nu sunt cantitatea injectată, iar estimarea OBD se potrivește cu bordul (secțiunea 4) |
 | OBD standard: 01, 09, 06, 02, erorile | ✅ 22.11, 18:00–18:05 · 01: 38 de PID-uri, 06: 16 teste, erorile: 2 coduri, 09 și 02: nimic nou |
@@ -93,6 +93,7 @@ Viteza: din 1.1.113 ~40–60 coduri/s la motor (cererile cu cifra „1”, secț
 | **UDS 1001 / 1002** | **Temperatura aerului admis**, °C | aceeași formulă (potrivirea dă 0,745 × x − 47,8) | 22.11: 25 de citiri, 12–52 °C, R² 0,9996 față de aerul admis OBD |
 | **UDS 11CF / 11D1** | **Temperatura lichidului de răcire**, °C (două copii) | 0,75 × x − 48: 194 → 97,5, 167 → 77,25, 190 → 94,5 °C; lichidul OBD 97 / 77 / 94 °C | 22.11, 3 citiri pe 20 °C |
 | **UDS 117C** | **Turația**, rpm | direct: 751 cu motorul la 751 rpm, 1.410 la ~1.420–1.600 rpm | 22.11 |
+| **UDS 392A** | **Temperatura lichidului de răcire** (a treia copie) | 0,75 × x − 48 °C | 24.11, analiza: 22 de citiri, R² 0,9993 față de lichidul OBD |
 | UDS 2206 | Litrii din rezervor (la fel ca la bord) | 0x34 = 52 → 0x33 = 51 → 0x31 = 49 | 21–24.11, ca CAN c104 (scos din urmărire 23.11) |
 | OBD 09 | VIN, CALID `03F906070GA 5413`, CVN C3664742, „ECM-EngineControl” | 20.11 |
 
@@ -201,6 +202,10 @@ marșarierul.
 | 2061 / 2062 | 2061 = 2 × 2062; relanti 155, accelerând 265–270, la 2.090 rpm pe loc 246; 742–801 la sarcină mare | urmărește pedala; nu e cantitatea pe cursă și nici L/h (24.11): timpul de injecție cu decalaj fix? |
 | 20EB / 20EC | relanti 600–650, ~1.000 cu injecția tăiată, plafon 11.127 / 11.085 la sarcină plină | o presiune / o limită, nu injecția |
 | 209A / 204C | 209A: relanti ~8.400–9.000, sare mult între citiri (15.000–17.000 la 2.090 rpm pe loc), 30.000–41.000 la sarcină | necunoscut |
+| **16E2** | relanti ~8.200–8.600; MAP 74 kPa → 3.429, MAP 60 → 5.038, MAP 27 (frână de motor) → 9.209; ≈ 117 × (103 − MAP) | **depresiunea din galerie** (presiunea atmosferică − MAP; pentru servofrână?) |
+| 39CB | ≈ 9 × MAP: 258–297 la relanti (MAP 30–33), 327 la MAP 35, 626 la MAP 72 (R² 0,99, 21 de citiri) | o presiune sau aerul pe cursă (mg?) |
+| 1200, 29D1, 13B1, 39C3 | urmează MAP / sarcina (R² 0,98–0,99, dar aproape toate citirile la relanti) | mărimi de aer / sarcină; de văzut în sarcină |
+| 4111 | relanti 605–837, **11.106 la MAP 133 kPa** (sarcină plină, turbo), ca plafonul lui 20EB / 20EC | tot o mărime de cuplu / sarcină cu plafon |
 | 1036 | 0x000377F7 = 227.319 | kilometrajul unui eveniment vechi? |
 | 11F4–11FD, 16DF | text: „mec_open_cps”, „no_error” (×9), „SA3O6010 CBK0191” | stări ale unor teste interne |
 
@@ -250,6 +255,7 @@ puține citiri; pentru o mărime rapidă trebuie o serie deasă, ca cea din 24.1
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 24.11 11:00 | Analiza motorului: **392A = lichidul de răcire** (a treia copie); 16E2 ≈ depresiunea din galerie; 39CB, 1200, 29D1, 13B1, 39C3, 4111 urmează MAP / sarcina: puși în urmărirea motorului (2 min) ca să aibă citiri în sarcină |
 | 24.11 10:45 | Analiza istoricului: **2294 = autonomia nerotunjită** (12 perechi cu 2297); 2296 și 229A urmează benzina din rezervor (r 0,97 / 0,99); 1006 = contor cu motorul pornit, pus în urmărire |
 | 24.11 10:30 | Revizia după testele de azi: urmărirea bordului fără codurile confirmate (1014, 2205, 202F, F405), cu 2294 / 2296 / 229A; serverul schimbă singur lista lucrărilor de urmărire existente când se schimbă `WATCH`; secțiunea nouă „Consumul”; candidații refăcuți pe module |
 | 24.11 10:16 | Memoria 2: **2299 = consumul mediu pe termen lung** (10,7); distanța (796 km) și timpul (62 h 53 min) negăsite sigur |

@@ -178,7 +178,9 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 120,
     // 23.11: scoase ce s-a lămurit sau nu ajută la consum (118A–118F, 3D73, 4183, 406A, 2206: OBD-CODURI.md);
     // candidații pentru cantitatea injectată sunt în seria deasă de mai jos.
-    ids: [0x1154, 0x117d, 0x118d, 0x1749],
+    // 24.11 (analiza): intră cei care urmează presiunea din galerie / sarcina (1200, 13B1, 16E2, 29D1, 39C3, 39CB,
+    // 4111), cu prea puține citiri în sarcină ca să fie siguri.
+    ids: [0x1154, 0x117d, 0x118d, 0x1200, 0x13b1, 0x16e2, 0x1749, 0x29d1, 0x39c3, 0x39cb, 0x4111],
   },
   {
     // 23.11: seria deasă pentru cantitatea injectată: cei 6 care cresc cu sarcina, fără pauză între treceri

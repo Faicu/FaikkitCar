@@ -241,7 +241,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   acceptă doar `7F 22 31`, orice altceva se recitește fără cifră (verificat pe motor 0000–21FC față de o copie a bazei:
   identic). ~40–60 coduri/s la motor; peste 3 DID-uri pe cerere motorul nu răspunde. Serverul măsoară ritmul din progres
   (`noteProgress`, ferestre de 30 s, în memorie) → `etaS`/`endsS` la lucrări (site și Panel: „~9 min · gata peste …”) și
-  `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (24.11: bord 14, motor 4); `seedWatchJobs` schimbă la pornirea serverului lista unei urmăriri existente când `WATCH` diferă (trecere nouă, oprirea păstrată).
+  `live.obd.scanHz` („scanează N coduri/s” în locul citirilor/s). Urmăririle: doar codurile nesigure (24.11: bord 14, motor 11); `seedWatchJobs` schimbă la pornirea serverului lista unei urmăriri existente când `WATCH` diferă (trecere nouă, oprirea păstrată).
   **Clapeta climatronicului** (23.11): motorașul V426 (B1091) se blochează intermitent (punct mort). Urmărirea
   „clapeta de distribuție” (746, 262E reală / 262F cerută, la 1 min, prima în coadă) → `flap.ts` (`obd_flap`, testat în
   `flap.test.ts`): reală − cerută în afara 0x10–0x28, cu aceeași cerere, la 2 citiri la ≥ 30 s = defect „Climatronic ·
