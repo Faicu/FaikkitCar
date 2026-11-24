@@ -48,6 +48,19 @@ Viteza: din 1.1.113 ~40–60 coduri/s la motor (cererile cu cifra „1”, secț
 | 10 | Senzorii de parcare (J446), 5K0919475E | – | ✅ (Car Scanner) |
 | 7E1 | Cutia | – | ❌ manuală, nu există |
 
+**Codările lungi** (Car Scanner, 24.11; copie de siguranță, în caz că se codează ceva greșit): motor `001900D6232400080000`,
+gateway `350002`, ABS `113B200D092500FC880E04E5901A0040350000350000350000` (așa a ieșit, posibil lipit de alte câmpuri),
+climatronic `0010004002`, senzorii de parcare `1080010101`, airbag `00004431`, coloana volanului `1082140000`, bordul `170D01`
+(ultima codare 09.10.2024), imobilizatorul `000000`. Ușile, direcția, electrica centrală: necitite.
+
+**Contoarele motorului** (OBD 09, IUMPR, nu se șterg cu erorile): 20.864 de puneri ale contactului, 5.332 de cicluri OBD,
+catalizatorul verificat de 3.444 de ori din 5.153, sonda lambda 3.959 / 5.329, sonda a doua 4.110 / 5.153; EVAP 0 / 0.
+
+**Electrica centrală (09, BCM) prin TP2.0:** pe 20.11 la 23:50 (scanarea Car Scanner de atunci) a răspuns: canal 0x338,
+`18 02 FF 00` → `58 01 00 3D 6A` = o eroare, codul 0x003D (00061 în formatul VW), starea 0x6A; atunci becul de ceață
+dreapta era ars (găsit în bord pe 21.11), deci probabil eroarea becului. Pe 24.11 a deschis canalul, dar n-a mai răspuns.
+Gateway-ul pe 20.11: 01305 (0x0519, starea 0x24) și încă o intrare, neîntreagă în jurnal.
+
 ## 3. Coduri cu înțeles confirmat
 
 ### Bord (714)
