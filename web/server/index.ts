@@ -140,7 +140,9 @@ app.post("/api/car/state", async (c) => {
     state: saveState(p),
     cmd: pendingCmdCount(),
     apk: readApkInfo("car")?.versionCode ?? 0,
-    fast: hasViewer(),
+    // 25.11: oprit. Trimiterea la 1 s cât Panel e deschis, cu muzica pornită, umfla procesul Android al navigației
+    // (~20–45 MB/min, testat de 3 ori: crește cu ea, stă fără ea). Mașina trimite iar la 5 s.
+    fast: false,
     // `obd` = comutatorul „OBD (teste)”: false = mașina lasă adaptorul și nu citește nimic.
     obd: obdEnabled(),
     // `alerts` = defectele de spus vocal în mașină (o dată pe drum, după id): clapeta climatronicului (23.11).

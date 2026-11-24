@@ -332,7 +332,7 @@ volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după
   vechi). Din 1.1.88 comenzile se confirmă: `GET /api/car/music/wait?ack=<ultima primită>&epoch=<al serverului>`
   → `{epoch, cmds}`; serverul le ține până la confirmare (cel mult 20 s) și le retrimite; mașina sare peste id-urile
   deja făcute. Fără `ack` (aplicația veche), răspunsul rămâne lista simplă. Testat pe un server pe 3999.
-- Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
+- **Oprită pe 25.11** (serverul trimite mereu `fast: false`): cu muzica pornită umfla `system_server` pe navigație (~20–45 MB/min; testat: crește cu ea, stă fără ea), cauza saltului de memorie din 20.11 (Panel ținut deschis). Codul din aplicație rămâne până la o versiune strânsă. Starea live la 1 s cât cineva se uită (02.11, bordul din Panel rămânea ~5 s în urmă): `/api/live` marchează
   privitorul (`markViewer`), răspunsul la `/api/car/state` are `fast` (privitor în ultimele 30 s), `LiveState.fast()`
   20 s după ultimul `fast`, `TripRecorder.liveTick` trimite la 1 s (fără puncte noi). Panel păstrează harta parcării.
 - `SyuProbe` (02.11): `@syu watch <s> [module]` (abonare la codurile 0..199, valorile inițiale și apoi doar
