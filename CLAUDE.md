@@ -236,7 +236,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   Verificarea de după (22.11): la OBD-ul standard (01/09/06/02) recitirea de la sfârșit are doar cele lente (ce nu e
   suportat nu răspunde, nu e „pierdut”); o buclă / urmărire oprită de utilizator rămâne oprită după trecere; din 1.1.111
   o listă (urmărire, recitire) la care 5 coduri la rând nu primesc niciun răspuns trece modulul la „tace” până la
-  reconectare (altfel bordul tăcut ar fi ținut scanarea pe loc ~1,5 min la fiecare 2 min).
+  reconectare (din 1.1.123 un minut: bordul ocupat câteva secunde în mers oprea urmărirea tot drumul, 24.11) (altfel bordul tăcut ar fi ținut scanarea pe loc ~1,5 min la fiecare 2 min).
   **Scanarea rapidă** (1.1.113, 22.11): cererea `22` de grup cu cifra „1” la sfârșit (36 ms în loc de 244); din ea se
   acceptă doar `7F 22 31`, orice altceva se recitește fără cifră (verificat pe motor 0000–21FC față de o copie a bazei:
   identic). ~40–60 coduri/s la motor; peste 3 DID-uri pe cerere motorul nu răspunde. Serverul măsoară ritmul din progres

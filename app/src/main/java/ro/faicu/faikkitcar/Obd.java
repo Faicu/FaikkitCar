@@ -354,8 +354,12 @@ final class Obd extends BluetoothGattCallback {
     private volatile String jobsError;
     /** Terminate aici, inca necunoscute serverului (rezultatele asteapta in coada). */
     private final java.util.Set<String> finishedHere = new java.util.HashSet<>();
-    /** Modulele care n-au raspuns in sesiunea asta: lucrarile lor asteapta reconectarea. */
-    private final java.util.Set<Integer> silentModules = new java.util.HashSet<>();
+    /**
+     * Modulele care n-au raspuns (→ cand): lucrarile lor asteapta un minut sau reconectarea. Pana pe
+     * 24.11 asteptau doar reconectarea: bordul ocupat cateva secunde in mers oprea urmarirea tot drumul.
+     */
+    private final java.util.Map<Integer, Long> silentModules = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long SILENT_RETRY_MS = 60_000;
     private Job job;
     /**
      * Unde a ajuns fiecare lucrare in procesul asta (cheia = id:trecere). Lista de la server poate fi
@@ -409,7 +413,7 @@ final class Obd extends BluetoothGattCallback {
                     .append(done ? " [terminata aici]" : "")
                     .append(x.restUntil > SystemClock.elapsedRealtime()
                             ? " [pauza " + (x.restUntil - SystemClock.elapsedRealtime()) / 1000 + " s]" : "")
-                    .append(silentModules.contains(x.tx) ? " [modulul tace]" : "");
+                    .append(silent(x.tx) ? " [modulul tace]" : "");
         }
         out.append("\nNetrimise: ").append(SCAN_QUEUE.size(c));
         return out.toString();
@@ -501,6 +505,11 @@ final class Obd extends BluetoothGattCallback {
         return j;
     }
 
+    private boolean silent(int tx) {
+        Long at = silentModules.get(tx);
+        return at != null && SystemClock.elapsedRealtime() - at < SILENT_RETRY_MS;
+    }
+
     /** Prima lucrare potrivita acum, in ordinea serverului. */
     private Job pickJob(boolean moving) {
         long now = SystemClock.elapsedRealtime();
@@ -510,7 +519,7 @@ final class Obd extends BluetoothGattCallback {
                 if (finishedHere.contains(j.key())) continue;
             }
             if (j.parked && moving) continue;
-            if (silentModules.contains(j.tx)) continue;
+            if (silent(j.tx)) continue;
             if (!j.range() && j.ids.length == 0) continue;
             return j;
         }
@@ -740,14 +749,14 @@ final class Obd extends BluetoothGattCallback {
                         result22(j, did, r);
                         scanNext++;
                         // Niciun raspuns la 5 coduri la rand: modulul tace (ca la intervale), lista asteapta
-                        // reconectarea, altfel o urmarire de 21 de coduri ar tine scanarea pe loc ~1,5 min.
+                        // un minut, altfel o urmarire de 21 de coduri ar tine scanarea pe loc ~1,5 min.
                         if (r.length > 0) {
                             scanSilent = 0;
                         } else if (++scanSilent >= 5) {
                             scanNext -= scanSilent;
-                            silentModules.add(j.tx);
+                            silentModules.put(j.tx, SystemClock.elapsedRealtime());
                             flushProgress(true);
-                            Prefs.log(c, "OBD: modulul " + hex(j.tx, 3) + " nu raspunde, lista lui asteapta reconectarea");
+                            Prefs.log(c, "OBD: modulul " + hex(j.tx, 3) + " nu raspunde, lista lui asteapta un minut");
                             job = null;
                             break;
                         }
@@ -793,11 +802,11 @@ final class Obd extends BluetoothGattCallback {
                 for (int i = 0; i < n; i++) result(j, from + i, b, 0, NRC_SLOW);
                 if (scanSilent++ == 0) scanSilentFrom = from;
                 if (scanSilent >= 20) {
-                    // Modulul nu raspunde (ex. climatronicul inca adormit): reluam la reconectare.
+                    // Modulul nu raspunde (ex. climatronicul inca adormit): reluam peste un minut.
                     scanNext = scanSilentFrom;
-                    silentModules.add(j.tx);
+                    silentModules.put(j.tx, SystemClock.elapsedRealtime());
                     flushProgress(true);
-                    Prefs.log(c, "OBD: modulul " + hex(j.tx, 3) + " nu raspunde, scanarea lui asteapta reconectarea");
+                    Prefs.log(c, "OBD: modulul " + hex(j.tx, 3) + " nu raspunde, scanarea lui asteapta un minut");
                     job = null;
                     return;
                 }
