@@ -41,7 +41,11 @@ Viteza: din 1.1.113 ~40–60 coduri/s la motor (cererile cu cifra „1”, secț
 | 714 / 77E | Bord (J285), Continental VDO | 5K0920873, software 0705, hardware H05, `EV_Kombi_UDS_VDD_RM09` | ✅ UDS |
 | 746 / 7B0 | Climatronic (J255) | 5K0907044GK, `EV_Climatronic` | ✅ UDS (uneori „ocupat”, 7F 22 21) |
 | 715 / 77F | Airbag | 5C0959655B | ✅ UDS (nu-l scanăm: utilizatorul nu vrea) |
-| 710, 713, 70E, 712 | Gateway, ABS, confort / BCM (luminile), direcția | – | ❌ nu răspund (protocolul vechi VW, TP2.0) |
+| 710, 713, 70E, 712 | Gateway, ABS, confort / BCM (luminile), direcția | – | ❌ nu răspund la UDS (protocolul vechi VW, TP2.0) |
+| TP2.0 prin 0x200 | Gateway 19 (J533, 7N0907530R), ABS 03 (J104), ușile 42 / 52 / 62 / 72 (5K0959701H / 702J / 703D / 704D), direcția 44 (1K0909144P) | – | ✅ **Car Scanner le citește prin același vLinker** (24.11): `ATSH200 ATPBC001 ATSPB ATST06 ATCRA2<adresa>` și `<adresa> C0 00 10 00 03 01` deschide canalul (ex. ABS → `ATSH790`); electrica centrală 09 răspunde la deschidere, dar apoi nu (necitită nici de Car Scanner) |
+| 70C / 776 | Coloana volanului (J527), 5K0953507BC | `EV_SMLSNGKUDS` | ✅ UDS |
+| 711 / 77B | Imobilizatorul (J334, în bord), 5K0953234 | `EV_Immo_UDS_VDD_RM09` | ✅ UDS |
+| 10 | Senzorii de parcare (J446), 5K0919475E | – | ✅ (Car Scanner) |
 | 7E1 | Cutia | – | ❌ manuală, nu există |
 
 ## 3. Coduri cu înțeles confirmat
@@ -97,6 +101,29 @@ Viteza: din 1.1.113 ~40–60 coduri/s la motor (cererile cu cifra „1”, secț
 | **UDS 392A** | **Temperatura lichidului de răcire** (a treia copie) | 0,75 × x − 48 °C | 24.11, analiza: 22 de citiri, R² 0,9993 față de lichidul OBD |
 | UDS 2206 | Litrii din rezervor (la fel ca la bord) | 0x34 = 52 → 0x33 = 51 → 0x31 = 49 | 21–24.11, ca CAN c104 (scos din urmărire 23.11) |
 | OBD 09 | VIN, CALID `03F906070GA 5413`, CVN C3664742, „ECM-EngineControl” | 20.11 |
+| **UDS 0600** | **Codarea lungă** a motorului: `001900D6232400080000` (la fel în Car Scanner) | 24.11 |
+
+**Numele din Car Scanner** (24.11, profilul „Volkswagen PQ35: TSI/TFSI 1.2 EA111 (UDS)”): jurnalul adaptorului (`/root/carscanner/log.txt`,
+nu e în repo: are numele dispozitivelor Bluetooth din jur) arată cererile, toate `22 <DID>` în sesiunea implicită, pe rând, în ordinea
+listei de senzori; potrivite cu valorile din exportul „Toți senzorii” de la 22:46:56:
+
+| Cod | Numele în Car Scanner | Formula | Valoarea |
+|---|---|---|---|
+| 15AA | Selected gear | x (0 la cutia manuală) | 0 |
+| **155A** | **Engine torque** (cuplul) | ≈ x × 0,03 N·m | 0x0268 ≈ 18 N·m la relanti; **0 cu injecția tăiată**, crește cu sarcina; ~860–930 × litrii OBD pe oră, deci urmează consumul |
+| **137A** | **Ignition angle of current cylinder** (avansul) | x × 0,75 − 84,375 ° | 0x7B = 7,875 ° (Car Scanner 7,88) |
+| 2005 | Brake booster pressure | – | 0 (fără senzor) |
+| 2006 | Oil fill level (nivelul uleiului) | necunoscută (Car Scanner 115,2 mm; 0x0780 = 1920 des, probabil „nemăsurat”) | 0x052D–0x053B la relanti |
+| 200A–200D | Timing angle retardation cylinder 1–4 (retragerea aprinderii la detonație) | x − 128 | 0x80 = 0 |
+| **2029** | **Charge air pressure: specified** (presiunea cerută înaintea clapetei) | x × 0,08 hPa | 0x1550 = 436,48 hPa |
+| **202A** | **Charge air pressure: actual** (presiunea reală înaintea clapetei) | x × 0,08 hPa | 0x2FAD = 976,4 hPa |
+| 1314 | Mean engine air mass | – | 0 la Car Scanner; la noi și 0x0201–0x0365, fără legătură clară cu aerul |
+| 2206 | Fuel level | L | 0x34 = 52 |
+| **20A1** | **Calculated oil temperature** | x − 40 °C | 0x7F = 87 °C |
+| 1213 | ENVD_CAM_IN_1 | – | 0 |
+| **173A, 1189–118F** | **Intake camshaft signal edge position adapted value, Edge 1–8** (adaptările axei cu came de admisie) | (x − 512) / 16 ° | 0x0223 = 2,19 °; 1189–118F = 0,44 / 1,19 / 0,19 / 0,69 / 1,06 / 1,5 / −1,19 ° |
+
+Căutarea mea de dinainte, cu scalările obișnuite, nu le găsise: formulele VW au decalaje (512, 128, 84,375).
 
 Urmărirea (la pornire și la 2 min) nu mai citește ce e confirmat aici (rezervor la bord, bec, revizia, kilometrajele,
 turația și temperaturile motorului, F40C / F40D; din 24.11 și afară 1014, frâna de mână 2205, uleiul 202F, lichidul F405): rămân doar candidații din secțiunea 5.
@@ -200,7 +227,7 @@ marșarierul.
 |---|---|---|
 | 1154 | 750 la toate citirile pe loc, 800 în mers | turația de relanti cerută |
 | 117D | 23 la relanti, 25–36 la mers încet, 43 la sarcină, **63 cu injecția tăiată** | avansul aprinderii / un unghi? |
-| 1189–118F | ~519–540, scad cu ~1 la fiecare 5 °C de lichid (118D: R² 0,94), urcă puțin cu tensiunea | o mărime modelată după temperatura motorului |
+| ~~1189–118F~~ | ~519–540, scad cu ~1 la fiecare 5 °C de lichid | ✅ 24.11: adaptările axei cu came (secțiunea 3) |
 | 1749 | la pornirea la rece = aerul admis, apoi crește mai repede decât el (cu formula VW, ~6–7 °C peste aerul admis la cald) | temperatura din galeria de admisie |
 | 3D73 / 4183 | câte o citire, egale cu lichidul de răcire (formula VW / x − 40) | temperaturi ale motorului |
 | 406A | cu semn, −2.500 … +7.300, sare între citiri, exact 0 doar cu injecția tăiată | corecția regulatorului de relanti; nu e cantitatea injectată |
@@ -226,6 +253,10 @@ puține citiri; pentru o mărime rapidă trebuie o serie deasă, ca cea din 24.1
 | Motor | – | 63 de intrări, toate „test neterminat” (0x40/0x50): calculatorul resetat de curând | fără erori |
 | Airbag | – | o intrare, status 0x10 | fără erori |
 | Bord | bec ars (2224) | proiectorul dreapta față | ✅ schimbat 21.11 |
+| Climatronic | B1091 54 | clapeta din față: „No basic setting”, calibrarea neterminată | arhivă (Car Scanner, 24.11) |
+| Motor | **P0441** (0x002AFB) | EVAP: debit de purjare incorect | arhivă: picat o dată de la ștergere, testul trecut între timp (Car Scanner, 24.11); noi nu-l afișăm (doar active / memorate) |
+| Gateway (TP2.0) | 01305 | magistrala de infotainment | memorată; de la navigația Teyes (radioul original lipsă). Nu se scoate radioul din gateway: decodorul CAN al navigației poate pierde datele |
+| Ușa spate stânga (TP2.0) | 00937 | comutatorul geamului spate stânga E52 | prezentă (Car Scanner, 24.11) |
 
 ## 7. Cum se citesc (detalii tehnice)
 
@@ -265,6 +296,7 @@ puține citiri; pentru o mărime rapidă trebuie o serie deasă, ca cea din 24.1
 | 24.11 11:05 | Climatronic: 0285 / 0286 ≈ 21 °C constant (x / 2 − 50), nu habitaclul; restul codurilor lui au prea puține citiri pentru analiză |
 | 24.11 11:00 | Analiza motorului: **392A = lichidul de răcire** (a treia copie); 16E2 ≈ depresiunea din galerie; 39CB, 1200, 29D1, 13B1, 39C3, 4111 urmează MAP / sarcina: puși în urmărirea motorului (2 min) ca să aibă citiri în sarcină |
 | 24.11 10:45 | Analiza istoricului: **2294 = autonomia nerotunjită** (12 perechi cu 2297); 2296 și 229A urmează benzina din rezervor (r 0,97 / 0,99); 1006 = contor cu motorul pornit, pus în urmărire |
+| 24.11 23:30 | Jurnalul adaptorului din Car Scanner: numele codurilor motorului (cuplul 155A, avansul 137A, presiunea de supraalimentare 2029 / 202A, uleiul 20A1, axa cu came 173A + 1189–118F, codarea 0600); modulele TP2.0 se citesc prin vLinker (gateway, ABS, uși, direcția); erorile tuturor modulelor (P0441 arhivă, B1091 54, 01305, 00937). Bordul: intervalul reviziei schimbat de utilizator la 8.000 km (`2E 22A0 0050`, în jurnal), ultima codare a bordului 09.10.2024 |
 | 24.11 22:47 | **Car Scanner** (profilul „Volkswagen PQ35: TSI/TFSI 1.2 EA111 (UDS)”, motor cald pe loc), exportul pe Drive „Car Scanner2.txt”: masa de aer „Mean engine air mass” = **0 g/s** (nici profilul VW n-are debitul de aer), consumul lui e tot calculat (0,61 L/h la relanti); uleiul 87 °C, nivelul uleiului 115,2 mm, presiunea de supraalimentare cerută 436,48 / reală 976 hPa, cuplul 18,44 N·m, unghiul de aprindere 7,88, rezervorul 52 L, adaptările axei cu came (admisie) pe 8 fronturi 2,19 / 0,44 / 1,19 / 0,19 / 0,69 / 1,06 / 1,5 / −1,13 °, frâna (servofrână) 0 hPa, treapta 0. **Niciuna dintre valorile VW nu apare în catalogul motorului** (căutate cu scalări obișnuite, ca valoare întreagă și ca șir de 8): probabil în sesiunea extinsă sau în intervalele netestate acolo. Monitoarele: EVAP terminat de la ștergere; catalizatorul și sonda lambda nu; 7 încălziri, 130 km de la ștergere |
 | 24.11 22:38 | Memoria 1 resetată la ~22:17, drum prin oraș de 21 min (frâne de motor, semafoare): bordul 11 km, 6,4 L/100 ≈ 0,70 L (0,67–0,74 cu rotunjirea); OBD pe aceleași 21 min 0,69–0,73 L, acoperire completă. **Consumul OBD din aerul aspirat se potrivește cu bordul și pe un drum întreg (±3 %)** |
 | 24.11 10:30 | Revizia după testele de azi: urmărirea bordului fără codurile confirmate (1014, 2205, 202F, F405), cu 2294 / 2296 / 229A; serverul schimbă singur lista lucrărilor de urmărire existente când se schimbă `WATCH`; secțiunea nouă „Consumul”; candidații refăcuți pe module |
