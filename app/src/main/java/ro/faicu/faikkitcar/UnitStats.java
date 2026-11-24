@@ -33,6 +33,9 @@ final class UnitStats {
     private static long topTotal = -1;
     private static Map<Integer, Long> topTicks = new HashMap<>();
     private static int sysPid;
+    private static long slowAt;
+    private static double temp = Double.NaN;
+    private static double diskGb = -1;
 
     private UnitStats() {}
 
@@ -59,7 +62,13 @@ final class UnitStats {
             putMb(u, "ma", mem.get("MemAvailable"));
             putMb(u, "st", mem.get("SwapTotal"));
             putMb(u, "sf", mem.get("SwapFree"));
-            double temp = cpuTemp();
+            long now = SystemClock.elapsedRealtime();
+            // Temperatura si spatiul liber se schimba incet: citite la 30 s, nu la fiecare trimitere (25.11).
+            if (slowAt == 0 || now - slowAt >= TOP_EVERY_MS) {
+                slowAt = now;
+                temp = cpuTemp();
+                diskGb = Math.round(new StatFs(Environment.getDataDirectory().getPath()).getAvailableBytes() / 1e8) / 10.0;
+            }
             if (!Double.isNaN(temp)) u.put("temp", Math.round(temp * 10) / 10.0);
             String up = read("/proc/uptime", 128);
             if (up != null) u.put("up", Math.round(Double.parseDouble(up.trim().split("\\s+")[0])));
@@ -70,11 +79,9 @@ final class UnitStats {
             if (sys >= 0) u.put("sys", sys);
             String adj = read("/proc/self/oom_score_adj", 32);
             if (adj != null) u.put("adj", Integer.parseInt(adj.trim()));
-            StatFs fs = new StatFs(Environment.getDataDirectory().getPath());
-            u.put("disk", Math.round(fs.getAvailableBytes() / 1e8) / 10.0); // GB
+            if (diskGb >= 0) u.put("disk", diskGb); // GB
             // Tipul de retea preferat al modemului (11 = LTE only), citit in tick (CellSignal).
             if (CellSignal.modeCode >= 0) u.put("nm", CellSignal.modeCode);
-            long now = SystemClock.elapsedRealtime();
             if (cpu != null && (topAt == 0 || now - topAt >= TOP_EVERY_MS)) {
                 JSONArray top = top(cpu[0]);
                 topAt = now;

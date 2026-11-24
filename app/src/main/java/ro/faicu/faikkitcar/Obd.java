@@ -41,7 +41,9 @@ final class Obd extends BluetoothGattCallback {
     private static final long STATUS_MS = 5 * 60_000;
     /** Incercari fara niciun raspuns de la stiva (~1,5 min) dupa care verificam daca e blocata. */
     private static final int STUCK_FAILURES = 4;
-    private static final long UNSTICK_EVERY_MS = 30 * 60_000;
+    // 25.11: 10 min, nu 30: dupa ce adaptorul a fost scos si repus, stiva ramasese blocata pana la o repornire de la
+    // distanta (ultima repornire automata fusese chiar inainte, cu adaptorul inca blocat).
+    private static final long UNSTICK_EVERY_MS = 10 * 60_000;
     /** Setarile noastre; confirmarea cadrelor manuala (si pentru celelalte module, la scanare). */
     private static final String[] INIT = {"ATE0", "ATL0", "ATS0", "ATH0", "ATSP6", "ATSH7E0", "ATCRA",
             "ATFCSH7E0", "ATFCSD300000", "ATFCSM1"};
