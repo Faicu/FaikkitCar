@@ -8,7 +8,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 24.11.2026, 10:25 (2299 = consumul mediu pe termen lung; 2224 = martorii: avarii, faza lungă; lumina de afară; 2297 = autonomia; bordul comparat cu ecranul: 1014 = temperatura de afară, 2205 = frâna de mână, 202F = uleiul; consumul de pe ecran față de OBD)
+**Ultima actualizare:** 24.11.2026, 10:45 (2294 = autonomia nerotunjită; 2299 = consumul mediu pe termen lung; 2224 = martorii: avarii, faza lungă; lumina de afară; 2297 = autonomia; bordul comparat cu ecranul: 1014 = temperatura de afară, 2205 = frâna de mână, 202F = uleiul; consumul de pe ecran față de OBD)
 
 ---
 
@@ -65,6 +65,7 @@ Viteza: din 1.1.113 ~40–60 coduri/s la motor (cererile cu cifra „1”, secț
 | **2297** | **Autonomia** de pe ecran („Range”), km, rotunjită la 10 | 2 octeți: 0x01EA = 490 | 24.11, 09:46: ecranul 490 km, codul 490 (scade de ieri: 520 → 510 → 500 → 490, din 10 în 10, ca afișajul) |
 | **2299** | **Consumul mediu pe termen lung** (memoria 2), × 0,1 L/100 km | 2 octeți: 0x006B = 107 = 10,7 | 24.11, 10:16: ecranul (memoria 2) 10,7 L/100 km; codul a urcat încet 103 → 107 în 21–24.11 (zile reci, drumuri scurte). Memoria 1 (49,3 / 12,3) nu e în bord |
 | **F405** | **Temperatura lichidului de răcire** (oglinda PID-ului OBD 05, în formatul bordului) | 1 octet: ≈ 0,76 × x − 43 °C (0xB6 → 95 °C) | 39 de citiri, 31–96 °C (R² 0,996); 24.11, 95 °C și la OBD |
+| **2294** | **Autonomia nerotunjită**, km (2297 = ea rotunjită la 10) | 2 octeți: 0x01D9 = 473 → ecranul 470 | 24.11, analiza: în toate cele 12 perechi din 21–24.11, 2297 = 2294 rotunjit la 10 (512 → 510, 629 → 630, 558 → 560, 521 → 520, 486 → 490, 475 → 480, 473 → 470) |
 | **2216** | Ceasul bordului | ora:minutul, 0x1734 = 23:52 | 21.11 |
 | **2238** / **2239** | Ora / minutul | 1 octet fiecare | 21.11 |
 | **F40C** | Turația ×4 (oglinda PID-ului OBD 0C) | 0x0BD8 / 4 = 758 rpm la relanti, la fel cu OBD | 21.11 |
@@ -167,17 +168,18 @@ vedem abaterea în mers, cu sarcină; după aceea, eventual VE în funcție de M
 
 | DID | Ce am văzut | Bănuială |
 |---|---|---|
-| **2294** | 0x01E5 = 485, coboară cu ~1 la câteva minute (519 → 485 în 23–24.11), mereu lângă 2297 (autonomia) | **autonomia nerotunjită** (2297 = ea rotunjită la 10) |
-| 2296 / 229A | ~2.500 / ~370, scad încet, ca 2294 | legate de calculul autonomiei (litri în 1/50? consumul folosit?) |
+| **2296** | ≈ 57 × litrii CAN − 312 (r 0,97, 10 citiri); 2.647 la 52 L, 2.467 la 49 L; o dată 0 | **benzina din rezervor în 0,02 L** (2296 / 50 = 52,9 / 49,3 L), mai fină decât 2206, folosită la autonomie? |
+| **229A** | ≈ 7,6 × litrii CAN − 8 (r 0,99, 12 citiri): 388 la 52 L, 363 la 49 L | tot nivelul rezervorului, altă scară (senzorul brut?) |
+| **1006** | crește cu motorul pornit (~70–80 pe minut la relanti, ~230 pe minut în mers, 24.11), a stat pe 65.535 (FFFF, plafon) pe 22.11 și a pornit din nou de jos până pe 24.11 | un contor (combustibil / timp cu motorul pornit?) care se resetează; în urmărire din 24.11 |
 | **1007** | crește doar în mers, mai mult la frânări și manevre (+219 pe 1,9 km, +363 pe 1,2 km cu opriri, +114 pe 120 m de parcare); 0 la relanti; nu se resetează după 12 h; pe loc nu se schimbă la frâna de picior, volan, marșarier (24.11) | nu e consumul (22.11); un contor legat de mers (impulsuri de roată? frâna în mers?) |
 | 1009 | 629–646 de 3 zile, urcă și coboară | nu e timpul de mers |
 | 100A | 7F rece → 99 cald, apoi iar 7F (24.11) | nu e uleiul; o temperatură? |
-| 220C | 67 → 77 lent cât stă motorul pornit | o temperatură din bord? |
+| 220C | 67 → 77 lent cât stă motorul pornit; r 0,67 cu temperatura de afară, slab cu restul | o temperatură din bord? |
 | 2208 / 2273 | 2208 sare între 4A și 73; 2273 0x32–0x53 | senzori? |
 | 220D, 2224 al doilea octet | 220D 5565 ↔ 5465 și 2224 `02` ↔ `06` (bitul 0x04) odată cu blitzul pe senzorul de lumină, și din când în când singure | legate de lumina de afară („zi”?), nu de becul schimbat |
 | 2275 | `0B` → `0A` în timpul testelor cu luminile (24.11), apoi `0A` la orice poziție a comutatorului; `07` în mers | nu e comutatorul luminilor |
 | 2203 | se schimbă rar | necunoscut |
-| F442 | 0x87–0x8D cu tensiunea CAN 14,0–14,3 V | tensiunea × 0,1 (cu întârziere)? |
+| F442 | 0x87–0x8D cu tensiunea CAN 14,0–14,3 V; r doar 0,62 pe 81 de citiri (și −0,6 cu temperaturile motorului) | tensiunea bordului × 0,1, nu chiar cea de la baterie? |
 | 1017 / 1018 / 1019 / 101A | kilometraje cu cuvintele de 16 biți inversate (`C0 B2 00 03` = 245.938); 1019 = ultima intrare, 101A = cea dinainte, un contor 00 / 01 / 02; intrări și în mijlocul drumurilor; după kilometraj mereu `10 91 11 4A/4D` | un jurnal de evenimente al bordului; `10 91` poate fi B1091 (clapeta, apare în mers), neverificat |
 | 1016 | `03 1C 2A 5E 00…`: 0x031C = 796 = distanța memoriei 2 pe 24.11, dar tot 0x031C și pe 21.11 (~50 km mai puțin); 2A58 → 2A5E, ~+1 pe zi | coincidență pentru 796; 2A5x o numărătoare de zile / o dată? |
 | 224B | +1 deodată cu zilele reviziei | o numărătoare de zile |
@@ -248,6 +250,7 @@ puține citiri; pentru o mărime rapidă trebuie o serie deasă, ca cea din 24.1
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 24.11 10:45 | Analiza istoricului: **2294 = autonomia nerotunjită** (12 perechi cu 2297); 2296 și 229A urmează benzina din rezervor (r 0,97 / 0,99); 1006 = contor cu motorul pornit, pus în urmărire |
 | 24.11 10:30 | Revizia după testele de azi: urmărirea bordului fără codurile confirmate (1014, 2205, 202F, F405), cu 2294 / 2296 / 229A; serverul schimbă singur lista lucrărilor de urmărire existente când se schimbă `WATCH`; secțiunea nouă „Consumul”; candidații refăcuți pe module |
 | 24.11 10:16 | Memoria 2: **2299 = consumul mediu pe termen lung** (10,7); distanța (796 km) și timpul (62 h 53 min) negăsite sigur |
 | 24.11 10:20 | Teste pe loc (citirea întregului bord înainte / după): **2224 0x04 = avariile, 0x40 = faza lungă**; grupa 224D…2291 = **lumina de afară** (blitz pe senzor); semnalizarea, faza scurtă, frâna de picior, marșarierul, volanul nu apar în bord |

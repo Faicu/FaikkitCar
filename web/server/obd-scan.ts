@@ -170,7 +170,8 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 120,
     // 24.11: confirmate la mașină și scoase: 1014 afară, 2205 frâna de mână, 202F uleiul, F405 lichidul de răcire;
     // intră 2294 / 2296 / 229A (lângă autonomia 2297 și consumul mediu 2299, încă neclare).
-    ids: [0x1007, 0x1009, 0x100a, 0x1019, 0x101a, 0x2203, 0x2208, 0x220c, 0x220d, 0x2275, 0x2294, 0x2296,
+    // 24.11 (analiza): 2294 = autonomia nerotunjită, scos; intră 1006 (contor cu motorul pornit, plafon FFFF).
+    ids: [0x1006, 0x1007, 0x1009, 0x100a, 0x1019, 0x101a, 0x2203, 0x2208, 0x220c, 0x220d, 0x2275, 0x2296,
       0x229a, 0xf442],
   },
   {
