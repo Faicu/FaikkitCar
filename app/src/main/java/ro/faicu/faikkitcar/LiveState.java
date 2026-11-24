@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Starea de acum (contact, turatie, viteza, rezervor...) pentru fila „Acum” din Panel si de pe
  * site: trimisa la car.faicu.ro la fiecare esantion (5 s) cu motorul pornit, la 15 s doar cu
- * contactul, la 60 s fara, si imediat la o schimbare (oprita / contact / motor / mers). Cat cineva
- * se uita (serverul raspunde `fast`), la fiecare secunda, din TripRecorder.liveTick.
+ * contactul, la 60 s fara, si imediat la o schimbare (oprita / contact / motor / mers). Fara starea la
+ * fiecare secunda cat se uita cineva (02.11–25.11): cu muzica pornita umfla procesul Android al navigatiei.
  * Conexiunea ramane deschisa intre trimiteri (keep-alive), deci fiecare costa putin. Nu intra
  * in coada: o stare veche nu mai conteaza, deci la eroare se pierde si o inlocuieste urmatoarea.
  */
@@ -31,15 +31,8 @@ final class LiveState {
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean busy = new AtomicBoolean();
 
-    private static final long FAST_MS = 900; // cat cineva se uita (Panel, site): la fiecare secunda
     private static long lastSentAt;
-    // Pana cand trimitem des: serverul spune `fast` cat cineva urmareste starea live.
-    private static volatile long fastUntil;
 
-    /** Cineva se uita acum la starea live (ultimul raspuns al serverului, cel mult 20 s in urma). */
-    static boolean fast() {
-        return SystemClock.elapsedRealtime() < fastUntil;
-    }
     private static String lastKind = "";
     private static String lastDetails = "";
 
@@ -53,7 +46,7 @@ final class LiveState {
     static void maybeSend(Context c, String kind, String details, JSONObject state) {
         if (!Uploader.configured()) return;
         long now = SystemClock.elapsedRealtime();
-        long every = "off".equals(kind) ? IDLE_MS : fast() ? FAST_MS : "contact".equals(kind) ? CONTACT_MS : ENGINE_MS;
+        long every = "off".equals(kind) ? IDLE_MS : "contact".equals(kind) ? CONTACT_MS : ENGINE_MS;
         if (kind.equals(lastKind) && details.equals(lastDetails) && now - lastSentAt < every) return;
         if (!busy.compareAndSet(false, true)) return;
         lastKind = kind;
@@ -64,7 +57,6 @@ final class LiveState {
                 JSONObject resp = post(state);
                 if (resp != null && resp.optInt("cmd", 0) > 0) RemoteCmd.poll(c);
                 if (resp != null) Updater.onServerVersion(c, resp.optInt("apk", 0));
-                if (resp != null) fastUntil = resp.optBoolean("fast") ? SystemClock.elapsedRealtime() + 20_000 : 0;
                 // Comutatorul „OBD (teste)” din site / Panel / Setari (lipsa = pornit).
                 if (resp != null) Obd.setEnabled(resp.optBoolean("obd", true));
                 // Defectele de spus vocal (clapeta climatronicului, 23.11); lipsa = niciunul.

@@ -47,8 +47,6 @@ import {
 import { pendingCmdCount, queueCmd, readCmd, readCmds, saveCmdResult, takeCmds } from "./cmd.ts";
 import { applyFuel, deleteRefuel, readFuelSummary, readGapsWithFuel, saveRefuel, type RefuelInput } from "./fuel.ts";
 import {
-  hasViewer,
-  markViewer,
   readCarSummary,
   readLive,
   readLiveRoute,
@@ -134,15 +132,13 @@ app.post("/api/car/state", async (c) => {
   saveObd(p.o);
   // `cmd` = câte comenzi shell așteaptă (cmd.ts); aplicația le cere atunci de la /api/car/cmd.
   // `apk` = ultima versiune publicată: aplicația o descarcă și cere confirmarea în câteva secunde.
-  // `fast` = cineva se uită acum la starea live: mașina trimite la fiecare secundă.
   return c.json({
     ok: true,
     state: saveState(p),
     cmd: pendingCmdCount(),
     apk: readApkInfo("car")?.versionCode ?? 0,
-    // 25.11: oprit. Trimiterea la 1 s cât Panel e deschis, cu muzica pornită, umfla procesul Android al navigației
-    // (~20–45 MB/min, testat de 3 ori: crește cu ea, stă fără ea). Mașina trimite iar la 5 s.
-    fast: false,
+    // Fără `fast` (25.11): starea la 1 s cât Panel era deschis, cu muzica pornită, umfla procesul Android al
+    // navigației (~20–45 MB/min, testat: crește cu ea, stă fără ea); aplicațiile vechi îl văd lipsă = 5 s.
     // `obd` = comutatorul „OBD (teste)”: false = mașina lasă adaptorul și nu citește nimic.
     obd: obdEnabled(),
     // `alerts` = defectele de spus vocal în mașină (o dată pe drum, după id): clapeta climatronicului (23.11).
@@ -420,7 +416,6 @@ app.get("/api/trips/points", (c) => {
 // clientul întreabă din nou imediat și vede fiecare stare la ~1 s după ce o trimite mașina.
 app.get("/api/live", async (c) => {
   requireUser(c);
-  markViewer();
   const after = c.req.query("after");
   if (after) await waitForState(after, 25_000);
   return c.json(readLive());
