@@ -191,6 +191,13 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     // la server la fiecare trecere), apoi 1 (o citire la ~2 s).
     ids: [0x2061, 0x2062, 0x209a, 0xf423],
   },
+  {
+    // 25.11 (utilizatorul): celelalte piste pentru consum, în caz că 2061 / 2062 nu sunt codul, ca să nu mai fie nevoie de
+    // alte drumuri. 20EB / 20EC (o presiune / o limită, 600–650 la relanti, ~1.000 cu injecția tăiată, plafon 11.127 la
+    // sarcină plină), 204C, F442 (tensiunea ×0,001 V), la 10 s, cu aceleași valori OBD din aceeași clipă.
+    label: "Urmărire: alte piste pentru consum (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.17, everyS: 10,
+    ids: [0x20eb, 0x20ec, 0x204c, 0xf442],
+  },
 ];
 
 /**
