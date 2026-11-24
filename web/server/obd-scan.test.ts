@@ -165,6 +165,7 @@ describe("jobs and results", () => {
     const back = scan.carScanJobs(3, passAt + 121_000);
     expect(back[0]).toMatchObject({ id: w.id, round: 1, next: 0, ids: scan.WATCH[0].ids });
     expect(back[0].again).toBeUndefined();
+    expect(back[0].ctx).toBe(true);
     // Fără pauză: mașina o reia singură (`again`).
     const dense = scan.carScanJobs(10, passAt + 121_000).find((j) => scan.WATCH.find((x) => x.label === j.label)?.everyS === 0);
     expect(dense?.again).toBe(true);
@@ -174,16 +175,33 @@ describe("jobs and results", () => {
     scan.seedWatchJobs("2026-11-22T00:00:00.000Z");
     const db = getDb();
     const w = scan.WATCH[1];
-    db.prepare(`UPDATE obd_scan_job SET ids = ?, next = 3, status = 'paused' WHERE label = ?`).run("[1,2,3,4]", w.label);
+    db.prepare(`UPDATE obd_scan_job SET ids = ?, next = 3, every_s = 120, status = 'paused' WHERE label = ?`).run("[1,2,3,4]", w.label);
     const before = db.prepare(`SELECT round FROM obd_scan_job WHERE label = ?`).get(w.label) as { round: number };
     expect(scan.seedWatchJobs()).toBe(1);
-    const row = db.prepare(`SELECT ids, next, round, status FROM obd_scan_job WHERE label = ?`).get(w.label) as {
-      ids: string; next: number; round: number; status: string;
+    const row = db.prepare(`SELECT ids, next, round, status, every_s FROM obd_scan_job WHERE label = ?`).get(w.label) as {
+      ids: string; next: number; round: number; status: string; every_s: number;
     };
     expect(JSON.parse(row.ids)).toEqual(w.ids);
-    expect(row).toMatchObject({ next: 0, round: before.round + 1, status: "paused" });
+    expect(row).toMatchObject({ next: 0, round: before.round + 1, status: "paused", every_s: w.everyS });
     expect(scan.seedWatchJobs()).toBe(0);
     db.prepare(`UPDATE obd_scan_job SET status = 'queued' WHERE label = ?`).run(w.label);
+  });
+
+  it("keeps every read of a watched code with the engine values of the same moment", () => {
+    const db = getDb();
+    const before = (db.prepare(`SELECT COUNT(*) AS n FROM obd_read`).get() as { n: number }).n;
+    const at = Date.parse("2026-11-24T12:00:00Z");
+    const e = { t: 350, r: 2090, m: 24, a: 52, w: 95, l: 15.7, v: 0, p: 30.2, s: 12.5, k: 1, f: 2, o: -1.6 };
+    const res = scan.saveScanItems([
+      { t: "r", j: 1, x: "7E0", s: "22", i: 0x16e2, v: "2050", at, e },
+      { t: "r", j: 1, x: "7E0", s: "22", i: 0x16e2, v: "2050", at: at + 30_000, e: { ...e, r: "x", m: 9999 } },
+      { t: "r", j: 1, x: "7E0", s: "22", i: 0x16e3, v: "01", at }, // fără valori OBD: doar catalogul
+    ] as never);
+    expect(res.ok).toBe(3);
+    const rows = db.prepare(`SELECT * FROM obd_read ORDER BY rowid DESC LIMIT 2`).all() as Array<Record<string, unknown>>;
+    expect((db.prepare(`SELECT COUNT(*) AS n FROM obd_read`).get() as { n: number }).n).toBe(before + 2);
+    expect(rows[1]).toMatchObject({ tx: "7E0", id: 0x16e2, value: "2050", age_ms: 350, rpm: 2090, map: 24, adv: 12.5, inj: 2, stft: -1.6 });
+    expect(rows[0]).toMatchObject({ rpm: null, map: null, iat: 52 }); // valorile greșite = null, citirea rămâne
   });
 
   it("records missing codes in groups and re-reads what got no clear answer", () => {

@@ -17,6 +17,7 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 | Lucrarea | Stare (24.11) |
 |---|---|
 | **Urmărirea candidaților** (bord 14 coduri, motor 11: doar ce nu e sigur, secțiunea 5; lista se schimbă singură la pornirea serverului după `WATCH`) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11). 24.11: scoase din bord cele confirmate (1014, 2205, 202F, F405), adăugate 2294 / 2296 / 229A |
+| **Citirile cu motorul din aceeași clipă** (din aplicația 1.1.121, 24.11) | Urmăririle de bord și motor la **30 s** (înainte 2 min); fiecare citire vine cu valorile OBD din clipa ei (turația, MAP, aerul admis, lichidul, sarcina, viteza, pedala, avansul, lambda, injecția, corecția) și se păstrează toată (`obd_read`), nu doar schimbările. Analiza: `web/scripts/obd-analyze/reads.cjs` (perechi exacte, deci merge și pentru aer / sarcină / avans) |
 | Urmărirea „clapeta de distribuție” (climatronic 262E / 262F) | 🔁 la 1 min, prima în coadă; alerta „Climatronic · clapeta” |
 | Seria deasă a candidaților injecției (motor, lucrarea 17) | ⏸ oprită din 23.11; 24.11: candidații ei nu sunt cantitatea injectată, iar estimarea OBD se potrivește cu bordul (secțiunea 4) |
 | OBD standard: 01, 09, 06, 02, erorile | ✅ 22.11, 18:00–18:05 · 01: 38 de PID-uri, 06: 16 teste, erorile: 2 coduri, 09 și 02: nimic nou |
@@ -257,6 +258,7 @@ puține citiri; pentru o mărime rapidă trebuie o serie deasă, ca cea din 24.1
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 24.11 11:40 | Urmăririle la 30 s, cu valorile OBD din clipa fiecărei citiri (`obd_read`, aplicația 1.1.121): ca să confirmăm din câteva drumuri candidații rapizi ai motorului (aer, sarcină, avans) |
 | 24.11 11:15 | Jurnalul de evenimente al bordului (1018–101A) descifrat parțial: ora (HH 1F MM SS) și kilometrajul fiecărei intrări; ce eveniment e, încă necunoscut |
 | 24.11 11:05 | Climatronic: 0285 / 0286 ≈ 21 °C constant (x / 2 − 50), nu habitaclul; restul codurilor lui au prea puține citiri pentru analiză |
 | 24.11 11:00 | Analiza motorului: **392A = lichidul de răcire** (a treia copie); 16E2 ≈ depresiunea din galerie; 39CB, 1200, 29D1, 13B1, 39C3, 4111 urmează MAP / sarcina: puși în urmărirea motorului (2 min) ca să aibă citiri în sarcină |

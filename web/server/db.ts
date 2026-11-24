@@ -277,6 +277,30 @@ export function getDb(): DatabaseSync {
     );
     CREATE INDEX IF NOT EXISTS idx_obd_sample ON obd_sample(tx, svc, id, at);
 
+    -- Citirile codurilor din urmăriri cu valorile OBD din aceeași clipă (24.11, din 1.1.121): fiecare citire,
+    -- nu doar schimbările, ca să se poată potrivi exact cu motorul. age_ms = vechimea valorilor OBD.
+    CREATE TABLE IF NOT EXISTS obd_read (
+      tx TEXT NOT NULL,
+      svc TEXT NOT NULL,
+      id INTEGER NOT NULL,
+      at TEXT NOT NULL,
+      value TEXT,
+      nrc INTEGER,
+      age_ms INTEGER,
+      rpm REAL,
+      map REAL,
+      iat REAL,
+      ect REAL,
+      load REAL,
+      speed REAL,
+      pedal REAL,
+      adv REAL,
+      lambda REAL,
+      inj INTEGER,
+      stft REAL
+    );
+    CREATE INDEX IF NOT EXISTS idx_obd_read ON obd_read(tx, svc, id, at);
+
     -- Codurile care nu există (7F 22 31), notate din 1.1.110 (22.11): cu ele și catalogul se știe
     -- exact ce s-a verificat; ce nu e în niciuna dintre tabele n-a primit încă un răspuns clar.
     CREATE TABLE IF NOT EXISTS obd_absent (

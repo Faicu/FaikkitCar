@@ -51,6 +51,8 @@ export interface ScanJob {
   passAt: string | null; // watch: ultima trecere
   /** Pentru mașină: urmărirea fără pauză (everyS 0), reluată de ea imediat, fără să aștepte lista. */
   again?: boolean;
+  /** Urmăririle: valorile OBD din clipa citirii lângă fiecare rezultat (`e`, tabela obd_read). */
+  ctx?: boolean;
   status: ScanStatus;
   createdAt: string;
   startedAt: string | null;
@@ -154,7 +156,7 @@ export const SEED: Seed[] = [
 
 /**
  * Urmărirea candidaților (22.11, cererea utilizatorului): codurile bănuite (OBD-CODURI.md, „Candidați”)
- * recitite la fiecare pornire și apoi la 2 minute, înaintea scanării, ca să le putem lega de CAN / OBD
+ * recitite la fiecare pornire și apoi la 2 minute (din 24.11 la 30 s, cu valorile OBD din clipa citirii, `obd_read`), înaintea scanării, ca să le putem lega de CAN / OBD
  * din aceeași clipă (1007 la prima pornire după o oprire lungă, 2205 cu frâna, 202F cu lichidul de răcire).
  * O trecere ține câteva secunde; restul timpului merge scanarea. Doar ce nu e sigur: ce s-a confirmat
  * (OBD-CODURI.md, secțiunea 3) iese din listă (22.11: rezervor, bec, revizie, kilometraje, turație, temperaturi).
@@ -167,7 +169,7 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     ids: [0x262e, 0x262f],
   },
   {
-    label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 120,
+    label: "Urmărire: bord (candidații)", tx: "714", svc: "22", kind: "watch", ord: 0.1, everyS: 30,
     // 24.11: confirmate la mașină și scoase: 1014 afară, 2205 frâna de mână, 202F uleiul, F405 lichidul de răcire;
     // intră 2294 / 2296 / 229A (lângă autonomia 2297 și consumul mediu 2299, încă neclare).
     // 24.11 (analiza): 2294 = autonomia nerotunjită, scos; intră 1006 (contor cu motorul pornit, plafon FFFF).
@@ -175,7 +177,7 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
       0x229a, 0xf442],
   },
   {
-    label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 120,
+    label: "Urmărire: motor (candidații)", tx: "7E0", svc: "22", kind: "watch", ord: 0.2, everyS: 30,
     // 23.11: scoase ce s-a lămurit sau nu ajută la consum (118A–118F, 3D73, 4183, 406A, 2206: OBD-CODURI.md);
     // candidații pentru cantitatea injectată sunt în seria deasă de mai jos.
     // 24.11 (analiza): intră cei care urmează presiunea din galerie / sarcina (1200, 13B1, 16E2, 29D1, 39C3, 39CB,
@@ -194,29 +196,29 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
 ];
 
 /**
- * Pune lucrările de urmărire care lipsesc (după etichetă). La cele existente schimbă doar lista de coduri, dacă
- * `WATCH` s-a schimbat (24.11: ce s-a confirmat iese), cu o trecere nouă (`round` + 1, ca mașina să nu-și
+ * Pune lucrările de urmărire care lipsesc (după etichetă). La cele existente schimbă lista de coduri și pauza
+ * dintre treceri, dacă `WATCH` s-a schimbat (24.11: ce s-a confirmat iese), cu o trecere nouă (`round` + 1, ca mașina să nu-și
  * aplice progresul pe lista veche); oprirea / pornirea rămâne cum a lăsat-o utilizatorul.
  */
 export function seedWatchJobs(now = new Date().toISOString()): number {
   const db = getDb();
-  const has = db.prepare(`SELECT id, ids FROM obd_scan_job WHERE label = ?`);
+  const has = db.prepare(`SELECT id, ids, every_s FROM obd_scan_job WHERE label = ?`);
   const setIds = db.prepare(
     `UPDATE obd_scan_job SET ids = ?, next = 0, round = round + 1, updated_at = ? WHERE id = ?`,
   );
+  const setEvery = db.prepare(`UPDATE obd_scan_job SET every_s = ?, updated_at = ? WHERE id = ?`);
   const ins = db.prepare(
     `INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, ids, every_s, status, created_at)
      VALUES (?, ?, ?, ?, ?, 'watch', ?, ?, 'queued', ?)`,
   );
   let n = 0;
   for (const w of WATCH) {
-    const cur = has.get(w.label) as { id: number; ids: string | null } | undefined;
+    const cur = has.get(w.label) as { id: number; ids: string | null; every_s: number | null } | undefined;
     if (cur) {
       const ids = JSON.stringify(w.ids);
-      if (cur.ids !== ids) {
-        setIds.run(ids, now, cur.id);
-        n++;
-      }
+      if (cur.ids !== ids) setIds.run(ids, now, cur.id);
+      if (cur.every_s !== w.everyS) setEvery.run(w.everyS, now, cur.id);
+      if (cur.ids !== ids || cur.every_s !== w.everyS) n++;
       continue;
     }
     ins.run(w.ord, w.label, w.tx, SCAN_MODULES[w.tx].rx, w.svc, JSON.stringify(w.ids), w.everyS, now);
@@ -293,7 +295,8 @@ export function carScanJobs(max = 3, now = Date.now()): ScanJob[] {
     // Mașina știe doar range / list / loop: urmărirea e pentru ea o buclă (trecerile au `round`).
     // Fără pauză (seria deasă, 23.11): mașina o reia singură, altfel trecerile veneau o dată pe minut.
     const j = toJob(r);
-    out.push(j.kind === "watch" ? { ...j, kind: "loop", ...(j.everyS === 0 ? { again: true } : {}) } : j);
+    // Urmăririle: `ctx` = mașina pune lângă fiecare citire valorile OBD din aceeași clipă (obd_read, 24.11).
+    out.push(j.kind === "watch" ? { ...j, kind: "loop", ctx: true, ...(j.everyS === 0 ? { again: true } : {}) } : j);
   }
   return out;
 }
@@ -316,6 +319,19 @@ export interface ScanItem {
   d?: number;
   c?: number; // la n = 0x31: câte coduri la rând, de la i
   at?: number;
+  e?: ReadContext; // urmăririle (din 1.1.121): valorile OBD din clipa citirii
+}
+
+/** Valorile OBD de lângă o citire: t vechimea în ms, r rpm, m MAP, a aer admis, w lichid, l sarcina, v viteza,
+ *  p pedala, s avansul, k lambda cerut, f starea injecției, o corecția scurtă. */
+export interface ReadContext {
+  t?: number; r?: number; m?: number; a?: number; w?: number; l?: number; v?: number;
+  p?: number; s?: number; k?: number; f?: number; o?: number;
+}
+
+/** Un număr finit în limite rezonabile sau null (ce vine de la mașină nu oprește salvarea). */
+function num(x: unknown, lo: number, hi: number): number | null {
+  return typeof x === "number" && Number.isFinite(x) && x >= lo && x <= hi ? x : null;
 }
 
 const HEX = /^[0-9A-F]*$/;
@@ -353,6 +369,10 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
   const insAbsent = db.prepare(`INSERT OR IGNORE INTO obd_absent (tx, svc, id, at) VALUES (?, ?, ?, ?)`);
   const delAbsent = db.prepare(`DELETE FROM obd_absent WHERE tx = ? AND svc = ? AND id = ?`);
   const insSample = db.prepare(`INSERT INTO obd_sample (tx, svc, id, at, value) VALUES (?, ?, ?, ?, ?)`);
+  const insRead = db.prepare(
+    `INSERT INTO obd_read (tx, svc, id, at, value, nrc, age_ms, rpm, map, iat, ect, load, speed, pedal, adv, lambda, inj, stft)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
   let ok = 0;
   let skipped = 0;
   db.exec("BEGIN");
@@ -398,6 +418,12 @@ export function saveScanItems(items: unknown): { ok: number; skipped: number } {
       if (prev) updCode.run(u.value, u.nrc, at, u.changed ? 1 : 0, tx, svc, id);
       else insCode.run(tx, svc, id, u.value, u.nrc, at, at);
       if (u.sample && value !== null) insSample.run(tx, svc, id, at, value);
+      if (raw.e && typeof raw.e === "object") {
+        const e = raw.e;
+        insRead.run(tx, svc, id, at, value, nrc, num(e.t, 0, 600_000), num(e.r, 0, 10_000), num(e.m, 0, 300),
+          num(e.a, -40, 215), num(e.w, -40, 215), num(e.l, 0, 100), num(e.v, 0, 300), num(e.p, 0, 100),
+          num(e.s, -64, 64), num(e.k, 0, 2), num(e.f, 0, 255), num(e.o, -100, 100));
+      }
       ok++;
     }
     db.exec("COMMIT");

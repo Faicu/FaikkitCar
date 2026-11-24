@@ -93,6 +93,11 @@ final class Obd extends BluetoothGattCallback {
     private double pedal = Double.NaN;
     private double pedalRest = Double.NaN;
     private int fuelStatus = -1;
+    /** Avansul aprinderii (PID 0E, grade) si corectia scurta (PID 06, %), doar pentru citirile urmaririlor. */
+    private double advance = Double.NaN;
+    private double stft = Double.NaN;
+    /** Cand s-au citit ultima data valorile de mai sus (elapsedRealtime), 0 = niciodata. */
+    private long valuesAt;
     private double lh = Double.NaN;
     private long fastAt;
     private long lastSampleAt;
@@ -327,6 +332,8 @@ final class Obd extends BluetoothGattCallback {
         boolean parked;
         /** Urmarirea fara pauza (seria deasa, 23.11): o reluam aici imediat, nu la lista urmatoare. */
         boolean again;
+        /** Urmaririle (24.11): langa fiecare citire, valorile OBD din aceeasi clipa (`e`). */
+        boolean ctx;
 
         String key() {
             return id + ":" + round;
@@ -460,6 +467,7 @@ final class Obd extends BluetoothGattCallback {
         j.next = o.optInt("next");
         j.parked = o.optBoolean("parked");
         j.again = o.optBoolean("again");
+        j.ctx = o.optBoolean("ctx");
         org.json.JSONArray ids = o.optJSONArray("ids");
         j.ids = new int[ids == null ? 0 : ids.length()];
         for (int i = 0; i < j.ids.length; i++) j.ids[i] = ids.getInt(i);
@@ -577,9 +585,38 @@ final class Obd extends BluetoothGattCallback {
                 o.put("v", v.toString());
                 scanFound++;
             }
+            if (j.ctx) o.put("e", context());
             SCAN_QUEUE.add(c, o);
         } catch (org.json.JSONException ignored) {
         }
+    }
+
+    /**
+     * Valorile OBD din clipa unei citiri din urmariri (24.11), ca serverul sa le potriveasca exact cu
+     * motorul (tabela obd_read): t = vechimea lor in ms; lipsa = necitit inca. Nicio citire in plus.
+     */
+    private org.json.JSONObject context() throws org.json.JSONException {
+        org.json.JSONObject e = new org.json.JSONObject();
+        synchronized (this) {
+            if (valuesAt == 0) return e;
+            e.put("t", SystemClock.elapsedRealtime() - valuesAt);
+            if (rpm >= 0) e.put("r", rpm);
+            putNum(e, "m", map);
+            putNum(e, "a", iat);
+            putNum(e, "w", ect);
+            putNum(e, "l", load);
+            putNum(e, "p", pedal == pedal ? Math.round(pedal * 10) / 10.0 : pedal);
+            putNum(e, "s", advance);
+            putNum(e, "k", lambda == lambda ? Math.round(lambda * 1000) / 1000.0 : lambda);
+            if (fuelStatus >= 0) e.put("f", fuelStatus);
+            putNum(e, "o", stft);
+        }
+        putNum(e, "v", CanLink.get(c).speed());
+        return e;
+    }
+
+    private static void putNum(org.json.JSONObject o, String k, double v) throws org.json.JSONException {
+        if (!Double.isNaN(v)) o.put(k, v);
     }
 
     /**
@@ -949,6 +986,8 @@ final class Obd extends BluetoothGattCallback {
                     case 0x04: load = Math.round(a * 1000 / 255.0) / 10.0; break;
                     case 0x44: lambda = (a * 256 + bb) * 2 / 65536.0; break;
                     case 0x03: fuelStatus = a; break;
+                    case 0x0E: advance = a / 2.0 - 64; break;
+                    case 0x06: stft = Math.round((a - 128) * 1000 / 128.0) / 10.0; break;
                     case 0x49:
                         pedal = a * 100 / 255.0;
                         if (Double.isNaN(pedalRest) || pedal < pedalRest) pedalRest = pedal;
@@ -971,6 +1010,7 @@ final class Obd extends BluetoothGattCallback {
                 any = true;
                 i += 1 + n;
             }
+            if (any) valuesAt = SystemClock.elapsedRealtime();
         }
         return any;
     }
