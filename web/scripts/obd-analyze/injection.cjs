@@ -4,7 +4,7 @@
 //   runuser -u faikkitcar -- node web/scripts/obd-analyze/injection.cjs data/faikkitcar.db
 const { DatabaseSync } = require("node:sqlite");
 const db = new DatabaseSync(process.argv[2], { readOnly: true });
-const IDS = [0x2061, 0x2062, 0x209a, 0x20eb, 0x20ec, 0x204c];
+const IDS = [0x2061, 0x2062, 0x209a];
 const airLh = (r) => {
   const kgS = (r.map * 1000 * 0.001197 * (r.rpm / 120) * 0.85) / (287.05 * (r.iat + 273.15));
   const lam = r.lambda && r.lambda > 0.6 && r.lambda < 1.5 ? r.lambda : 1;

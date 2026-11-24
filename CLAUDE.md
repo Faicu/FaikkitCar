@@ -256,8 +256,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   din `WATCH` se șterg din coadă la pornirea serverului (citirile rămân). Buclele de recitire (8–11) oprite: fiecare cod
   are ~35 de citiri, nu mai aduc mult, iar traficul BLE continuu e suspectul pentru memoria navigației. Rămân urmăririle:
   clapeta (30 s), bordul, motorul (30 s, 15 coduri), climatronicul (cele 37 de coduri fără nume care se schimbă, 120 s)
-  și, din ora 01:30 a lui 25.11, „timpul de injecție (motor)”: 2061 / 2062 / 209A / 20EB / 20EC / 204C + F423 (rampa) + F442
-  (tensiunea), la 10 s, cu valorile OBD din aceeași clipă; testul consumului exact din ele: `web/scripts/obd-analyze/injection.cjs`. Mașina:
+  și, din ora 01:30 a lui 25.11, „timpul de injecție (motor)”: 2061 / 2062 / 209A + F423 (rampa), la 3 s (1 s din 1.1.128: fără o
+  trimitere la server la fiecare trecere), cu valorile OBD din aceeași clipă; testul consumului exact din ele: `web/scripts/obd-analyze/injection.cjs`. Mașina:
   ciclul OBD cel mult 4/s (`CYCLE_MS`; fără scanare ajungea la 15/s), rezultatele scanării scrise pe disc deodată la 5 s
   (`flushQueue`; înainte o deschidere a fișierului pe rezultat), reconectarea 5 / 10 / 15 s, apoi până la 1 min.
   Stare 23.11: motorul și bordul complete (fiecare cod din 0000–FFFF are o stare), climatronicul **oprit la 46 %** ca

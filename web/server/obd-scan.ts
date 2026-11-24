@@ -185,8 +185,11 @@ export const WATCH: Array<Seed & { ord: number; everyS: number }> = [
     // fiecare ar putea fi timpul de injecție (0,01 ms: 1,5 ms la relanti). Alături: presiunea din rampă (F423,
     // ×10 kPa) și tensiunea (F442, ×0,001 V), care intră în debitul injectoarelor. Test: consum ≈ k × (timp − t0)
     // × rpm × f(presiune); la injecția tăiată trebuie să fie 0.
-    label: "Urmărire: timpul de injecție (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.15, everyS: 10,
-    ids: [0x2061, 0x2062, 0x209a, 0x20eb, 0x20ec, 0x204c, 0xf423, 0xf442],
+    label: "Urmărire: timpul de injecție (motor)", tx: "7E0", svc: "22", kind: "watch", ord: 0.15, everyS: 3,
+    // 25.11 (utilizatorul: frânările de motor durează câteva secunde, la 10 s se prind din întâmplare): fără 20EB /
+    // 20EC / 204C (altceva, R² mic) și fără F442 (tensiunea e în CAN). everyS 3 până la 1.1.128 (fără o trimitere
+    // la server la fiecare trecere), apoi 1 (o citire la ~2 s).
+    ids: [0x2061, 0x2062, 0x209a, 0xf423],
   },
 ];
 

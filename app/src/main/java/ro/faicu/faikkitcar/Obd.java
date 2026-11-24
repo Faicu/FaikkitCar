@@ -636,7 +636,10 @@ final class Obd extends BluetoothGattCallback {
         // Dupa o lucrare adevarata, lista noua cat mai repede; o urmarire se reia singura (restHere).
         if (j.everyS <= 0) jobsAt = 0;
         flushQueue(true);
-        Uploader.kick(c);
+        // O urmarire se termina la fiecare cateva secunde: rezultatele pleaca la cel mult 5 s (ceasul serviciului
+        // porneste trimiterea cand coada nu e goala), nu cate o cerere la fiecare trecere (25.11: reteaua deasa
+        // alaturi de muzica umfla procesul Android, vezi starea la 1 s).
+        if (j.everyS <= 0) Uploader.kick(c);
     }
 
     private void result(Job j, int id, int[] data, int from, int nrc) {
