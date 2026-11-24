@@ -8,20 +8,20 @@ Totul cu OBD e **de test**: comutatorul „OBD (teste)” oprește tot, iar căl
 
 **Mașina:** VW Golf 6 (1K), 1.2 TSI CBZB, 2012, VIN `WVWZZZ1KZDW032311`.
 
-**Ultima actualizare:** 23.11.2026, 18:00 (clapeta climatronicului: 262E/262F; B1091 nu mai e activă după calibrare)
+**Ultima actualizare:** 24.11.2026, 08:30 (climatronicul scanat complet: toate trei modulele au acum fiecare cod 0000–FFFF cu o stare)
 
 ---
 
 ## 1. Scanarea
 
-| Lucrarea | Stare (22.11, seara) |
+| Lucrarea | Stare (24.11, dimineața) |
 |---|---|
 | **Urmărirea candidaților** (bord 15 coduri, motor 14: doar ce nu e sigur, secțiunea 4) | 🔁 la fiecare pornire și la 2 min, înaintea scanării (din 22.11) |
 | OBD standard: 01, 09, 06, 02, erorile | ✅ 22.11, 18:00–18:05 · 01: 38 de PID-uri, 06: 16 teste, erorile: 2 coduri, 09 și 02: nimic nou |
 | Motor (7E0), 0000–FFFF | ✅ 22.11, 19:07 · 763 de coduri cu răspuns (2 refuzate, 0x36), 64.773 inexistente, 0 lente: toate cele 65.536 au o stare |
 | Bord (714), a doua trecere 0000–FFFF | ✅ 23.11, 08:49 · aceleași 170 de coduri ca prima trecere, 65.366 inexistente, 0 lente |
-| Climatronic (746), 0000–FFFF | 🔄 46 % (30.140 / 65.536) la 23.11, 09:17 · 284 de coduri (62 cu valori, 55 refuzate, 138 lente), 29.910 inexistente |
-| Recitirea în buclă (motor, OBD 01, bord, climatronic) | 🔄 motorul, prima trecere: 654 / 763 (22.11, 19:30); bordul a început; reiau după bord și climatronic. Scopul: multe citiri ale fiecărui cod, comparate cu OBD / CAN (consumul) |
+| Climatronic (746), 0000–FFFF | ✅ 24.11, 08:13 (recitirea celor lente 08:19, 247 de coduri: 9 găsite, restul inexistente) · 175 de coduri (120 cu valori, 55 refuzate), 65.361 inexistente, 0 lente: toate cele 65.536 au o stare. După 46 % doar identificarea (F15B–F1DF) și F405 / F40C / F40D |
+| Recitirea în buclă (motor, OBD 01, bord, climatronic) | 🔄 trecerea 10 a fiecăreia; motorul 453 / 763 la 24.11, 08:27 (singura care mai rulează după scanări). Scopul: multe citiri ale fiecărui cod, comparate cu OBD / CAN (consumul) |
 | Bord (714), prima trecere 0000–FFFF | ✅ 21.11 · 168 de coduri cu răspuns, 2 refuzate |
 
 **Fără coduri pierdute (din 22.11, aplicația 1.1.110):** se notează și codurile care **nu există** (tabela `obd_absent`), deci
@@ -100,7 +100,7 @@ Motorul după 469C (scanat 22.11): doar identificarea și oglinzile OBD.
 
 ### Climatronic (746 / 7B0, 5K0907044GK)
 
-Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCSD300000 ATFCSM1). 91 de coduri au valori (0100–1000, 2600–27DA). Scanarea completă e la 46 % (30.140 / 65.536). Confirmate pe 23.11, parcat, motorul pornit, câte o schimbare la butoane și o citire (`/root/clima-*.txt`).
+Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCSD300000 ATFCSM1). 91 de coduri au valori (0100–1000, 2600–27DA). Scanarea completă s-a terminat pe 24.11 (175 de coduri; peste 27DA doar identificarea și F405 / F40C / F40D). Confirmate pe 23.11, parcat, motorul pornit, câte o schimbare la butoane și o citire (`/root/clima-*.txt`).
 
 **Confirmate** (valoare mare = al doilea octet; ambele octeți urmează aceeași mișcare):
 
@@ -210,6 +210,7 @@ Poza rotiței albe (cama clapetei, văzută prin locașul navigației, sub trave
 | 22.11 | Revizia cozii: urmărirea candidaților (1007, 2205, 202F … la pornire și la 2 min); buclele recitesc și codurile refuzate de condiții; din 1.1.108 grupurile fără răspuns nu se mai pierd (intră la „lente”) |
 | 22.11 dimineața | Motorul 31B0–469C în drumul de 3 km (~11 coduri/s, cele inexistente răspund repede); 467D–469C „lente” doar pentru că motorul se oprise; bordul nu s-a citit (bucla lui vine după scanări), deci testul pentru 1007 n-a prins oprirea de 7,6 h |
 | 22.11 seara | Scanarea rapidă (1.1.113): ~62 coduri/s în loc de ~8. Verificată pe motorul 0000–21FC (lucrarea 15, ~8 min), comparată cu o copie a bazei de dinainte: 518 coduri comune, niciunul pierdut, niciunul nou, nicio stare diferită, 0 coduri fără răspuns; 17 coduri „lente” (grupuri fără răspuns la prima trecere) rezolvate ca inexistente; valorile diferite = măsurători live |
+| 24.11 | Climatronicul complet (08:13): nimic nou între 27DB și F15A; identificarea: F187 / F191 = 5K0907044GK, F189 = software 1212, F1A3 = hardware H19, F197 = „Climatronic”, F19E = `EV_Climatronic`, F1AA = J255, F18B = 12 06 16 (data fabricației?), F17C = seria `BHB-00116.06.1200980656` |
 | 23.11 | Pornire la rece: bord F405 = lichidul de răcire, 202F probabil uleiul (x − 50); motorul 1189–118F scad cu temperatura; TRIP-ul (80,4 / 80,6) și consumul mediu (49,9) NU sunt în codurile bordului citite în sesiunea implicită; climatronicul la 46 % |
 | 23.11 18:00 | Climatronic: 262E = poziția reală, 262F = cea cerută; clapeta blocată iar (89 / BE), B1091 71 activă din nou: motorașul e defect intermitent |
 | 23.11 17:50 | Drumul de test pentru injecție: 20EB/20EC nu sunt cantitatea injectată (nu scad la 0 la injecția tăiată, plafon 11127); 2061/2062 candidatul principal; seria deasă e citită doar o dată pe minut |
