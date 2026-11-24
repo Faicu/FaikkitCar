@@ -74,8 +74,8 @@ Gateway-ul pe 20.11: 01305 (0x0519, starea 0x24) și încă o intrare, neîntrea
 | **2261** | **Zile până la revizia de ulei** | 2 octeți: 0x014D = 333 → 0x014C = 332 | 22.11: 365 − 33 de zile de la 19.10 |
 | **2243** | Km de la revizie, în sute | 0x0005 → 0x0006 | 22.11: 581 km → 604 km de la revizie |
 | **2244** | Zile de la revizie | 0x0020 = 32 → 0x0021 = 33 | 22.11 (0x24 = 36 pe 24.11). 2259 / 225A / 225B aveau atunci aceeași valoare, dar sunt lumina de afară (24.11): coincidență |
-| **22A0** / **22A1** | Intervalul reviziei: 150 (× 100 km = 15.000 km) / 365 de zile | fixe | 22.11, se potrivesc cu 2260 / 2261. Bordul e pe revizie fixă 15.000 km / 1 an (nu 8.000 km, cum ai tu în aplicație) |
-| 100C / 100D | 15.000 / 30.000 | fixe | 15.000 = intervalul de ulei; 30.000 probabil inspecția |
+| **22A0** / **22A1** | Intervalul reviziei (× 100 km) / zile | 22.11: 150 (15.000 km) / 365; **25.11: 0x50 = 8.000 km** (schimbat de utilizator cu Car Scanner, la fel ca în aplicație) | 2260 a devenit 0x1CE8 = 7.400 km până la revizie (8.000 − 600) |
+| 100C / 100D | 15.000 / 30.000 | fixe | **nu** e intervalul de ulei: după schimbarea lui 22A0 la 8.000 km (25.11) 100C a rămas 15.000 |
 | **F18B** | Data fabricației bordului | 12 06 18 = 18.06.2012 | 22.11 (cod UDS standard) |
 | **1014** | **Temperatura de afară** (cea de pe ecranul bordului) | 1 octet: x / 2 − 50 °C (0x67 = 1,5 °C) | 24.11: ecranul arăta 1,5 °C; toate cele 9 valori din 21–24.11 se potrivesc exact cu CAN c139 (0x7A = 11, 0x76 = 9, 0x72 = 7, 0x6E = 5, 0x68 = 2) |
 | **2205** | **Frâna de mână**: bitul 0x01 din primul octet (1 = trasă) | `01 28` trasă → `00 28` eliberată, pe loc, cu motorul pornit | 24.11, 09:38: eliberată pe loc → 0 (deci frâna, nu „mașina stă”); al doilea octet (0x28) necunoscut |
@@ -309,6 +309,7 @@ puține citiri; pentru o mărime rapidă trebuie o serie deasă, ca cea din 24.1
 | 24.11 11:05 | Climatronic: 0285 / 0286 ≈ 21 °C constant (x / 2 − 50), nu habitaclul; restul codurilor lui au prea puține citiri pentru analiză |
 | 24.11 11:00 | Analiza motorului: **392A = lichidul de răcire** (a treia copie); 16E2 ≈ depresiunea din galerie; 39CB, 1200, 29D1, 13B1, 39C3, 4111 urmează MAP / sarcina: puși în urmărirea motorului (2 min) ca să aibă citiri în sarcină |
 | 24.11 10:45 | Analiza istoricului: **2294 = autonomia nerotunjită** (12 perechi cu 2297); 2296 și 229A urmează benzina din rezervor (r 0,97 / 0,99); 1006 = contor cu motorul pornit, pus în urmărire |
+| 25.11 01:20 | Bordul după schimbarea reviziei: 22A0 = 0x50 (8.000 km), 2260 = 7.400 km până la revizie, 2261 = 329 de zile; 100C a rămas 15.000 (deci nu e intervalul) |
 | 25.11 | Buclele de recitire oprite (fiecare cod ~35 de citiri); seria deasă a injecției ștearsă; urmărire nouă: climatronicul, cele 37 de coduri fără nume care se schimbă (temperatura din habitaclu, soarele, vaporizatorul), la 60 s, cu valorile OBD alături |
 | 24.11 23:50 | Catalogul de pe site (Navigație → Scanarea OBD → modulul) arată numele și valoarea pe înțeles a codurilor din secțiunea 3 (`web/server/obd-names.ts`, filtrul „Doar cele cunoscute”); urmărirea motorului: 118D scos, intră 155A (cuplul), 2006 (nivelul uleiului), 1314 |
 | 24.11 23:30 | Jurnalul adaptorului din Car Scanner: numele codurilor motorului (cuplul 155A, avansul 137A, presiunea de supraalimentare 2029 / 202A, uleiul 20A1, axa cu came 173A + 1189–118F, codarea 0600); modulele TP2.0 se citesc prin vLinker (gateway, ABS, uși, direcția); erorile tuturor modulelor (P0441 arhivă, B1091 54, 01305, 00937). Bordul: intervalul reviziei schimbat de utilizator la 8.000 km (`2E 22A0 0050`, în jurnal), ultima codare a bordului 09.10.2024 |

@@ -61,7 +61,6 @@ for (let i = 0; i < 7; i++) ENGINE[0x1189 + i] = { name: `Axa cu came de admisie
 
 const CLUSTER: Record<number, Known> = {
   0x1014: { name: "Temperatura de afară", decode: n1("°C", (x) => x / 2 - 50, 1) },
-  0x100c: { name: "Intervalul de ulei (fix)", decode: n2("km", (x) => x) },
   0x202f: { name: "Temperatura uleiului", decode: n1("°C", (x) => x - 58) },
   0x2205: { name: "Frâna de mână (bitul 0x01)", decode: (b) => ((b[0] ?? 0) & 1 ? "trasă" : "eliberată") },
   0x2206: { name: "Litrii din rezervor", decode: n1("L", (x) => x) },
