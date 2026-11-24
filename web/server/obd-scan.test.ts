@@ -10,6 +10,30 @@ process.env.FAIKKITCAR_DB = join(mkdtempSync(join(tmpdir(), "obd-scan-")), "t.db
 const scan = await import("./obd-scan.ts");
 const { getDb } = await import("./db.ts");
 
+// Ordinea scanărilor complete de pe 22.11 (scoasă din server pe 25.11), ca fixtură pentru logica lucrărilor.
+const SEED: import("./obd-scan.ts").Seed[] = [
+  { label: "OBD: valorile live", tx: "7E0", svc: "01", kind: "range", first: 0x00, last: 0xff },
+  { label: "OBD: informațiile vehiculului", tx: "7E0", svc: "09", kind: "range", first: 0x00, last: 0xff },
+  { label: "OBD: testele de la bord", tx: "7E0", svc: "06", kind: "range", first: 0x00, last: 0xff },
+  { label: "OBD: datele de la apariția erorii", tx: "7E0", svc: "02", kind: "range", first: 0x00, last: 0xff },
+  { label: "OBD: codurile de eroare", tx: "7E0", svc: "dtc", kind: "list", ids: [0x03, 0x07, 0x0a] },
+  { label: "Motor: toate codurile", tx: "7E0", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
+  { label: "Bord: toate codurile (a doua trecere)", tx: "714", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
+  { label: "Climatronic: toate codurile", tx: "746", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
+  { label: "Recitire: motor", tx: "7E0", svc: "22", kind: "loop" },
+  { label: "Recitire: OBD live", tx: "7E0", svc: "01", kind: "loop" },
+  { label: "Recitire: bord", tx: "714", svc: "22", kind: "loop" },
+  { label: "Recitire: climatronic", tx: "746", svc: "22", kind: "loop" },
+];
+
+/** Pune fixtura o singură dată (tabela goală); câte a pus. */
+function seed(now?: string): number {
+  const n = (getDb().prepare(`SELECT COUNT(*) AS n FROM obd_scan_job`).get() as { n: number }).n;
+  if (n > 0) return 0;
+  for (const s of SEED) scan.addScanJob(s, now);
+  return SEED.length;
+}
+
 describe("codeUpdate", () => {
   it("records the first value as a sample, not as a change", () => {
     expect(scan.codeUpdate(undefined, "16D3", null)).toEqual({ value: "16D3", nrc: null, changed: false, sample: true });
@@ -63,13 +87,13 @@ describe("parseScanStatus", () => {
 
 describe("jobs and results", () => {
   beforeAll(() => {
-    scan.seedScanJobs("2026-11-21T00:00:00.000Z");
+    seed("2026-11-21T00:00:00.000Z");
   });
 
   it("seeds the order once: the short standard OBD first, then the engine", () => {
-    expect(scan.seedScanJobs()).toBe(0);
+    expect(seed()).toBe(0);
     const jobs = scan.carScanJobs();
-    expect(jobs.map((j) => j.label)).toEqual(scan.SEED.slice(0, 3).map((s) => s.label));
+    expect(jobs.map((j) => j.label)).toEqual(SEED.slice(0, 3).map((s) => s.label));
     expect(jobs[0]).toMatchObject({ tx: "7E0", svc: "01", kind: "range", first: 0, last: 0xff });
     // Testele de mai jos lucrează pe motor: OBD-ul standard e gata.
     getDb().prepare(`UPDATE obd_scan_job SET status = 'done' WHERE svc IN ('01', '09', '06', '02', 'dtc')`).run();

@@ -203,11 +203,12 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `list` ids, `loop` = recitirea codurilor găsite, ids luate din catalog la sfârșitul fiecărei treceri, `round`), catalogul
   `obd_code` (tx, svc, id: valoarea fără ecou, `nrc` refuzul, 256 = lent / fără răspuns, `changes`) și istoricul
   `obd_sample` (prima valoare și fiecare schimbare). svc: `22` (UDS), `01`/`09`/`06` (`<svc><id>`), `02` (`02<id>00`),
-  `dtc` (id = serviciul 03/07/0A). Ordinea (`SEED`, pusă o dată la pornirea serverului): motor 0000–FFFF, OBD 01, 09, 06,
-  02, erorile, climatronic 0A3B–FFFF, apoi buclele (motor, OBD 01, bord, climatronic). Airbag-ul nu (utilizatorul).
+  `dtc` (id = serviciul 03/07/0A). Scanările complete (motor, bord, climatronic, OBD-ul standard)
+  s-au terminat pe 24.11; pe 25.11 lucrările terminate au fost șterse (copie în `/root/obd-scan-jobs-terminate-2026-11-25.json`)
+  și ordinea lor (`SEED`) scoasă: o tabelă goală nu mai repornește nimic, un modul nou se adaugă cu `addScanJob`. Airbag-ul nu (utilizatorul).
   După un interval terminat, codurile rămase lente intră într-o lucrare `list` `parked` (doar pe loc), imediat după.
-  Bordul complet (170 de coduri) și climatronicul 0000–0A3A importate din `/root/obd-scan-*.txt`
-  (`scripts/import-obd-scan.ts`, rulat ca `faikkitcar`). Mașina (`Obd`, 1.1.102): `GET /api/car/obd/scan` (primele 3,
+  Bordul complet (170 de coduri) și climatronicul 0000–0A3A importate pe 21.11 din `/root/obd-scan-*.txt` (scriptul
+  de import șters pe 25.11). Mașina (`Obd`, 1.1.102): `GET /api/car/obd/scan` (primele 3,
   la 60 s, într-un fir separat), prima potrivită (cele `parked` doar pe loc, modulele tăcute în sesiunea asta sărite);
   rezultatele `{t:"r", j, x, s, i, v|n, at}` și progresul `{t:"p", j, r, n, d}` în coada de pe disc `obd_scan.jsonl`
   (`JsonlQueue`, separată de punctele de traseu), trimise de `Uploader.flushScan` la `POST /api/car/obd/scan`; progresul și pe disc

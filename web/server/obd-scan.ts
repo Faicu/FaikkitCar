@@ -122,9 +122,14 @@ export function jobProgress(j: Pick<ScanJob, "kind" | "first" | "last" | "ids" |
   return { done: Math.max(0, Math.min(total, done)), total };
 }
 
-// --- ordinea de la început ------------------------------------------------------------------
+// --- lucrările de scanare ------------------------------------------------------------------
 
-interface Seed {
+/**
+ * O lucrare de scanare (interval, listă sau buclă). Scanările complete s-au terminat pe 24.11 (motor, bord,
+ * climatronic, OBD-ul standard; rezultatele în catalog) și ordinea lor de atunci a fost scoasă pe 25.11:
+ * o tabelă goală nu mai repornește nimic. Un modul nou (ex. TP2.0) se adaugă cu `addScanJob`.
+ */
+export interface Seed {
   label: string;
   tx: string;
   svc: ScanSvc;
@@ -133,27 +138,6 @@ interface Seed {
   last?: number;
   ids?: number[];
 }
-
-/**
- * Ordinea stabilită cu utilizatorul (22.11): OBD-ul standard (scurt), motorul, bordul, climatronicul
- * (prioritate mică), apoi recitirea în buclă a codurilor găsite. 22.11: climatronicul de la 0000 și bordul încă o dată (scanările din
- * aplicație de pe 21.11, importate, săreau grupurile fără răspuns și nu notau codurile inexistente).
- * Airbag-ul nu interesează.
- */
-export const SEED: Seed[] = [
-  { label: "OBD: valorile live", tx: "7E0", svc: "01", kind: "range", first: 0x00, last: 0xff },
-  { label: "OBD: informațiile vehiculului", tx: "7E0", svc: "09", kind: "range", first: 0x00, last: 0xff },
-  { label: "OBD: testele de la bord", tx: "7E0", svc: "06", kind: "range", first: 0x00, last: 0xff },
-  { label: "OBD: datele de la apariția erorii", tx: "7E0", svc: "02", kind: "range", first: 0x00, last: 0xff },
-  { label: "OBD: codurile de eroare", tx: "7E0", svc: "dtc", kind: "list", ids: [0x03, 0x07, 0x0a] },
-  { label: "Motor: toate codurile", tx: "7E0", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
-  { label: "Bord: toate codurile (a doua trecere)", tx: "714", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
-  { label: "Climatronic: toate codurile", tx: "746", svc: "22", kind: "range", first: 0x0000, last: 0xffff },
-  { label: "Recitire: motor", tx: "7E0", svc: "22", kind: "loop" },
-  { label: "Recitire: OBD live", tx: "7E0", svc: "01", kind: "loop" },
-  { label: "Recitire: bord", tx: "714", svc: "22", kind: "loop" },
-  { label: "Recitire: climatronic", tx: "746", svc: "22", kind: "loop" },
-];
 
 /**
  * Urmărirea candidaților (22.11, cererea utilizatorului): codurile bănuite (OBD-CODURI.md, „Candidați”)
@@ -240,22 +224,17 @@ function resting(r: Pick<JobRow, "kind" | "every_s" | "pass_at">, now: number): 
   return r.kind === "watch" && r.pass_at !== null && now - Date.parse(r.pass_at) < (r.every_s ?? 0) * 1000;
 }
 
-/** Pune ordinea de la început, o singură dată (tabela goală). */
-export function seedScanJobs(now = new Date().toISOString()): number {
+/** Pune o lucrare la sfârșitul cozii; întoarce id-ul ei. */
+export function addScanJob(s: Seed, now = new Date().toISOString()): number {
   const db = getDb();
-  const n = (db.prepare(`SELECT COUNT(*) AS n FROM obd_scan_job`).get() as { n: number }).n;
-  if (n > 0) return 0;
-  const ins = db.prepare(
-    `INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, first, last, ids, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?)`,
+  const maxOrd = (db.prepare(`SELECT MAX(ord) AS m FROM obd_scan_job`).get() as { m: number | null }).m ?? 0;
+  return Number(
+    db.prepare(
+      `INSERT INTO obd_scan_job (ord, label, tx, rx, svc, kind, first, last, ids, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?)`,
+    ).run(maxOrd + 1, s.label, s.tx, SCAN_MODULES[s.tx].rx, s.svc, s.kind, s.first ?? null, s.last ?? null,
+      s.ids ? JSON.stringify(s.ids) : null, now).lastInsertRowid,
   );
-  db.exec("BEGIN");
-  SEED.forEach((s, i) => {
-    ins.run(i + 1, s.label, s.tx, SCAN_MODULES[s.tx].rx, s.svc, s.kind, s.first ?? null, s.last ?? null,
-      s.ids ? JSON.stringify(s.ids) : null, now);
-  });
-  db.exec("COMMIT");
-  return SEED.length;
 }
 
 // --- ce primește mașina ---------------------------------------------------------------------
