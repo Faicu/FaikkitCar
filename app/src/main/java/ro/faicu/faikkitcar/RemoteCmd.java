@@ -68,6 +68,12 @@ final class RemoteCmd {
                     .put("output", ObdProbe.run(c, cmd.trim().substring(4))).toString());
             return;
         }
+        if (cmd.trim().equals("@spp") || cmd.trim().startsWith("@spp ")) {
+            // Comanda interna: adaptorul OBD2 prin Bluetooth clasic (RFCOMM), test.
+            request("POST", BASE + "/" + id, new JSONObject().put("exitCode", 0)
+                    .put("output", SppProbe.run(c, cmd.trim().substring(4))).toString());
+            return;
+        }
         if (cmd.trim().equals("@media") || cmd.trim().startsWith("@media ")) {
             // Comanda interna: sesiunile media cer API-ul Android (testul controlului muzicii).
             request("POST", BASE + "/" + id, new JSONObject().put("exitCode", 0)
