@@ -38,6 +38,8 @@ final class CellSignal {
 
     // Ultima citire ceruta modemului (requestCellInfoUpdate); null pana vine prima.
     private static volatile List<CellInfo> fresh;
+    private static final long REQUEST_EVERY_MS = 30_000;
+    private static long lastRequest = -REQUEST_EVERY_MS;
 
     /**
      * Adauga in punct: rat (lte/nr/3g/2g/-), ch (EARFCN/ARFCN), sig (dBm), op (MCC+MNC), net (0/1/2),
@@ -48,7 +50,10 @@ final class CellSignal {
         try {
             TelephonyManager tm = (TelephonyManager) c.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm == null) return;
-            if (Build.VERSION.SDK_INT >= 29) {
+            // Cel mult o cerere la 30 s (25.11: apelurile dese umflau system_server); punctele dintre ele iau ultima citire.
+            long now = SystemClock.elapsedRealtime();
+            if (Build.VERSION.SDK_INT >= 29 && now - lastRequest >= REQUEST_EVERY_MS) {
+                lastRequest = now;
                 tm.requestCellInfoUpdate(Runnable::run, new TelephonyManager.CellInfoCallback() {
                     @Override
                     public void onCellInfo(List<CellInfo> cells) {
