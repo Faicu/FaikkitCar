@@ -38,6 +38,8 @@ final class Obd extends BluetoothGattCallback {
     private static final long RELEASE_MS = 60_000;
     private static final long SLOW_MS = 2_000;
     private static final long CYCLE_MS = 250;
+    /** Peste atat (RssAnon + swap al lui system_server) opreste OBD-ul singur, doar din esecurile de conectare. */
+    private static final long SYS_LIMIT_MB = 1300;
     private static final long STATUS_MS = 5 * 60_000;
     /** Incercari fara niciun raspuns de la stiva (~1,5 min) dupa care verificam daca e blocata. */
     private static final int STUCK_FAILURES = 4;
@@ -295,7 +297,15 @@ final class Obd extends BluetoothGattCallback {
             failures++;
             // 5, 10, 15 s, apoi cel mult o data pe minut (25.11: cat adaptorul e ocupat de Car Scanner sau
             // lipseste, fiecare incercare inregistreaza un client GATT nou in stiva Bluetooth).
-            nextTryAt = SystemClock.elapsedRealtime() + (failures <= 3 ? 5_000L * failures : Math.min(60_000, 15_000L * (failures - 2)));
+            // 25.11 (1.1.129): 20 MB/min in system_server cat adaptorul nu raspundea, deci dupa 3 esecuri
+            // pauze lungi: 1, 2, 5, 10 min.
+            long[] longWait = {60_000, 120_000, 300_000, 600_000};
+            nextTryAt = SystemClock.elapsedRealtime() + (failures <= 3 ? 5_000L * failures : longWait[Math.min(longWait.length - 1, failures - 4)]);
+            long sys = UnitStats.systemServerMbNow();
+            if (sys > SYS_LIMIT_MB) {
+                Prefs.log(c, "OBD: memoria system_server " + sys + " MB, opresc OBD (comutatorul)");
+                new Thread(() -> requestEnabled(false), "obd-off").start();
+            }
             if (noAnswer) silentFailures++;
             else silentFailures = 0;
             if (silentFailures >= STUCK_FAILURES) unstick();

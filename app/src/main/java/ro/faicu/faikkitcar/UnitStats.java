@@ -180,6 +180,11 @@ final class UnitStats {
         return found ? Math.round(kb / 1024.0) : -1;
     }
 
+    /** Pentru alte clase (Obd): memoria anonima a lui system_server acum, sau -1. */
+    static long systemServerMbNow() {
+        return systemServerMb();
+    }
+
     private static boolean isSystemServer(int pid) {
         String cmd = read("/proc/" + pid + "/cmdline", 64);
         return cmd != null && cmd.startsWith("system_server");

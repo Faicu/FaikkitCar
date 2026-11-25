@@ -259,7 +259,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   și, din ora 01:30 a lui 25.11, „timpul de injecție (motor)”: 2061 / 2062 / 209A + F423 (rampa), la 3 s (1 s din 1.1.128: fără o
   trimitere la server la fiecare trecere), cu valorile OBD din aceeași clipă; testul consumului exact din ele: `web/scripts/obd-analyze/injection.cjs`. Mașina:
   ciclul OBD cel mult 4/s (`CYCLE_MS`; fără scanare ajungea la 15/s), rezultatele scanării scrise pe disc deodată la 5 s
-  (`flushQueue`; înainte o deschidere a fișierului pe rezultat), reconectarea 5 / 10 / 15 s, apoi până la 1 min.
+  (`flushQueue`; înainte o deschidere a fișierului pe rezultat), reconectarea 5 / 10 / 15 s, apoi 1 / 2 / 5 / 10 min (1.1.129, 25.11: cât adaptorul tăcea după actualizare, `system_server` creștea ~20 MB/min; cu OBD oprit s-a oprit; peste 1300 MB OBD-ul se oprește singur din eșecurile de conectare).
   Stare 23.11: motorul și bordul complete (fiecare cod din 0000–FFFF are o stare), climatronicul **oprit la 46 %** ca
   „Recitire: motor” să ruleze întâi: **ținta utilizatorului e consumul exact (cantitatea injectată)**. Analiza: scripturile
   `web/scripts/obd-analyze/analyze.cjs` (fiecare cod care se schimbă, potrivit liniar cu OBD/CAN din `trip_point`) și
