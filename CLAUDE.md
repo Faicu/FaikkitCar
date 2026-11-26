@@ -342,7 +342,7 @@ volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după
   trimiteri, `meminfo`, `loadavg`, `uptime`, zona termică cea mai caldă fără `fgu`, `statm` și
   `oom_score_adj` proprii, spațiul liber, din 1.1.120 `sys` = memoria anonimă a lui `system_server` (RssAnon + VmSwap; 24.11 ajunsese la 1,84 GB într-o zi și umpluse memoria, avertizare de la 1000 MB); la 30 s procesele de top după procesor și memorie
   proprie). Serverul (`unit.ts`): ultima în memorie (`live.unit`), istoricul la 30 s în `unit_stat`.
-  `unitHealth` (pur, `unit.test.ts`) dă starea pe scurt; numele proceselor (`procLabel`) tot acolo.
+  din 1.1.132 (26.11) `bd` la 2 min = cine ține obiecte ale lui `system_server` (din `/sys/kernel/debug/binder/state`, citibil fără root: noduri/referințe/buffere + procesele cu cele mai multe), doar în istoric (`unit_stat`), analiza cu `web/scripts/obd-analyze/binder.cjs`; 26.11: `system_server` ~1300 MB din care ~1290 în swap, creștere ~20 MB/min cât rula Waze + muzica, nu se mai eliberează; `dumpsys`/`smaps` cer ADB (adbd oprit). `unitHealth` (pur, `unit.test.ts`) dă starea pe scurt; numele proceselor (`procLabel`) tot acolo.
   Site `UnitCard.tsx`, Panel `UnitCard.java`. Emulatorul (Android 10) nu lasă aplicația să citească
   `/proc/stat`, `loadavg`, `uptime`; pe Teyes merg (comenzile din 20–21.10).
 - `CellSignal` (28.10, 1.1.64): pe fiecare punct de traseu `net` (0 fără internet, 1 date

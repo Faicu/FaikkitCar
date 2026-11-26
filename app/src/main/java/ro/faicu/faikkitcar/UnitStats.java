@@ -26,6 +26,9 @@ import java.util.Map;
 final class UnitStats {
     private static final long TOP_EVERY_MS = 30_000;
     private static final int TOP_N = 6;
+    // 26.11: cine tine obiecte ale lui system_server (binder), ca sa vedem ce proces creste odata cu memoria lui.
+    private static final long BINDER_EVERY_MS = 120_000;
+    private static long binderAt;
 
     private static long prevTotal = -1;
     private static long prevIdle;
@@ -86,6 +89,11 @@ final class UnitStats {
                 JSONArray top = top(cpu[0]);
                 topAt = now;
                 if (top != null) u.put("top", top);
+            }
+            if (sysPid > 0 && (binderAt == 0 || now - binderAt >= BINDER_EVERY_MS)) {
+                binderAt = now;
+                JSONObject bd = binder(sysPid);
+                if (bd != null) u.put("bd", bd);
             }
         } catch (Exception ignored) {
             // Ce s-a putut citi pleaca oricum.
@@ -254,6 +262,56 @@ final class UnitStats {
             out.put(o);
         }
         return out;
+    }
+
+    /**
+     * Din /sys/kernel/debug/binder/state (citibil fara root): cate obiecte ale lui system_server tine fiecare proces
+     * (ascultatori, servicii inregistrate), plus numarul de noduri / referinte / buffere ale lui system_server.
+     * {n: noduri, r: referinte, b: buffere, c: [{n: proces, c: obiecte}, ...]}.
+     */
+    private static JSONObject binder(int sys) {
+        try (java.io.BufferedReader in = new java.io.BufferedReader(new java.io.FileReader("/sys/kernel/debug/binder/state"), 65536)) {
+            Map<Integer, Integer> per = new HashMap<>();
+            int nodes = 0;
+            int refs = 0;
+            int buffers = 0;
+            boolean inSys = false;
+            boolean seen = false;
+            String line;
+            while ((line = in.readLine()) != null) {
+                if (line.startsWith("proc ")) {
+                    inSys = line.equals("proc " + sys); // poate fi o sectiune pe fiecare context (binder / hwbinder)
+                    seen |= inSys;
+                    continue;
+                }
+                if (!inSys) continue;
+                if (line.startsWith("  node ")) {
+                    nodes++;
+                    int i = line.indexOf(" proc ");
+                    if (i < 0) continue;
+                    for (String t : line.substring(i + 6).trim().split("\\s+")) {
+                        try {
+                            per.merge(Integer.parseInt(t), 1, Integer::sum);
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                } else if (line.startsWith("  ref ")) {
+                    refs++;
+                } else if (line.startsWith("  buffer ")) {
+                    buffers++;
+                }
+            }
+            if (!seen) return null;
+            List<Map.Entry<Integer, Integer>> all = new ArrayList<>(per.entrySet());
+            all.sort((a, b) -> b.getValue() - a.getValue());
+            JSONArray c = new JSONArray();
+            for (int i = 0; i < Math.min(14, all.size()); i++) {
+                c.put(new JSONObject().put("n", procName(all.get(i).getKey())).put("c", all.get(i).getValue()));
+            }
+            return new JSONObject().put("n", nodes).put("r", refs).put("b", buffers).put("c", c);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String procName(int pid) {

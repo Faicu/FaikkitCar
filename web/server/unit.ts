@@ -34,6 +34,8 @@ export interface UnitStats {
   appAdj: number | null; // oom_score_adj al FaikkitCar (mai mare = omorât mai devreme)
   sysMb?: number | null; // memoria anonimă a system_server (RAM + swap), MB, 1.1.120+
   diskGb: number | null; // liber în /data
+  /** 1.1.132: obiectele lui system_server (binder): noduri, referințe, buffere și cine ține cele mai multe. Doar în istoric. */
+  bd?: { n: number; r: number; b: number; c: Array<{ n: string; c: number }> } | null;
   netMode?: number | null; // tipul de rețea preferat al modemului (RILConstants, 11 = LTE only), 1.1.70+
   procs: UnitProc[] | null; // null = nemăsurate în trimiterea asta
 }
@@ -81,6 +83,21 @@ function num(x: unknown): number | null {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
 }
 
+function binderStats(x: unknown): UnitStats["bd"] {
+  if (!x || typeof x !== "object") return null;
+  const o = x as Record<string, unknown>;
+  const c = Array.isArray(o.c) ? o.c : [];
+  return {
+    n: num(o.n) ?? 0,
+    r: num(o.r) ?? 0,
+    b: num(o.b) ?? 0,
+    c: c
+      .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
+      .slice(0, 14)
+      .map((p) => ({ n: String(p.n ?? "?").slice(0, 80), c: num(p.c) ?? 0 })),
+  };
+}
+
 let latest: UnitStats | null = null;
 let lastProcs: UnitProc[] | null = null;
 let lastSavedAt = 0;
@@ -117,6 +134,7 @@ export function saveUnit(u: unknown): void {
     appAdj: num(x.adj),
     sysMb: num(x.sys),
     diskGb: num(x.disk),
+    bd: binderStats(x.bd),
     netMode: num(x.nm),
     procs: lastProcs,
   };
