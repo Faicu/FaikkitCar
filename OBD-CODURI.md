@@ -152,7 +152,7 @@ Motorul după 469C (scanat 22.11): doar identificarea și oglinzile OBD.
 
 ### Climatronic (746 / 7B0, 5K0907044GK)
 
-Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCSD300000 ATFCSM1). 91 de coduri au valori (0100–1000, 2600–27DA). Scanarea completă s-a terminat pe 24.11 (175 de coduri; peste 27DA doar identificarea și F405 / F40C / F40D). Confirmate pe 23.11, parcat, motorul pornit, câte o schimbare la butoane și o citire (`/root/clima-*.txt`).
+Citire: UDS `22 <DID>`, câte un DID pe cerere (ATSH746 ATCRA7B0 ATFCSH746 ATFCSD300000 ATFCSM1). 91 de coduri au valori (0100–1000, 2600–27DA). Scanarea completă s-a terminat pe 24.11 (175 de coduri; peste 27DA doar identificarea și F405 / F40C / F40D). Confirmate pe 23.11, parcat, motorul pornit, câte o schimbare la butoane și o citire (`web/scripts/obd-analyze/arhiva/obd-arhiva/clima-*.txt`).
 
 **Confirmate** (valoare mare = al doilea octet; ambele octeți urmează aceeași mișcare):
 

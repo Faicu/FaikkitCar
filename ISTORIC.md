@@ -40,7 +40,7 @@ Până pe 01.10, serverul aplicației era o parte din FaikkitBox (`status.faicu.
 `/vw` și `/calatorii`). Acum proiectele sunt complet separate:
 
 1. **Copie de siguranță completă**, înainte de orice schimbare:
-   `/root/backups/faikkitcar-20261001-215730` (baza FaikkitBox întreagă, APK, voce,
+   `/root/backups/faikkitcar-20261001-215730` (director gol și șters pe 27.11.2026; baza FaikkitBox întreagă, APK, voce,
    Piper, `.env`).
 2. **Copiere** cu `web/scripts/import-faikkitbox.ts`. Se poate rula de oricâte ori, fără
    să dubleze sau să suprascrie, și verifică la final rând cu rând că nu lipsește nimic:
