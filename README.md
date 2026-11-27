@@ -61,8 +61,8 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
    (5 + 3 MHz), deci în afara orașelor pierde primul. Apoi, de comparat cu o cartelă Orange
    preplătită pe aceleași drumuri.
-4. **Instalează Panel 1.0.26** (semnalul mobil pe fila Navigație; „Actualizează acum”, o singură apăsare,
-   apoi confirmarea; ~30 s până pornește versiunea nouă).
+4. **Panel** (fila Navigație cu semnalul mobil etc.) se actualizează singur din Google Play; versiunea de acum e în antet
+   (`v1.0.<N>`).
 5. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
    regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
    scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
@@ -375,9 +375,12 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
 
 ### Pe telefon (FaikkitCar Panel)
 
-1. Pe car.faicu.ro (logat), fila Mai mult: „Descarcă APK”.
-2. Instalează (o singură dată: permite instalarea din browser) și intră cu același cont.
-3. Versiunile următoare vin din aplicație („Actualizează acum”).
+1. Din Google Play, prin linkul privat de înscriere în testarea internă (Play Console → Testare internă → Testeri; contul
+   de Google trebuie să fie în lista de testeri). Aplicația nu apare la căutare, doar prin link și apoi în „Gestionează
+   aplicațiile”. Păstrează linkul.
+2. Intră cu același cont ca pe car.faicu.ro.
+3. Versiunile următoare vin automat din Play (la nevoie: Play → „Actualizări disponibile”). Fără APK și fără actualizare
+   proprie în aplicație. Dacă a fost instalată înainte din APK, se dezinstalează întâi (semnătură diferită).
 
 ---
 
@@ -386,14 +389,19 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
 - **FaikkitCar:** `.github/workflows/build.yml`, la push (nu pentru `web/`, `deploy/`,
   `panel/`, `*.md` sau `[skip ci]`): APK semnat, release `build-N` („latest”), publicat pe
   `car.faicu.ro/api/car/apk`. Versiunea `1.1.<N>`.
-- **FaikkitCar Panel:** `.github/workflows/panel.yml`, doar pentru `panel/`: release
-  trimis în Google Play (testare internă). Versiunea `1.0.<N>`.
+- **FaikkitCar Panel:** `.github/workflows/panel.yml`, doar pentru `panel/`: compilare de verificare și, pe `main`, AAB
+  semnat cu cheia de încărcare, trimis în Google Play (testare internă). Fără APK și fără release pe GitHub. Versiunea
+  `1.0.<N>`. Se poate porni și de mână (Actions → „Run workflow”).
 - **Secretele repo-ului** (Settings → Secrets and variables → Actions):
-  - `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`: cheia de semnare (PKCS12, alias `vwwelcome`),
-    aceeași pentru ambele aplicații. **Păstrează o copie a keystore-ului.**
+  - `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`: cheia de semnare a aplicației din mașină (PKCS12, alias `vwwelcome`).
+    **Păstrează o copie a keystore-ului** (nu e pe server, doar în secret).
+  - `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_PASSWORD`, `UPLOAD_ALIAS` (`faikkitcar-upload`): cheia de încărcare pentru Play;
+    fișierul și parola sunt în `/opt/faikkitcar/secrets/` (în `.gitignore`, cu `CITESTE.txt`; fă o copie și în afara serverului).
+  - `PLAY_SERVICE_ACCOUNT_JSON`: cheia contului de serviciu `faikkitcar-play@faikkitcar.iam.gserviceaccount.com`
+    (drept „Lansează în canalele de testare” pe aplicație, în Play Console).
   - `VW_LOG_TOKEN`: cheia mașinii (intră în APK), aceeași ca `CAR_TOKEN` din `.env`.
-  - `CI_TOKEN`: doar pentru publicarea APK-urilor, același ca în `.env`; nu intră în aplicație.
-- **Local pe server:** JDK 17, Gradle 8.7 și Android SDK 34 în `/root/android`:
+  - `CI_TOKEN`: doar pentru publicarea APK-ului aplicației din mașină, același ca în `.env`; nu intră în aplicație.
+- **Local pe server:** JDK 17, Gradle 8.13 și Android SDK 34 + 36 în `/root/android` (după build: `gradle --stop`):
   ```
   export JAVA_HOME=/root/android/jdk
   /root/android/gradle-8.13/bin/gradle :app:assembleDebug     # sau :panel:assembleDebug
