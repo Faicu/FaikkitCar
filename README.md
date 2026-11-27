@@ -20,7 +20,7 @@
 Istoricul (versiuni, constatări datate, migrarea din FaikkitBox) e în [`ISTORIC.md`](ISTORIC.md);
 detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
-**Legendă:** ✅ confirmat în uz real (din 27.11, tot ce e în aplicații) · 🔍 în lucru ·
+**Legendă:** ✅ confirmat în uz real (din 27.11, tot ce e în aplicații, în afară de ce are 🧪) · 🧪 construit, încă nedeclanșat în uz real · 🔍 în lucru ·
 💡 idee / neînceput · 📌 decis, așteaptă un pas anterior
 
 ---
@@ -39,7 +39,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 - ✅ Harta live pe drum (Acasă în mașină, Acum în Panel și pe site) funcționează.
 - ✅ **Adaptorul OBD2 (vLinker MC+):** FaikkitCar se conectează singur cu motorul pornit și îl eliberează la un minut
   după oprire. Din 21–25.11: citirea tuturor modulelor (motor, bord, climatronic) prin scanarea de pe server, erorile
-  tuturor modulelor, becul ars și clapeta climatronicului, cu avertizare vocală. Consumul din aerul aspirat se potrivește
+  tuturor modulelor, becul ars și clapeta climatronicului (avertizarea vocală nu s-a declanșat încă). Consumul din aerul aspirat se potrivește
   cu bordul (relanti ~0,7 L/h), dar încă nu intră în calcule; ținta rămâne consumul exact din cantitatea injectată.
 - ✅ **Memoria navigației** e urmărită pe Navigație (`system_server` de la 1.1.120, cine ține obiecte binder de la 1.1.132); starea
   live la 1 s (Panel deschis) a fost scoasă pe 25.11 (1.1.126), pentru că umfla `system_server`.
@@ -114,7 +114,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
 | Consumul din OBD | ✅ | Strâns pe fiecare punct din aerul aspirat (se potrivește cu bordul); nu intră încă în calcule, până la calibrarea pe următorul plin → plin, când va înlocui estimarea |
 | Erorile mașinii | ✅ | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. Plus „bec ars” (avertizarea de pe bord; confirmat la proiectoare). ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
-| Clapeta climatronicului | ✅ | Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
+| Clapeta climatronicului | 🧪 | Nu a spus nimic vocal până acum. Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
 | Scanarea OBD | ✅ | Situația codurilor (ce înseamnă, ce e bănuit, erorile): [`OBD-CODURI.md`](OBD-CODURI.md). Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Motorul, bordul și climatronicul sunt scanate complet; codurile încă neclare se recitesc la 30 s, fiecare cu valorile motorului din aceeași clipă |
 | Comutatorul „OBD (teste)” | ✅ | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 

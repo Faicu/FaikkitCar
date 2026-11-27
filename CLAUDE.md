@@ -564,7 +564,11 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   „Se instaleaza...”.
 - 27.11 (confirmat de utilizator): aplicația rezistă la somn și repornește, muzica din Panel, semnalul mobil („LTE only”) și
   alimentările sunt operaționale; memoria navigației rămâne urmărită pe Navigație (`sys`, binder). Tot ce e acum în aplicații
-  (inclusiv avertizările vocale ale defectelor, clapeta, harta live) funcționează, testat de utilizator.
+  funcționează, testat de utilizator, **în afară de avertizările vocale ale defectelor (clapeta): nu au redat niciodată** (27.11).
+  Date: urmărirea clapetei a avut 228 de citiri pe 24–25.11 (746, 262E / 262F), ultima la 25.11 15:12; pe 25.11 ~14:48 două citiri la 32 s
+  (reală 0x21, cerută 0x60) ar fi îndeplinit condiția de defect, până la o citire bună; nicio citire de atunci, iar jurnalul arată „OBD: oprit
+  (comutatorul)” pe 25.11 seara și 26.11 05:56. De verificat: dacă `alerts` ajunge în răspunsul la `/api/car/state` și dacă `TripRecorder`
+  îl rostește (doar în mers sau la salutul de 30 s, o dată pe drum după id; cere 1.1.118+ și „Avertizare defecte” pornit).
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Contact pus cu motorul oprit: confirmat 15.11 (Panel 1.0.44 → „Doar contact”, 13,2 V, 0 rpm).
