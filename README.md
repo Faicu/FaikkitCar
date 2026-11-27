@@ -11,8 +11,8 @@
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.62 (`build-62`) · FaikkitCar Panel 1.0.24 (`panel-24`) |
-| **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: car.faicu.ro → Mai mult, „Descarcă APK” |
+| **Versiuni** | FaikkitCar 1.1.132 (`build-132`, mașina) · FaikkitCar Panel 1.0.60 (`panel-60`, telefonul, din Google Play) |
+| **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: Google Play, testare internă (link de înscriere privat, actualizări automate; fără APK) |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
 | **Actualizat** | 15.11.2026 |
@@ -79,6 +79,12 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    → Sistem, oprit implicit, cu calea de acum ca rezervă); aplicația ca proces protejat (`oom_score_adj` negativ,
    pornire directă la ACC ON). Prioritatea e fiabilitatea, actualizarea tăcută vine după. Verificarea de după:
    `web/scripts/teyes/verify-root.sh`.
+10. 📌 **Aplicația din mașină pe Google Play (după root, decis pe 27.11):** pachet nou (`ro.faicu.faikkitcar`), cheie nouă,
+   `targetSdk` 36, **fără** `Updater`, `RemoteCmd` (și probele `@…`), `REQUEST_INSTALL_PACKAGES`,
+   `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `SYSTEM_ALERT_WINDOW` și, probabil, `PACKAGE_USAGE_STATS`; declarații pentru locație
+   (serviciu în prim-plan) și accesul la notificări (doar muzica). Lista albă Teyes se face cu root, pe pachetul nou. Pentru
+   diagnostic, eventual un build `dev` separat (`applicationIdSuffix`, cu `RemoteCmd`, nepus pe Play). Cu motorul și navigația
+   trează, Play actualizează singur ca la Panel. Ordinea: root → variantă Play → Play Console → dezinstalare a celei vechi.
 
 ---
 

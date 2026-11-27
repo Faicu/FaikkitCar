@@ -547,6 +547,13 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
 
 ## Stare (12.10.2026)
 
+- **27.11.2026:** Panel 1.0.60 pe telefon, din Google Play (testare internă), fără actualizare proprie; aplicația din mașină
+  FaikkitCar 1.1.132, pe `Updater`. Urmează: utilizatorul actualizează navigația Teyes (firmware nou) cu Magisk; apoi
+  verificarea cu `web/scripts/teyes/verify-root.sh`, lista albă pe pachetul nou și aplicația din mașină pe Play (plan în
+  `README.md`, „Ce urmează”, punctul 10: scoase `Updater`, `RemoteCmd` + probe, `REQUEST_INSTALL_PACKAGES`,
+  `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `SYSTEM_ALERT_WINDOW`, `PACKAGE_USAGE_STATS`; `targetSdk` 36; build `dev` separat dacă
+  rămâne nevoie de comenzile la distanță). `KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` (`vwwelcome`) rămân în GitHub până atunci.
+
 - 22.10: în mașină FaikkitCar 1.1.62 (1.1.63 publicat: testul Bluetooth) (performanța navigației, confirmată), pe telefon Panel 1.0.23; 1.0.24 publicat (fila Navigație).
 - În mașină FaikkitCar 1.1.56 (din 21.10, cu „Acces la notificări” dat), pe telefon Panel 1.0.19 (1.0.21 publicat pe 21.10: jurnalul pe categorii).
 - 21.10: aplicația a supraviețuit somnului de 18 h („trezire din hibernare”); omorâtă la 2,5 min
