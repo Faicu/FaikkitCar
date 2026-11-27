@@ -71,7 +71,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
 
 ## Aplicația din mașină (`app/`)
 
-Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroid 6.1.20. UI din cod.
+Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.13.2, osmdroid 6.1.20. UI din cod.
 
 - `WelcomeService`: foreground (`START_STICKY`, `foregroundServiceType="location"`), tick la 5 s
   cu `elapsedRealtime()`; o pauză peste prag (implicit 60 s) = trezire; contor de boot schimbat
@@ -178,7 +178,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   Cererea UDS cu 3 DID-uri deodată merge pe motor, bord și climatronic (cele inexistente sunt sărite; 7F 22 31 doar dacă
   niciunul nu există). 1.1.94–1.1.101: `@obd scan <tx> <rx> <de la> <până la>` punea scanări `22` în memoria aplicației
   (se pierdeau la repornire); înlocuit de **scanarea de pe server** (21.11, vezi mai jos). Un grup cu răspuns e recitit DID cu DID.
-  21.11, bordul 714 0000–101A (rezultatele parțiale în `/root/obd-scan-714-partial.txt`): de la 0x1000 multe DID-uri și
+  21.11, bordul 714 0000–101A (rezultatele parțiale în `/root/obd-arhiva/obd-scan-714-partial.txt`): de la 0x1000 multe DID-uri și
   răspunsuri 7F 22 78, ~6 DID/s, iar bucățile prea lungi lăsau puncte fără consum: oprit. 1.1.95: bucăți de cel mult 1,2 s
   cu recitirile la rând, consumul integrat peste goluri de până la 5 s. **Kilometrajul în bordul 1017/1018/1019:**
   `C0 4C 00 03` = 0x0003C04C = 245.836 km (cuvintele de 16 biți inversate).
@@ -192,7 +192,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   cererea următoare (DID 000F = „41 0C …”, și cererea multiplă „fără răspuns”). 1.1.98: după o cerere fără „>” se
   așteaptă ≤ 1 s și se aruncă restul; un DID e acceptat doar ca „62 <DID> …” / „7F 22 xx”, prefixele 7F 22 78 scoase.
   Comenzile date chiar înainte de o actualizare le ia procesul vechi și se pierd (scanările puse atunci).
-  1.1.98, 21.11: bordul 0000–1923 în 640 s (~10 DID/s în zona 0x1000+), rezultate în `/root/obd-scan-714-0000-1923.txt`;
+  1.1.98, 21.11: bordul 0000–1923 în 640 s (~10 DID/s în zona 0x1000+), rezultate în `/root/obd-arhiva/obd-scan-714-0000-1923.txt`;
   scanarea așteaptă următoarea pornire. Bordul 1018/1019/101A: kilometraje (`C0 62 00 03` = 245.858)
   într-un jurnal de evenimente al bordului (contor 00/01/02 la 245.836, 245.858, 245.878, în mijlocul drumurilor), **nu**
   kilometrajul de la ultima oprire (corectat 22.11; detaliile în `OBD-CODURI.md`). La 00:05 în mers: 2205 = 0x28 la 41, 49 și 54 km/h (nu e viteza); 2206 = 0x34 (52, ca rezervorul CAN);
@@ -204,10 +204,10 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   `obd_code` (tx, svc, id: valoarea fără ecou, `nrc` refuzul, 256 = lent / fără răspuns, `changes`) și istoricul
   `obd_sample` (prima valoare și fiecare schimbare). svc: `22` (UDS), `01`/`09`/`06` (`<svc><id>`), `02` (`02<id>00`),
   `dtc` (id = serviciul 03/07/0A). Scanările complete (motor, bord, climatronic, OBD-ul standard)
-  s-au terminat pe 24.11; pe 25.11 lucrările terminate au fost șterse (copie în `/root/obd-scan-jobs-terminate-2026-11-25.json`)
+  s-au terminat pe 24.11; pe 25.11 lucrările terminate au fost șterse (copie în `/root/obd-arhiva/obd-scan-jobs-terminate-2026-11-25.json`)
   și ordinea lor (`SEED`) scoasă: o tabelă goală nu mai repornește nimic, un modul nou se adaugă cu `addScanJob`. Airbag-ul nu (utilizatorul).
   După un interval terminat, codurile rămase lente intră într-o lucrare `list` `parked` (doar pe loc), imediat după.
-  Bordul complet (170 de coduri) și climatronicul 0000–0A3A importate pe 21.11 din `/root/obd-scan-*.txt` (scriptul
+  Bordul complet (170 de coduri) și climatronicul 0000–0A3A importate pe 21.11 din `/root/obd-arhiva/obd-scan-*.txt` (scriptul
   de import șters pe 25.11). Mașina (`Obd`, 1.1.102): `GET /api/car/obd/scan` (primele 3,
   la 60 s, într-un fir separat), prima potrivită (cele `parked` doar pe loc, modulele tăcute în sesiunea asta sărite);
   rezultatele `{t:"r", j, x, s, i, v|n, at}` și progresul `{t:"p", j, r, n, d}` în coada de pe disc `obd_scan.jsonl`
@@ -294,7 +294,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.5.2, osmdroi
   airbag-ul una, 0x10 (testat în `dtc.test.ts`).
   **24.11, testele la mașină** (bordul comparat cu ecranul, `OBD-CODURI.md`): 1014 afară (x/2 − 50), 2205 bitul 0x01 frâna de mână, 202F uleiul (x − 58), 2297 autonomia, 2299 consumul mediu pe termen lung (×0,1), 2224 și 0x04 avariile / 0x40 faza lungă, 224D…2291 lumina de afară; memoria 1, TRIP-ul, semnalizarea, faza scurtă nu sunt în bord. Consumul OBD din aerul aspirat se potrivește cu bordul (relanti 0,7 / 0,7 L/h, dimineața 1,48 / 1,49 L), deci seria deasă a injecției (lucrarea 17) e oprită. Citirea întregului bord înainte / după o acțiune: `/root/bordsnap/snap.sh <nume>` + `diff.sh` (comenzile puse direct în `car_cmd` când login-ul dă 429).
   **Becul ars** (21.11, proiectorul dreapta față): becurile le supraveghează BCM-ul (TP2.0, necitit), bordul doar afișează
-  mesajul, fără eroare UDS. Găsit prin citiri ale bordului înainte / după (`/root/obd-714-snapshot-2…4`): **DID 2224,
+  mesajul, fără eroare UDS. Găsit prin citiri ale bordului înainte / după (`/root/obd-arhiva/obd-714-snapshot-2…4`): **DID 2224,
   bitul 0x01 din primul octet** (20 02 bun → 21 02 ars → 20 06 schimbat; al doilea octet necunoscut). Din 1.1.107 se
   citește odată cu erorile (15 min, `o.u.l`), serverul îl ține în `obd_lamp` (`since` = de când e aprins, `lampWarning`
   testat) și îl pune în `faults` ca „Bord · bec · Bec ars: vezi pe bord care” (cardul de pe Navigație). Doar proiectorul
@@ -529,14 +529,29 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
 
 ## Build și publicare
 
-- Local: JDK 17, Gradle 8.7 și Android SDK 34 în `/root/android` (`local.properties` →
-  `sdk.dir=/root/android/sdk`): `JAVA_HOME=/root/android/jdk /root/android/gradle-8.7/bin/gradle
-  :app:assembleDebug :panel:assembleDebug`.
+- Local: JDK 17, Gradle 8.13 (din 27.11, cerut de AGP 8.13.2) și Android SDK 34 + 36 în `/root/android`
+  (`local.properties` → `sdk.dir=/root/android/sdk`): `JAVA_HOME=/root/android/jdk
+  /root/android/gradle-8.13/bin/gradle :app:assembleDebug :panel:assembleGithubDebug` (după build: `gradle --stop`).
 - CI: `.github/workflows/build.yml` (aplicația: la push pe main, nu pentru `web/**`, `deploy/**`,
   `*.md`; release `build-<N>`, `versionName` = `1.1.<N>`, publicat la `POST /api/car/apk`) și
-  `panel.yml` (release `panel-<N>`, `1.0.<N>`, `POST /api/panel/apk`). `[skip ci]` în mesaj
-  sare build-ul. Secrete: `VW_LOG_TOKEN`, `CI_TOKEN`, `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` (PKCS12, alias
-  `vwwelcome`; keystore-ul nu e în repo). Fără `VW_LOG_TOKEN` trimiterea e dezactivată.
+  `panel.yml` (release `panel-<N>`, `1.0.<N>`, `POST /api/panel/apk`; la fiecare push pe `panel/**` și prin
+  „Run workflow”). `[skip ci]` în mesaj sare build-ul (îl folosesc la schimbări de infrastructură, ca build-ul
+  aplicației din mașină să nu producă o versiune pe care navigația și-o propune singură). Secrete: `VW_LOG_TOKEN`, `CI_TOKEN`,
+  `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` (PKCS12, alias `vwwelcome`; keystore-ul nu e în repo și **nici pe server**,
+  doar în secretul GitHub, care nu se poate citi înapoi). Fără `VW_LOG_TOKEN` trimiterea e dezactivată.
+- **Panel pe Google Play (27.11.2026, testare internă, nu public):** `panel/build.gradle` are flavorurile `github`
+  (APK, cu `Updater`, cheia `vwwelcome`) și `play` (AAB, `BuildConfig.PLAY`, fără `Updater` și fără permisiunile de
+  instalare, `panel/src/play/AndroidManifest.xml`); `targetSdk` 36 (Play îl cere din 31.08.2026), cu `fitSystemBars`
+  în `MainActivity` (ecran cap-la-cap de la Android 15). `panel.yml` construiește `bundlePlayRelease` cu cheia de
+  încărcare și o trimite pe track `internal` (`r0adkll/upload-google-play`); fără secretele Play, pașii se sar.
+  Secrete: `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_PASSWORD`, `UPLOAD_ALIAS` (`faikkitcar-upload`), `PLAY_SERVICE_ACCOUNT_JSON`
+  (cont `faikkitcar-play@faikkitcar.iam.gserviceaccount.com`, drept „testing tracks”). **Cheia de încărcare e în
+  `/opt/faikkitcar/secrets/`** (în `.gitignore`, doar root, cu `CITESTE.txt`); Google ține cheia finală de semnare, deci
+  Panel din Play nu se instalează peste un APK vechi (semnătură diferită). Politica de confidențialitate cerută de Play:
+  `https://car.faicu.ro/confidentialitate.html` (`web/public/`). Pictograma 512 și imaginea 1024×500 din magazin:
+  `deploy/play/`. Aplicația din mașină rămâne pe `Updater` (nu e pe Play): ar cere pachet nou (`com.mapgoo.diruite`
+  trebuie schimbat; lista albă Teyes ia pachetul nou doar cu root), `targetSdk` 36 și o variantă fără `Updater` și
+  `RemoteCmd`. Verificat 27.11: build-ul #59 a urcat 1.0.59 și telefonul a primit „Actualizează” din Play.
 - Descărcare manuală: https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk
 
 ## Stare (12.10.2026)

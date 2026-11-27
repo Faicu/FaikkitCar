@@ -9,6 +9,7 @@ Starea de acum e în [`README.md`](README.md).
 
 | Data | Ce s-a aflat / ce s-a întâmplat |
 |---|---|
+| 27.11 | Panel pe Google Play, testare internă: AAB cu cheie de încărcare nouă (`faikkitcar-upload`, nu `vwwelcome`), `targetSdk` 36, AGP 8.13.2 / Gradle 8.13, flavorurile `github` / `play`, CI-ul trimite singur pe track `internal` (build #59, 1.0.59, actualizat pe telefon din Play). Politica de confidențialitate pe car.faicu.ro. Decis: aplicația din mașină trece pe pachet nou (cheie nouă) doar după root |
 | 29.09 | Prima versiune „VW Welcome”: sunet la trezirea navigației |
 | 30.09 | Navigația nu are selector de fișiere (căderea la adăugarea sunetelor). La opriri scurte navigația nu doarme deloc, deci autostart-ul redă direct. Găsite listele FYT de aplicații protejate; cu pachetul `com.mapgoo.diruite` aplicația supraviețuiește somnului |
 | 30.09–01.10 | Codurile CAN găsite cu sonda și calibrările ghidate; viteza CAN vs. GPS: +0,8 km/h în medie; distanța: 16,2 km calculați față de 16 km pe kilometraj |

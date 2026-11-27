@@ -74,6 +74,11 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    (cel de pe bon, după reducere), la data și ora ei. „Plin” se bifează doar dacă pistolul
    s-a oprit singur.
 8. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei, voce și mai naturală (Azure / ElevenLabs).
+9. 💡 **Cu root (după actualizarea Teyes din noiembrie 2025 + Magisk, dacă merge):** actualizare tăcută a aplicației
+   din mașină (`su -c "pm install -r update.apk"` urmat de pornirea serviciului, fără „Instalați”; comutator în Setări
+   → Sistem, oprit implicit, cu calea de acum ca rezervă); aplicația ca proces protejat (`oom_score_adj` negativ,
+   pornire directă la ACC ON). Prioritatea e fiabilitatea, actualizarea tăcută vine după. Verificarea de după:
+   `web/scripts/teyes/verify-root.sh`.
 
 ---
 
@@ -152,7 +157,8 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc”. Un loc poate avea mai multe poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui (site, Panel 1.0.25) |
 | Jurnal de service | ✅ | Lucrările cu data, kilometrajul, locul, costul, articolele pe grupe și bonurile / facturile atașate; costul intră în raportul lunii |
 | Jurnalul navigației | ✅ | Pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță, Tot. Nu se poate goli |
-| Panel: actualizare din aplicație | ✅ | „Actualizează acum” |
+| Panel: actualizare din aplicație | ✅ | „Actualizează acum” (varianta APK de pe GitHub) |
+| Panel pe Google Play | ✅ | Testare internă, doar pentru noi: se instalează și se actualizează automat din Play (de la 1.0.59), fără confirmări; fiecare push în `panel/**` urcă singur versiunea. Aplicația din mașină rămâne pe actualizarea din aplicație până facem root-ul și pachetul nou |
 
 ---
 
