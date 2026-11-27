@@ -15,13 +15,13 @@
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: Google Play, testare internă (link de înscriere privat, actualizări automate; fără APK) |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
-| **Actualizat** | 15.11.2026 |
+| **Actualizat** | 27.11.2026 |
 
 Istoricul (versiuni, constatări datate, migrarea din FaikkitBox) e în [`ISTORIC.md`](ISTORIC.md);
 detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 **Legendă:** ✅ confirmat în uz real · 🧪 construit, netestat în uz real · 🔍 în lucru ·
-💡 idee / neînceput
+💡 idee / neînceput · 📌 decis, așteaptă un pas anterior
 
 ---
 
@@ -40,51 +40,47 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 - ✅ Avertizarea de ușă deschisă: „Atenție, ușa șoferului e deschisă!” la ~1,7 s după ce ușa e văzută în mers.
 - 🧪 Netestată încă în mașină: harta live pe drum.
 - ✅ **Adaptorul OBD2 (vLinker MC+):** FaikkitCar se conectează singur cu motorul pornit și îl eliberează la un minut
-  după oprire; strânge consumul din aerul aspirat pe fiecare punct de traseu (încă nefolosit în calcule, până la
-  calibrarea pe următorul plin). Motorul răspunde pe UDS; nu dă debitul de aer și nici consumul direct.
+  după oprire. Din 21–25.11: citirea tuturor modulelor (motor, bord, climatronic) prin scanarea de pe server, erorile
+  tuturor modulelor, becul ars și clapeta climatronicului, cu avertizare vocală. Consumul din aerul aspirat se potrivește
+  cu bordul (relanti ~0,7 L/h), dar încă nu intră în calcule; ținta rămâne consumul exact din cantitatea injectată.
+- 🔍 **Memoria navigației:** `system_server` crește când rulează Waze și muzica. Starea live la 1 s (Panel deschis) a fost
+  scoasă pe 25.11 (1.1.126); din 1.1.132 se măsoară și cine ține obiecte binder. Rămâne de urmărit.
+- ✅ **Panel pe Google Play** (27.11): testare internă, actualizări automate, fără actualizare proprie în aplicație
+  (1.0.60). Aplicația din mașină rămâne pe actualizarea din aplicație.
+- 📌 **Navigația Teyes se actualizează cu firmware nou + Magisk** (de utilizator); după el urmează verificarea și planul de mai jos.
 
 ## Ce urmează
 
-1. **OBD (de testat, doar teste):** pe Navigație apare un card doar dacă există o eroare (motor, bord, climatronic, airbag); pe
-   fila Navigație, „Adaptorul OBD (teste)” cu starea și comutatorul „Oprește OBD / Pornește OBD” (și în mașină, Setări →
-   Sistem), plus „Scanarea OBD”. Oprit, adaptorul e liber pentru Car Scanner; călătoriile merg la fel. Cer FaikkitCar
-   1.1.103 și Panel nou. **Următorul plin până la oprirea pistolului, după cel puțin 30 L**, calibrează consumul OBD.
-2. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube
-   Music): coperta, redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care
-   o pornește în mașină. Cere FaikkitCar și Panel noi.
-3. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”),
-   ca modemul să nu mai coboare pe 2G („G”), unde nu se încarcă nimic. De văzut dacă setarea rămâne
-   după o repornire a navigației (în FaikkitCar, Setări → Sistem arată tipul) și, pe hartă (Navigație →
-   „Semnal mobil”), cum stă internetul pe porțiunile unde cădea. Semnalul mobil al
-   cartelei Digi pe fiecare punct de traseu. După câteva drumuri, fila Navigație → „Semnal
-   mobil” arată pe hartă unde cade internetul și pe ce bandă. Benzile Teyes (B1, B3, B7, B8,
-   B20, B28A, B38…) le acoperă pe toate cele din România; Digi are puțin pe 800/900 MHz
-   (5 + 3 MHz), deci în afara orașelor pierde primul. Apoi, de comparat cu o cartelă Orange
-   preplătită pe aceleași drumuri.
-4. **Panel** (fila Navigație cu semnalul mobil etc.) se actualizează singur din Google Play; versiunea de acum e în antet
-   (`v1.0.<N>`).
-5. **Performanța navigației:** pe Acum, rândul „Navigația” spune pe scurt dacă e totul în
-   regulă; fila Navigație are graficele și procesele. De văzut pe drum dacă memoria liberă
-   scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
-   închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
-6. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit
-   somnului („trezire din hibernare”) sau cine a repornit-o („Acces la notificari: sistemul
-   ne-a pornit”, „Alarma de rezerva”, „Serviciu pornit … ultima activitate”).
-7. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu litrii și totalul plătit
-   (cel de pe bon, după reducere), la data și ora ei. „Plin” se bifează doar dacă pistolul
-   s-a oprit singur.
-8. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei, voce și mai naturală (Azure / ElevenLabs).
-9. 💡 **Cu root (după actualizarea Teyes din noiembrie 2025 + Magisk, dacă merge):** actualizare tăcută a aplicației
-   din mașină (`su -c "pm install -r update.apk"` urmat de pornirea serviciului, fără „Instalați”; comutator în Setări
-   → Sistem, oprit implicit, cu calea de acum ca rezervă); aplicația ca proces protejat (`oom_score_adj` negativ,
-   pornire directă la ACC ON). Prioritatea e fiabilitatea, actualizarea tăcută vine după. Verificarea de după:
-   `web/scripts/teyes/verify-root.sh`.
-10. 📌 **Aplicația din mașină pe Google Play (după root, decis pe 27.11):** pachet nou (`ro.faicu.faikkitcar`), cheie nouă,
+1. 📌 **Root pe navigație (în lucru, 27.11):** utilizatorul actualizează firmware-ul Teyes cu Magisk. După el: verificarea cu
+   `web/scripts/teyes/verify-root.sh` (doar citiri), apoi ce permite root-ul: actualizare tăcută a aplicației din mașină
+   (`su -c "pm install -r update.apk"`, fără „Instalați”; comutator în Setări → Sistem, oprit implicit), aplicația ca proces
+   protejat (`oom_score_adj` negativ, pornire directă la ACC ON) și lista albă Teyes pe un pachet propriu. Prioritatea e
+   fiabilitatea, actualizarea tăcută vine după. Posibil să fie nevoie de reacordat permisiunile după actualizare.
+2. 📌 **Aplicația din mașină pe Google Play (după root, decis pe 27.11):** pachet nou (`ro.faicu.faikkitcar`), cheie nouă,
    `targetSdk` 36, **fără** `Updater`, `RemoteCmd` (și probele `@…`), `REQUEST_INSTALL_PACKAGES`,
    `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `SYSTEM_ALERT_WINDOW` și, probabil, `PACKAGE_USAGE_STATS`; declarații pentru locație
-   (serviciu în prim-plan) și accesul la notificări (doar muzica). Lista albă Teyes se face cu root, pe pachetul nou. Pentru
-   diagnostic, eventual un build `dev` separat (`applicationIdSuffix`, cu `RemoteCmd`, nepus pe Play). Cu motorul și navigația
-   trează, Play actualizează singur ca la Panel. Ordinea: root → variantă Play → Play Console → dezinstalare a celei vechi.
+   (serviciu în prim-plan) și accesul la notificări (doar muzica). Pentru diagnostic, eventual un build `dev` separat
+   (`applicationIdSuffix`, cu `RemoteCmd`, nepus pe Play). Play actualizează singur, ca la Panel. Ordinea: root → variantă
+   Play → Play Console → dezinstalarea celei vechi. Prognoză: probabil acceptată pe testarea internă, fără garanție.
+3. **Consumul exact din OBD (teste):** din 25.11 o urmărire citește timpul de injecție (2061 / 2062 / 209A și rampa, la 1 s) cu
+   valorile OBD din aceeași clipă; după câteva drumuri, `web/scripts/obd-analyze/injection.cjs` arată dacă din ele iese
+   consumul exact. Apoi calibrarea pe **următorul plin până la oprirea pistolului, după cel puțin 30 L**. Comutatorul
+   „OBD (teste)” (site, Panel, Setări → Sistem) oprește tot; cu el oprit, adaptorul e liber pentru Car Scanner.
+4. **Clapeta climatronicului (de văzut în uz):** urmărire la 30 s; dacă poziția reală iese din cea cerută, defectul „Climatronic ·
+   clapeta” apare pe Navigație și se spune vocal la salut sau în mers (Setări → În mers → „Avertizare defecte”).
+5. **Memoria navigației:** de urmărit `system_server` (pe Navigație, de la 1.1.120) și analiza binder (`web/scripts/obd-analyze/binder.cjs`);
+   de văzut pe drum dacă memoria liberă scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
+   închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
+6. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube Music): coperta,
+   redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care o pornește în mașină.
+7. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”), ca modemul să nu mai coboare
+   pe 2G. Setarea a rămas după repornire; Navigație → „Semnal mobil” arată pe hartă unde cade internetul și pe ce bandă.
+   Digi are puțin pe 800/900 MHz, deci în afara orașelor pierde primul; de comparat cu o cartelă Orange preplătită.
+8. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit somnului („trezire din hibernare”)
+   sau cine a repornit-o („Acces la notificari: sistemul ne-a pornit”, „Alarma de rezerva”).
+9. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu litrii și totalul plătit (cel de pe bon, după reducere),
+   la data și ora ei. „Plin” se bifează doar dacă pistolul s-a oprit singur.
+10. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei, voce și mai naturală (Azure / ElevenLabs).
 
 ---
 
@@ -134,6 +130,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
 | Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
 | Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. Plus „bec ars” (avertizarea de pe bord; confirmat la proiectoare). ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
+| Clapeta climatronicului | 🧪 | Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
 | Scanarea OBD | 🧪 | Situația codurilor (ce înseamnă, ce e bănuit, erorile): [`OBD-CODURI.md`](OBD-CODURI.md). Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Motorul, bordul și climatronicul sunt scanate complet; codurile încă neclare se recitesc la 30 s, fiecare cu valorile motorului din aceeași clipă |
 | Comutatorul „OBD (teste)” | 🧪 | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 
@@ -152,6 +149,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Acum: navigația pe scurt | ✅ | Un rând în primul card: „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele (memorie sub 600 / 300 MB, swap plin, peste 70 / 80 °C, procesorul peste 75% în medie pe 3 min, un proces care ține ocupat un nucleu, sub 1 GB spațiu); atins, duce la fila Navigație |
 | Navigație: semnal mobil | 🧪 | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile, pe site și în Panel; de la FaikkitCar 1.1.64 (primele puncte venite pe 28.10: Digi pe B8 900) |
 | Navigație | ✅ | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări (confirmat pe navigație pe 22.10, prin somn și repornire) |
+| Navigație: `system_server` | 🧪 | Memoria anonimă a lui `system_server` (avertizare de la 1000 MB) în cardul Navigația; din 1.1.132, la 2 min, cine ține obiecte binder, doar în istoric |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
@@ -193,6 +191,7 @@ flowchart LR
   end
   PHONE["FaikkitCar Panel<br/>(telefon)"]
   GH["GitHub Actions<br/>build + semnare"]
+  PLAY["Google Play<br/>(testare internă)"]
   CF["Cloudflare Tunnel"]
 
   CAN --> DEC --> MS --> CL --> TR
@@ -203,7 +202,8 @@ flowchart LR
   API --> TTS
   SITE --> API
   PHONE -->|HTTPS + login| CF
-  GH -->|APK-uri| API
+  GH -->|APK mașină| API
+  GH -->|AAB Panel| PLAY --> PHONE
 ```
 
 ---
@@ -243,7 +243,8 @@ ar trebui să fie 100 (așa e în emulator), dar ROM-ul Teyes nu o schimbă.
 | Platforma | FYT/SYU pe Unisoc UMS512 (`sprd ums512_1h10_Natv`), Android 10 |
 | Închiderea aplicațiilor | La somn, MainServer (`com.syu.ms`) oprește forțat tot ce nu e în `unkill_app.txt` (din APK-ul lui), `skipkillapp.prop` sau `protected_app.txt` |
 | Autostart | `/oem/app/pwctl_config.xml` („LaunchWhiteList”) decide cine are voie să pornească automat |
-| Soluția | Aplicația poartă numele `com.mapgoo.diruite`, prezent pe ambele liste și neinstalat pe navigație. Merge fără root |
+| Soluția | Aplicația poartă numele `com.mapgoo.diruite`, prezent pe ambele liste și neinstalat pe navigație. Merge fără root; cu root (în lucru) lista albă se face pe un pachet propriu |
+| Google Play | Play Store e activ pe navigație (apare ca dispozitiv în contul de Google), deci o aplicație din testarea internă s-ar putea instala și actualiza de acolo |
 | Ieșirea audio | Pornește abia când începe un sunet (~0,5 s pierdute), oricât s-ar aștepta înainte |
 | Voce | Google TTS cu o singură voce română (`vfv`, locală și online, la fel de robotice); cea online întârzie ~3 s |
 | Lipsuri | Nu are selector de fișiere Android (nici `OPEN_DOCUMENT`, nici `GET_CONTENT`); „Car Info” nu afișează litrii |
@@ -350,12 +351,14 @@ Rulează pe același server cu FaikkitBox, dar complet separat.
 | `GET /api/car/summary`, `/api/car/route` | Ecranul Acasă din mașină: călătoria în curs și harta ei |
 | `GET /api/car/status` | Kilometraj, mentenanță, ultimul APK, locuri |
 | `GET /api/car/cmd`, `POST /api/car/cmd/<id>` | Comenzile de la distanță (doar cu opțiunea pornită în aplicație) |
+| `GET\|POST /api/car/obd/scan`, `POST /api/car/obd/enabled` | Scanarea OBD de pe server (lucrările și rezultatele) și comutatorul „OBD (teste)” |
+| `POST /api/car/music`, `GET /api/car/music/wait` | Muzica de pe navigație: starea ei și comenzile din Panel |
 | `POST /api/car/tts` | Salutul vorbit, vocea Piper „Mihai” (MP3) |
-| `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → mașina) |
+| `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → mașina). Panel nu mai are APK pe server (vine din Google Play) |
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
-| `/api/live`, `/api/live/route`, `/api/unit/history`, `/api/stats`, `/api/trips…`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/places`, `/api/geocode`, `/api/suggestions`, `/api/service`, `/api/log`, `/api/cmd` | Datele pentru site și Panel (cu login) |
+| `/api/live`, `/api/live/route`, `/api/unit/history`, `/api/stats`, `/api/trips…`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/places`, `/api/geocode`, `/api/suggestions`, `/api/service`, `/api/log`, `/api/cmd`, `/api/unit/signal`, `/api/music…`, `/api/obd/…` (scanarea, codurile, comutatorul) | Datele pentru site și Panel (cu login) |
 
-Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI-ului
+Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/car/apk` cheia CI-ului
 (`CI_TOKEN`); restul, login-ul.
 
 ---
@@ -415,9 +418,11 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
 |---|---|
 | `app/` | FaikkitCar, Java fără AndroidX, UI din cod (`ro.faicu.faikkitcar`; iconițele păstrează numele vechi `ro.faicu.vwwelcome.*`, pentru autostart-ul Teyes) |
 | `panel/` | FaikkitCar Panel, Java fără AndroidX, UI din cod, hartă osmdroid (`ro.faicu.faikkitcar.panel`) |
-| `web/server/` | API-ul: `index.ts` (rute), `auth.ts`, `db.ts`, `log.ts`, `log-category.ts`, `trips.ts`, `trip-math.ts`, `live.ts`, `car.ts`, `fuel.ts`, `fuel-model.ts`, `stats.ts`, `commute.ts`, `suggestions.ts`, `places.ts`, `service.ts`, `cmd.ts`, `apk.ts`, `tts.ts` (testele: `trip-math`, `fuel-model`, `commute`) |
-| `web/src/` | Site-ul: `App.tsx` (login, file), `pages/` (`Now`, `Trips`, `Costs`, `More`, `Log`), `components/` |
-| `web/scripts/` | `import-faikkitbox.ts` (migrarea), `car-cmd.ts` (comenzi pe navigație) |
+| `web/server/` | API-ul: `index.ts` (rute), `auth.ts`, `db.ts`, `log.ts`, `log-category.ts`, `trips.ts`, `trip-math.ts`, `live.ts`, `car.ts`, `fuel.ts`, `fuel-model.ts`, `stats.ts`, `commute.ts`, `suggestions.ts`, `places.ts`, `service.ts`, `cmd.ts`, `apk.ts`, `tts.ts`, `unit.ts`, `signal.ts`, `net-mode.ts`, `music.ts`, `obd.ts`, `obd-scan.ts`, `obd-names.ts`, `dtc.ts`, `flap.ts` (testele: `trip-math`, `fuel-model`, `commute`, `unit`, `signal`, `music`, `obd-scan`, `obd-names`, `dtc`, `flap`) |
+| `web/src/` | Site-ul: `App.tsx` (login, file), `pages/` (`Now`, `Trips`, `Costs`, `Unit`, `More`, `Log`), `components/` |
+| `web/scripts/` | `import-faikkitbox.ts` (migrarea), `car-cmd.ts` (comenzi pe navigație), `teyes/` (diagnostic și verificarea după root), `obd-analyze/` (analiza citirilor OBD; `arhiva/` = citirile și uneltele din testele la mașină) |
+| `secrets/` | Cheia de încărcare pentru Play (în `.gitignore`, doar root) |
+| `deploy/play/` | Pictograma și imaginea pentru Google Play |
 | `deploy/` | `faikkitcar.service` (Remote Control: `claude.service` + `claude-rc` sunt în `/opt/faikkit/deploy`) |
 
 Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
@@ -434,13 +439,16 @@ Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 | `Uploader`, `LiveState`, `VwStatus`, `Updater` | Trimiterea la server (jurnal, puncte, starea live), starea de pe server, actualizarea |
 | `RouteMap` | Harta de pe Acasă (osmdroid) |
 | `RemoteCmd`, `TeyesCheck` | Comenzile de la distanță, verificarea listelor Teyes |
+| `Obd`, `ObdProbe`, `JsonlQueue` | Legătura permanentă cu adaptorul OBD2 (consum, erori, scanarea), testul manual `@obd`, coada scanării pe disc |
+| `Music`, `MediaProbe` | Muzica (YouTube Music) comandată din Panel, testul `@media` |
+| `BleProbe`, `SppProbe`, `SyuProbe`, `StorageProbe` | Testele manuale prin comenzile la distanță (Bluetooth, SPP, MainServer, stocare) |
 | `UnitStats` | Performanța navigației (procesor, memorie, temperatură, procese), trimisă cu starea live |
 | `CellSignal` | Semnalul mobil (tehnologia, canalul, dBm, operatorul, internetul) pe fiecare punct de traseu |
 | `Prefs`, `CrashLog` | Setări și jurnal, căderile |
 | `MainActivity`, `Ui` | Interfața |
 
 Panel (`panel/src/main/java/ro/faicu/faikkitcar/panel/`): `MainActivity` (ecranele), `Api`,
-`Store`, `Fmt`, `MapBox`, `ChartView`, `UnitCard`, `Ui`.
+`Store`, `Fmt`, `MapBox`, `MusicCard`, `UnitCard`, `SpeedGauge`, `BarChart`, `RouteThumb`, `Slider`, `Icon`, `Ui`. Fără actualizare proprie: vine din Google Play.
 
 ---
 
@@ -452,7 +460,7 @@ Panel (`panel/src/main/java/ro/faicu/faikkitcar/panel/`): `MainActivity` (ecrane
 - **Vocea Piper** cere internet în momentul salutului; altfel vocea Google, robotică.
 - **Consumul pe drum** e o estimare (±10–15% pe un drum, exact pe sumă după corecție).
 - **Pachetul `com.mapgoo.diruite`** e împrumutat de pe lista albă Teyes. Dacă un firmware nou
-  schimbă lista, aplicația poate fi din nou închisă la somn (linia „Teyes” din jurnal o arată).
+  schimbă lista, aplicația poate fi din nou închisă la somn (linia „Teyes” din jurnal o arată). După root se înlocuiește cu un pachet propriu.
 - **Memoria navigației** e la limită: cu YouTube Music și Waze deschise, aplicația poate fi
   omorâtă; plasele de siguranță o repornesc, dar între timp drumul nu se înregistrează.
 - **Codurile CAN** sunt găsite empiric pe această mașină și pe acest decodor.
