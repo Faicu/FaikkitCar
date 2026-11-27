@@ -29,10 +29,8 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
 - ✅ **Aplicația rezistă pe navigație:** trece prin somnul de peste noapte, iar când e omorâtă
   (lipsă de memorie), „Acces la notificări” o repornește în câteva secunde.
-- 🔍 **De urmărit:** cât de des moare procesul imediat după plecare și cine o repornește după
-  o moarte în somnul lung.
 - ✅ Datele mașinii, călătoriile, salutul vorbit, actualizarea din aplicație, alimentările,
-  jurnalul de service și Panel-ul merg.
+  jurnalul de service, muzica din Panel, semnalul mobil („LTE only” a rămas) și Panel-ul merg.
 - 🧪 **Consumul și costul drumurilor:** fiecare interval dintre două alimentări are consumul
   lui real (bonurile + nivelul rezervorului de dinaintea alimentării), iar costul se face cu
   prețul mediu al benzinei din rezervor. Nu e nevoie de plin.
@@ -43,8 +41,8 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
   după oprire. Din 21–25.11: citirea tuturor modulelor (motor, bord, climatronic) prin scanarea de pe server, erorile
   tuturor modulelor, becul ars și clapeta climatronicului, cu avertizare vocală. Consumul din aerul aspirat se potrivește
   cu bordul (relanti ~0,7 L/h), dar încă nu intră în calcule; ținta rămâne consumul exact din cantitatea injectată.
-- 🔍 **Memoria navigației:** `system_server` crește când rulează Waze și muzica. Starea live la 1 s (Panel deschis) a fost
-  scoasă pe 25.11 (1.1.126); din 1.1.132 se măsoară și cine ține obiecte binder. Rămâne de urmărit.
+- ✅ **Memoria navigației** e urmărită pe Navigație (`system_server` de la 1.1.120, cine ține obiecte binder de la 1.1.132); starea
+  live la 1 s (Panel deschis) a fost scoasă pe 25.11 (1.1.126), pentru că umfla `system_server`.
 - ✅ **Panel pe Google Play** (27.11): testare internă, actualizări automate, fără actualizare proprie în aplicație
   (1.0.60). Aplicația din mașină rămâne pe actualizarea din aplicație.
 - 📌 **Navigația Teyes se actualizează cu firmware nou + Magisk** (de utilizator); după el urmează verificarea și planul de mai jos.
@@ -66,21 +64,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
    valorile OBD din aceeași clipă; după câteva drumuri, `web/scripts/obd-analyze/injection.cjs` arată dacă din ele iese
    consumul exact. Apoi calibrarea pe **următorul plin până la oprirea pistolului, după cel puțin 30 L**. Comutatorul
    „OBD (teste)” (site, Panel, Setări → Sistem) oprește tot; cu el oprit, adaptorul e liber pentru Car Scanner.
-4. **Clapeta climatronicului (de văzut în uz):** urmărire la 30 s; dacă poziția reală iese din cea cerută, defectul „Climatronic ·
-   clapeta” apare pe Navigație și se spune vocal la salut sau în mers (Setări → În mers → „Avertizare defecte”).
-5. **Memoria navigației:** de urmărit `system_server` (pe Navigație, de la 1.1.120) și analiza binder (`web/scripts/obd-analyze/binder.cjs`);
-   de văzut pe drum dacă memoria liberă scade înainte ca aplicația să fie omorâtă. Radio-ul Teyes (`sqlfmserver`) rămâne pornit după
-   închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
-6. **Muzica de pe telefon (de testat):** în Panel, pe Acum, cardul cu piesa de pe navigație (YouTube Music): coperta,
-   redare/pauză, anterioara/următoarea, derularea, volumul Teyes și „Caută o piesă”, care o pornește în mașină.
-7. **Internetul din navigație:** pus „LTE only” pe 01.11 (Setări → Sistem → „Informatii telefon”), ca modemul să nu mai coboare
-   pe 2G. Setarea a rămas după repornire; Navigație → „Semnal mobil” arată pe hartă unde cade internetul și pe ce bandă.
-   Digi are puțin pe 800/900 MHz, deci în afara orașelor pierde primul; de comparat cu o cartelă Orange preplătită.
-8. **La următoarea oprire de peste 20 min**, jurnalul arată dacă aplicația a supraviețuit somnului („trezire din hibernare”)
-   sau cine a repornit-o („Acces la notificari: sistemul ne-a pornit”, „Alarma de rezerva”).
-9. **Alimentări:** fiecare trecută pe car.faicu.ro sau în Panel, cu litrii și totalul plătit (cel de pe bon, după reducere),
-   la data și ora ei. „Plin” se bifează doar dacă pistolul s-a oprit singur.
-10. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei, voce și mai naturală (Azure / ElevenLabs).
+4. 💡 **Idei:** alertă pe telefon la pornirea mașinii, ore de liniște, sunet după ora zilei, voce și mai naturală (Azure / ElevenLabs).
 
 ---
 
@@ -109,7 +93,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Ținută în viață | ✅ | Vezi [Ținerea în viață](#ținerea-în-viață-a-aplicației) |
 | Resurse puține în fundal | 🧪 | Harta și ecranul lucrează doar cât aplicația e deschisă; în fundal rămâne serviciul. Vocea locală se eliberează la 30 s după ce vorbește |
 | Linia „Teyes” în jurnal | 🧪 | La fiecare pornire a serviciului: listele Teyes, accesul la notificări, memoria liberă |
-| Muzica din Panel | 🧪 | YouTube Music de pe navigație comandat de pe telefon: piesa, redare/pauză, anterioara/următoarea, derularea, volumul Teyes, căutarea unei piese (pornește în mașină; harta revine în față) |
+| Muzica din Panel | ✅ | YouTube Music de pe navigație comandat de pe telefon: piesa, redare/pauză, anterioara/următoarea, derularea, volumul Teyes, căutarea unei piese (pornește în mașină; harta revine în față) |
 | Comenzi de la distanță (teste) | 🧪 | Setări → Sistem, oprit implicit: serverul poate rula comenzi pe navigație (fără root); rezultatele sunt în jurnalul „Comenzi la distanță” |
 | Sonda CAN | ✅ | Setări → „avansat”: 10 minute, marcaje cu text, schimbările live |
 
@@ -130,7 +114,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
 | Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
 | Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. Plus „bec ars” (avertizarea de pe bord; confirmat la proiectoare). ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
-| Clapeta climatronicului | 🧪 | Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
+| Clapeta climatronicului | 🧪 | Făcută, vocea încă neauzită în mașină. Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
 | Scanarea OBD | 🧪 | Situația codurilor (ce înseamnă, ce e bănuit, erorile): [`OBD-CODURI.md`](OBD-CODURI.md). Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Motorul, bordul și climatronicul sunt scanate complet; codurile încă neclare se recitesc la 30 s, fiecare cu valorile motorului din aceeași clipă |
 | Comutatorul „OBD (teste)” | 🧪 | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 
@@ -147,9 +131,9 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
 | Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu real |
 | Acum: navigația pe scurt | ✅ | Un rând în primul card: „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele (memorie sub 600 / 300 MB, swap plin, peste 70 / 80 °C, procesorul peste 75% în medie pe 3 min, un proces care ține ocupat un nucleu, sub 1 GB spațiu); atins, duce la fila Navigație |
-| Navigație: semnal mobil | 🧪 | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile, pe site și în Panel; de la FaikkitCar 1.1.64 (primele puncte venite pe 28.10: Digi pe B8 900) |
+| Navigație: semnal mobil | ✅ | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile, pe site și în Panel; de la FaikkitCar 1.1.64 (primele puncte venite pe 28.10: Digi pe B8 900) |
 | Navigație | ✅ | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări (confirmat pe navigație pe 22.10, prin somn și repornire) |
-| Navigație: `system_server` | 🧪 | Memoria anonimă a lui `system_server` (avertizare de la 1000 MB) în cardul Navigația; din 1.1.132, la 2 min, cine ține obiecte binder, doar în istoric |
+| Navigație: `system_server` | ✅ | Memoria anonimă a lui `system_server` (avertizare de la 1000 MB) în cardul Navigația; din 1.1.132, la 2 min, cine ține obiecte binder, doar în istoric |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
 | Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
@@ -461,6 +445,7 @@ Panel (`panel/src/main/java/ro/faicu/faikkitcar/panel/`): `MainActivity` (ecrane
 - **Consumul pe drum** e o estimare (±10–15% pe un drum, exact pe sumă după corecție).
 - **Pachetul `com.mapgoo.diruite`** e împrumutat de pe lista albă Teyes. Dacă un firmware nou
   schimbă lista, aplicația poate fi din nou închisă la somn (linia „Teyes” din jurnal o arată). După root se înlocuiește cu un pachet propriu.
+- **Radio-ul Teyes** (`sqlfmserver`) rămâne pornit după închidere și ține ocupat un nucleu întreg; se oprește abia la repornirea navigației.
 - **Memoria navigației** e la limită: cu YouTube Music și Waze deschise, aplicația poate fi
   omorâtă; plasele de siguranță o repornesc, dar între timp drumul nu se înregistrează.
 - **Codurile CAN** sunt găsite empiric pe această mașină și pe acest decodor.
