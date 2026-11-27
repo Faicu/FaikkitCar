@@ -23,7 +23,8 @@ activă, separată. Remote Control: `claude.service` (sursa în
   vechi (`ro.faicu.vwwelcome.MainActivity`, `ro.faicu.vwwelcome.StartActivity`) către activitățile
   noi; nu redenumi alias-urile (testat în emulator: actualizare peste versiunea veche, apoi
   `am start -n com.mapgoo.diruite/ro.faicu.vwwelcome.StartActivity` → „Pornit din autostart”).
-- `panel/`: **FaikkitCar Panel**, aplicația de pe telefon (`ro.faicu.faikkitcar.panel`).
+- `panel/`: **FaikkitCar Panel**, aplicația de pe telefon (`ro.faicu.faikkitcar.panel`), distribuită doar prin Google Play
+  (testare internă, din 27.11.2026; vezi „Build și publicare”).
 - `web/`: serverul **car.faicu.ro** + site-ul.
 
 ## Serverul și site-ul (`web/`)
@@ -62,7 +63,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   (`Trips.tsx` + `TripView.tsx`), Costuri (`Costs.tsx`), Navigație (`Unit.tsx`: erorile, `UnitCard.tsx` cu
   aceeași stare live, semnalul, apoi „Teste OBD” închis implicit; semnalul
   pliat și el; lucrările de scanare pe grupe Urmăriri / Scanări / Recitiri, „Oprește / Reia” și în Panel (meniul „⋯”);
-  „acum” doar cu adaptorul conectat (`/api/obd/scan` dă `current` null altfel); la fel în Panel, `renderObdTests`; 23.11), Mai mult (`More.tsx`: mentenanță, locuri, service, Panel, jurnal).
+  „acum” doar cu adaptorul conectat (`/api/obd/scan` dă `current` null altfel); la fel în Panel, `renderObdTests`; 23.11), Mai mult (`More.tsx`: mentenanță, locuri, service, jurnal; cardul de descărcare a Panel a fost scos pe 27.11).
 - Testarea (03.11, cererea utilizatorului): fără emulator și fără servere/simulatoare de test. Utilizatorul
   testează efectiv aplicațiile, iar pe navigație se verifică prin comenzile la distanță (`car-cmd.ts`).
   Emulatorul și imaginile lui au fost șterse; rămân doar uneltele de build. Verificări locale: `npx vitest run`,
@@ -525,8 +526,8 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   /root/android/gradle-8.13/bin/gradle :app:assembleDebug :panel:assembleDebug` (după build: `gradle --stop`).
 - CI: `.github/workflows/build.yml` (aplicația: la push pe main, nu pentru `web/**`, `deploy/**`,
   `*.md`; release `build-<N>`, `versionName` = `1.1.<N>`, publicat la `POST /api/car/apk`) și
-  `panel.yml` (release `panel-<N>`, `1.0.<N>`, `POST /api/panel/apk`; la fiecare push pe `panel/**` și prin
-  „Run workflow”). `[skip ci]` în mesaj sare build-ul (îl folosesc la schimbări de infrastructură, ca build-ul
+  `panel.yml` (`versionName` `1.0.<N>`; la fiecare push pe `panel/**` și prin „Run workflow”: compilare de verificare, apoi
+  AAB în Play, fără release pe GitHub și fără publicare pe server). `[skip ci]` în mesaj sare build-ul (îl folosesc la schimbări de infrastructură, ca build-ul
   aplicației din mașină să nu producă o versiune pe care navigația și-o propune singură). Secrete: `VW_LOG_TOKEN`, `CI_TOKEN`,
   `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` (PKCS12, alias `vwwelcome`; keystore-ul nu e în repo și **nici pe server**,
   doar în secretul GitHub, care nu se poate citi înapoi). Fără `VW_LOG_TOKEN` trimiterea e dezactivată.

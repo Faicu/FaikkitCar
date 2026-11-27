@@ -11,7 +11,7 @@
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.132 (`build-132`, mașina) · FaikkitCar Panel 1.0.60 (`panel-60`, telefonul, din Google Play) |
+| **Versiuni** | FaikkitCar 1.1.132 (`build-132`, mașina, din aplicație) · FaikkitCar Panel 1.0.60 (telefonul, din Google Play) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: Google Play, testare internă (link de înscriere privat, actualizări automate; fără APK) |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
