@@ -67,7 +67,7 @@ public class MainActivity extends Activity {
     // Datele curente; `shown` = ce s-a desenat ultima data, ca sa nu redesenam degeaba.
     private JSONArray trips, gaps, log, places, suggestions, service;
     private JSONObject shapes; // forma calatoriilor (miniaturile din lista)
-    private JSONObject live, car, fuel, stats, newerApk;
+    private JSONObject live, car, fuel, stats;
     private JSONArray points;
     private String pointsFor, selected, shown = "";
     // Fila jurnalului: "" = evenimente, o categorie (ca pe server), "toate"; "comenzi" = comenzile.
@@ -97,7 +97,6 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         MapBox.init(this);
         api = new Api(this);
-        AutoUpdateJob.schedule(this);
         getWindow().setStatusBarColor(Ui.BG);
         getWindow().setNavigationBarColor(Ui.BG);
         if (Store.token(this).isEmpty()) showLogin();
@@ -223,7 +222,7 @@ public class MainActivity extends Activity {
         stopLive();
         Store.setToken(this, "");
         trips = log = points = places = null;
-        live = car = fuel = stats = newerApk = null;
+        live = car = fuel = stats = null;
         selected = null;
         shown = "";
         detachMaps();
@@ -341,20 +340,9 @@ public class MainActivity extends Activity {
         io.execute(() -> {
             try {
                 if (forTab == NOW) {
-                    // Starea vine pe firul ei (startLive); aici actualizarea si propunerile.
-                    JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
-                    // Android 12+: se instaleaza singura; cardul arata „Se instalează automat...”.
-                    if (apk != null && Updater.auto(this)) {
-                        autoInstalling = true;
-                    } else if (apk != null && !Updater.silentPossible(this) && Updater.promptDue(this, apk.optInt("versionCode"))) {
-                        // Fara instalare automata: confirmarea apare singura (ramane „Instalează”).
-                        ui.post(() -> Updater.start(this, error -> {
-                            if (error != null) toast("Actualizare eșuată: " + error);
-                        }));
-                    }
+                    // Starea vine pe firul ei (startLive); aici propunerile.
                     JSONArray sg = api.suggestions();
                     ui.post(() -> {
-                        newerApk = apk;
                         suggestions = sg;
                         render();
                     });
@@ -385,13 +373,11 @@ public class MainActivity extends Activity {
                     JSONArray pl = api.places();
                     JSONArray sv = api.service();
                     JSONArray l = cat.equals("comenzi") ? api.cmds() : api.log(cat);
-                    JSONObject apk = newerApk == null ? Updater.newer(this) : newerApk;
                     ui.post(() -> {
                         car = c;
                         places = pl;
                         service = sv;
                         log = l;
-                        newerApk = apk;
                         render();
                     });
                 }
@@ -521,7 +507,6 @@ public class MainActivity extends Activity {
             return;
         }
         String state = tab + "|" + selected + "|" + logCat + "|" + Store.hideIdle(this) + "|" + Store.obdTestsOpen(this) + "|" + Store.signalOpen(this) + "|"
-                + (newerApk != null) + "|" + Updater.silentRefused(this) + "|"
                 + (tab == NOW ? live + "|" + suggestions
                         : tab == UNIT ? live + "|" + unitHistoryAt + "|" + signalAt + "|" + signalDays
                         : tab == TRIPS ? trips + "|" + pointsFor + "|" + (shapes == null ? 0 : shapes.length())
@@ -557,38 +542,6 @@ public class MainActivity extends Activity {
         super.onBackPressed();
     }
 
-    private boolean autoInstalling; // actualizarea automata a fost trimisa la instalare
-
-    /** Versiunea noua: o banda subtire sus (instalarea porneste oricum singura la deschidere). */
-    private void renderUpdate() {
-        if (newerApk == null) return;
-        LinearLayout band = new LinearLayout(this);
-        band.setGravity(Gravity.CENTER_VERTICAL);
-        band.setBackground(Ui.round(this, 0x2638BDF8, 16));
-        band.setPadding(dp(this, 16), dp(this, 6), dp(this, 6), dp(this, 6));
-        boolean auto = autoInstalling && !Updater.silentRefused(this);
-        LinearLayout texts = new LinearLayout(this);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        texts.addView(Ui.text(this, "Versiune nouă: " + newerApk.optString("versionName"), 15, Ui.ACCENT, true));
-        if (auto) texts.addView(Ui.text(this, "Se instalează; aplicația se va redeschide.", 12, Ui.MUTED, false));
-        band.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
-        if (!auto) {
-            android.widget.Button b = Ui.button(this, "Instalează", Ui.PRIMARY, v -> {
-                toast("Descarc actualizarea...");
-                Updater.start(this, error -> {
-                    if (error != null) toast("Actualizare eșuată: " + error);
-                });
-            });
-            b.setTextSize(14);
-            b.setMinHeight(dp(this, 40));
-            b.setMinimumHeight(dp(this, 40));
-            band.addView(b, new LinearLayout.LayoutParams(-2, dp(this, 40)));
-        }
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = dp(this, 14);
-        content.addView(band, lp);
-    }
-
     private static String stateLabel(String state) {
         switch (state) {
             case "driving": return "În mers";
@@ -617,7 +570,6 @@ public class MainActivity extends Activity {
      * masina. Performanta navigatiei pe larg e in fila Navigatie.
      */
     private void renderNow() {
-        renderUpdate();
         renderSuggestions();
         if (live == null) {
             Ui.hint(this, content, "Se încarcă...");
@@ -2496,7 +2448,6 @@ public class MainActivity extends Activity {
     // ---------------------------------------------------------------- fila Mai mult
 
     private void renderMore() {
-        renderUpdate();
         if (car == null) {
             Ui.hint(this, content, "Se încarcă...");
             return;

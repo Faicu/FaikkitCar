@@ -277,19 +277,6 @@ app.get("/api/car/apk/download", (c) => {
   return sendApk(c, "car");
 });
 
-// Aplicația Panel: CI-ul o încarcă tot cu CI_TOKEN; telefonul o citește cu login-ul.
-app.post("/api/panel/apk", (c) => receiveApk(c, "panel"));
-
-app.get("/api/panel/apk", (c) => {
-  requireUser(c);
-  return c.json(readApkInfo("panel") ?? { versionCode: 0 });
-});
-
-app.get("/api/panel/apk/download", (c) => {
-  requireUser(c);
-  return sendApk(c, "panel");
-});
-
 // ----------------------------------------------------------- login (site + Panel)
 
 app.post("/api/login", async (c) => {

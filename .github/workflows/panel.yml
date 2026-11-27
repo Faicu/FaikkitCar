@@ -2,6 +2,8 @@ name: Build FaikkitCar Panel
 
 # Aplicatia de telefon: workflow separat, cu numaratoarea lui de build-uri, ca o schimbare
 # in Panel sa nu faca o versiune noua a aplicatiei din masina (si invers).
+# Panel se distribuie doar prin Google Play (testare interna): AAB-ul semnat cu cheia de incarcare
+# se trimite pe track-ul `internal`, iar telefonul il actualizeaza din Play.
 on:
   push:
     paths:
@@ -12,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -26,36 +28,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Decode signing key
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/vwwelcome.jks"
-            echo "SIGNING_KEYSTORE=$RUNNER_TEMP/vwwelcome.jks" >> "$GITHUB_ENV"
-          else
-            echo "::warning::Secretul KEYSTORE_BASE64 lipseste: APK-ul e semnat cu o cheie de debug temporara."
-          fi
-      - run: gradle :panel:assembleGithubDebug
-        env:
-          SIGNING_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      - run: cp panel/build/outputs/apk/github/debug/panel-github-debug.apk FaikkitCarPanel.apk
-      # Actualizarea din aplicatie ia APK-ul de pe car.faicu.ro (/api/panel/apk).
-      - name: Publish APK to car.faicu.ro
-        if: github.ref == 'refs/heads/main'
-        env:
-          CI_TOKEN: ${{ secrets.CI_TOKEN }}
-        run: |
-          if [ -z "$CI_TOKEN" ]; then echo "::warning::CI_TOKEN lipseste, APK-ul nu e publicat"; exit 0; fi
-          curl -sS --fail-with-body -X POST \
-            -H "Authorization: Bearer $CI_TOKEN" \
-            -H "X-Version-Code: ${{ github.run_number }}" \
-            -H "X-Version-Name: 1.0.${{ github.run_number }}" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @FaikkitCarPanel.apk https://car.faicu.ro/api/panel/apk \
-            || echo "::warning::Publicarea pe car.faicu.ro a esuat"
-      # Google Play (testare interna): AAB semnat cu cheia de incarcare, doar daca secretele exista.
-      # Secrete: UPLOAD_KEYSTORE_BASE64, UPLOAD_PASSWORD, (UPLOAD_ALIAS), PLAY_SERVICE_ACCOUNT_JSON.
+      # Verificare ca se compileaza (si pe ramuri, fara secrete).
+      - run: gradle :panel:assembleDebug
+      # Secrete: UPLOAD_KEYSTORE_BASE64, UPLOAD_PASSWORD, UPLOAD_ALIAS, PLAY_SERVICE_ACCOUNT_JSON.
       - name: Build Play bundle
         id: play
         if: github.ref == 'refs/heads/main'
@@ -66,10 +41,10 @@ jobs:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           if [ -z "$UPLOAD_KEYSTORE_BASE64" ] || [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::notice::Secretele pentru Google Play lipsesc, AAB-ul nu se construieste"; exit 0
+            echo "::warning::Secretele pentru Google Play lipsesc, AAB-ul nu se construieste"; exit 0
           fi
           echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
-          UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks" gradle :panel:bundlePlayRelease
+          UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks" gradle :panel:bundleRelease
           echo "ok=1" >> "$GITHUB_OUTPUT"
       - name: Upload to Google Play (internal testing)
         if: steps.play.outputs.ok == '1'
@@ -77,18 +52,11 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ro.faicu.faikkitcar.panel
-          releaseFiles: panel/build/outputs/bundle/playRelease/panel-play-release.aab
+          releaseFiles: panel/build/outputs/bundle/release/panel-release.aab
           track: internal
           status: completed
       - uses: actions/upload-artifact@v4
+        if: steps.play.outputs.ok == '1'
         with:
-          name: faikkitcar-panel-apk
-          path: FaikkitCarPanel.apk
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: panel-${{ github.run_number }}
-          name: FaikkitCar Panel ${{ github.run_number }}
-          target_commitish: ${{ github.sha }}
-          body: "APK-ul aplicatiei de telefon FaikkitCar Panel, din ${{ github.ref_name }} @ ${{ github.sha }}."
-          make_latest: false
-          files: FaikkitCarPanel.apk
+          name: faikkitcar-panel-aab
+          path: panel/build/outputs/bundle/release/panel-release.aab

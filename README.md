@@ -157,8 +157,7 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 | Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc”. Un loc poate avea mai multe poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui (site, Panel 1.0.25) |
 | Jurnal de service | ✅ | Lucrările cu data, kilometrajul, locul, costul, articolele pe grupe și bonurile / facturile atașate; costul intră în raportul lunii |
 | Jurnalul navigației | ✅ | Pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță, Tot. Nu se poate goli |
-| Panel: actualizare din aplicație | ✅ | „Actualizează acum” (varianta APK de pe GitHub) |
-| Panel pe Google Play | ✅ | Testare internă, doar pentru noi: se instalează și se actualizează automat din Play (de la 1.0.59), fără confirmări; fiecare push în `panel/**` urcă singur versiunea. Aplicația din mașină rămâne pe actualizarea din aplicație până facem root-ul și pachetul nou |
+| Panel pe Google Play | ✅ | Testare internă, doar pentru noi: se instalează și se actualizează automat din Play (de la 1.0.59), fără confirmări și fără actualizare proprie în aplicație (scoasă în 1.0.60); fiecare push în `panel/**` urcă singur versiunea. Aplicația din mașină rămâne pe actualizarea din aplicație până facem root-ul și pachetul nou |
 
 ---
 
@@ -347,7 +346,6 @@ Rulează pe același server cu FaikkitBox, dar complet separat.
 | `GET /api/car/cmd`, `POST /api/car/cmd/<id>` | Comenzile de la distanță (doar cu opțiunea pornită în aplicație) |
 | `POST /api/car/tts` | Salutul vorbit, vocea Piper „Mihai” (MP3) |
 | `POST /api/car/apk`, `GET /api/car/apk[/download]` | APK-ul FaikkitCar (CI → mașina) |
-| `POST /api/panel/apk`, `GET /api/panel/apk[/download]` | APK-ul Panel (CI → telefon, cu login) |
 | `POST /api/login`, `/api/logout`, `/api/me` | Login pentru site și Panel |
 | `/api/live`, `/api/live/route`, `/api/unit/history`, `/api/stats`, `/api/trips…`, `/api/car`, `/api/fuel`, `/api/refuels`, `/api/reminders`, `/api/places`, `/api/geocode`, `/api/suggestions`, `/api/service`, `/api/log`, `/api/cmd` | Datele pentru site și Panel (cu login) |
 
@@ -383,7 +381,7 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
   `panel/`, `*.md` sau `[skip ci]`): APK semnat, release `build-N` („latest”), publicat pe
   `car.faicu.ro/api/car/apk`. Versiunea `1.1.<N>`.
 - **FaikkitCar Panel:** `.github/workflows/panel.yml`, doar pentru `panel/`: release
-  `panel-N`, publicat pe `car.faicu.ro/api/panel/apk`. Versiunea `1.0.<N>`.
+  trimis în Google Play (testare internă). Versiunea `1.0.<N>`.
 - **Secretele repo-ului** (Settings → Secrets and variables → Actions):
   - `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`: cheia de semnare (PKCS12, alias `vwwelcome`),
     aceeași pentru ambele aplicații. **Păstrează o copie a keystore-ului.**
@@ -428,7 +426,7 @@ Aplicația din mașină (`app/src/main/java/ro/faicu/faikkitcar/`):
 | `MainActivity`, `Ui` | Interfața |
 
 Panel (`panel/src/main/java/ro/faicu/faikkitcar/panel/`): `MainActivity` (ecranele), `Api`,
-`Store`, `Fmt`, `MapBox`, `ChartView`, `UnitCard`, `Updater`, `Ui`.
+`Store`, `Fmt`, `MapBox`, `ChartView`, `UnitCard`, `Ui`.
 
 ---
 

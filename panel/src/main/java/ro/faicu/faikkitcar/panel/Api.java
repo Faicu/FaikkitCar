@@ -281,19 +281,6 @@ final class Api {
         }
     }
 
-    JSONObject panelApk() throws Exception {
-        return new JSONObject(call("GET", "/api/panel/apk", null, true));
-    }
-
-    /** Conexiunea pentru descarcarea APK-ului Panel (Updater o citeste in flux). */
-    HttpURLConnection openApkDownload() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(BASE + "/api/panel/apk/download").openConnection();
-        conn.setConnectTimeout(15_000);
-        conn.setReadTimeout(60_000);
-        conn.setRequestProperty("Authorization", "Bearer " + Store.token(c));
-        return conn;
-    }
-
     // encode(String, Charset) exista abia din Android 13 (API 33); minSdk e 26.
     private static String enc(String s) {
         try {

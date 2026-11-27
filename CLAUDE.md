@@ -53,7 +53,7 @@ activă, separată. Remote Control: `claude.service` (sursa în
   `/api/trips/shapes`, `/api/stats`, `/api/car`, `/api/fuel`, `/api/refuels…`, `/api/reminders…`, `/api/places…`,
   `/api/geocode`, `/api/suggestions…`, `/api/service…`, `/api/log?cat=` (categoriile din
   `log-category.ts`, coloana `log.cat`; fără `cat` = evenimente, fără CAN și comenzi), `/api/cmd`
-  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/unit/signal?days=` (semnalul mobil), `/api/music…` (muzica de pe navigație), `/api/panel/apk…`.
+  (comenzile la distanță, jurnalul lor separat), `/api/unit/history?min=` (graficele navigației), `/api/unit/signal?days=` (semnalul mobil), `/api/music…` (muzica de pe navigație).
 - Service: `service.items` (JSON: `group`, `name`, `code`, `qty`, `price` pe tot rândul, cu TVA;
   reducerile cu minus) și `service.shop`; lipsă din cerere = rămân cele salvate (Panel-ul le
   afișează, dar nu le editează). Prima lucrare: 19.10.2026, id 2.
@@ -504,8 +504,7 @@ Java fără AndroidX, minSdk 26 / target 34, aceeași cheie de semnare, osmdroid
 token Bearer (`Store`); `Api` = aceleași rute ca site-ul. File jos: Acum (long polling pe fir
 separat, `startLive`; harta live `MapBox.LiveRoute`, aceeași MapView mutată, `render()` așteaptă
 cât e atinsă), Călătorii (listă + detalii: `tripSummary`, harta, opririle, `tripSections`,
-combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Același aspect ca site-ul. Actualizare din aplicație (`Updater`,
-`/api/panel/apk`). Design (1.0.39): iconițele desenate din cod (`Icon`, aceeași grilă 24×24: filele, muzica,
+combinarea), Costuri, Navigație (`UnitCard`, tot din starea live), Mai mult. Același aspect ca site-ul. Fără actualizare proprie (din 27.11: doar din Google Play). Design (1.0.39): iconițele desenate din cod (`Icon`, aceeași grilă 24×24: filele, muzica,
 „⋯”, reîmprospătarea), barele `Slider`, titlurile de card 18 sp (`Ui.title`/`Ui.section`), acțiunile de pe
 rânduri în meniul „⋯” (`rowMenu`; atingerea rândului = Modifică), fără emoji; versiunea nouă = bandă subțire.
 1.0.40: miniaturile traseelor în listă (`RouteThumb`, din `GET /api/trips/shapes` = `readTripShapes`, ≤ 32 de
@@ -514,16 +513,8 @@ detaliile călătoriei într-un card cu grupe (`group`), graficele navigației p
 1.0.41: bordul pe Acum (`SpeedGauge`: viteza pe arcul mare, turația pe cel mic), autentificarea refăcută.
 Site-ul (02.11), la fel: `MusicCard.tsx` pe Acum, `RouteThumb.tsx` + zilele în lista de călătorii, „Pe luni” cu
 bare verticale (`Costs.tsx`), acțiunile în „⋯” (`RowMenu.tsx`: alimentări, mentenanță, locuri), autentificarea.
-Din 1.0.30 actualizarea e automată, fără confirmare (Android 12+, `setRequireUserAction`,
-`UPDATE_PACKAGES_WITHOUT_USER_ACTION`), la deschidere și zilnic (`AutoUpdateJob`); testat în emulatorul
-Android 14 (Android permite una la 30 s pe aplicație). Pe telefonul utilizatorului (02.11) instalarea fără
-confirmare e refuzată („INSTALL_FAILED_ABORTED: Permission denied”, și după Play Protect): din 1.0.32 butonul
-cere mereu confirmarea, iar din 1.0.34 o încercare automată eșuată (`silentRefused`) arată butonul și nu se mai repetă.
-Din 1.0.35: automat doar dacă instalatorul versiunii de acum e Panel însuși (`Updater.installer`; 1.0.32 a fost instalat
-din browser), refuzul ține minte instalatorul (`silentRefusedBy`); altfel, la deschidere pornește singură instalarea
-cu confirmare (o dată pe versiune la 6 h). Confirmat 02.11 (1.0.35 → 1.0.36, instalată din Panel): la revenirea în
-aplicație apare singură scanarea Play Protect, apoi „Instalează”, apoi scanarea de securitate Xiaomi; după ea
-Panel se redeschide singur pe versiunea nouă. Fără nicio atingere nu se poate pe acest telefon (HyperOS).
+Actualizarea proprie a Panel (`Updater`, `AutoUpdateJob`, `/api/panel/apk`; 1.0.30–1.0.58, cu confirmare Play Protect / Xiaomi pe telefonul
+utilizatorului) a fost **scoasă pe 27.11.2026**: Panel se actualizează doar din Google Play (vezi „Build și publicare”).
 15.11 (versiunea de după 1.0.41): formularul de alimentare cu totalul plătit, avertizarea alimentării nevăzute în
 rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (ca pe site); confirmat pe telefon 15.11 (1.0.44).
 
@@ -531,7 +522,7 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
 
 - Local: JDK 17, Gradle 8.13 (din 27.11, cerut de AGP 8.13.2) și Android SDK 34 + 36 în `/root/android`
   (`local.properties` → `sdk.dir=/root/android/sdk`): `JAVA_HOME=/root/android/jdk
-  /root/android/gradle-8.13/bin/gradle :app:assembleDebug :panel:assembleGithubDebug` (după build: `gradle --stop`).
+  /root/android/gradle-8.13/bin/gradle :app:assembleDebug :panel:assembleDebug` (după build: `gradle --stop`).
 - CI: `.github/workflows/build.yml` (aplicația: la push pe main, nu pentru `web/**`, `deploy/**`,
   `*.md`; release `build-<N>`, `versionName` = `1.1.<N>`, publicat la `POST /api/car/apk`) și
   `panel.yml` (release `panel-<N>`, `1.0.<N>`, `POST /api/panel/apk`; la fiecare push pe `panel/**` și prin
@@ -539,19 +530,19 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   aplicației din mașină să nu producă o versiune pe care navigația și-o propune singură). Secrete: `VW_LOG_TOKEN`, `CI_TOKEN`,
   `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` (PKCS12, alias `vwwelcome`; keystore-ul nu e în repo și **nici pe server**,
   doar în secretul GitHub, care nu se poate citi înapoi). Fără `VW_LOG_TOKEN` trimiterea e dezactivată.
-- **Panel pe Google Play (27.11.2026, testare internă, nu public):** `panel/build.gradle` are flavorurile `github`
-  (APK, cu `Updater`, cheia `vwwelcome`) și `play` (AAB, `BuildConfig.PLAY`, fără `Updater` și fără permisiunile de
-  instalare, `panel/src/play/AndroidManifest.xml`); `targetSdk` 36 (Play îl cere din 31.08.2026), cu `fitSystemBars`
-  în `MainActivity` (ecran cap-la-cap de la Android 15). `panel.yml` construiește `bundlePlayRelease` cu cheia de
-  încărcare și o trimite pe track `internal` (`r0adkll/upload-google-play`); fără secretele Play, pașii se sar.
-  Secrete: `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_PASSWORD`, `UPLOAD_ALIAS` (`faikkitcar-upload`), `PLAY_SERVICE_ACCOUNT_JSON`
-  (cont `faikkitcar-play@faikkitcar.iam.gserviceaccount.com`, drept „testing tracks”). **Cheia de încărcare e în
-  `/opt/faikkitcar/secrets/`** (în `.gitignore`, doar root, cu `CITESTE.txt`); Google ține cheia finală de semnare, deci
-  Panel din Play nu se instalează peste un APK vechi (semnătură diferită). Politica de confidențialitate cerută de Play:
-  `https://car.faicu.ro/confidentialitate.html` (`web/public/`). Pictograma 512 și imaginea 1024×500 din magazin:
-  `deploy/play/`. Aplicația din mașină rămâne pe `Updater` (nu e pe Play): ar cere pachet nou (`com.mapgoo.diruite`
-  trebuie schimbat; lista albă Teyes ia pachetul nou doar cu root), `targetSdk` 36 și o variantă fără `Updater` și
-  `RemoteCmd`. Verificat 27.11: build-ul #59 a urcat 1.0.59 și telefonul a primit „Actualizează” din Play.
+- **Panel pe Google Play (27.11.2026, testare internă, nu public):** un singur build, fără `Updater`, fără permisiuni
+  de instalare, fără `/api/panel/apk` (scoase pe 27.11; `Updater` rămâne doar în aplicația din mașină). `targetSdk` 36 (Play îl cere
+  din 31.08.2026), cu `fitSystemBars` în `MainActivity` (ecran cap-la-cap de la Android 15). `panel.yml`: compilare de
+  verificare (`assembleDebug`) și, pe `main`, `bundleRelease` semnat cu cheia de încărcare, trimis pe track `internal`
+  (`r0adkll/upload-google-play`); fără secretele Play, pașii se sar. Secrete: `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_PASSWORD`,
+  `UPLOAD_ALIAS` (`faikkitcar-upload`), `PLAY_SERVICE_ACCOUNT_JSON` (cont `faikkitcar-play@faikkitcar.iam.gserviceaccount.com`,
+  drept „testing tracks”). **Cheia de încărcare e în `/opt/faikkitcar/secrets/`** (în `.gitignore`, doar root, cu
+  `CITESTE.txt`); Google ține cheia finală de semnare. Politica de confidențialitate cerută de Play:
+  `https://car.faicu.ro/confidentialitate.html` (`web/public/`). Pictograma 512 și imaginea 1024×500: `deploy/play/`.
+  Aplicația din mașină rămâne pe `Updater` (nu e pe Play): ar cere pachet nou (`com.mapgoo.diruite` trebuie schimbat;
+  lista albă Teyes ia pachetul nou doar cu root), `targetSdk` 36 și o variantă fără `Updater` și `RemoteCmd`.
+  Verificat 27.11: build-ul #59 a urcat 1.0.59 și telefonul a primit „Actualizează” din Play; din 1.0.60 Panel nu mai are
+  nimic din actualizarea proprie (verificat în dex și în manifest).
 - Descărcare manuală: https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk
 
 ## Stare (12.10.2026)
