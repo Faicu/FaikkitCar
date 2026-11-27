@@ -27,6 +27,7 @@ final class Updater {
 
     /** Versiunea noua de pe server, sau null daca nu e (sau nu se poate afla). Blocant. */
     static JSONObject newer(Context c) {
+        if (BuildConfig.PLAY) return null; // Google Play actualizeaza singur
         try {
             JSONObject apk = new Api(c).panelApk();
             return apk.optInt("versionCode") > BuildConfig.VERSION_CODE ? apk : null;
@@ -40,7 +41,7 @@ final class Updater {
 
     /** Se poate instala fara confirmare: Android 12+ si permisiunea de instalare data. */
     static boolean silentPossible(Context c) {
-        return android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls()
+        return !BuildConfig.PLAY && android.os.Build.VERSION.SDK_INT >= 31 && c.getPackageManager().canRequestPackageInstalls()
                 && c.getPackageName().equals(installer(c)) && !silentRefused(c);
     }
 

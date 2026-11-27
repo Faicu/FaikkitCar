@@ -76,6 +76,22 @@ public class MainActivity extends Activity {
     private static final String[] LOG_LABELS = {"Evenimente", "Pornire și somn", "Mașina", "GPS", "Sunet și voce",
             "Actualizări", "CAN și diagnostic", "Comenzi la distanță", "Tot"};
 
+    /**
+     * targetSdk 35+: Android 15+ deseneaza aplicatia si sub barele sistemului. Ecranul ia
+     * marginile lor (si tastatura) ca spatiu liber, peste umplutura pe care o avea deja.
+     */
+    private void fitSystemBars(android.view.View v) {
+        if (android.os.Build.VERSION.SDK_INT < 30) return;
+        final int l = v.getPaddingLeft(), t = v.getPaddingTop(), r = v.getPaddingRight(), bo = v.getPaddingBottom();
+        v.setOnApplyWindowInsetsListener((view, insets) -> {
+            android.graphics.Insets i = insets.getInsets(android.view.WindowInsets.Type.systemBars()
+                    | android.view.WindowInsets.Type.displayCutout() | android.view.WindowInsets.Type.ime());
+            view.setPadding(l + i.left, t + i.top, r + i.right, bo + i.bottom);
+            return android.view.WindowInsets.CONSUMED;
+        });
+        v.requestApplyInsets();
+    }
+
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -178,6 +194,7 @@ public class MainActivity extends Activity {
             return true;
         });
         setContentView(sv);
+        fitSystemBars(sv);
     }
 
     /** Camp rotunjit pe toata latimea (ca bara de cautare), cu textul ca indiciu. */
@@ -284,6 +301,7 @@ public class MainActivity extends Activity {
         blp.bottomMargin = dp(this, 10);
         root.addView(bar, blp);
         setContentView(root);
+        fitSystemBars(root);
         styleTabs();
         render();
         load(true);

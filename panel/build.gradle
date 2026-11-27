@@ -5,17 +5,26 @@ plugins {
 // Ca la aplicatia din masina: numarul build-ului din GitHub Actions si aceeasi cheie fixa.
 def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
 def keystore = System.getenv('SIGNING_KEYSTORE')
+// Cheia de incarcare pentru Google Play (Play App Signing semneaza el cu cheia finala).
+def uploadKeystore = System.getenv('UPLOAD_KEYSTORE')
 
 android {
     namespace 'ro.faicu.faikkitcar.panel'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId 'ro.faicu.faikkitcar.panel'
         minSdk 26
-        targetSdk 34
+        targetSdk 36
         versionCode buildNumber
         versionName "1.0.${buildNumber}"
+    }
+
+    // github = APK cu actualizare proprie (car.faicu.ro); play = AAB pentru Google Play, fara Updater.
+    flavorDimensions 'dist'
+    productFlavors {
+        github { dimension 'dist'; buildConfigField 'boolean', 'PLAY', 'false' }
+        play { dimension 'dist'; buildConfigField 'boolean', 'PLAY', 'true' }
     }
 
     buildFeatures {
@@ -31,11 +40,22 @@ android {
                 keyPassword System.getenv('SIGNING_PASSWORD')
             }
         }
+        if (uploadKeystore) {
+            upload {
+                storeFile file(uploadKeystore)
+                storePassword System.getenv('UPLOAD_PASSWORD')
+                keyAlias System.getenv('UPLOAD_ALIAS') ?: 'upload'
+                keyPassword System.getenv('UPLOAD_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
         debug {
             if (keystore) signingConfig signingConfigs.fixed
+        }
+        release {
+            if (uploadKeystore) signingConfig signingConfigs.upload
         }
     }
 
