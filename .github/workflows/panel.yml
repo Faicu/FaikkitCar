@@ -25,7 +25,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.13'
       - name: Decode signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -36,10 +36,10 @@ jobs:
           else
             echo "::warning::Secretul KEYSTORE_BASE64 lipseste: APK-ul e semnat cu o cheie de debug temporara."
           fi
-      - run: gradle :panel:assembleDebug
+      - run: gradle :panel:assembleGithubDebug
         env:
           SIGNING_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      - run: cp panel/build/outputs/apk/debug/panel-debug.apk FaikkitCarPanel.apk
+      - run: cp panel/build/outputs/apk/github/debug/panel-github-debug.apk FaikkitCarPanel.apk
       # Actualizarea din aplicatie ia APK-ul de pe car.faicu.ro (/api/panel/apk).
       - name: Publish APK to car.faicu.ro
         if: github.ref == 'refs/heads/main'
@@ -54,6 +54,32 @@ jobs:
             -H "Content-Type: application/vnd.android.package-archive" \
             --data-binary @FaikkitCarPanel.apk https://car.faicu.ro/api/panel/apk \
             || echo "::warning::Publicarea pe car.faicu.ro a esuat"
+      # Google Play (testare interna): AAB semnat cu cheia de incarcare, doar daca secretele exista.
+      # Secrete: UPLOAD_KEYSTORE_BASE64, UPLOAD_PASSWORD, (UPLOAD_ALIAS), PLAY_SERVICE_ACCOUNT_JSON.
+      - name: Build Play bundle
+        id: play
+        if: github.ref == 'refs/heads/main'
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_PASSWORD: ${{ secrets.UPLOAD_PASSWORD }}
+          UPLOAD_ALIAS: ${{ secrets.UPLOAD_ALIAS }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ] || [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::notice::Secretele pentru Google Play lipsesc, AAB-ul nu se construieste"; exit 0
+          fi
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks" gradle :panel:bundlePlayRelease
+          echo "ok=1" >> "$GITHUB_OUTPUT"
+      - name: Upload to Google Play (internal testing)
+        if: steps.play.outputs.ok == '1'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ro.faicu.faikkitcar.panel
+          releaseFiles: panel/build/outputs/bundle/playRelease/panel-play-release.aab
+          track: internal
+          status: completed
       - uses: actions/upload-artifact@v4
         with:
           name: faikkitcar-panel-apk
