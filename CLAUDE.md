@@ -120,8 +120,8 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.13.2, osmdro
   utilizator: TXZ, Google; Spotify Teyes nu se poate. `KeepAliveListener` (1.1.55): „Acces la
   notificări” → adj 100 și repornire de către sistem (emulator: 200 → 100, repornit în ~5 s).
   Pe Teyes, cu accesul dat (20.10), adj rămâne 200 (ROM-ul modifică OomAdjuster). Un `kill -9`
-  cu navigația trează: serviciul repornit în ~1 s (START_STICKY). Netestat: moartea în somn
-  lung (dimineața 20.10) și cine ne repornește atunci. 15.11 (2 zile de la boot, Waze pornit): 1,3 GB disponibili, swap 1,15 GB folosit din 2,25, noi ~180 MB;
+  cu navigația trează: serviciul repornit în ~1 s (START_STICKY). Moartea în somn
+  lung (dimineața 20.10) și cine ne repornește: la 27.11 utilizatorul confirmă că aplicația rezistă la somn și că repornirile merg. 15.11 (2 zile de la boot, Waze pornit): 1,3 GB disponibili, swap 1,15 GB folosit din 2,25, noi ~180 MB;
   `com.lsec.gesture` (gesturile): ~23% CPU în media de la boot din `ps`, dar doar 2,8% pe 30 s în Panel (17:28). YouTube Music ~400 MB, Waze 300–500 MB:
   cu ele, ~420 MB disponibili; tapetul animat e omorât primul.
 - `RemoteCmd` (20.10, 1.1.54): comenzi shell de pe server, doar cu Setări → Sistem → „Comenzi de
@@ -363,7 +363,7 @@ volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după
   pentru „LTE only”. Pe drumurile din oraș 29–30.10: niciodată fără internet, ~−100 dBm medie.
   01.11, 18:46: utilizatorul a pus „LTE only” din butonul „Informatii telefon” (meniul Teyes de rețea
   mobilă are doar „LTE (recomandat)”/3G/2G, adică automat). Înainte: un 2G prins pe 31.10 08:11 (GSM
-  ARFCN 16, ~5 s, după LTE −123 dBm); după: niciun 2G. Netestat: dacă setarea rămâne după o repornire.
+  ARFCN 16, ~5 s, după LTE −123 dBm); după: niciun 2G. Setarea a rămas după repornire (confirmat; la 27.11 utilizatorul o consideră funcțională).
   2G rămâne în monitorizare ca semnal că setarea s-a pierdut. 02.11: a trecut somnul de 8,5 h (22:51–07:23). A rămas după repornire (01.11). Setarea e pe cartelă:
   `preferred_network_mode<subId>` (`preferred_network_mode` general rămâne 9 pe Teyes); 1.1.68 o citește de
   acolo și scrie „Retea mobila: tipul preferat …” în jurnal la pornire și la schimbare. Comenzile de la
@@ -562,7 +562,9 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   instalarea mai durează ~25 s (Play Protect) fără nimic pe ecran; a doua apăsare făcea a doua
   sesiune și o a doua instalare. Din 1.1.57 `Updater.busy` blochează apăsarea și butonul arată
   „Se instaleaza...”.
-- De urmărit: cât de des moare procesul imediat după plecare (aplicațiile pornite la trezire).
+- 27.11 (confirmat de utilizator): aplicația rezistă la somn și repornește, muzica din Panel, semnalul mobil („LTE only”) și
+  alimentările sunt operaționale; memoria navigației rămâne urmărită pe Navigație (`sys`, binder). Avertizările vocale ale
+  defectelor (clapeta) sunt făcute, dar încă neauzite în mașină.
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Contact pus cu motorul oprit: confirmat 15.11 (Panel 1.0.44 → „Doar contact”, 13,2 V, 0 rpm).
