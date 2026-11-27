@@ -136,7 +136,7 @@ app.post("/api/car/state", async (c) => {
     ok: true,
     state: saveState(p),
     cmd: pendingCmdCount(),
-    apk: readApkInfo("car")?.versionCode ?? 0,
+    apk: readApkInfo()?.versionCode ?? 0,
     // Fără `fast` (25.11): starea la 1 s cât Panel era deschis, cu muzica pornită, umfla procesul Android al
     // navigației (~20–45 MB/min, testat: crește cu ea, stă fără ea); aplicațiile vechi îl văd lipsă = 5 s.
     // `obd` = comutatorul „OBD (teste)”: false = mașina lasă adaptorul și nu citește nimic.
@@ -244,7 +244,7 @@ app.get("/api/car/apk", (c) => {
 });
 
 /** Primește un APK de la CI (octeții + X-Version-Code / X-Version-Name). */
-async function receiveApk(c: Context, kind: "car" | "panel") {
+async function receiveApk(c: Context) {
   requireCiToken(c);
   const versionCode = Number(c.req.header("x-version-code"));
   const versionName = String(c.req.header("x-version-name") ?? "").slice(0, 40);
@@ -256,25 +256,25 @@ async function receiveApk(c: Context, kind: "car" | "panel") {
   if (body.length > 60 * 1024 * 1024) throw new HTTPException(413, { message: "Too large" });
   // Un APK e o arhivă ZIP: primii octeți sunt „PK”.
   if (body[0] !== 0x50 || body[1] !== 0x4b) throw new HTTPException(400, { message: "Not an APK" });
-  return c.json(saveApk(body, versionCode, versionName, kind));
+  return c.json(saveApk(body, versionCode, versionName));
 }
 
-function sendApk(c: Context, kind: "car" | "panel") {
-  if (!apkExists(kind)) throw new HTTPException(404, { message: "No APK" });
-  const info = readApkInfo(kind);
-  return c.body(Readable.toWeb(createReadStream(apkPath(kind))) as ReadableStream, 200, {
+function sendApk(c: Context) {
+  if (!apkExists()) throw new HTTPException(404, { message: "No APK" });
+  const info = readApkInfo();
+  return c.body(Readable.toWeb(createReadStream(apkPath())) as ReadableStream, 200, {
     "Content-Type": "application/vnd.android.package-archive",
     "Content-Length": String(info?.size ?? ""),
-    "Content-Disposition": `attachment; filename="${kind === "car" ? "FaikkitCar" : "FaikkitCarPanel"}.apk"`,
+    "Content-Disposition": `attachment; filename="FaikkitCar.apk"`,
     "Cache-Control": "no-store",
   });
 }
 
-app.post("/api/car/apk", (c) => receiveApk(c, "car"));
+app.post("/api/car/apk", (c) => receiveApk(c));
 
 app.get("/api/car/apk/download", (c) => {
   requireCarToken(c);
-  return sendApk(c, "car");
+  return sendApk(c);
 });
 
 // ----------------------------------------------------------- login (site + Panel)
