@@ -396,7 +396,7 @@ Rutele `/api/car/*` cer cheia mașinii (`CAR_TOKEN`), `POST /api/*/apk` cheia CI
 - **Local pe server:** JDK 17, Gradle 8.7 și Android SDK 34 în `/root/android`:
   ```
   export JAVA_HOME=/root/android/jdk
-  /root/android/gradle-8.7/bin/gradle :app:assembleDebug     # sau :panel:assembleDebug
+  /root/android/gradle-8.13/bin/gradle :app:assembleDebug     # sau :panel:assembleDebug
   ```
 
 ---
