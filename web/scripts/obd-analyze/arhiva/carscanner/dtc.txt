@@ -1,0 +1,87 @@
+Car Scanner ELM OBD2
+Version: 2.2.52/42002052/GP
+DTC report
+Connection profile: Volkswagen PQ35: TSI/TFSI 1.2 EA111 (UDS)Date: 24.11.2026 23:20:33
+VIN: WVWZZZ1KZDW032311
+============================
+OBD-IIOBD-II
+DTCs: 1
+----------------------------
+11003 [0x002AFB] Arhivă (inactiv)
+Stare: Test eșuat de la ultima ștergere a codurilor DTC, Test nefinalizat în ciclul de conducere curent
+============================
+19. CAN Gateway19. CAN Gateway
+DTCs: 1
+----------------------------
+01305 [0x0519]
+Infotainment Command Information System Data Bus; Infotainment data bus
+Stare: Condițiile pentru test sunt îndeplinite, Validat și stocat în memorie nevolatilă
+============================
+03. Unitatea de comandă ABS
+Nu s-au găsit coduri DTC.
+============================
+01. unitatea de control a motorului01. unitatea de control a motorului
+DTCs: 1
+----------------------------
+11003 [0x002AFB] Arhivă (inactiv)
+P044100: EVAP Emission Contr.Sys.Incorrect, Purge Flow
+EVAP Emission Contr.Sys.Incorrect Purge Flow
+P044100: EVAP Emission Contr.Sys.Incorrect, Purge Flow
+Stare: Test eșuat de la ultima ștergere a codurilor DTC, Test nefinalizat în ciclul de conducere curent
+============================
+08. Heater and climate08. Heater and climate
+DTCs: 2
+----------------------------
+9474417 [0x909171]
+B109171: Front air distribution door motor, Actuator jammed
+Luftverteilungsklappe vorne - schwergängig, blockiert
+Stare: Test eșuat, Confirmat
+----------------------------
+9474418 [0x909172] Arhivă (inactiv)
+B109154: Front air distribution door motor, No basic setting
+Luftverteilungsklappe vorne - Kalibierungsfehler, Lernroutine nicht erfolgreich abgeschlossen
+Stare: Confirmat
+============================
+0D. Slide Door Left (VW TP2.0)0D. Slide Door Left (VW TP2.0)
+DTCs: 1
+----------------------------
+00937 [0x03A9]
+Rear Left Power Window Switch-E52; Window lifter switch, rear left-E52
+Stare: Testul este inhibat de un alt DTC, Validat și stocat în memorie nevolatilă, Defecțiune confirmată prezentă la momentul solicitării
+============================
+10. Parking Assistant 2
+Nu s-au găsit coduri DTC.
+============================
+15. SRS
+Nu s-au găsit coduri DTC.
+============================
+16. Steering column
+Nu s-au găsit coduri DTC.
+============================
+17. Dashboard
+Nu s-au găsit coduri DTC.
+============================
+25. Immobilizer
+Nu s-au găsit coduri DTC.
+============================
+42. Driver door electronic equipment
+Nu s-au găsit coduri DTC.
+============================
+44. Power steering
+Nu s-au găsit coduri DTC.
+============================
+52. Front passenger door electronics
+Nu s-au găsit coduri DTC.
+============================
+62. Rear left door electoronics (VW TP2.0)62. Rear left door electoronics (VW TP2.0)
+DTCs: 1
+----------------------------
+00937 [0x03A9]
+Rear Left Power Window Switch-E52; Window lifter switch, rear left-E52
+Stare: Testul este inhibat de un alt DTC, Validat și stocat în memorie nevolatilă, Defecțiune confirmată prezentă la momentul solicitării
+============================
+72. Rear right door electronics (VW TP2.0)
+Nu s-au găsit coduri DTC.
+============================
+78. Slide Door Right (VW TP2.0)
+Nu s-au găsit coduri DTC.

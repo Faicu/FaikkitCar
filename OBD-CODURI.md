@@ -116,7 +116,7 @@ Gateway-ul pe 20.11: 01305 (0x0519, starea 0x24) și încă o intrare, neîntrea
 | OBD 09 | VIN, CALID `03F906070GA 5413`, CVN C3664742, „ECM-EngineControl” | 20.11 |
 | **UDS 0600** | **Codarea lungă** a motorului: `001900D6232400080000` (la fel în Car Scanner) | 24.11 |
 
-**Numele din Car Scanner** (24.11, profilul „Volkswagen PQ35: TSI/TFSI 1.2 EA111 (UDS)”): jurnalul adaptorului (`/root/carscanner/log.txt`,
+**Numele din Car Scanner** (24.11, profilul „Volkswagen PQ35: TSI/TFSI 1.2 EA111 (UDS)”): jurnalul adaptorului (`web/scripts/obd-analyze/arhiva/carscanner/log.txt.gz`,
 nu e în repo: are numele dispozitivelor Bluetooth din jur) arată cererile, toate `22 <DID>` în sesiunea implicită, pe rând, în ordinea
 listei de senzori; potrivite cu valorile din exportul „Toți senzorii” de la 22:46:56:
 
