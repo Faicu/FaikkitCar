@@ -43,7 +43,7 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
   cu bordul (relanti ~0,7 L/h), dar încă nu intră în calcule; ținta rămâne consumul exact din cantitatea injectată.
 - ✅ **Memoria navigației** e urmărită pe Navigație (`system_server` de la 1.1.120, cine ține obiecte binder de la 1.1.132); starea
   live la 1 s (Panel deschis) a fost scoasă pe 25.11 (1.1.126), pentru că umfla `system_server`.
-- ✅ **Panel pe Google Play** (27.11): testare internă, actualizări automate, fără actualizare proprie în aplicație
+- ✅ **Panel pe Google Play** (27.11): testare internă, actualizări automate, fără actualizare proprie în aplicație; examinarea Play s-a încheiat (27.11), numele „FaikkitCar Panel” apare corect (sufixul „(acces anticipat intern)” e pus de Play pentru testerii interni)
   (1.0.60). Aplicația din mașină rămâne pe actualizarea din aplicație.
 - 📌 **Navigația Teyes se actualizează cu firmware nou + Magisk** (de utilizator); după el urmează verificarea și planul de mai jos.
 
