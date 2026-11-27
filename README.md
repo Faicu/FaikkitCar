@@ -20,7 +20,7 @@
 Istoricul (versiuni, constatări datate, migrarea din FaikkitBox) e în [`ISTORIC.md`](ISTORIC.md);
 detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 
-**Legendă:** ✅ confirmat în uz real · 🧪 construit, netestat în uz real · 🔍 în lucru ·
+**Legendă:** ✅ confirmat în uz real (din 27.11, tot ce e în aplicații) · 🔍 în lucru ·
 💡 idee / neînceput · 📌 decis, așteaptă un pas anterior
 
 ---
@@ -31,12 +31,12 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
   (lipsă de memorie), „Acces la notificări” o repornește în câteva secunde.
 - ✅ Datele mașinii, călătoriile, salutul vorbit, actualizarea din aplicație, alimentările,
   jurnalul de service, muzica din Panel, semnalul mobil („LTE only” a rămas) și Panel-ul merg.
-- 🧪 **Consumul și costul drumurilor:** fiecare interval dintre două alimentări are consumul
+- ✅ **Consumul și costul drumurilor:** fiecare interval dintre două alimentări are consumul
   lui real (bonurile + nivelul rezervorului de dinaintea alimentării), iar costul se face cu
   prețul mediu al benzinei din rezervor. Nu e nevoie de plin.
 - ✅ Contactul pus cu motorul oprit: Panel → Acum arată „Doar contact”, 0 rpm, bateria, clima.
 - ✅ Avertizarea de ușă deschisă: „Atenție, ușa șoferului e deschisă!” la ~1,7 s după ce ușa e văzută în mers.
-- 🧪 Netestată încă în mașină: harta live pe drum.
+- ✅ Harta live pe drum (Acasă în mașină, Acum în Panel și pe site) funcționează.
 - ✅ **Adaptorul OBD2 (vLinker MC+):** FaikkitCar se conectează singur cu motorul pornit și îl eliberează la un minut
   după oprire. Din 21–25.11: citirea tuturor modulelor (motor, bord, climatronic) prin scanarea de pe server, erorile
   tuturor modulelor, becul ars și clapeta climatronicului, cu avertizare vocală. Consumul din aerul aspirat se potrivește
@@ -87,14 +87,14 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Funcție | Stare | Detalii |
 |---|---|---|
 | Interfață | ✅ | Temă întunecată, bara compactă jos: Acasă / Sunete / Setări / Jurnal |
-| Acasă: harta și ce nu arată bordul | 🧪 | Harta mare (călătoria în curs sau ultima, mașina pe ea), alături viteza, starea („Oprit in trafic · 45 s”, „Parcat, motor pornit”…), costul / litrii / traficul drumului, ziua de azi, bateria doar în afara limitelor, actualizarea și mentenanța scadentă |
+| Acasă: harta și ce nu arată bordul | ✅ | Harta mare (călătoria în curs sau ultima, mașina pe ea), alături viteza, starea („Oprit in trafic · 45 s”, „Parcat, motor pornit”…), costul / litrii / traficul drumului, ziua de azi, bateria doar în afara limitelor, actualizarea și mentenanța scadentă |
 | Jurnal trimis live la server | ✅ | Coadă locală (2.000 de linii); la orice eroare a serverului datele rămân în coadă. Căderile aplicației apar cu eroarea exactă |
 | Actualizare din aplicație | ✅ | CI-ul publică APK-ul pe car.faicu.ro, aplicația îl descarcă și îl instalează; cât se instalează, butonul arată „Se instalează...” |
 | Ținută în viață | ✅ | Vezi [Ținerea în viață](#ținerea-în-viață-a-aplicației) |
-| Resurse puține în fundal | 🧪 | Harta și ecranul lucrează doar cât aplicația e deschisă; în fundal rămâne serviciul. Vocea locală se eliberează la 30 s după ce vorbește |
-| Linia „Teyes” în jurnal | 🧪 | La fiecare pornire a serviciului: listele Teyes, accesul la notificări, memoria liberă |
+| Resurse puține în fundal | ✅ | Harta și ecranul lucrează doar cât aplicația e deschisă; în fundal rămâne serviciul. Vocea locală se eliberează la 30 s după ce vorbește |
+| Linia „Teyes” în jurnal | ✅ | La fiecare pornire a serviciului: listele Teyes, accesul la notificări, memoria liberă |
 | Muzica din Panel | ✅ | YouTube Music de pe navigație comandat de pe telefon: piesa, redare/pauză, anterioara/următoarea, derularea, volumul Teyes, căutarea unei piese (pornește în mașină; harta revine în față) |
-| Comenzi de la distanță (teste) | 🧪 | Setări → Sistem, oprit implicit: serverul poate rula comenzi pe navigație (fără root); rezultatele sunt în jurnalul „Comenzi la distanță” |
+| Comenzi de la distanță (teste) | ✅ | Setări → Sistem, oprit implicit: serverul poate rula comenzi pe navigație (fără root); rezultatele sunt în jurnalul „Comenzi la distanță” |
 | Sonda CAN | ✅ | Setări → „avansat”: 10 minute, marcaje cu text, schimbările live |
 
 ### Datele mașinii, călătoriile și consumul
@@ -104,19 +104,19 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
 | Datele CAN prin MainServer | ✅ | Vezi [Datele mașinii](#datele-mașinii-can) |
 | Înregistrarea călătoriilor | ✅ | Punct la 5 s în mers, 30 s pe loc cu motorul pornit, nimic cu motorul oprit |
 | GPS oprit cu motorul oprit | ✅ | După 1 min cu turația 0; pornit din nou la turație sau mers |
-| Drumuri neînregistrate | 🧪 | Kilometrajul sare cu ≥ 2 km între două călătorii → „Drum neînregistrat” în listă, cu km, litrii și costul estimate (consumul real al perioadei); pe Costuri apar separat, pe lună |
+| Drumuri neînregistrate | ✅ | Kilometrajul sare cu ≥ 2 km între două călătorii → „Drum neînregistrat” în listă, cu km, litrii și costul estimate (consumul real al perioadei); pe Costuri apar separat, pe lună |
 | Nivelul combustibilului | ✅ | c104, în litri; cu motorul oprit decodorul trimite 0 (ignorat) |
-| Consum și cost pe călătorie | 🧪 | Estimare din model fizic (cu AC-ul după temperatura de afară și pornirea la rece), calibrată pe fiecare interval dintre alimentări; costul cu prețul mediu al benzinei din rezervor |
+| Consum și cost pe călătorie | ✅ | Estimare din model fizic (cu AC-ul după temperatura de afară și pornirea la rece), calibrată pe fiecare interval dintre alimentări; costul cu prețul mediu al benzinei din rezervor |
 | Alimentări | ✅ | Pe site și în Panel: litrii și totalul plătit (prețul pe litru iese din ele); kilometrajul se completează automat; avertizare dacă alimentarea nu se vede în rezervor la ora ei |
-| Mentenanță după km / dată (ulei, ITP, RCA, rovinietă, distribuție) | 🧪 | Se editează pe site sau în Panel; cele scadente apar pe navigație și în salut |
+| Mentenanță după km / dată (ulei, ITP, RCA, rovinietă, distribuție) | ✅ | Se editează pe site sau în Panel; cele scadente apar pe navigație și în salut |
 | Salut vorbit după 30 s de mers | ✅ | Ora zilei („Bună seara” de la apus), temperatura de afară, mentenanța scadentă. Vocea Piper „Mihai” de pe server; fără internet, vocea Google |
 | Avertizare „ușă deschisă” în mers (≥ 5 km/h) | ✅ | Vocea locală (fără întârziere) sau bip |
 | Adaptorul OBD2 (vLinker MC+, BLE) | ✅ | Automat cu motorul pornit, eliberat la 1 min după oprire; turația, presiunea din galerie, aerul admis, lichidul de răcire, sarcina, lambda, ~3–11 citiri/s |
-| Consumul din OBD | 🧪 | Din aerul aspirat, pe fiecare punct; se calibrează pe următorul plin → plin, apoi înlocuiește estimarea |
-| Erorile mașinii | 🧪 | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. Plus „bec ars” (avertizarea de pe bord; confirmat la proiectoare). ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
-| Clapeta climatronicului | 🧪 | Făcută, vocea încă neauzită în mașină. Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
-| Scanarea OBD | 🧪 | Situația codurilor (ce înseamnă, ce e bănuit, erorile): [`OBD-CODURI.md`](OBD-CODURI.md). Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Motorul, bordul și climatronicul sunt scanate complet; codurile încă neclare se recitesc la 30 s, fiecare cu valorile motorului din aceeași clipă |
-| Comutatorul „OBD (teste)” | 🧪 | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
+| Consumul din OBD | ✅ | Strâns pe fiecare punct din aerul aspirat (se potrivește cu bordul); nu intră încă în calcule, până la calibrarea pe următorul plin → plin, când va înlocui estimarea |
+| Erorile mașinii | ✅ | Motorul (OBD la 5 min, UDS), bordul, climatronicul și airbag-ul (UDS, la 15 min); card pe Navigație (site și Panel; mutat de pe Acum pe 21.11) doar când există vreuna. Plus „bec ars” (avertizarea de pe bord; confirmat la proiectoare). ABS-ul, confortul și direcția nu se citesc (protocolul vechi TP2.0) |
+| Clapeta climatronicului | ✅ | Motorașul V426 (B1091) se blochează intermitent: urmărire la 30 s (reală − cerută), defect „Climatronic · clapeta” după 2 citiri la ≥ 30 s, cu ce înseamnă și ce faci; spus vocal la salut sau în mers (o dată pe drum), comutator Setări → În mers |
+| Scanarea OBD | ✅ | Situația codurilor (ce înseamnă, ce e bănuit, erorile): [`OBD-CODURI.md`](OBD-CODURI.md). Tot ce răspunde prin priză, pe rând, cu motorul pornit (pe loc și în mers): motorul, OBD-ul standard, restul climatronicului, apoi recitirea în buclă a codurilor găsite; totul ajunge singur pe server. Pe site: Navigație → „Scanarea OBD” (progresul, catalogul, istoricul valorilor). Motorul, bordul și climatronicul sunt scanate complet; codurile încă neclare se recitesc la 30 s, fiecare cu valorile motorului din aceeași clipă |
+| Comutatorul „OBD (teste)” | ✅ | Pornit implicit; Navigație → „Adaptorul OBD (teste)” (site, Panel) sau Setări → Sistem în mașină. Oprit: adaptorul liber (Car Scanner), nimic citit sau scanat; călătoriile și costurile nu depind de OBD |
 
 ### Site-ul car.faicu.ro și FaikkitCar Panel
 
@@ -126,23 +126,23 @@ La fel pe site și în Panel, în cinci file: **Acum · Călătorii · Costuri �
 |---|---|---|
 | Login | ✅ | Site: cookie de 180 de zile. Panel: token păstrat în aplicație |
 | Acum: starea mașinii | ✅ | Oprită / Doar contact / Motor pornit / În mers, de când; viteză, turație, baterie; actualizată la 5 s cu motorul pornit |
-| Acum: „Fără semnal” | 🧪 | Dacă mașina tace după mers sau motor pornit, „Fără semnal” de la ultima stare, cu drumul în curs până acolo; după o oră, „Oprită” |
+| Acum: „Fără semnal” | ✅ | Dacă mașina tace după mers sau motor pornit, „Fără semnal” de la ultima stare, cu drumul în curs până acolo; după o oră, „Oprită” |
 | Acum: climă și detalii | ✅ | AC, AUTO, ventilator, temperaturile setate stânga / dreapta, afară; uși, centură, frâna de mână, marșarier |
-| Acum: călătoria în curs | 🧪 | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
-| Acum: rezervor și autonomie | 🧪 | Litrii de la mașină ÷ consumul mediu real |
+| Acum: călătoria în curs | ✅ | Distanță, durată, litri, L/100, cost și harta live (plecarea, traseul, mașina, opririle; „Urmărește mașina”) |
+| Acum: rezervor și autonomie | ✅ | Litrii de la mașină ÷ consumul mediu real |
 | Acum: navigația pe scurt | ✅ | Un rând în primul card: „merge bine · 1,1 GB liberi · procesor 24% · 48 °C” sau problemele (memorie sub 600 / 300 MB, swap plin, peste 70 / 80 °C, procesorul peste 75% în medie pe 3 min, un proces care ține ocupat un nucleu, sub 1 GB spațiu); atins, duce la fila Navigație |
 | Navigație: semnal mobil | ✅ | Harta pe pătrate de ~200 m (verde = semnal bun … roșu = fără internet), partea din timpul de drum fără internet, benzile LTE folosite (din canal) cu semnalul median, operatorul și căderile de internet din mers (de la 15 s), pe 7 / 30 / 90 de zile, pe site și în Panel; de la FaikkitCar 1.1.64 (primele puncte venite pe 28.10: Digi pe B8 900) |
 | Navigație | ✅ | Procesorul, memoria liberă și temperatura (cu graficele pe ultima oră), swap-ul, de când e pornită, memoria și adj-ul FaikkitCar, spațiul liber și procesele care consumă cel mai mult; „doarme” când nu mai vin măsurări (confirmat pe navigație pe 22.10, prin somn și repornire) |
 | Navigație: `system_server` | ✅ | Memoria anonimă a lui `system_server` (avertizare de la 1000 MB) în cardul Navigația; din 1.1.132, la 2 min, cine ține obiecte binder, doar în istoric |
 | Unde e mașina | ✅ | Ultima poziție GPS, pe hartă și în Google Maps |
-| Propuneri | 🧪 | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
+| Propuneri | ✅ | „Ai alimentat pe … ~16 L?” (salt în rezervor) și „Parchezi des aici: …”; „Da” completează, „Nu” ascunde |
 | Călătoriile | ✅ | Listă (cu drumurile neînregistrate; pornirile pe loc sub 0,5 km ascunse) și detalii: traseul, distanța, durata, costul, bara timpului (mers / trafic / staționare / motor oprit), harta, grafice viteză / turație / rezervor |
-| Opriri în trafic vs. staționare | 🧪 | Vezi [Cum se calculează o călătorie](#cum-se-calculează-o-călătorie) |
-| Combinarea călătoriilor | 🧪 | Traseul cu opririle din locurile salvate („Acasă → Academia de Poliție → Acasă”). Automat peste opririle de ≤ 30 min Acasă / la Serviciu și de ≤ 3 h în altă parte; „Combină cu precedenta / următoarea”, „Desparte” (ține minte despărțirea); opririle dintre părți apar pe hartă ca puncte galbene |
+| Opriri în trafic vs. staționare | ✅ | Vezi [Cum se calculează o călătorie](#cum-se-calculează-o-călătorie) |
+| Combinarea călătoriilor | ✅ | Traseul cu opririle din locurile salvate („Acasă → Academia de Poliție → Acasă”). Automat peste opririle de ≤ 30 min Acasă / la Serviciu și de ≤ 3 h în altă parte; „Combină cu precedenta / următoarea”, „Desparte” (ține minte despărțirea); opririle dintre părți apar pe hartă ca puncte galbene |
 | Costuri: 30 de zile, pe luni, raportul lunii | ✅ | km, timp, trafic, litri, L/100, cost estimat și ce s-a dat la pompă; staționarea cu motorul pornit (timp, litri, lei, cu AC-ul și încălzirea motorului); drumurile neînregistrate separat; cea mai lungă călătorie, locurile cele mai dese |
-| La serviciu (ture 12/24) | 🧪 | Următoarea tură (zi 08–20, noapte 20–08, liber, liber, dedus din drumuri) și ora până la care să pleci ca să ajungi cu 15 min înainte (drumul din zilele proaste, percentila 90), separat pentru zilele lucrătoare și cele libere (weekend, sărbători legale); doar drumurile fără opriri pe drum |
+| La serviciu (ture 12/24) | ✅ | Următoarea tură (zi 08–20, noapte 20–08, liber, liber, dedus din drumuri) și ora până la care să pleci ca să ajungi cu 15 min înainte (drumul din zilele proaste, percentila 90), separat pentru zilele lucrătoare și cele libere (weekend, sărbători legale); doar drumurile fără opriri pe drum |
 | Drumurile tale | ✅ | Între locuri salvate, de la 10 deplasări în 90 de zile: costul, durata medie fără staționări, timpul în trafic |
-| Locuri salvate (Acasă, Serviciu...) | 🧪 | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc”. Un loc poate avea mai multe poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui (site, Panel 1.0.25) |
+| Locuri salvate (Acasă, Serviciu...) | ✅ | Călătoriile apar „Acasă → Serviciu”. Loc nou după adresă, cu pinul mutat pe hartă și raza, sau „Salvează sosirea ca loc”. Un loc poate avea mai multe poziții (ex. două parcări acasă): „+ Poziție” pe rândul lui (site, Panel 1.0.25) |
 | Jurnal de service | ✅ | Lucrările cu data, kilometrajul, locul, costul, articolele pe grupe și bonurile / facturile atașate; costul intră în raportul lunii |
 | Jurnalul navigației | ✅ | Pe bucăți: Evenimente, Pornire și somn, Mașina, GPS, Sunet și voce, Actualizări, CAN și diagnostic, Comenzi la distanță, Tot. Nu se poate goli |
 | Panel pe Google Play | ✅ | Testare internă, doar pentru noi: se instalează și se actualizează automat din Play (de la 1.0.59), fără confirmări și fără actualizare proprie în aplicație (scoasă în 1.0.60); fiecare push în `panel/**` urcă singur versiunea. Aplicația din mașină rămâne pe actualizarea din aplicație până facem root-ul și pachetul nou |
@@ -209,7 +209,7 @@ inversată atunci.
 | Ce se întâmplă | Ce ne repornește | Cât durează |
 |---|---|---|
 | Procesul e omorât (memorie, kill) | Sistemul repornește serviciul permanent; „Acces la notificări” | ~1 s cu navigația trează, ~7 s prin „Acces la notificări” în mers |
-| Oprire forțată (force-stop) | „Acces la notificări”: sistemul se leagă din nou de aplicație | Emulator: imediat; pe navigație netestat |
+| Oprire forțată (force-stop) | „Acces la notificări”: sistemul se leagă din nou de aplicație | Emulator: imediat; pe navigație repornirile merg (confirmat 27.11) |
 | Omorât în somn | Alarma de rezervă (nu trezește navigația) | La prima trezire, cel mult ~1 min |
 | ACC ON după o oprire scurtă | Autostart-ul Teyes („FaikkitCar Start”) | Imediat |
 | Boot complet / actualizare | `BootReceiver` | La pornire |

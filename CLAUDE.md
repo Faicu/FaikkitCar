@@ -81,7 +81,7 @@ Java fără AndroidX, minSdk 26, targetSdk 33, compileSdk 34, AGP 8.13.2, osmdro
   `WelcomeService.onCreate`; dacă serviciul nu rulează, îl pornește („Alarma de rezerva” în jurnal).
   Testat în emulatorul Android 10 (AVD `car29`). Force-stop-ul anulează alarma, dar cu „Acces la
   notificări” sistemul reface legătura cu `KeepAliveListener` și ne repornește imediat (emulator
-  20.10: kill -9 → ~5 s, force-stop → ~20 ms; pe Teyes netestat).
+  20.10: kill -9 → ~5 s, force-stop → ~20 ms; pe Teyes repornirile merg, confirmat de utilizator 27.11).
 - `StartActivity` („FaikkitCar Start”, translucidă): lansată de lista de autostart Teyes la ACC
   ON → `WelcomeService.startAccOn` redă direct. `BootReceiver`: `BOOT_COMPLETED`,
   `QUICKBOOT_POWERON`, `MY_PACKAGE_REPLACED` (fără `LOCKED_BOOT_COMPLETED`).
@@ -563,13 +563,13 @@ rezervor, prețul benzinei din rezervor, drumurile neînregistrate pe Costuri (c
   sesiune și o a doua instalare. Din 1.1.57 `Updater.busy` blochează apăsarea și butonul arată
   „Se instaleaza...”.
 - 27.11 (confirmat de utilizator): aplicația rezistă la somn și repornește, muzica din Panel, semnalul mobil („LTE only”) și
-  alimentările sunt operaționale; memoria navigației rămâne urmărită pe Navigație (`sys`, binder). Avertizările vocale ale
-  defectelor (clapeta) sunt făcute, dar încă neauzite în mașină.
+  alimentările sunt operaționale; memoria navigației rămâne urmărită pe Navigație (`sys`, binder). Tot ce e acum în aplicații
+  (inclusiv avertizările vocale ale defectelor, clapeta, harta live) funcționează, testat de utilizator.
 - Doar contact, fără motor: nu se înregistrează puncte, deci nu apare nicio călătorie (confirmat
   din date pe 12.10, de mai multe ori). Motorul pornit fără mers face o „pornire pe loc” (ascunsă).
 - Contact pus cu motorul oprit: confirmat 15.11 (Panel 1.0.44 → „Doar contact”, 13,2 V, 0 rpm).
 - Avertizarea de ușă: confirmată 15.11 (ușa șoferului, vocea locală la ~1,7 s, cât pornește TextToSpeech).
-- Netestat încă în mașină: harta live pe drum.
+- Harta live pe drum: funcționează (27.11).
 - 1.1.100 (21.11): cererile motorului cu „1” la sfârșit (un singur răspuns: adaptorul nu mai așteaptă după răspuns;
   după răspunsurile lente ale bordului ajunsese la ~240 ms pe cerere, ~3 citiri/s). Codurile de eroare (`01011`, `03`,
   `07`) la conectare și la 5 min, brute în starea live (`o.d`); serverul `dtc.ts` (pur, `dtc.test.ts`: coduri + descrieri
