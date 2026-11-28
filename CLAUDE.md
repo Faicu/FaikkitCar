@@ -410,7 +410,7 @@ volumul pe o bară 0–36 cu −/+; căutarea pornește singură la 400 ms după
 
 ## Codurile CAN (modulul 7 = CANBUS, decodor Raise; c1019 = cadre brute 0x2E, cmd, len, date, sumă)
 
-Confirmate: c110 / c1032 turație; c1031 viteză km/h (~6% peste GPS); c109 viteză ×100; c105
+Confirmate: (28.11, firmware Teyes 25.1107: temperatura exterioară vine pe **c121** x10, c139 rămâne 0; `CanLink` le citește pe amândouă; fără modelul ales în Setări → Device → Car Model → RZC(Raise) → Volkswagen → Glof 6 → 2010-2012 modulul dă doar c104/c105/c106/c110) c110 / c1032 turație; c1031 viteză km/h (~6% peste GPS); c109 viteză ×100; c105
 tensiune ×100; c106 kilometraj; c139 temperatura exterioară ×10; c104 litri în rezervor (0 cu
 motorul oprit, se ignoră ≤ 0; oscilează cu 1 L); c1–c5 uși (șofer, pasager, spate st., spate dr.,
 portbagaj; 1 = deschis); c101 centura șoferului desfăcută (1, confirmat 12.10); c103 frâna de
