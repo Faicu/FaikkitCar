@@ -33,6 +33,16 @@
     <!-- Vizibilitatea pachetelor (Android 11+): YouTube Music pentru MediaBrowser / intenții. -->
     <queries>
         <package android:name="com.google.android.apps.youtube.music" />
+        <!-- Launcherul propriu: lista aplicatiilor cu iconita si scurtaturile. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <package android:name="com.waze" />
+        <package android:name="com.syu.radio" />
+        <package android:name="com.syu.bt" />
+        <package android:name="com.syu.eq" />
+        <package android:name="com.syu.settings" />
     </queries>
 
     <application
@@ -79,6 +89,41 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!--
+            Launcherul propriu (28.11, de incercat): iconita „FaikkitCar Launcher” il deschide ca pe o
+            aplicatie obisnuita. Aliasul HOME e oprit implicit (altfel Android ar intreba la fiecare
+            Home): se porneste cu `pm enable com.mapgoo.diruite/ro.faicu.faikkitcar.HomeAlias`.
+        -->
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <activity-alias
+            android:name=".LauncherIcon"
+            android:exported="true"
+            android:label="FaikkitCar Launcher"
+            android:targetActivity=".LauncherActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".HomeAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:label="FaikkitCar Launcher"
+            android:targetActivity=".LauncherActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity-alias>
 
