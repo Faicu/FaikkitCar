@@ -204,7 +204,7 @@ public class LauncherActivity extends Activity {
         }});
         IconView arrow = new IconView(this, IconView.ARROW, WHITE);
         nav.addView(arrow, new LinearLayout.LayoutParams(Ui.dp(this, 44), Ui.dp(this, 44)));
-        nav.setOnClickListener(v -> open("com.waze"));
+        nav.setOnClickListener(v -> placeWaze(true));
         left.addView(nav, new LinearLayout.LayoutParams(-1, Ui.dp(this, 92)));
         LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(0, -1, 12);
         llp.setMargins(Ui.dp(this, 7), Ui.dp(this, 7), Ui.dp(this, 7), Ui.dp(this, 7));
@@ -301,17 +301,74 @@ public class LauncherActivity extends Activity {
         return f;
     }
 
-    /** Harta Waze din launcherul original nu se poate copia: card gol, atingerea deschide Waze. */
+    /**
+     * Cardul hartei: Teyes pune Waze intr-un task multi-window (mod 6) cu limitele cardului, peste
+     * launcher, si il repozitioneaza la fiecare Home (verificat 28.11: stiva 15 mode=6, bounds
+     * 822,130-1966,766; `am start --windowingMode 1` il intinde pe tot ecranul). Facem la fel cu
+     * ActivityOptions (setLaunchWindowingMode ascuns, setLaunchBounds public).
+     */
     private View buildMap() {
-        LinearLayout c = card();
-        c.setGravity(Gravity.CENTER);
-        c.setBackground(Ui.round(this, 0x33FFFFFF, 22));
-        c.addView(new IconView(this, IconView.ARROW, SOFT), new LinearLayout.LayoutParams(Ui.dp(this, 48), Ui.dp(this, 48)));
+        mapHost = card();
+        mapHost.setGravity(Gravity.CENTER);
+        mapHost.setBackground(Ui.round(this, 0x33FFFFFF, 22));
         TextView t = Ui.text(this, "Waze", 18, SOFT, false);
         t.setGravity(Gravity.CENTER);
-        c.addView(t);
-        c.setOnClickListener(v -> open("com.waze"));
-        return c;
+        mapHost.addView(t);
+        mapHost.setOnClickListener(v -> placeWaze(true));
+        return mapHost;
+    }
+
+    private LinearLayout mapHost;
+    private long wazeAt;
+
+    private static void unlockHiddenApi() {
+        try {
+            java.lang.reflect.Method forName = Class.class.getDeclaredMethod("forName", String.class);
+            java.lang.reflect.Method getDeclared = Class.class.getDeclaredMethod("getDeclaredMethod", String.class, Class[].class);
+            Class<?> vm = (Class<?>) forName.invoke(null, "dalvik.system.VMRuntime");
+            java.lang.reflect.Method getRuntime = (java.lang.reflect.Method) getDeclared.invoke(vm, "getRuntime", null);
+            java.lang.reflect.Method set = (java.lang.reflect.Method) getDeclared.invoke(vm, "setHiddenApiExemptions", new Class[]{String[].class});
+            set.invoke(getRuntime.invoke(null), (Object) new String[]{"L"});
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** full = tot ecranul (mod 1); altfel fereastra din cardul hartei (mod 6 + limitele cardului). */
+    private void placeWaze(boolean full) {
+        try {
+            Intent i = getPackageManager().getLaunchIntentForPackage("com.waze");
+            if (i == null) return;
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            android.app.ActivityOptions o = android.app.ActivityOptions.makeBasic();
+            unlockHiddenApi();
+            android.graphics.Rect r = null;
+            if (!full) {
+                int[] loc = new int[2];
+                mapHost.getLocationOnScreen(loc);
+                r = new android.graphics.Rect(loc[0], loc[1], loc[0] + mapHost.getWidth(), loc[1] + mapHost.getHeight());
+                if (r.width() < 100 || r.height() < 100) return;
+                o.setLaunchBounds(r);
+            }
+            android.app.ActivityOptions.class.getMethod("setLaunchWindowingMode", int.class).invoke(o, full ? 1 : 6);
+            startActivity(i, o.toBundle());
+            Prefs.log(this, "Launcher: Waze " + (full ? "pe tot ecranul" : "in card " + r.flattenToString()));
+        } catch (Throwable t) {
+            Prefs.log(this, "Launcher: Waze in card a esuat: " + t);
+            open("com.waze");
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (all.getVisibility() == View.VISIBLE) return;
+        // dupa ce s-a desenat pagina: Waze in cardul hartei (cel mult o data la 3 s)
+        home.postDelayed(() -> {
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (all.getVisibility() == View.VISIBLE || now - wazeAt < 3000) return;
+            wazeAt = now;
+            placeWaze(false);
+        }, 500);
     }
 
     private View buildApps() {
@@ -341,7 +398,7 @@ public class LauncherActivity extends Activity {
             l.setEllipsize(android.text.TextUtils.TruncateAt.END);
             l.setGravity(Gravity.CENTER);
             t.addView(l);
-            t.setOnClickListener(v -> open(pkg));
+            t.setOnClickListener(v -> { if ("com.waze".equals(pkg)) placeWaze(true); else open(pkg); });
             row.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
         }
         LinearLayout plus = new LinearLayout(this);
