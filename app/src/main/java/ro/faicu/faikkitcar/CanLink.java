@@ -11,14 +11,15 @@ import android.os.SystemClock;
 /**
  * Legatura permanenta la datele masinii din MainServer (modulul CANBUS), pentru calatorii.
  * Codurile au fost gasite cu CanProbe pe Golf 6 (vezi CLAUDE.md): c110 turatie, c1031 viteza
- * km/h, c109 viteza x100, c105 tensiune x100, c106 kilometraj, c139 temperatura exterioara x10,
+ * km/h, c109 viteza x100, c105 tensiune x100, c106 kilometraj, c139 temperatura exterioara x10
+ * (pe firmware-ul Teyes din 11.2025 ramane 0, iar temperatura vine pe c121, tot x10: 28.11),
  * c104 litrii din rezervor (ultimul camp din cadrul Raise 0x41/2, dupa kilometraj).
  * Pentru starea live: clima (c11 AC, c49 AUTO, c21 ventilator, c27/c28 temperatura setata),
  * c1033 (probabil consumul instantaneu x10, L/100 km; de confirmat cu bordul), c101 centura,
  * c103 frana de mana, octetul de stare din 0x41/1 si marsarierul (modulul 0, c68 = [1, 1]).
  */
 final class CanLink {
-    private static final int RPM = 110, SPEED = 1031, SPEED100 = 109, VOLT = 105, ODO = 106, TEMP = 139,
+    private static final int RPM = 110, SPEED = 1031, SPEED100 = 109, VOLT = 105, ODO = 106, TEMP = 139, TEMP2 = 121,
             FUEL = 104, RAW = 1019, AC = 11, AUTO = 49, FAN = 21, TEMP_L = 27, TEMP_R = 28,
             INSTANT = 1033, BELT = 101, HANDBRAKE = 103, REVERSE_MAIN = 68;
     // Cadrele brute Raise 0x41 (date de bord: turatie, viteza, tensiune...) vin de la bord,
@@ -40,7 +41,7 @@ final class CanLink {
     // Ultimele valori primite; citite din alt fir, deci volatile. MainServer trimite doar
     // schimbarile, asa ca o valoare "veche" e tot cea curenta (ex. viteza 0 cat stai pe loc,
     // turatia 0 cu motorul oprit). NaN / -1 = nu am primit inca nimic.
-    private volatile double speed = Double.NaN, volt = Double.NaN, temp = Double.NaN;
+    private volatile double speed = Double.NaN, volt = Double.NaN, temp = Double.NaN, temp2 = Double.NaN;
     private volatile int rpm = -1, odo = -1, fuel = -1;
     // Valorile brute pentru starea live (serverul le traduce); -1 = necunoscut.
     private volatile int ac = -1, auto = -1, fan = -1, tempL = -1, tempR = -1, instant = -1,
@@ -152,6 +153,7 @@ final class CanLink {
                             break;
                         case ODO: odo = v; break;
                         case TEMP: temp = v / 10.0; break;
+                        case TEMP2: temp2 = v / 10.0; break;
                         case FUEL: onFuel(v); break;
                         default:
                             if (code >= 1 && code <= DOORS.length) doors[code - 1] = v;
@@ -159,7 +161,7 @@ final class CanLink {
                     }
                 }
             };
-            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, FUEL, RAW, 1, 2, 3, 4, 5,
+            for (int code : new int[] {RPM, SPEED, SPEED100, VOLT, ODO, TEMP, TEMP2, FUEL, RAW, 1, 2, 3, 4, 5,
                     AC, AUTO, FAN, TEMP_L, TEMP_R, INSTANT, BELT, HANDBRAKE}) {
                 Syu.register(mod, cb, code);
             }
@@ -269,8 +271,13 @@ final class CanLink {
         return volt;
     }
 
-    /** Temperatura exterioara, °C; NaN daca nu stim. */
+    /**
+     * Temperatura exterioara, °C; NaN daca nu stim. c139 are prioritate cand e nenul (firmware vechi);
+     * pe firmware-ul nou c139 ramane 0 si valoarea vine pe c121 (28.11: 30 = 3,0 °C).
+     */
     double temp() {
+        if (!Double.isNaN(temp) && temp != 0) return temp;
+        if (!Double.isNaN(temp2) && temp2 != 0) return temp2;
         return temp;
     }
 
