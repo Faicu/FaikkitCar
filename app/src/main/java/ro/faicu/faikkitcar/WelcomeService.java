@@ -72,6 +72,9 @@ public class WelcomeService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        // Frazele fixe ale avertizarilor se pregatesc dupa ce se stabileste internetul (28.11).
+        new android.os.Handler(android.os.Looper.getMainLooper())
+                .postDelayed(() -> Speaker.prefetchFixed(this), 90_000);
         CrashLog.install(this);
         startForeground(1, buildNotification());
         Watchdog.running = true;
