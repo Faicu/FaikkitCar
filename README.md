@@ -11,11 +11,11 @@
 
 | | |
 |---|---|
-| **Versiuni** | FaikkitCar 1.1.132 (`build-132`, mașina, din aplicație) · FaikkitCar Panel 1.0.60 (telefonul, din Google Play) |
+| **Versiuni** | FaikkitCar 1.1.133 (`build-133`, mașina, din aplicație) · FaikkitCar Panel 1.0.60 (telefonul, din Google Play) |
 | **Descărcare** | Mașina: [FaikkitCar.apk](https://github.com/Faicu/FaikkitCar/releases/latest/download/FaikkitCar.apk) sau din aplicație, „Actualizează acum” · Telefonul: Google Play, testare internă (link de înscriere privat, actualizări automate; fără APK) |
 | **Site** | https://car.faicu.ro (login în `/opt/faikkitcar/.env`) |
 | **Repo** | `Faicu/FaikkitCar` (privat) |
-| **Actualizat** | 27.11.2026 |
+| **Actualizat** | 28.11.2026 |
 
 Istoricul (versiuni, constatări datate, migrarea din FaikkitBox) e în [`ISTORIC.md`](ISTORIC.md);
 detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
@@ -45,15 +45,26 @@ detaliile tehnice pentru dezvoltare în [`CLAUDE.md`](CLAUDE.md).
   live la 1 s (Panel deschis) a fost scoasă pe 25.11 (1.1.126), pentru că umfla `system_server`.
 - ✅ **Panel pe Google Play** (27.11): testare internă, actualizări automate, fără actualizare proprie în aplicație; examinarea Play s-a încheiat (27.11), numele „FaikkitCar Panel” apare corect (sufixul „(acces anticipat intern)” e pus de Play pentru testerii interni)
   (1.0.60). Aplicația din mașină rămâne pe actualizarea din aplicație.
-- 📌 **Navigația Teyes se actualizează cu firmware nou + Magisk** (de utilizator); după el urmează verificarea și planul de mai jos.
+- ✅ **Navigația are firmware nou (`MK202511111916`) și root (Magisk 31.1)**, din 27.11: zip-ul de actualizare cu `boot.img` patchuit,
+  re-semnat cu cheia publică de test (recovery-ul Teyes o acceptă). `su` merge pentru FaikkitCar (acordat în Magisk), iar comenzile
+  de la distanță pot rula cu root. Aplicațiile inutile (Google, bara plutitoare, gesturile, Teyes Voice, TPMS, Teyes Radio, puntea
+  Teyes Spotify) sunt dezactivate cu `pm disable-user`; cardul „Radio” din launcher rămâne, inert.
+- ✅ **Scurgerea de memorie din `system_server` e găsită și oprită** (28.11): puntea Teyes Spotify trimitea launcherului ~8–13 comenzi pe
+  secundă cu coperta albumului, iar memoria nativă creștea 4–6 MB/min cât cânta muzica. Dezactivată, `system_server` stă la ~75–100 MB;
+  cardul de muzică din launcher nu se mai actualizează (muzica, Panel-ul și cardul nostru merg).
+- ✅ **CAN după firmware:** modelul se alege în Setări → Device → Car Model (RZC(Raise) → Volkswagen → Golf 6 → 2010-2012) și „External
+  Temperature” (Setări → General) trebuie pornit; temperatura exterioară vine acum pe `c121` (1.1.133, 🧪 de confirmat în trafic față de bord).
+- ✅ **Sunet:** preset EQ „Faikki”, filtre HPF 90 / 100 Hz, Loud pornit (boxe stock, fără bătut în uși).
 
 ## Ce urmează
 
-1. 📌 **Root pe navigație (în lucru, 27.11):** utilizatorul actualizează firmware-ul Teyes cu Magisk. După el: verificarea cu
-   `web/scripts/teyes/verify-root.sh` (doar citiri), apoi ce permite root-ul: actualizare tăcută a aplicației din mașină
+1. 📌 **Ce permite root-ul (făcut 27.11, de folosit):** actualizare tăcută a aplicației din mașină
    (`su -c "pm install -r update.apk"`, fără „Instalați”; comutator în Setări → Sistem, oprit implicit), aplicația ca proces
    protejat (`oom_score_adj` negativ, pornire directă la ACC ON) și lista albă Teyes pe un pachet propriu. Prioritatea e
-   fiabilitatea, actualizarea tăcută vine după. Posibil să fie nevoie de reacordat permisiunile după actualizare.
+   fiabilitatea, actualizarea tăcută vine după. **Pachetul 2 de firmware** (neînceput): ștergeri definitive din imagini (cele
+   dezactivate acum), `keep_services` curățat (bucla `ServiceKeeper` din `com.syu.ms` încearcă ~2 legări/s la servicii care nu există).
+   De verificat între timp: sunetul de bun venit (copiat din Drive pe 28.11), temperatura din aplicație față de bord, `sysMb` stabil
+   cu muzică.
 2. 📌 **Aplicația din mașină pe Google Play (după root, decis pe 27.11):** pachet nou (`ro.faicu.faikkitcar`), cheie nouă,
    `targetSdk` 36, **fără** `Updater`, `RemoteCmd` (și probele `@…`), `REQUEST_INSTALL_PACKAGES`,
    `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `SYSTEM_ALERT_WINDOW` și, probabil, `PACKAGE_USAGE_STATS`; declarații pentru locație
@@ -227,7 +238,7 @@ ar trebui să fie 100 (așa e în emulator), dar ROM-ul Teyes nu o schimbă.
 | Platforma | FYT/SYU pe Unisoc UMS512 (`sprd ums512_1h10_Natv`), Android 10 |
 | Închiderea aplicațiilor | La somn, MainServer (`com.syu.ms`) oprește forțat tot ce nu e în `unkill_app.txt` (din APK-ul lui), `skipkillapp.prop` sau `protected_app.txt` |
 | Autostart | `/oem/app/pwctl_config.xml` („LaunchWhiteList”) decide cine are voie să pornească automat |
-| Soluția | Aplicația poartă numele `com.mapgoo.diruite`, prezent pe ambele liste și neinstalat pe navigație. Merge fără root; cu root (în lucru) lista albă se face pe un pachet propriu |
+| Soluția | Aplicația poartă numele `com.mapgoo.diruite`, prezent pe ambele liste și neinstalat pe navigație. Merge fără root; cu root (făcut 27.11) lista albă se poate face pe un pachet propriu (neînceput) |
 | Google Play | Play Store e activ pe navigație (apare ca dispozitiv în contul de Google), deci o aplicație din testarea internă s-ar putea instala și actualiza de acolo |
 | Ieșirea audio | Pornește abia când începe un sunet (~0,5 s pierdute), oricât s-ar aștepta înainte |
 | Voce | Google TTS cu o singură voce română (`vfv`, locală și online, la fel de robotice); cea online întârzie ~3 s |
@@ -248,7 +259,7 @@ Codurile renunțate sunt în [`ISTORIC.md`](ISTORIC.md#coduri-can-renunțate).
 | m7 c1031 / c109 | Viteza (km/h / ×100) | 31 / 3171 |
 | m7 c105 | Tensiunea bateriei (×100) | 13,9–14,55 V cu motorul pornit |
 | m7 c106 | Kilometrajul | 245.075 km |
-| m7 c139 | Temperatura exterioară (×10) | 190 = 19,0 °C |
+| m7 c139 | Temperatura exterioară (×10); pe firmware-ul 25.1107 rămâne 0, iar valoarea vine pe **m7 c121** | 190 = 19,0 °C |
 | m7 c104 | Litrii din rezervor; 0 cu motorul oprit | oscilează cu 1 L |
 | m7 c1 … c5 | Ușa șoferului, pasager față, spate stânga, spate dreapta, portbagaj | 1 = deschis |
 | m7 c101 | Centura șoferului desfăcută | 1 = desfăcută |
