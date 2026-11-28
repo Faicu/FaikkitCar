@@ -53,6 +53,15 @@ public class LauncherActivity extends Activity {
     private ScrollView all;
     private TextView title, artist, hint;
     private ImageView cover;
+    private TextView dateView;
+    private final Runnable tickDate = new Runnable() {
+        @Override
+        public void run() {
+            String d = new java.text.SimpleDateFormat("EEEE, d MMMM", new java.util.Locale("ro")).format(new java.util.Date());
+            dateView.setText(d.substring(0, 1).toUpperCase() + d.substring(1));
+            ui.postDelayed(this, 30_000);
+        }
+    };
     private TextView play;
 
     @Override
@@ -84,12 +93,8 @@ public class LauncherActivity extends Activity {
         clock.setTextSize(72);
         clock.setTextColor(Ui.TEXT);
         left.addView(clock);
-        TextClock date = new TextClock(this);
-        date.setFormat24Hour("EEEE, d MMMM");
-        date.setFormat12Hour("EEEE, d MMMM");
-        date.setTextSize(20);
-        date.setTextColor(Ui.MUTED);
-        left.addView(date);
+        dateView = Ui.text(this, "", 20, Ui.MUTED, false);
+        left.addView(dateView);
 
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -140,12 +145,12 @@ public class LauncherActivity extends Activity {
 
         // dreapta: scurtaturile
         GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(4);
-        for (String[] t : TILES) grid.addView(tile(t[0], t[1], iconOf(t[1])));
+        grid.setColumnCount(3);
+        for (String[] t : TILES) grid.addView(tile(t[0], t[1], iconOf(t[1] != null ? t[1] : "com.android.settings")));
         grid.addView(tile("Toate", "*", null));
         LinearLayout right = new LinearLayout(this);
         right.setGravity(Gravity.CENTER);
-        right.addView(grid);
+        right.addView(grid, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -1, 6);
         rp.leftMargin = p;
         row.addView(right, rp);
@@ -178,16 +183,21 @@ public class LauncherActivity extends Activity {
         t.setOrientation(LinearLayout.VERTICAL);
         t.setGravity(Gravity.CENTER);
         t.setBackground(Ui.round(this, Ui.CARD, 18));
-        int s = Ui.dp(this, 150), m = Ui.dp(this, 8);
-        GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
-        lp.width = s;
-        lp.height = s;
+        int m = Ui.dp(this, 8);
+        GridLayout.LayoutParams lp = new GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED), GridLayout.spec(GridLayout.UNDEFINED, 1f));
+        lp.width = 0;
+        lp.height = Ui.dp(this, 130);
         lp.setMargins(m, m, m, m);
         t.setLayoutParams(lp);
         ImageView iv = new ImageView(this);
-        if (icon != null) iv.setImageDrawable(icon);
-        else iv.setBackground(Ui.round(this, Ui.CARD2, 12));
-        t.addView(iv, new LinearLayout.LayoutParams(Ui.dp(this, 64), Ui.dp(this, 64)));
+        if (icon != null) {
+            iv.setImageDrawable(icon);
+            t.addView(iv, new LinearLayout.LayoutParams(Ui.dp(this, 64), Ui.dp(this, 64)));
+        } else {
+            TextView g = Ui.text(this, "\u2630", 34, Ui.ACCENT, true);
+            g.setGravity(Gravity.CENTER);
+            t.addView(g, new LinearLayout.LayoutParams(Ui.dp(this, 64), Ui.dp(this, 64)));
+        }
         TextView l = Ui.text(this, name, 16, pkg != null && icon == null && !"*".equals(pkg) && !isInstalled(pkg) ? Ui.MUTED : Ui.TEXT, false);
         l.setGravity(Gravity.CENTER);
         l.setPadding(0, Ui.dp(this, 8), 0, 0);
@@ -280,6 +290,7 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+        tickDate.run();
         msm = getSystemService(MediaSessionManager.class);
         if (!KeepAliveListener.granted(this)) {
             hint.setText("Lipseste „Acces la notificari” pentru FaikkitCar");
@@ -297,6 +308,7 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
+        ui.removeCallbacks(tickDate);
         try {
             msm.removeOnActiveSessionsChangedListener(sessions);
         } catch (Exception ignored) {
